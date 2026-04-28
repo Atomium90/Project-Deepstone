@@ -104,7 +104,7 @@ case class StateUpdate(
     player: PlayerView,
     room: Option[RoomView] = None,
     combat: Option[CombatView] = None,
-    hub: Option[HubView],
+    hub: Option[HubView] = None,
     log: List[String] = Nil
 )
 

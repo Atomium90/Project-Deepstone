@@ -1,0 +1,19 @@
+### Scala / sbt ###
+target/
+project/target/
+project/project/
+
+### Metals / Bloop / BSP ###
+.metals/
+.bloop/
+.bsp/
+
+### IntelliJ (module-level) ###
+*.iml
+
+### Logs ###
+*.log
+
+### OS junk ###
+.DS_Store
+Thumbs.db

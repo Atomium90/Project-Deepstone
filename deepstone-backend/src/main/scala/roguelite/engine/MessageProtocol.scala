@@ -117,30 +117,37 @@ object MessageProtocol:
   // Enums: encoded as plain strings
   given Encoder[Direction] = Encoder[String].contramap(_.toString.toUpperCase)
   given Decoder[Direction] = Decoder[String].emap(
-    s => Direction.values.find(_.toString.toUpperCase == s).toRight(s"Unknown direction: $s")
+    s =>
+      Direction.values
+        .find(_.toString.toUpperCase == s.toUpperCase)
+        .toRight(s"Unknown direction: $s")
   )
 
   given Encoder[GamePhase] = Encoder[String].contramap(_.toString.toUpperCase)
   given Decoder[GamePhase] = Decoder[String].emap(
-    s => GamePhase.values.find(_.toString.toUpperCase == s).toRight(s"Unknown phase :$s")
+    s =>
+      GamePhase.values.find(_.toString.toUpperCase == s.toUpperCase).toRight(s"Unknown phase :$s")
   )
 
   given Encoder[CombatActionType] = Encoder[String].contramap(_.toString.toUpperCase)
   given Decoder[CombatActionType] = Decoder[String].emap(
     s =>
       CombatActionType.values
-        .find(_.toString.toUpperCase == s)
+        .find(_.toString.toUpperCase == s.toUpperCase)
         .toRight(s"Unknown combat action: $s")
   )
 
   given Encoder[HubActionType] = Encoder[String].contramap(_.toString.toUpperCase)
   given Decoder[HubActionType] = Decoder[String].emap(
-    s => HubActionType.values.find(_.toString.toUpperCase == s).toRight(s"Unknown hub action: $s")
+    s =>
+      HubActionType.values
+        .find(_.toString.toUpperCase == s.toUpperCase)
+        .toRight(s"Unknown hub action: $s")
   )
 
   given Encoder[ClassId] = Encoder[String].contramap(_.toString.toLowerCase)
   given Decoder[ClassId] = Decoder[String].emap(
-    s => ClassId.values.find(_.toString.toLowerCase == s).toRight(s"Unknown class: $s")
+    s => ClassId.values.find(_.toString.toLowerCase == s.toLowerCase).toRight(s"Unknown class: $s")
   )
 
   // Actions (client → server)
@@ -165,6 +172,7 @@ object MessageProtocol:
         case "MOVE"          => cursor.as[Move].left.map(_.message)
         case "INTERACT"      => cursor.as[Interact].left.map(_.message)
         case "COMBAT_ACTION" => cursor.as[CombatAction].left.map(_.message)
+        case "HUB_ACTION"    => cursor.as[HubAction].left.map(_.message)
         case other           => Left(s"Unknown action type: $other")
       }
     yield action

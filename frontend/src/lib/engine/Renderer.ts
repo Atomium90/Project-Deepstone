@@ -1,14 +1,27 @@
 import { AssetManager } from "./AssetManager";
-import type { RoomView, PlayerView } from "./protocol"
+import type { RoomView, PlayerView } from "./protocol";
+import {
+    TILE_SIZE,
+    LERP_SPEED,
+    LERP_SNAP_THRESHOLD,
+    PLAYER_RADIUS_RATIO,
+    ENTITY_RADIUS_RATIO,
+    ENTITY_LABEL_OFFSET,
+    COLOR_TILE_GRID_WIDTH,
+    COLOR_ENTITY_LABEL,
+    COLOR_ENTITY_FALLBACK,
+    COLOR_PLAYER_OUTLINE,
+    COLOR_PLAYER_OUTLINE_WIDTH,
+    COLOR_PLAYER_INITIAL,
+    COLOR_LOADING_BG,
+    COLOR_LOADING_TEXT,
+} from "./constants";
 
-/** Size of one tile in pixels. */
-export const TILE_SIZE = 64;
-
-/** How fast the player sprite moves toward its target position (0–1 per frame). */
-const LERP_SPEED = 0.18;
-
-/** Threshold in pixels below which we snap to the target (avoids infinite micro-lerp). */
-const LERP_SNAP_THRESHOLD = 0.5;
+const ENTITY_COLORS: Record<string, string> = {
+    enemy: "#c0392b",
+    chest: "#d4ac0d",
+    door:  "#5d6d7e",
+};
 
 /** Represents a 2D position in pixel space. */
 interface Vec2 {
@@ -25,6 +38,9 @@ interface Vec2 {
  * target position, giving the illusion of fluid movement without any client-side
  * physics or prediction.
  *
+ * The canvas is resized dynamically to fill whatever container it is placed in.
+ * The tile size (TILE_SIZE) stays fixed; the room is centered inside the canvas.
+ *
  * Usage:
  *   const renderer = new Renderer(canvasElement);
  *   renderer.start();
@@ -36,7 +52,7 @@ export class Renderer {
     private readonly ctx: CanvasRenderingContext2D;
     private readonly assets: AssetManager;
 
-    private animFramId: number | null = null;
+    private animFrameId: number | null = null;
     private room: RoomView | null = null;
     private player: PlayerView | null = null;
 
@@ -46,8 +62,11 @@ export class Renderer {
     /** Target position in pixel space (set from server state). */
     private targetPos: Vec2 = { x: 0, y: 0 };
 
-    /** Whether the visual position has been initialized (skip lerp on first frame). */
-    private posInitialized: false;
+    /** Tracks whether visualPos has been seeded (skip lerp on first frame). */
+    private posInitialized = false;
+
+    /** ResizeObserver to react when the container changes size. */
+    private resizeObserver: ResizeObserver;
 
     constructor(canvas: HTMLCanvasElement) {
         const ctx = canvas.getContext("2d");
@@ -56,6 +75,10 @@ export class Renderer {
         this.canvas = canvas;
         this.ctx = ctx;
         this.assets = new AssetManager();
+
+        // Keep the canvas pixel dimensions in sync with its CSS layout size
+        this.resizeObserver = new ResizeObserver(() => this.fitToContainer());
+        this.resizeObserver.observe(canvas);
     }
 
     /**
@@ -65,16 +88,6 @@ export class Renderer {
     update(room: RoomView, player: PlayerView): void {
         this.room = room;
         this.player = player;
-
-        // Resize canvas to fit the room
-        const expectedWidth = room.width * TILE_SIZE;
-        const expectedHeight = room.height * TILE_SIZE;
-        if (this.canvas.width !== expectedWidth || this.canvas.height !== expectedHeight) {
-            this.canvas.width = expectedWidth;
-            this.canvas.height = expectedHeight;
-        }
-
-        // Update the target pixel position
         this.targetPos = tileToPixelCenter(room.playerX, room.playerY);
 
         // On the very first update, snap directly to the position (no lerp)
@@ -86,30 +99,40 @@ export class Renderer {
 
     /** Start the render loop. Call once after mounting the canvas. */
     start(): void {
-        if (this.animFramId !== null) return;
-        this.loop()
+        if (this.animFrameId !== null) return;
+        this.fitToContainer();
+        this.loop();
     }
 
+    /** Stop the render loop and disconnect the resize observer. */
     stop(): void {
-        if (this.animFramId !== null) {
-            cancelAnimationFrame(this.animFramId);
-            this.animFramId = null;
+        if (this.animFrameId !== null) {
+            cancelAnimationFrame(this.animFrameId);
+            this.animFrameId = null;
         }
+        this.resizeObserver.disconnect();
     }
 
     // -------------------------------------------------------------------------
     // Private rendering pipeline
     // -------------------------------------------------------------------------
 
-    private loop = (): void => {
-        this.animFramId = requestAnimationFrame(this.loop);
-        this.tick();
+    /** Resize the canvas pixel buffer to match its current CSS display size. */
+    private fitToContainer(): void {
+        const rect = this.canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width  = Math.round(rect.width  * dpr);
+        this.canvas.height = Math.round(rect.height * dpr);
+        this.ctx.scale(dpr, dpr);
     }
 
-    private tick(): void {
+    private loop = (): void => {
+        this.animFrameId = requestAnimationFrame(this.loop);
         this.interpolate();
         this.draw();
-    }
+    };
 
     /** Move visualPos toward targetPos using linear interpolation. */
     private interpolate(): void {
@@ -127,19 +150,32 @@ export class Renderer {
     }
 
     private draw(): void {
-        const {ctx, canvas } = this;
+        const { ctx } = this;
+        const cssWidth  = this.canvas.width  / (window.devicePixelRatio || 1);
+        const cssHeight = this.canvas.height / (window.devicePixelRatio || 1);
 
         // Clear
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, cssWidth, cssHeight);
 
         if (!this.room || !this.player) {
-            this.drawLoadingState();
+            this.drawLoadingState(cssWidth, cssHeight);
             return;
         }
+
+        // Center the room inside the canvas
+        const roomPixelW = this.room.width  * TILE_SIZE;
+        const roomPixelH = this.room.height * TILE_SIZE;
+        const offsetX = Math.max(0, (cssWidth  - roomPixelW) / 2);
+        const offsetY = Math.max(0, (cssHeight - roomPixelH) / 2);
+
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
 
         this.drawTiles(this.room);
         this.drawEntities(this.room);
         this.drawPlayer(this.player);
+
+        ctx.restore();
     }
 
     private drawTiles(room: RoomView): void {
@@ -158,7 +194,7 @@ export class Renderer {
                 // Subtle grid line on floor tiles only
                 if (tileType === "floor") {
                     ctx.strokeStyle = this.assets.getTileFloorBorderColor();
-                    ctx.lineWidth = 0.5;
+                    ctx.lineWidth = COLOR_TILE_GRID_WIDTH;
                     ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
                 }
             }
@@ -167,31 +203,28 @@ export class Renderer {
 
     private drawEntities(room: RoomView): void {
         const { ctx } = this;
+        const radius = TILE_SIZE * ENTITY_RADIUS_RATIO;
 
         for (const entity of room.entities) {
             const cx = entity.x * TILE_SIZE + TILE_SIZE / 2;
             const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
-            const radius = TILE_SIZE * 0.3;
-
-            const color = ENTITY_COLORS[entity.kind] ?? "#888";
 
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-            ctx.fillStyle = color;
+            ctx.fillStyle = ENTITY_COLORS[entity.kind] ?? COLOR_ENTITY_FALLBACK;
             ctx.fill();
 
-            // Small label below
-            ctx.fillStyle = "#ccc";
+            ctx.fillStyle = COLOR_ENTITY_LABEL;
             ctx.font = "10px monospace";
             ctx.textAlign = "center";
-            ctx.fillText(entity.label, cx, cy + radius + 12);
+            ctx.fillText(entity.label, cx, cy + radius + ENTITY_LABEL_OFFSET);
         }
     }
 
     private drawPlayer(player: PlayerView): void {
         const { ctx } = this;
         const asset = this.assets.getPlayer(player.classId);
-        const radius = TILE_SIZE * 0.32;
+        const radius = TILE_SIZE * PLAYER_RADIUS_RATIO;
         const { x, y } = this.visualPos;
 
         if (asset.image) {
@@ -203,12 +236,12 @@ export class Renderer {
             ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fillStyle = asset.fallbackColor;
             ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.4)";
-            ctx.lineWidth = 2;
+
+            ctx.strokeStyle = COLOR_PLAYER_OUTLINE;
+            ctx.lineWidth   = COLOR_PLAYER_OUTLINE_WIDTH;
             ctx.stroke();
 
-            // Class initial
-            ctx.fillStyle = "#fff";
+            ctx.fillStyle = COLOR_PLAYER_INITIAL;
             ctx.font = `bold ${Math.floor(radius)}px monospace`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
@@ -217,14 +250,14 @@ export class Renderer {
         }
     }
 
-    private drawLoadingState(): void {
-        const { ctx, canvas } = this;
-        ctx.fillStyle = "#1a1a1a";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = "#555";
+    private drawLoadingState(cssWidth: number, cssHeight: number): void {
+        const { ctx } = this;
+        ctx.fillStyle = COLOR_LOADING_BG;
+        ctx.fillRect(0, 0, cssWidth, cssHeight);
+        ctx.fillStyle = COLOR_LOADING_TEXT;
         ctx.font = "14px monospace";
         ctx.textAlign = "center";
-        ctx.fillText("Loading room…", canvas.width / 2, canvas.height / 2);
+        ctx.fillText("Loading room…", cssWidth / 2, cssHeight / 2);
     }
 }
 
@@ -239,25 +272,3 @@ function tileToPixelCenter(tileX: number, tileY: number): Vec2 {
         y: tileY * TILE_SIZE + TILE_SIZE / 2,
     };
 }
-
-const ENTITY_COLORS: Record<string, string> = {
-    enemy: "#c0392b",
-    chest: "#d4ac0d",
-    door: "#5d6d7e",
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

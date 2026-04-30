@@ -1,52 +1,46 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { gameState, gamePhase, connectToServer } from "./lib/engine/StateStore";
+  import { gameState, gamePhase, connectToServer, client } from "./lib/engine/StateStore";
+  import ExplorationHUD from "./lib/components/ExplorationHUD.svelte";
 
   onMount(() => {
     connectToServer();
   });
+
+  function startRun(classId: "warrior" | "archer" | "mage"): void {
+    client.send({ type: "HUB_ACTION", action: "STARTRUN", classId });
+  }
 </script>
 
 <main>
   {#if $gameState === null}
     <div class="screen center">
-      <p>Connecting to server…</p>
+      <p class="muted">Connecting to server…</p>
     </div>
 
-  {:else if $gamePhase === "Hub"}
-    <!-- HubScreen will be implemented in week 5 -->
+  {:else if $gamePhase === "HUB"}
     <div class="screen center">
-      <h1>Deepstone</h1>
-      <p>You are in the hub. <code>meta_currency: {$gameState.player.metaCurrency}</code></p>
-      <button on:click={() => {
-        import("./lib/engine/StateStore").then(({ client }) => {
-          client.send({ type: "HUB_ACTION", action: "START_RUN", classId: "warrior" });
-        });
-      }}>
-        Start Run (Warrior)
-      </button>
+      <h1>DeepStone</h1>
+      <p class="muted">Choose your class</p>
+      <div class="class-select">
+        <button on:click={() => startRun("warrior")}>⚔ Warrior</button>
+        <button on:click={() => startRun("archer")}>🏹 Archer</button>
+        <button on:click={() => startRun("mage")}>✦ Mage</button>
+      </div>
+      <p class="currency">◈ {$gameState.player.metaCurrency}</p>
     </div>
 
-  {:else if $gamePhase === "Exploration"}
-    <!-- ExplorationHUD will be implemented in week 2 -->
+  {:else if $gamePhase === "EXPLORATION"}
+    <ExplorationHUD />
+
+  {:else if $gamePhase === "COMBAT"}
+    <div class="screen center"><p>Combat — coming soon</p></div>
+
+  {:else if $gamePhase === "GAMEOVER"}
     <div class="screen center">
-      <p>Exploring — phase placeholder</p>
-      <p>Player: {$gameState.player.classId} | HP: {$gameState.player.hp}/{$gameState.player.maxHp}</p>
-      {#if $gameState.log.length > 0}
-        <ul class="log">
-          {#each $gameState.log as line}
-            <li>{line}</li>
-          {/each}
-        </ul>
-      {/if}
+      <h2>Game Over</h2>
+      <button on:click={() => startRun("warrior")}>Back to Hub</button>
     </div>
-
-  {:else if $gamePhase === "Combat"}
-    <!-- CombatScreen will be implemented in week 3 -->
-    <div class="screen center"><p>Combat — phase placeholder</p></div>
-
-  {:else if $gamePhase === "GameOver"}
-    <div class="screen center"><h2>Game Over</h2></div>
   {/if}
 </main>
 
@@ -78,27 +72,50 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 1.25rem;
+  }
+
+  h1 {
+    font-size: 2.5rem;
+    letter-spacing: 0.2em;
+    color: #eee;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    color: #c0392b;
+  }
+
+  .muted {
+    color: #555;
+    font-size: 0.875rem;
+  }
+
+  .class-select {
+    display: flex;
+    gap: 0.75rem;
   }
 
   button {
-    padding: 0.75rem 1.5rem;
-    background: #333;
-    color: #eee;
-    border: 1px solid #666;
+    padding: 0.6rem 1.25rem;
+    background: #1e1e1e;
+    color: #ccc;
+    border: 1px solid #444;
     cursor: pointer;
     font-family: monospace;
-    font-size: 1rem;
+    font-size: 0.9rem;
+    transition: background 0.15s, border-color 0.15s;
   }
 
   button:hover {
-    background: #444;
+    background: #2a2a2a;
+    border-color: #777;
+    color: #eee;
   }
 
-  .log {
-    list-style: none;
-    text-align: center;
-    color: #aaa;
-    font-size: 0.875rem;
+  .currency {
+    color: #888;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
   }
 </style>

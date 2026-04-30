@@ -2,6 +2,7 @@
     import { onMount, onDestroy } from "svelte";
     import { gameState, client } from "../engine/StateStore";
     import { Renderer } from "../engine/Renderer";
+    import { RESOURCE_LABELS, RESOURCE_BAR_COLORS, HP_BAR_COLOR } from "../engine/constants";
     import type { Direction } from "../engine/protocol";
 
     let canvasEl: HTMLCanvasElement;
@@ -13,9 +14,9 @@
         ArrowDown: "DOWN",
         ArrowLeft: "LEFT",
         ArrowRight: "RIGHT",
-        w: "UP",
+        z: "UP",
         s: "DOWN",
-        a: "LEFT",
+        q: "LEFT",
         d: "RIGHT",
     };
 
@@ -29,7 +30,6 @@
         // Prevent arrow keys from scrolling the page
         e.preventDefault();
         heldKeys.add(e.key);
-
         client.send({ type: "MOVE", direction });
     }
 
@@ -40,7 +40,6 @@
     onMount(() => {
         renderer = new Renderer(canvasEl);
         renderer.start();
-
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("keyup", handleKeyUp);
     });
@@ -60,21 +59,18 @@
     $: player = $gameState?.player;
     $: hpPercent = player ? (player.hp / player.maxHp) * 100 : 100;
     $: resourcePercent = player ? (player.resourceCurrent / player.resourceMax) * 100 : 100;
-    $: resourceLabel = player?.classId === "warrior"
-        ? "Rage"
-        : player?.classId === "archer"
-            ? "Focus"
-            : "Mana";
+    $: resourceLabel   = player ? RESOURCE_LABELS[player.classId] : "Resource";
+    $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : "#888";
 </script>
 
-<div class="exploration-root">
-    <!-- Canvas — the dungeon room -->
-    <div class="canvas-wrapper">
-        <canvas bind:this={canvasEl} width={640} height={512} />
-        <p class="controls-hint">Move: Arrow keys or WASD</p>
-    </div>
+<!--
+  Layout: the canvas fills all available space, the stats panel has a fixed
+  width and sits alongside it. Both stretch to 100% height so the HUD always
+  occupies the full viewport.
+-->
+<div class="hud-root">
+    <canvas class="game-canvas" bind:this={canvasEl} />
 
-    <!-- Stats overlay -->
     {#if player}
         <aside class="stats-panel">
             <div class="class-badge">{player.classId.toUpperCase()}</div>
@@ -82,7 +78,7 @@
             <div class="stat-block">
                 <span class="stat-label">HP</span>
                 <div class="bar-track">
-                    <div class="bar hp-bar" style="width: {hpPercent}%" />
+                    <div class="bar" style="width:{hpPercent}%; background:{HP_BAR_COLOR}" />
                 </div>
                 <span class="stat-value">{player.hp} / {player.maxHp}</span>
             </div>
@@ -90,7 +86,7 @@
             <div class="stat-block">
                 <span class="stat-label">{resourceLabel}</span>
                 <div class="bar-track">
-                    <div class="bar resource-bar" style="width: {resourcePercent}%" />
+                    <div class="bar" style="width:{resourcePercent}%; background:{resourceColor}" />
                 </div>
                 <span class="stat-value">{player.resourceCurrent} / {player.resourceMax}</span>
             </div>
@@ -104,63 +100,53 @@
                 <span class="stat-label">XP</span>
                 <span class="stat-value">{player.xp}</span>
             </div>
+
+            <p class="controls-hint">Arrow keys / WASD</p>
         </aside>
     {/if}
 </div>
 
 <style>
-    .exploration-root {
+    .hud-root {
         display: flex;
-        gap: 1.5rem;
-        align-items: flex-start;
-        padding: 1.5rem;
+        width: 100%;
         height: 100%;
+        overflow: hidden;
     }
 
-    .canvas-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-
-    canvas {
+    /* Canvas fills all remaining space after the stats panel */
+    .game-canvas {
+        flex: 1 1 0;
+        min-width: 0;
+        height: 100%;
         display: block;
-        border: 1px solid #333;
-        image-rendering: pixelated; /* keeps sprites crisp if we add pixel art later */
     }
 
-    .controls-hint {
-        font-size: 0.75rem;
-        color: #555;
-        font-family: monospace;
-    }
-
-    /* -- Stats panel ------------------------------------------- */
-
+    /* Stats panel: fixed width, full height, does not shrink */
     .stats-panel {
+        flex: 0 0 180px;
         display: flex;
         flex-direction: column;
         gap: 1rem;
-        min-width: 160px;
-        padding: 1rem;
+        padding: 1.25rem 1rem;
         background: #1a1a1a;
-        border: 1px solid #333;
+        border-left: 1px solid #2a2a2a;
         font-family: monospace;
+        overflow-y: auto;
     }
 
     .class-badge {
-        font-size: 0.7rem;
-        letter-spacing: 0.15em;
-        color: #888;
-        border-bottom: 1px solid #333;
-        padding-bottom: 0.5rem;
+        font-size: 0.65rem;
+        letter-spacing: 0.18em;
+        color: #666;
+        border-bottom: 1px solid #2a2a2a;
+        padding-bottom: 0.75rem;
     }
 
     .stat-block {
         display: flex;
         flex-direction: column;
-        gap: 0.25rem;
+        gap: 0.3rem;
     }
 
     .stat-block.inline {
@@ -170,20 +156,20 @@
     }
 
     .stat-label {
-        font-size: 0.7rem;
-        color: #666;
+        font-size: 0.65rem;
+        color: #555;
         text-transform: uppercase;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.12em;
     }
 
     .stat-value {
-        font-size: 0.8rem;
-        color: #ccc;
+        font-size: 0.78rem;
+        color: #bbb;
     }
 
     .bar-track {
-        height: 6px;
-        background: #2a2a2a;
+        height: 5px;
+        background: #252525;
         border-radius: 2px;
         overflow: hidden;
     }
@@ -191,14 +177,12 @@
     .bar {
         height: 100%;
         border-radius: 2px;
-        transition: width 0.2s ease;
+        transition: width 0.15s ease;
     }
 
-    .hp-bar {
-        background: #c0392b;
-    }
-
-    .resource-bar {
-        background: #2980b9;
+    .controls-hint {
+        margin-top: auto;
+        font-size: 0.65rem;
+        color: #3a3a3a;
     }
 </style>

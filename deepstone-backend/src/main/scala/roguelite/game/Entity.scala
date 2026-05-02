@@ -1,0 +1,44 @@
+package roguelite.game
+
+import roguelite.engine.{ Direction, EntityView }
+
+/** An interactive object placed on a tile in a room.
+  *
+  * All entities are static during exploration — they do not move. The player interacts with them by
+  * clicking (INTERACT action).
+  */
+sealed trait Entity:
+  def id: String
+  def x: Int
+  def y: Int
+
+  /** Project to the lightweight view sent to the client. */
+  def toView: EntityView
+
+/** A hostile creature. Clicking it starts a combat. */
+case class Enemy(
+    id: String,
+    x: Int,
+    y: Int,
+    label: String
+) extends Entity:
+  def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label)
+
+/** A loot container. Clicking it grants items. */
+case class Chest(
+    id: String,
+    x: Int,
+    y: Int
+) extends Entity:
+  def toView: EntityView = EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest")
+
+/** A passage to an adjacent room. Clicking it navigates to that room. */
+case class Door(
+    id: String,
+    x: Int,
+    y: Int,
+    direction: Direction,
+    targetRoomId: String
+) extends Entity:
+  def toView: EntityView =
+    EntityView(id = id, kind = "door", x = x, y = y, label = direction.toString)

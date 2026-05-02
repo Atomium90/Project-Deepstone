@@ -1,0 +1,67 @@
+[
+  {
+    "id": "room_001",
+    "type": "combat",
+    "width": 10,
+    "height": 8,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "enemy", "id": "goblin_01", "x": 6, "y": 2, "label": "Goblin" },
+      { "kind": "enemy", "id": "goblin_02", "x": 8, "y": 4, "label": "Goblin" },
+      { "kind": "door",  "id": "door_south", "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "room_002" }
+    ]
+  },
+  {
+    "id": "room_002",
+    "type": "loot",
+    "width": 10,
+    "height": 8,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "chest", "id": "chest_01", "x": 3, "y": 3 },
+      { "kind": "chest", "id": "chest_02", "x": 7, "y": 5 },
+      { "kind": "door",  "id": "door_north", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "room_001" },
+      { "kind": "door",  "id": "door_south", "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "room_003" }
+    ]
+  },
+  {
+    "id": "room_003",
+    "type": "boss",
+    "width": 12,
+    "height": 10,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "enemy", "id": "boss_01", "x": 6, "y": 5, "label": "Cave Troll" },
+      { "kind": "door",  "id": "door_north", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "room_002" }
+    ]
+  }
+]

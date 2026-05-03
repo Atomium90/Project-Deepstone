@@ -6,7 +6,7 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.Logger as HttpLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import roguelite.engine.{ StateMachine, WebSocketRouter }
-import roguelite.game.{ Dungeon, RoomLoader }
+import roguelite.game.{ Dungeon, DungeonBuilder, RoomLoader }
 
 object Main extends IOApp.Simple:
 
@@ -19,17 +19,18 @@ object Main extends IOApp.Simple:
       roomPool <- RoomLoader.loadAll()
       _        <- logger.info(s"Loaded ${roomPool.size} rooms.")
 
-      // Build the starting dungeon from the first three rooms in the pool.
-      // This will be replaced by a DungeonBuilder later on.
-      startingRooms = roomPool.values.toList.sortBy(_.id).take(3)
+      // Build a randomized dungeon from the pool each time the server starts.
+      // 4 rooms: 1 entrance combat room + 2 middle rooms + 1 boss room.
+      builder = DungeonBuilder(roomPool)
       dungeon <- IO.fromEither(
-        Dungeon
-          .fromRooms(startingRooms)
+        builder
+          .build(totalRooms = 4)
           .left
           .map(
             err => RuntimeException(s"Failed to build dungeon: $err")
           )
       )
+      _ <- logger.info(s"Built dungeon: ${dungeon.rooms.keys.mkString(" → ")}")
 
       stateMachine = StateMachine(dungeon)
       router       = WebSocketRouter(stateMachine)

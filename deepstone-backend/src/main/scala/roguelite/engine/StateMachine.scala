@@ -1,6 +1,7 @@
 package roguelite.engine
 
 import cats.effect.IO
+import roguelite.game.{ Chest, Door, Dungeon, Enemy, Room }
 
 // ---------------------------------------------
 // Internal game states (server-side)
@@ -88,33 +89,17 @@ case class HubState(player: Player) extends GameState:
     )
 
 /** Placeholder room */
-case class ExplorationState(player: Player, playerX: Int = 1, playerY: Int = 1) extends GameState:
+case class ExplorationState(player: Player, dungeon: Dungeon, playerX: Int = 1, playerY: Int = 1)
+    extends GameState:
   def toStateUpdate(log: List[String]): StateUpdate =
     StateUpdate(phase = GamePhase.Exploration,
                 player = player.toView,
-                room = Some(ExplorationState.emptyRoom(playerX, playerY)),
+                room = Some(dungeon.currentRoom.toView(playerX, playerY)),
                 log = log
     )
 
-object ExplorationState:
-  /** Temporary 10×8 empty room used until the dungeon system is implemented. */
-  def emptyRoom(playerX: Int, playerY: Int): RoomView =
-    val width  = 10
-    val height = 8
-    val tiles = Vector.tabulate(height, width):
-      (row, col) =>
-        if row == 0 || row == height - 1 || col == 0 || col == width - 1
-        then "wall"
-        else "floor"
-    RoomView(width = width,
-             height = height,
-             tiles = tiles,
-             entities = Nil,
-             playerX = playerX,
-             playerY = playerY
-    )
-
-case class CombatState(player: Player, playerX: Int, playerY: Int) extends GameState:
+case class CombatState(player: Player, dungeon: Dungeon, playerX: Int, playerY: Int)
+    extends GameState:
   def toStateUpdate(log: List[String]): StateUpdate =
     StateUpdate(phase = GamePhase.Combat, player = player.toView, log = log)
 
@@ -130,11 +115,15 @@ case class GameOverState(player: Player) extends GameState:
   *
   * Each `transition` call is the single point where game rules are enforced. Illegal action/state
   * combinations are ignored with a log message rather than crashing, so the client always gets a
-  * valid response.
+  * valid response. A [[Dungeon]] must be provided at construction time so the state machine can
+  * build an [[ExplorationState]] when a run starts.
+  *
+  * @param dungeon
+  *   The dungeon to use when starting a new run.
   *
   * Returns the new state and a list of log lines describing what happened.
   */
-class StateMachine:
+class StateMachine(dungeon: Dungeon):
   def transition(state: GameState, action: PlayerAction): IO[(GameState, List[String])] =
     IO.pure(applyActionPure(state, action))
 
@@ -146,7 +135,7 @@ class StateMachine:
 
       case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _)) =>
         val player    = Player.startingPlayer(classId)
-        val nextState = ExplorationState(player)
+        val nextState = ExplorationState(player, dungeon, playerX = 1, playerY = 1)
         (nextState, List(s"A new run begins. Good luck, $classId."))
 
       case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _)) =>
@@ -162,14 +151,43 @@ class StateMachine:
           case Direction.Left  => (-1, 0)
           case Direction.Right => (1, 0)
         }
-        val newX  = (exp.playerX + dx).max(1).min(8)
-        val newY  = (exp.playerY + dy).max(1).min(6)
-        val moved = exp.copy(playerX = newX, playerY = newY)
-        (moved, Nil)
+
+        val newX = exp.playerX + dx
+        val newY = exp.playerY + dy
+        val room = exp.dungeon.currentRoom
+
+        if !room.isWalkable(newX, newY)
+        then (exp, Nil) // Silently blocked
+        else (exp.copy(playerX = newX, playerY = newY), Nil)
 
       case (exp: ExplorationState, Interact(targetId)) =>
-        // Entity interaction will be added later
-        (exp, List(s"Nothing to interact with yet."))
+        exp.dungeon.currentRoom.entityById(targetId) match {
+          case None =>
+            (exp, List(s"No entity found with id '$targetId'."))
+
+          case Some(door: Door) =>
+            exp.dungeon.navigateTo(door.targetRoomId) match {
+              case Left(err)         => (exp, List(err))
+              case Right(newDungeon) =>
+                // Place the player at the opposite door's position when entering
+                val newRoom    = newDungeon.currentRoom
+                val spawnPoint = findSpawnPoint(newRoom, door.direction)
+                val nextState =
+                  exp.copy(dungeon = newDungeon, playerX = spawnPoint._1, playerY = spawnPoint._2)
+                (nextState, List(s"You pass through the door heading ${door.direction}."))
+            }
+
+          case Some(enemy: Enemy) =>
+            val nextState = CombatState(exp.player, exp.dungeon, exp.playerX, exp.playerY)
+            (nextState, List(s"You engage the ${enemy.label}!"))
+
+          case Some(chest: Chest) =>
+            // Chest opening will be implemented later
+            val updatedRoom = exp.dungeon.currentRoom.removeEntity(chest.id)
+            val updatedDungeon =
+              exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(updatedRoom.id, updatedRoom))
+            (exp.copy(dungeon = updatedDungeon), List("You open the chest."))
+        }
 
       // -- Combat -----------------------------------------------------------
 
@@ -185,3 +203,21 @@ class StateMachine:
            s"Action ${invalidAction.getClass.getSimpleName} is not valid in state ${currentState.getClass.getSimpleName}."
          )
         )
+
+  /** Find a sensible spawn point in the target room when entering through a door.
+    *
+    * The player arrives at the tile adjacent to the door on the opposite wall. For example,
+    * entering through a DOWN door means the player came from below, so they spawn just inside the
+    * top of the new room. Falls back to (1,1) if the computed position is not walkable.
+    */
+  private def findSpawnPoint(room: Room, fromDirection: Direction): (Int, Int) =
+    val candidate = fromDirection match {
+      case Direction.Down => (room.width / 2, 1) // entered from south → spawn near north
+      case Direction.Up =>
+        (room.width / 2, room.height - 2) // entered from north → spawn near south
+      case Direction.Right => (1, room.height / 2) // entered from east  → spawn near west
+      case Direction.Left =>
+        (room.width - 2, room.height / 2) // entered from west  → spawn near east
+    }
+
+    if room.isWalkable(candidate._1, candidate._2) then candidate else (1, 1)

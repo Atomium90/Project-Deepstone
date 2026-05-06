@@ -10,7 +10,8 @@ import roguelite.engine.{
   Player
 }
 
-import scala.util.Random
+import scala.util.{ boundary, Random }
+import boundary.break
 
 /** Resolves combat turns and produces new game states.
   *
@@ -108,13 +109,16 @@ class CombatResolver(rng: Random = Random()):
   private def pickEnemyAction(enemy: EnemyInstance): String =
     val total = enemy.actions.map(_.weight).sum
     if total <= 0 then return "ATTACK"
-    val roll   = rng.nextInt(total)
-    var cursor = 0
-    for a <- enemy.actions do {
-      cursor += a.weight
-      if roll < cursor then return a.action
-    }
-    "ATTACK" // fallback
+    val roll = rng.nextInt(total)
+
+    boundary:
+      enemy.actions.foldLeft(0) {
+        (cursor, a) =>
+          val next = cursor + a.weight
+          if roll < next then break(a.action)
+          next
+      }
+    "ATTACK" // Fallback
 
   // ---------------------------------------------
   // Outcome helpers

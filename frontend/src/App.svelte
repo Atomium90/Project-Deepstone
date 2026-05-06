@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { gameState, gamePhase, connectToServer, client } from "./lib/engine/StateStore";
   import ExplorationHUD from "./lib/components/ExplorationHUD.svelte";
+  import CombatScreen from "./lib/components/CombatScreen.svelte";
 
   onMount(() => {
     connectToServer();
@@ -34,12 +35,13 @@
     <ExplorationHUD />
 
   {:else if $gamePhase === "COMBAT"}
-    <div class="screen center"><p>Combat — coming soon</p></div>
+    <CombatScreen />
 
   {:else if $gamePhase === "GAMEOVER"}
     <div class="screen center">
       <h2>Game Over</h2>
-      <button on:click={() => startRun("warrior")}>Back to Hub</button>
+      <p class="muted">The dungeon claims another soul.</p>
+      <button on:click={() => startRun("warrior")}>Return to Hub</button>
     </div>
   {/if}
 </main>

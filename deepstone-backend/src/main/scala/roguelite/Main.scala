@@ -1,12 +1,12 @@
 package roguelite
 
-import cats.effect.{ IO, IOApp }
-import com.comcast.ip4s.{ host, port }
+import cats.effect.{IO, IOApp}
+import com.comcast.ip4s.{host, port}
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.middleware.Logger as HttpLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import roguelite.engine.{ StateMachine, WebSocketRouter }
-import roguelite.game.{ Dungeon, DungeonBuilder, RoomLoader }
+import roguelite.engine.{StateMachine, WebSocketRouter}
+import roguelite.game.{CombatResolver, Dungeon, DungeonBuilder, EnemyLoader, RoomLoader}
 
 object Main extends IOApp.Simple:
 
@@ -15,9 +15,10 @@ object Main extends IOApp.Simple:
       given org.typelevel.log4cats.Logger[IO] <- Slf4jLogger.create[IO]
       logger                                  <- Slf4jLogger.create[IO]
 
-      _        <- logger.info("Loading room data...")
+      _        <- logger.info("Loading game data...")
       roomPool <- RoomLoader.loadAll()
-      _        <- logger.info(s"Loaded ${roomPool.size} rooms.")
+      enemyStats <- EnemyLoader.loadAll()
+      _        <- logger.info(s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types.")
 
       // Build a randomized dungeon from the pool each time the server starts.
       // 4 rooms: 1 entrance combat room + 2 middle rooms + 1 boss room.
@@ -31,8 +32,9 @@ object Main extends IOApp.Simple:
           )
       )
       _ <- logger.info(s"Built dungeon: ${dungeon.rooms.keys.mkString(" → ")}")
-
-      stateMachine = StateMachine(dungeon)
+      
+      resolver = CombatResolver()
+      stateMachine = StateMachine(dungeon, enemyStats, resolver)
       router       = WebSocketRouter(stateMachine)
 
       _ <- EmberServerBuilder

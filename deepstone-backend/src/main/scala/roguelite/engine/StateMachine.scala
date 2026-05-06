@@ -2,6 +2,14 @@ package roguelite.engine
 
 import cats.effect.IO
 import roguelite.game.{ Chest, Door, Dungeon, Enemy, Room }
+import roguelite.game.{
+  Chest,
+  Combat,
+  Door,
+  Dungeon,
+  Enemy,
+  Room
+}
 
 // ---------------------------------------------
 // Internal game states (server-side)
@@ -50,7 +58,7 @@ object Player:
       Player(ClassId.Archer,
              hp = 90,
              maxHp = 90,
-             resourceCurrent = 0,
+             resourceCurrent = 50,
              resourceMax = 50,
              level = 1,
              xp = 0,
@@ -60,7 +68,7 @@ object Player:
       Player(ClassId.Mage,
              hp = 70,
              maxHp = 70,
-             resourceCurrent = 0,
+             resourceCurrent = 80,
              resourceMax = 80,
              level = 1,
              xp = 0,
@@ -80,7 +88,7 @@ sealed trait GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate
 
 case class HubState(player: Player) extends GameState:
-  def toStateUpdate(log: List[String]): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Hub,
       player = player.toView,
@@ -88,20 +96,44 @@ case class HubState(player: Player) extends GameState:
       log = log
     )
 
-/** Placeholder room */
-case class ExplorationState(player: Player, dungeon: Dungeon, playerX: Int = 1, playerY: Int = 1)
+case class ExplorationState(player: Player, dungeon: Dungeon, playerX: Int, playerY: Int)
     extends GameState:
-  def toStateUpdate(log: List[String]): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(phase = GamePhase.Exploration,
                 player = player.toView,
                 room = Some(dungeon.currentRoom.toView(playerX, playerY)),
                 log = log
     )
 
-case class CombatState(player: Player, dungeon: Dungeon, playerX: Int, playerY: Int)
-    extends GameState:
-  def toStateUpdate(log: List[String]): StateUpdate =
-    StateUpdate(phase = GamePhase.Combat, player = player.toView, log = log)
+/** Active combat state.
+  *
+  * @param combat
+  *   Runtime state of the current fight.
+  * @param enemyEntityId
+  *   Id of the [[Enemy]] entity in the room, used to remove it after a victorious combat.
+  */
+case class CombatState(player: Player,
+                       dungeon: Dungeon,
+                       playerX: Int,
+                       playerY: Int,
+                       combat: Combat,
+                       enemyEntityId: String
+) extends GameState:
+  def toStateUpdate(log: List[String] = Nil): StateUpdate =
+    StateUpdate(
+      phase = GamePhase.Combat,
+      player = player.toView,
+      room = Some(dungeon.currentRoom.toView(playerX, playerY)),
+      combat = Some(
+        CombatView(enemyId = combat.enemy.typeId,
+                   enemyLabel = combat.enemy.label,
+                   enemyHp = combat.enemy.hp,
+                   enemyMaxHp = combat.enemy.maxHp,
+                   isPlayerTurn = combat.isPlayerTurn
+        )
+      ),
+      log = log
+    )
 
 case class GameOverState(player: Player) extends GameState:
   def toStateUpdate(log: List[String]): StateUpdate =

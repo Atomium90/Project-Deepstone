@@ -24,13 +24,24 @@
     const heldKeys = new Set<string>();
 
     function handleKeyDown(e: KeyboardEvent): void {
+        // Movement
         const direction = KEY_MAP[e.key];
-        if (!direction || heldKeys.has(e.key)) return;
-
-        // Prevent arrow keys from scrolling the page
-        e.preventDefault();
-        heldKeys.add(e.key);
-        client.send({ type: "MOVE", direction });
+        if (direction && heldKeys.has(e.key)) {
+            // Prevent arrow keys from scrolling the page
+            e.preventDefault();
+            heldKeys.add(e.key);
+            client.send({ type: "MOVE", direction });
+            return;
+        }
+        
+        // Interact (E key)
+        if (e.key == "e" || e.key == "E") {
+            e.preventDefault();
+            const entity = renderer?.nearestInteractable();
+            if (entity) {
+                client.send({ type: "INTERACT", targetId: entity.id });
+            }
+        }
     }
 
     function handleKeyUp(e: KeyboardEvent): void {
@@ -101,7 +112,7 @@
                 <span class="stat-value">{player.xp}</span>
             </div>
 
-            <p class="controls-hint">Arrow keys / WASD</p>
+            <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E</p>
         </aside>
     {/if}
 </div>
@@ -184,5 +195,6 @@
         margin-top: auto;
         font-size: 0.65rem;
         color: #3a3a3a;
+        line-height: 1.6;
     }
 </style>

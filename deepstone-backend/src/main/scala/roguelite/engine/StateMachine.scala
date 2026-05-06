@@ -1,13 +1,15 @@
 package roguelite.engine
 
 import cats.effect.IO
-import roguelite.game.{ Chest, Door, Dungeon, Enemy, Room }
 import roguelite.game.{
   Chest,
   Combat,
+  CombatResolver,
   Door,
   Dungeon,
   Enemy,
+  EnemyInstance,
+  EnemyStats,
   Room
 }
 
@@ -145,17 +147,18 @@ case class GameOverState(player: Player) extends GameState:
 
 /** Processes player actions and produces new game states.
   *
-  * Each `transition` call is the single point where game rules are enforced. Illegal action/state
-  * combinations are ignored with a log message rather than crashing, so the client always gets a
-  * valid response. A [[Dungeon]] must be provided at construction time so the state machine can
-  * build an [[ExplorationState]] when a run starts.
+  * The state machine is intentionally thin: it handles routing (which action is valid in which
+  * state) but delegates heavy logic to dedicated classes:
+  *   - [[CombatResolver]] for all combat math
   *
   * @param dungeon
-  *   The dungeon to use when starting a new run.
-  *
-  * Returns the new state and a list of log lines describing what happened.
+  *   The dungeon to enter when a new run starts.
+  * @param enemyStats
+  *   Lookup table of enemy stats, keyed by typeId.
+  * @param resolver
+  *   Resolves combat turns.
   */
-class StateMachine(dungeon: Dungeon):
+class StateMachine(dungeon: Dungeon, enemyStats: Map[String, EnemyStats], resolver: CombatResolver):
   def transition(state: GameState, action: PlayerAction): IO[(GameState, List[String])] =
     IO.pure(applyActionPure(state, action))
 
@@ -210,8 +213,16 @@ class StateMachine(dungeon: Dungeon):
             }
 
           case Some(enemy: Enemy) =>
-            val nextState = CombatState(exp.player, exp.dungeon, exp.playerX, exp.playerY)
-            (nextState, List(s"You engage the ${enemy.label}!"))
+            enemyStats.get(enemy.typeId) match {
+              case None =>
+                (exp, List(s"Unknown enemy type '${enemy.typeId}' — cannot start combat."))
+              case Some(stats) =>
+                val instance = EnemyInstance.fromStats(enemy.id, stats)
+                val combat   = Combat(enemy = instance)
+                val nextState =
+                  CombatState(exp.player, exp.dungeon, exp.playerX, exp.playerY, combat, enemy.id)
+                (nextState, List(s"You engage the ${stats.label}!"))
+            }
 
           case Some(chest: Chest) =>
             // Chest opening will be implemented later

@@ -1,0 +1,73 @@
+[
+  {
+    "typeId": "goblin",
+    "label": "Goblin",
+    "maxHp": 20,
+    "attack": 8,
+    "defense": 2,
+    "xpReward": 15,
+    "actions": [
+      { "action": "ATTACK", "weight": 80 },
+      { "action": "DEFEND", "weight": 20 }
+    ]
+  },
+  {
+    "typeId": "orc",
+    "label": "Orc",
+    "maxHp": 35,
+    "attack": 12,
+    "defense": 5,
+    "xpReward": 25,
+    "actions": [
+      { "action": "ATTACK", "weight": 90 },
+      { "action": "DEFEND", "weight": 10 }
+    ]
+  },
+  {
+    "typeId": "skeleton",
+    "label": "Skeleton",
+    "maxHp": 25,
+    "attack": 10,
+    "defense": 3,
+    "xpReward": 20,
+    "actions": [
+      { "action": "ATTACK", "weight": 70 },
+      { "action": "DEFEND", "weight": 30 }
+    ]
+  },
+  {
+    "typeId": "cave_troll",
+    "label": "Cave Troll",
+    "maxHp": 60,
+    "attack": 18,
+    "defense": 8,
+    "xpReward": 50,
+    "actions": [
+      { "action": "ATTACK", "weight": 95 },
+      { "action": "DEFEND", "weight": 5 }
+    ]
+  },
+  {
+    "typeId": "stone_golem",
+    "label": "Stone Golem",
+    "maxHp": 120,
+    "attack": 22,
+    "defense": 15,
+    "xpReward": 150,
+    "actions": [
+      { "action": "ATTACK", "weight": 85 },
+      { "action": "DEFEND", "weight": 15 }
+    ]
+  },
+  {
+    "typeId": "giant_spider",
+    "label": "Giant Spider",
+    "maxHp": 90,
+    "attack": 20,
+    "defense": 6,
+    "xpReward": 150,
+    "actions": [
+      { "action": "ATTACK", "weight": 100 }
+    ]
+  }
+]

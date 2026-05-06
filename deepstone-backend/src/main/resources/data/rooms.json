@@ -15,8 +15,8 @@
       ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "enemy", "id": "goblin_a", "x": 7, "y": 2, "label": "Goblin" },
-      { "kind": "enemy", "id": "goblin_b", "x": 8, "y": 5, "label": "Goblin" },
+      { "kind": "enemy", "id": "goblin_a", "x": 7, "y": 2, "label": "Goblin", "typeId": "goblin" },
+      { "kind": "enemy", "id": "goblin_b", "x": 8, "y": 5, "label": "Goblin", "typeId": "goblin" },
       { "kind": "door",  "id": "door_exit", "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
     ]
   },
@@ -36,9 +36,9 @@
       ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "enemy", "id": "orc_a",    "x": 2,  "y": 3, "label": "Orc" },
-      { "kind": "enemy", "id": "orc_b",    "x": 9,  "y": 2, "label": "Orc" },
-      { "kind": "enemy", "id": "goblin_c", "x": 10, "y": 5, "label": "Goblin" },
+      { "kind": "enemy", "id": "orc_a",    "x": 2,  "y": 3, "label": "Orc",    "typeId": "orc" },
+      { "kind": "enemy", "id": "orc_b",    "x": 9,  "y": 2, "label": "Orc",    "typeId": "orc" },
+      { "kind": "enemy", "id": "goblin_c", "x": 10, "y": 5, "label": "Goblin", "typeId": "goblin" },
       { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
       { "kind": "door",  "id": "door_exit",     "x": 6, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
     ]
@@ -61,8 +61,8 @@
       ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "enemy", "id": "skeleton_a", "x": 4, "y": 4, "label": "Skeleton" },
-      { "kind": "enemy", "id": "skeleton_b", "x": 7, "y": 6, "label": "Skeleton" },
+      { "kind": "enemy", "id": "skeleton_a", "x": 4, "y": 4, "label": "Skeleton", "typeId": "skeleton" },
+      { "kind": "enemy", "id": "skeleton_b", "x": 7, "y": 6, "label": "Skeleton", "typeId": "skeleton" },
       { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
       { "kind": "door",  "id": "door_exit",     "x": 5, "y": 9, "direction": "DOWN", "targetRoomId": "NEXT" }
     ]
@@ -83,7 +83,7 @@
       ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "enemy", "id": "troll_a", "x": 5, "y": 3, "label": "Cave Troll" },
+      { "kind": "enemy", "id": "troll_a", "x": 5, "y": 3, "label": "Cave Troll", "typeId": "cave_troll" },
       { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
       { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
     ]
@@ -171,7 +171,7 @@
       ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "enemy", "id": "boss_golem",  "x": 7, "y": 6, "label": "Stone Golem" },
+      { "kind": "enemy", "id": "boss_golem",  "x": 7, "y": 6, "label": "Stone Golem", "typeId": "stone_golem" },
       { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
     ]
   },
@@ -195,7 +195,7 @@
       ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "enemy", "id": "boss_spider", "x": 6, "y": 5, "label": "Giant Spider" },
+      { "kind": "enemy", "id": "boss_spider", "x": 6, "y": 5, "label": "Giant Spider", "typeId": "giant_spider" },
       { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
     ]
   }

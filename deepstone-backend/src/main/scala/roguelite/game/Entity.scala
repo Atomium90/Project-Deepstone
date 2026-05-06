@@ -15,11 +15,18 @@ sealed trait Entity:
   /** Project to the lightweight view sent to the client. */
   def toView: EntityView
 
-/** A hostile creature. Clicking it starts a combat. */
+/** A hostile creature. Clicking it starts a combat.
+  *
+  * @param typeId
+  *   Matches a key in enemies.json — used to look up combat stats.
+  * @param label
+  *   Display name shown in the UI and combat log.
+  */
 case class Enemy(
     id: String,
     x: Int,
     y: Int,
+    typeId: String,
     label: String
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label)

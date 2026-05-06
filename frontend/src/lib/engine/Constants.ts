@@ -84,3 +84,35 @@ export const RESOURCE_LABELS = {
     archer:  "Focus",
     mage:    "Mana",
 } as const;
+
+// ---------------------------------------------
+// Interact highlight (entities)
+// ---------------------------------------------
+
+/** Extra radius added to the highlight ring around interactable entities. */
+export const ENTITY_INTERACT_HALO_BASE = 6;
+
+/** Additional pulsing amplitude added to the halo radius. */
+export const ENTITY_INTERACT_HALO_PULSE = 3;
+
+/** Stroke width of the interact halo ring. */
+export const ENTITY_INTERACT_HALO_WIDTH = 1.5;
+
+/** Base RGB for interact halo (white). */
+export const ENTITY_INTERACT_HALO_RGB = "255,255,255";
+
+/** Base alpha of the interact halo color. */
+export const ENTITY_INTERACT_HALO_ALPHA = 0.3;
+
+/** Additional alpha added by the pulse. */
+export const ENTITY_INTERACT_HALO_PULSE_ALPHA = 0.25;
+
+// ---------------------------------------------
+// Interact prompt ("[E]")
+// ---------------------------------------------
+
+/** Color of the "[E]" interact prompt. */
+export const COLOR_INTERACT_PROMPT = "#eee";
+
+/** Vertical offset above the entity circle for the "[E]" prompt. */
+export const INTERACT_PROMPT_OFFSET = 4;

@@ -1,5 +1,5 @@
 import { AssetManager } from "./AssetManager";
-import type { RoomView, PlayerView } from "./protocol";
+import type { RoomView, PlayerView, EntityView } from "./protocol";
 import {
     TILE_SIZE,
     LERP_SPEED,
@@ -15,6 +15,15 @@ import {
     COLOR_PLAYER_INITIAL,
     COLOR_LOADING_BG,
     COLOR_LOADING_TEXT,
+    ENTITY_INTERACT_HALO_BASE,
+    ENTITY_INTERACT_HALO_PULSE,
+    ENTITY_INTERACT_HALO_WIDTH,
+    ENTITY_INTERACT_HALO_ALPHA,
+    ENTITY_INTERACT_HALO_PULSE_ALPHA,
+    COLOR_ENTITY_INTERACT_HALO,
+    COLOR_INTERACT_PROMPT,
+    FONT_INTERACT_PROMPT,
+    INTERACT_PROMPT_OFFSET
 } from "./constants";
 
 const ENTITY_COLORS: Record<string, string> = {
@@ -22,6 +31,9 @@ const ENTITY_COLORS: Record<string, string> = {
     chest: "#d4ac0d",
     door:  "#5d6d7e",
 };
+
+/** Distance in tiles within which an entity is considered reachable (E key). */
+const INTERACT_RANGE = 1;
 
 /** Represents a 2D position in pixel space. */
 interface Vec2 {
@@ -65,6 +77,10 @@ export class Renderer {
     /** Tracks whether visualPos has been seeded (skip lerp on first frame). */
     private posInitialized = false;
 
+    /** Elapsed time in ms, used for the pulsing interact indicator. */
+    private elapsed = 0;
+    private lastTimestamp = 0;
+
     /** ResizeObserver to react when the container changes size. */
     private resizeObserver: ResizeObserver;
 
@@ -101,6 +117,7 @@ export class Renderer {
     start(): void {
         if (this.animFrameId !== null) return;
         this.fitToContainer();
+        this.lastTimestamp = performance.now();
         this.loop();
     }
 
@@ -111,6 +128,36 @@ export class Renderer {
             this.animFrameId = null;
         }
         this.resizeObserver.disconnect();
+    }
+
+    // -------------------------------------------------------------------------
+    // Interact range query
+    // -------------------------------------------------------------------------
+
+    /**
+     * Find the nearest entity within INTERACT_RANGE tiles of the player.
+     * Returns null if no entity is reachable.
+     *
+     * Called by ExplorationHUD when the player presses E.
+     */
+    nearestInteractable(): EntityView | null {
+        if (!this.room) return null;
+
+        const px = this.room.playerX;
+        const py = this.room.playerY;
+
+        let nearest: EntityView | null = null;
+        let nearestDist = Infinity;
+
+        for (const entity of this.room.entities) {
+            const dist = chebyshevDist(px, py, entity.x, entity.y)
+            if (dist <= INTERACT_RANGE && dist < nearestDist) {
+                nearest = entity;
+                nearestDist = dist;
+            }
+        }
+
+        return nearest;
     }
 
     // -------------------------------------------------------------------------
@@ -128,7 +175,9 @@ export class Renderer {
         this.ctx.scale(dpr, dpr);
     }
 
-    private loop = (): void => {
+    private loop = (timesStamp: number): void => {
+        this.elapsed += timesStamp - this.lastTimestamp;
+        this.lastTimestamp = timesStamp;
         this.animFrameId = requestAnimationFrame(this.loop);
         this.interpolate();
         this.draw();
@@ -151,8 +200,9 @@ export class Renderer {
 
     private draw(): void {
         const { ctx } = this;
-        const cssWidth  = this.canvas.width  / (window.devicePixelRatio || 1);
-        const cssHeight = this.canvas.height / (window.devicePixelRatio || 1);
+        const dpr = window.devicePixelRatio || 1;
+        const cssWidth  = this.canvas.width  / dpr;
+        const cssHeight = this.canvas.height / dpr;
 
         // Clear
         ctx.clearRect(0, 0, cssWidth, cssHeight);
@@ -204,20 +254,48 @@ export class Renderer {
     private drawEntities(room: RoomView): void {
         const { ctx } = this;
         const radius = TILE_SIZE * ENTITY_RADIUS_RATIO;
+        const px = room.playerX;
+        const py = room.playerY;
 
         for (const entity of room.entities) {
             const cx = entity.x * TILE_SIZE + TILE_SIZE / 2;
             const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
+            const isNearby = chebyshevDist(px, py, entity.x, entity.y) <= INTERACT_RANGE;
 
+            // Pulsing highlight ring when entity is within interact range
+            if (isNearby) {
+                const pulse = 0.5 + 0.5 * Math.sin(this.elapsed / 300);
+                ctx.beginPath();
+                ctx.arc(cx, cy,
+                    radius + ENTITY_INTERACT_HALO_BASE + pulse * ENTITY_INTERACT_HALO_PULSE,
+                    0, Math.PI * 2
+                );
+                ctx.strokeStyle = `rgba(${COLOR_WHITE_RGB}, ${
+                    ENTITY_INTERACT_HALO_ALPHA + pulse * ENTITY_INTERACT_HALO_PULSE_ALPHA
+                })`;
+                ctx.lineWidth = ENTITY_INTERACT_HALO_WIDTH;
+                ctx.stroke();
+            }
+
+            // Entity circle
             ctx.beginPath();
             ctx.arc(cx, cy, radius, 0, Math.PI * 2);
             ctx.fillStyle = ENTITY_COLORS[entity.kind] ?? COLOR_ENTITY_FALLBACK;
             ctx.fill();
 
+            // Label below
             ctx.fillStyle = COLOR_ENTITY_LABEL;
             ctx.font = "10px monospace";
             ctx.textAlign = "center";
             ctx.fillText(entity.label, cx, cy + radius + ENTITY_LABEL_OFFSET);
+
+            // "E" prompt above when nearby
+            if (isNearby) {
+                ctx.fillStyle = COLOR_INTERACT_PROMPT;
+                ctx.font = "bold 11px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("[E]", cx, cy - radius - INTERACT_PROMPT_OFFSET);
+            }
         }
     }
 
@@ -271,4 +349,12 @@ function tileToPixelCenter(tileX: number, tileY: number): Vec2 {
         x: tileX * TILE_SIZE + TILE_SIZE / 2,
         y: tileY * TILE_SIZE + TILE_SIZE / 2,
     };
+}
+
+/**
+ * Chebyshev distance — the natural "within N tiles" metric on a grid,
+ * since diagonal and orthogonal steps both cost 1.
+ */
+function chebyshevDist(x1: number, y1: number, x2: number, y2: number): number {
+    return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
 }

@@ -39,7 +39,7 @@ class RoomSuite extends FunSuite:
   // -- entity lookup ---------------------------------------------------------
 
   test("entityById finds an existing entity"):
-    val enemy = Enemy("e1", x = 2, y = 2, label = "Goblin")
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
     val room  = testRoom(entities = List(enemy))
     assertEquals(room.entityById("e1"), Some(enemy))
 
@@ -57,14 +57,14 @@ class RoomSuite extends FunSuite:
   // -- removeEntity ----------------------------------------------------------
 
   test("removeEntity removes the entity with the given id"):
-    val enemy = Enemy("e1", x = 2, y = 2, label = "Goblin")
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
     val room  = testRoom(entities = List(enemy))
     val after = room.removeEntity("e1")
     assertEquals(after.entities, Nil)
 
   test("removeEntity leaves other entities untouched"):
-    val e1   = Enemy("e1", x = 2, y = 2, label = "Goblin")
-    val e2   = Enemy("e2", x = 1, y = 1, label = "Orc")
+    val e1   = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val e2   = Enemy("e2", x = 1, y = 1, typeId = "orc", label = "Orc")
     val room = testRoom(entities = List(e1, e2))
     val after = room.removeEntity("e1")
     assertEquals(after.entities, List(e2))
@@ -85,7 +85,7 @@ class RoomSuite extends FunSuite:
     assertEquals(view.tiles(0)(0), "wall")
 
   test("toView includes all entity views"):
-    val enemy = Enemy("e1", x = 2, y = 2, label = "Goblin")
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
     val view  = testRoom(entities = List(enemy)).toView(1, 1)
     assertEquals(view.entities.length, 1)
     assertEquals(view.entities.head.kind, "enemy")

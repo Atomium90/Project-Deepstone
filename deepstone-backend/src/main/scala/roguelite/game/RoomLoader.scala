@@ -76,10 +76,10 @@ object RoomLoader:
   private def toEntity(ej: EntityJson): Either[String, Entity] =
     ej.kind.toLowerCase match
       case "enemy" =>
-        ej.label
-          .toRight("Enemy entity is missing 'label' field")
-          .map:
-            label => Enemy(id = ej.id, x = ej.x, y = ej.y, label = label)
+        for
+          label  <- ej.label.toRight("Enemy entity is missing 'label' field")
+          typeId <- ej.typeId.toRight("Enemy entity is missing 'typeId' field")
+        yield Enemy(id = ej.id, x = ej.x, y = ej.y, typeId = typeId, label = label)
 
       case "chest" =>
         Right(Chest(id = ej.id, x = ej.x, y = ej.y))
@@ -123,6 +123,7 @@ object RoomLoader:
       id: String,
       x: Int,
       y: Int,
+      typeId: Option[String] = None,
       label: Option[String] = None,
       direction: Option[String] = None,
       targetRoomId: Option[String] = None
@@ -145,10 +146,11 @@ object RoomLoader:
         id           <- c.get[String]("id")
         x            <- c.get[Int]("x")
         y            <- c.get[Int]("y")
+        typeId       <- c.get[Option[String]]("typeId")
         label        <- c.get[Option[String]]("label")
         direction    <- c.get[Option[String]]("direction")
         targetRoomId <- c.get[Option[String]]("targetRoomId")
-      yield EntityJson(kind, id, x, y, label, direction, targetRoomId)
+      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId)
 
   private given Decoder[RoomJson] = Decoder.instance:
     (c: HCursor) =>

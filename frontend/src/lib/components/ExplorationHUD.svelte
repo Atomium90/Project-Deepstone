@@ -26,7 +26,7 @@
     function handleKeyDown(e: KeyboardEvent): void {
         // Movement
         const direction = KEY_MAP[e.key];
-        if (direction && heldKeys.has(e.key)) {
+        if (direction && !heldKeys.has(e.key)) {
             // Prevent arrow keys from scrolling the page
             e.preventDefault();
             heldKeys.add(e.key);

@@ -234,9 +234,8 @@ class StateMachine(dungeon: Dungeon, enemyStats: Map[String, EnemyStats], resolv
 
       // -- Combat -----------------------------------------------------------
 
-      case (combat: CombatState, _: CombatAction) =>
-        // Combat will be implemented later
-        (combat, List(s"Combat resolutino is not yet implemented."))
+      case (combat: CombatState, action: CombatAction) =>
+        resolver.resolve(combat, action)
 
       // -- Invalid combinations ----------------------------------------------
 

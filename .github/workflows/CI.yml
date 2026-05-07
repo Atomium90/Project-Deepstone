@@ -120,7 +120,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-coverage
-          path: deepstone-backend/target/coverage
+          path: deepstone-backend/target
         continue-on-error: true
 
       - name: Run SonarCloud scan

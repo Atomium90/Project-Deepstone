@@ -20,10 +20,9 @@ import {
     ENTITY_INTERACT_HALO_WIDTH,
     ENTITY_INTERACT_HALO_ALPHA,
     ENTITY_INTERACT_HALO_PULSE_ALPHA,
-    COLOR_ENTITY_INTERACT_HALO,
     COLOR_INTERACT_PROMPT,
-    FONT_INTERACT_PROMPT,
-    INTERACT_PROMPT_OFFSET
+    INTERACT_PROMPT_OFFSET,
+    ENTITY_INTERACT_HALO_RGB
 } from "./constants";
 
 const ENTITY_COLORS: Record<string, string> = {
@@ -118,7 +117,7 @@ export class Renderer {
         if (this.animFrameId !== null) return;
         this.fitToContainer();
         this.lastTimestamp = performance.now();
-        this.loop();
+        this.animFrameId = requestAnimationFrame(this.loop);
     }
 
     /** Stop the render loop and disconnect the resize observer. */
@@ -270,7 +269,7 @@ export class Renderer {
                     radius + ENTITY_INTERACT_HALO_BASE + pulse * ENTITY_INTERACT_HALO_PULSE,
                     0, Math.PI * 2
                 );
-                ctx.strokeStyle = `rgba(${COLOR_WHITE_RGB}, ${
+                ctx.strokeStyle = `rgba(${ENTITY_INTERACT_HALO_RGB}, ${
                     ENTITY_INTERACT_HALO_ALPHA + pulse * ENTITY_INTERACT_HALO_PULSE_ALPHA
                 })`;
                 ctx.lineWidth = ENTITY_INTERACT_HALO_WIDTH;

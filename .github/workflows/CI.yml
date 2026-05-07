@@ -24,6 +24,11 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
+      - name: Install sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
+
       # Cache the sbt launcher, dependencies, and compiled classes.
       # The cache key includes build.sbt so it invalidates on dependency changes.
       - name: Cache sbt

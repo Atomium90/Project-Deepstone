@@ -8,6 +8,9 @@ export type CombatActionType = "ATTACK" | "ABILITY" | "ITEM" | "DEFEND";
 export type HubActionType = "STARTRUN" | "BUYUPGRADE";
 export type ClassId = "warrior" | "archer" | "mage";
 
+export type ItemKind   = "weapon" | "armor" | "accessory" | "consumable";
+export type ItemRarity = "common" | "uncommon";
+
 // ---------------------------------------------
 // Client → Server actions
 // ---------------------------------------------
@@ -89,11 +92,24 @@ export interface HubView {
   upgrades: UpgradeView[];
 }
 
+/** A single item in the player's inventory as seen by the client. */
+export interface ItemView {
+  id: string;
+  typeId: string;
+  name: string;
+  kind: ItemKind;
+  rarity: ItemRarity;
+  /** One-line stat summary, e.g. "+3 ATK" or "Heal 30 HP". */
+  statLine: string;
+}
+
 export interface StateUpdate {
   phase: GamePhase;
   player: PlayerView;
   room?: RoomView;
   combat?: CombatView;
   hub?: HubView;
+  /** Current contents of the player's inventory (up to 6 items). */
+  inventory: ItemView[];
   log: string[];
 }

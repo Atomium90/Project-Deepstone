@@ -9,6 +9,12 @@
     "actions": [
       { "action": "ATTACK", "weight": 80 },
       { "action": "DEFEND", "weight": 20 }
+    ],
+    "dropChance": 25,
+    "lootTable": [
+      { "typeId": "health_potion", "weight": 60 },
+      { "typeId": "iron_sword",    "weight": 25 },
+      { "typeId": "leather_armor", "weight": 15 }
     ]
   },
   {
@@ -21,6 +27,13 @@
     "actions": [
       { "action": "ATTACK", "weight": 90 },
       { "action": "DEFEND", "weight": 10 }
+    ],
+    "dropChance": 30,
+    "lootTable": [
+      { "typeId": "health_potion", "weight": 40 },
+      { "typeId": "iron_sword",    "weight": 28 },
+      { "typeId": "leather_armor", "weight": 22 },
+      { "typeId": "iron_ring",     "weight": 10 }
     ]
   },
   {
@@ -33,6 +46,13 @@
     "actions": [
       { "action": "ATTACK", "weight": 70 },
       { "action": "DEFEND", "weight": 30 }
+    ],
+    "dropChance": 25,
+    "lootTable": [
+      { "typeId": "health_potion", "weight": 40 },
+      { "typeId": "leather_armor", "weight": 35 },
+      { "typeId": "iron_ring",     "weight": 15 },
+      { "typeId": "iron_sword",    "weight": 10 }
     ]
   },
   {
@@ -45,6 +65,15 @@
     "actions": [
       { "action": "ATTACK", "weight": 95 },
       { "action": "DEFEND", "weight": 5 }
+    ],
+    "dropChance": 40,
+    "lootTable": [
+      { "typeId": "health_potion", "weight": 30 },
+      { "typeId": "iron_sword",    "weight": 20 },
+      { "typeId": "leather_armor", "weight": 20 },
+      { "typeId": "iron_ring",     "weight": 15 },
+      { "typeId": "steel_sword",   "weight": 10 },
+      { "typeId": "chain_mail",    "weight": 5 }
     ]
   },
   {
@@ -57,6 +86,14 @@
     "actions": [
       { "action": "ATTACK", "weight": 85 },
       { "action": "DEFEND", "weight": 15 }
+    ],
+    "dropChance": 100,
+    "lootTable": [
+      { "typeId": "steel_sword",    "weight": 25 },
+      { "typeId": "chain_mail",     "weight": 25 },
+      { "typeId": "amulet_of_vigor","weight": 25 },
+      { "typeId": "greater_potion", "weight": 15 },
+      { "typeId": "ether",          "weight": 10 }
     ]
   },
   {
@@ -68,6 +105,14 @@
     "xpReward": 150,
     "actions": [
       { "action": "ATTACK", "weight": 100 }
+    ],
+    "dropChance": 100,
+    "lootTable": [
+      { "typeId": "steel_sword",    "weight": 20 },
+      { "typeId": "chain_mail",     "weight": 20 },
+      { "typeId": "amulet_of_vigor","weight": 30 },
+      { "typeId": "greater_potion", "weight": 20 },
+      { "typeId": "ether",          "weight": 10 }
     ]
   }
 ]

@@ -1,0 +1,72 @@
+[
+  {
+    "typeId": "iron_sword",
+    "kind": "weapon",
+    "name": "Iron Sword",
+    "rarity": "common",
+    "attackBonus": 3
+  },
+  {
+    "typeId": "steel_sword",
+    "kind": "weapon",
+    "name": "Steel Sword",
+    "rarity": "uncommon",
+    "attackBonus": 7
+  },
+  {
+    "typeId": "hunters_bow",
+    "kind": "weapon",
+    "name": "Hunter's Bow",
+    "rarity": "common",
+    "attackBonus": 4
+  },
+  {
+    "typeId": "leather_armor",
+    "kind": "armor",
+    "name": "Leather Armor",
+    "rarity": "common",
+    "defenseBonus": 2
+  },
+  {
+    "typeId": "chain_mail",
+    "kind": "armor",
+    "name": "Chain Mail",
+    "rarity": "uncommon",
+    "defenseBonus": 5
+  },
+  {
+    "typeId": "iron_ring",
+    "kind": "accessory",
+    "name": "Iron Ring",
+    "rarity": "common",
+    "hpBonus": 10
+  },
+  {
+    "typeId": "amulet_of_vigor",
+    "kind": "accessory",
+    "name": "Amulet of Vigor",
+    "rarity": "uncommon",
+    "hpBonus": 20
+  },
+  {
+    "typeId": "health_potion",
+    "kind": "consumable",
+    "name": "Health Potion",
+    "rarity": "common",
+    "effect": { "type": "HealFixed", "amount": 30 }
+  },
+  {
+    "typeId": "greater_potion",
+    "kind": "consumable",
+    "name": "Greater Potion",
+    "rarity": "uncommon",
+    "effect": { "type": "HealFixed", "amount": 60 }
+  },
+  {
+    "typeId": "ether",
+    "kind": "consumable",
+    "name": "Ether",
+    "rarity": "uncommon",
+    "effect": { "type": "RestoreResource", "amount": 20 }
+  }
+]

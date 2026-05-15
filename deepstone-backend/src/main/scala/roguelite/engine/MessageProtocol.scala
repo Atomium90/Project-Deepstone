@@ -98,6 +98,15 @@ case class CombatView(
 case class UpgradeView(id: String, cost: Int, unlocked: Boolean)
 case class HubView(upgrades: List[UpgradeView])
 
+case class ItemView(
+    id: String,
+    typeId: String,
+    name: String,
+    kind: String,    // "weapon" | "armor" | "accessory" | "consumable"
+    rarity: String,  // "common" | "uncommon"
+    statLine: String // e.g. "+3 ATK", "Heal 30 HP"
+)
+
 /** Full game state snapshot sent by the server after every action. */
 case class StateUpdate(
     phase: GamePhase,
@@ -105,6 +114,7 @@ case class StateUpdate(
     room: Option[RoomView] = None,
     combat: Option[CombatView] = None,
     hub: Option[HubView] = None,
+    inventory: List[ItemView] = Nil,
     log: List[String] = Nil
 )
 
@@ -184,6 +194,7 @@ object MessageProtocol:
   given Encoder[CombatView]  = deriveEncoder
   given Encoder[UpgradeView] = deriveEncoder
   given Encoder[HubView]     = deriveEncoder
+  given Encoder[ItemView]    = deriveEncoder
   given Encoder[StateUpdate] = deriveEncoder
 
   /** Serialize a StateUpdate to a JSON string to be sent over the WebSocket. */

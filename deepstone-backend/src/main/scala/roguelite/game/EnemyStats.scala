@@ -1,11 +1,14 @@
 package roguelite.game
 
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 // Static enemy data (loaded from enemies.json)
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 
 /** One possible action an enemy can take on its turn. */
 case class EnemyActionWeight(action: String, weight: Int)
+
+/** One entry in an enemy's loot table: an item typeId and its relative drop weight. */
+case class LootEntry(typeId: String, weight: Int)
 
 /** Immutable stats for an enemy type, shared across all instances of that type.
   *
@@ -19,12 +22,14 @@ case class EnemyStats(
     attack: Int,
     defense: Int,
     xpReward: Int,
-    actions: List[EnemyActionWeight]
+    actions: List[EnemyActionWeight],
+    dropChance: Int = 0,
+    lootTable: List[LootEntry] = Nil
 )
 
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 // Runtime enemy instance (mutable during combat)
-// ─────────────────────────────────────────────
+// ---------------------------------------------
 
 /** A live enemy in an active combat, with its own current HP.
   *
@@ -34,6 +39,8 @@ case class EnemyStats(
   * @param entityId
   *   The id of the [[Enemy]] entity in the room — used to remove it from the room after a
   *   victorious combat.
+  * @param dropChance
+  *   Copied from [[EnemyStats]] so [[LootTable]] can read it without a second lookup.
   */
 case class EnemyInstance(
     entityId: String,
@@ -44,7 +51,9 @@ case class EnemyInstance(
     attack: Int,
     defense: Int,
     xpReward: Int,
-    actions: List[EnemyActionWeight]
+    actions: List[EnemyActionWeight],
+    dropChance: Int = 0,
+    lootTable: List[LootEntry] = Nil
 ):
   def isAlive: Boolean = hp > 0
 
@@ -64,5 +73,7 @@ object EnemyInstance:
       attack = stats.attack,
       defense = stats.defense,
       xpReward = stats.xpReward,
-      actions = stats.actions
+      actions = stats.actions,
+      dropChance = stats.dropChance,
+      lootTable = stats.lootTable
     )

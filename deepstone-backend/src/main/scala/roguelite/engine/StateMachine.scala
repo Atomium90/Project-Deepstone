@@ -2,6 +2,7 @@ package roguelite.engine
 
 import cats.effect.IO
 import roguelite.game.{
+  Accessory,
   Chest,
   Combat,
   CombatResolver,
@@ -10,8 +11,29 @@ import roguelite.game.{
   Enemy,
   EnemyInstance,
   EnemyStats,
+  Inventory,
+  Item,
+  LootTable,
   Room
 }
+
+import scala.util.Random
+
+/** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
+  * subtypes (which live in this file) can use it without repeating the mapping.
+  */
+private def itemToView(item: Item): ItemView =
+  ItemView(
+    id = item.id,
+    typeId = item.typeId,
+    name = item.name,
+    kind = item.kind,
+    rarity = item.rarity.label,
+    statLine = item.statLine
+  )
+
+private def inventoryToViews(inventory: Inventory): List[ItemView] =
+  inventory.items.map(itemToView)
 
 // ---------------------------------------------
 // Internal game states (server-side)
@@ -29,7 +51,8 @@ case class Player(
     resourceMax: Int,
     level: Int,
     xp: Int,
-    metaCurrency: Int
+    metaCurrency: Int,
+    inventory: Inventory = Inventory.empty
 ):
   def toView: PlayerView = PlayerView(
     classId = classId,
@@ -43,6 +66,27 @@ case class Player(
   )
 
   def isAlive: Boolean = hp > 0
+
+  /** Add an item to the inventory.
+    *
+    * Accessories immediately increase `maxHp` (and top up current HP by the same amount) so the
+    * client always sees the correct HP cap without needing to sum inventory bonuses client-side.
+    *
+    * @return
+    *   Right(updatedPlayer) on success, Left(error) if the inventory is full.
+    */
+  def withItemPickup(item: Item): Either[String, Player] =
+    inventory
+      .addItem(item)
+      .map:
+        newInventory =>
+          item match {
+            case acc: Accessory =>
+              val newMax = maxHp + acc.hpBonus
+              copy(inventory = newInventory, maxHp = newMax, hp = (hp + acc.hpBonus).min(newMax))
+            case _ =>
+              copy(inventory = newInventory)
+          }
 
 object Player:
   def startingPlayer(classId: ClassId): Player = classId match {
@@ -95,16 +139,19 @@ case class HubState(player: Player) extends GameState:
       phase = GamePhase.Hub,
       player = player.toView,
       hub = Some(HubView(upgrades = Nil)),
+      inventory = inventoryToViews(player.inventory),
       log = log
     )
 
 case class ExplorationState(player: Player, dungeon: Dungeon, playerX: Int, playerY: Int)
     extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
-    StateUpdate(phase = GamePhase.Exploration,
-                player = player.toView,
-                room = Some(dungeon.currentRoom.toView(playerX, playerY)),
-                log = log
+    StateUpdate(
+      phase = GamePhase.Exploration,
+      player = player.toView,
+      room = Some(dungeon.currentRoom.toView(playerX, playerY)),
+      inventory = inventoryToViews(player.inventory),
+      log = log
     )
 
 /** Active combat state.
@@ -134,12 +181,17 @@ case class CombatState(player: Player,
                    isPlayerTurn = combat.isPlayerTurn
         )
       ),
+      inventory = inventoryToViews(player.inventory),
       log = log
     )
 
 case class GameOverState(player: Player) extends GameState:
   def toStateUpdate(log: List[String]): StateUpdate =
-    StateUpdate(phase = GamePhase.GameOver, player = player.toView, log = log)
+    StateUpdate(phase = GamePhase.GameOver,
+                player = player.toView,
+                inventory = inventoryToViews(player.inventory),
+                log = log
+    )
 
 // ---------------------------------------------
 // State machine
@@ -150,15 +202,25 @@ case class GameOverState(player: Player) extends GameState:
   * The state machine is intentionally thin: it handles routing (which action is valid in which
   * state) but delegates heavy logic to dedicated classes:
   *   - [[CombatResolver]] for all combat math
+  *   - [[LootTable]] for all drop rolls
   *
   * @param dungeon
   *   The dungeon to enter when a new run starts.
   * @param enemyStats
-  *   Lookup table of enemy stats, keyed by typeId.
+  *   Lookup table of enemy stats keyed by typeId.
+  * @param itemDefs
+  *   Prototype item map keyed by typeId, used by [[LootTable]] for chest rolls.
   * @param resolver
   *   Resolves combat turns.
+  * @param rng
+  *   Random instance for chest loot rolls. Inject a seeded one for deterministic tests.
   */
-class StateMachine(dungeon: Dungeon, enemyStats: Map[String, EnemyStats], resolver: CombatResolver):
+class StateMachine(dungeon: Dungeon,
+                   enemyStats: Map[String, EnemyStats],
+                   itemDefs: Map[String, Item],
+                   resolver: CombatResolver,
+                   rng: Random = Random()
+):
   def transition(state: GameState, action: PlayerAction): IO[(GameState, List[String])] =
     IO.pure(applyActionPure(state, action))
 
@@ -189,9 +251,8 @@ class StateMachine(dungeon: Dungeon, enemyStats: Map[String, EnemyStats], resolv
 
         val newX = exp.playerX + dx
         val newY = exp.playerY + dy
-        val room = exp.dungeon.currentRoom
 
-        if !room.isWalkable(newX, newY)
+        if !exp.dungeon.currentRoom.isWalkable(newX, newY)
         then (exp, Nil) // Silently blocked
         else (exp.copy(playerX = newX, playerY = newY), Nil)
 
@@ -205,8 +266,7 @@ class StateMachine(dungeon: Dungeon, enemyStats: Map[String, EnemyStats], resolv
               case Left(err)         => (exp, List(err))
               case Right(newDungeon) =>
                 // Place the player at the opposite door's position when entering
-                val newRoom    = newDungeon.currentRoom
-                val spawnPoint = findSpawnPoint(newRoom, door.direction)
+                val spawnPoint = findSpawnPoint(newDungeon.currentRoom, door.direction)
                 val nextState =
                   exp.copy(dungeon = newDungeon, playerX = spawnPoint._1, playerY = spawnPoint._2)
                 (nextState, List(s"You pass through the door heading ${door.direction}."))
@@ -225,11 +285,26 @@ class StateMachine(dungeon: Dungeon, enemyStats: Map[String, EnemyStats], resolv
             }
 
           case Some(chest: Chest) =>
-            // Chest opening will be implemented later
             val updatedRoom = exp.dungeon.currentRoom.removeEntity(chest.id)
             val updatedDungeon =
               exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(updatedRoom.id, updatedRoom))
-            (exp.copy(dungeon = updatedDungeon), List("You open the chest."))
+
+            LootTable.rollChest(itemDefs, rng) match {
+              case None =>
+                (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."))
+              case Some(item) =>
+                exp.player.withItemPickup(item) match {
+                  case Left(_) =>
+                    (exp.copy(dungeon = updatedDungeon),
+                     List(s"You open the chest but your inventory is full — ${item.name} is lost!")
+                    )
+
+                  case Right(updatedPlayer) =>
+                    (exp.copy(dungeon = updatedDungeon, player = updatedPlayer),
+                     List(s"You open the chest and find ${item.name}! (${item.statLine})")
+                    )
+                }
+            }
         }
 
       // -- Combat -----------------------------------------------------------

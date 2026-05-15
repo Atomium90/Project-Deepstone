@@ -24,7 +24,7 @@ class GameSessionSuite extends CatsEffectSuite:
     Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
 
   def sm: StateMachine =
-    StateMachine(testDungeon, Map("goblin" -> goblinStats), CombatResolver(Random(0L)))
+    StateMachine(testDungeon, Map("goblin" -> goblinStats), Map.empty, CombatResolver(Random(0L)))
 
   test("new session starts in Hub phase"):
     for
@@ -54,6 +54,14 @@ class GameSessionSuite extends CatsEffectSuite:
     yield
       assertEquals(update.phase, GamePhase.Hub)
       assert(update.log.nonEmpty)
+
+  test("StateUpdate always contains inventory list"):
+    for
+      session <- GameSession.create(sm)
+      update  <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+    yield
+      // inventory field is always present (empty at run start)
+      assertEquals(update.inventory, Nil)
 
   test("handle is concurrency-safe"):
     for

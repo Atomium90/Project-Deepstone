@@ -86,6 +86,24 @@ export const RESOURCE_LABELS = {
 } as const;
 
 // ---------------------------------------------
+// Item slot colors (inventory panel and pickers)
+// ---------------------------------------------
+
+/** Background fill color of the icon badge per item kind. */
+export const ITEM_KIND_COLORS = {
+    weapon:     "#4a2222",
+    armor:      "#22354a",
+    accessory:  "#2a3a1a",
+    consumable: "#3a2a4a",
+} as const;
+
+/** Border / accent color per item rarity. */
+export const ITEM_RARITY_COLORS = {
+    common:   "#333333",
+    uncommon: "#8e44ad",
+} as const;
+
+// ---------------------------------------------
 // Interact highlight (entities)
 // ---------------------------------------------
 

@@ -2,22 +2,23 @@
     import { onMount, onDestroy } from "svelte";
     import { gameState, client } from "../engine/StateStore";
     import { Renderer } from "../engine/Renderer";
-    import { RESOURCE_LABELS, RESOURCE_BAR_COLORS, HP_BAR_COLOR } from "../engine/constants";
-    import type { Direction } from "../engine/protocol";
+    import {
+        RESOURCE_LABELS,
+        RESOURCE_BAR_COLORS,
+        HP_BAR_COLOR,
+        ITEM_KIND_COLORS,
+        ITEM_RARITY_COLORS,
+        COLOR_ENTITY_FALLBACK,
+    } from "../engine/constants";
+    import type { Direction, ItemView } from "../engine/protocol";
 
     let canvasEl: HTMLCanvasElement;
     let renderer: Renderer | null = null;
 
     // Map keyboard keys to game directions
     const KEY_MAP: Record<string, Direction> = {
-        ArrowUp: "UP",
-        ArrowDown: "DOWN",
-        ArrowLeft: "LEFT",
-        ArrowRight: "RIGHT",
-        z: "UP",
-        s: "DOWN",
-        q: "LEFT",
-        d: "RIGHT",
+        ArrowUp: "UP", ArrowDown: "DOWN", ArrowLeft: "LEFT", ArrowRight: "RIGHT",
+        z: "UP", s: "DOWN", q: "LEFT", d: "RIGHT",
     };
 
     // Track which keys are currently held to avoid key repeat spam
@@ -35,12 +36,10 @@
         }
         
         // Interact (E key)
-        if (e.key == "e" || e.key == "E") {
+        if (e.key === "e" || e.key === "E") {
             e.preventDefault();
             const entity = renderer?.nearestInteractable();
-            if (entity) {
-                client.send({ type: "INTERACT", targetId: entity.id });
-            }
+            if (entity) client.send({ type: "INTERACT", targetId: entity.id });
         }
     }
 
@@ -66,12 +65,25 @@
         renderer.update($gameState.room, $gameState.player);
     }
 
-    // Derived values for the stats overlay
-    $: player = $gameState?.player;
-    $: hpPercent = player ? (player.hp / player.maxHp) * 100 : 100;
+    $: player          = $gameState?.player;
+    $: inventory       = $gameState?.inventory ?? [];
+    $: hpPercent       = player ? (player.hp / player.maxHp) * 100 : 100;
     $: resourcePercent = player ? (player.resourceCurrent / player.resourceMax) * 100 : 100;
     $: resourceLabel   = player ? RESOURCE_LABELS[player.classId] : "Resource";
-    $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : "#888";
+    $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : COLOR_ENTITY_FALLBACK;
+
+    /** Pad the inventory array to always show 6 slots (some may be null). */
+    $: slots = Array.from({ length: 6 }, (_, i) => inventory[i] ?? null) as (ItemView | null)[];
+
+    /** First letter of each word, max 2 chars — used as the slot icon. */
+    function abbrev(name: string): string {
+        return name
+            .split(" ")
+            .map(w => w[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+    }
 </script>
 
 <!--
@@ -86,6 +98,7 @@
         <aside class="stats-panel">
             <div class="class-badge">{player.classId.toUpperCase()}</div>
 
+            <!-- HP -->
             <div class="stat-block">
                 <span class="stat-label">HP</span>
                 <div class="bar-track">
@@ -94,6 +107,7 @@
                 <span class="stat-value">{player.hp} / {player.maxHp}</span>
             </div>
 
+            <!-- Resource -->
             <div class="stat-block">
                 <span class="stat-label">{resourceLabel}</span>
                 <div class="bar-track">
@@ -102,6 +116,7 @@
                 <span class="stat-value">{player.resourceCurrent} / {player.resourceMax}</span>
             </div>
 
+            <!-- Level / XP -->
             <div class="stat-block inline">
                 <span class="stat-label">Level</span>
                 <span class="stat-value">{player.level}</span>
@@ -110,6 +125,31 @@
             <div class="stat-block inline">
                 <span class="stat-label">XP</span>
                 <span class="stat-value">{player.xp}</span>
+            </div>
+
+            <!-- Inventory -->
+            <div class="inv-section">
+                <span class="stat-label">Inventory</span>
+                <div class="inv-grid">
+                    {#each slots as item}
+                        <div
+                                class="inv-slot"
+                                class:occupied={!!item}
+                                style={item ? `border-color:${ITEM_RARITY_COLORS[item.rarity]}` : ""}
+                                title={item ? `${item.name}\n${item.statLine}` : "Empty"}
+                        >
+                            {#if item}
+                                <div
+                                        class="slot-icon"
+                                        style="background:{ITEM_KIND_COLORS[item.kind]}"
+                                >
+                                    {abbrev(item.name)}
+                                </div>
+                                <span class="slot-stat">{item.statLine}</span>
+                            {/if}
+                        </div>
+                    {/each}
+                </div>
             </div>
 
             <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E</p>
@@ -189,6 +229,65 @@
         height: 100%;
         border-radius: 2px;
         transition: width 0.15s ease;
+    }
+
+    /* ── Inventory ─────────────────────────────── */
+
+    .inv-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        border-top: 1px solid #2a2a2a;
+        padding-top: 0.75rem;
+    }
+
+    .inv-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+    }
+
+    .inv-slot {
+        aspect-ratio: 1;
+        background: #111;
+        border: 1px solid #222;
+        border-radius: 2px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        cursor: default;
+        transition: border-color 0.1s;
+    }
+
+    .inv-slot.occupied:hover {
+        background: #1e1e1e;
+    }
+
+    .slot-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.55rem;
+        font-weight: bold;
+        color: #ccc;
+        letter-spacing: 0.02em;
+    }
+
+    .slot-stat {
+        font-size: 0.48rem;
+        color: #888;
+        text-align: center;
+        line-height: 1.1;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 2px;
     }
 
     .controls-hint {

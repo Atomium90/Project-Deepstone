@@ -119,7 +119,7 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
 
     enemyAction match {
       case "ATTACK" =>
-        val rawDamage = calcDamage(state.combat.enemy.attack, state.combat.enemy.defense)
+        val rawDamage = calcDamage(state.combat.enemy.attack, state.player.defense)
         val finalDamage =
           if state.combat.playerIsDefending then (rawDamage / 2).max(1) else rawDamage
         val newHp         = (state.player.hp - finalDamage).max(0)

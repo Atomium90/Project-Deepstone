@@ -130,14 +130,6 @@ class CombatResolverSuite extends FunSuite:
     )
     assert(next.isInstanceOf[GameOverState] || next.isInstanceOf[ExplorationState])
 
-  // --- Ability stub --------------------------------------------------------
-
-  test("Ability returns not-implemented log and stays in CombatState"):
-    val (next, log) =
-      resolver().resolve(combatState(weakEnemy(hp = 50)), CombatAction(CombatActionType.Ability))
-    assert(next.isInstanceOf[CombatState])
-    assert(log.exists(_.toLowerCase.contains("not yet")))
-
   // --- Item use ------------------------------------------------------------
 
   test("Item with no itemId returns 'no item selected'"):

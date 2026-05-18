@@ -1,6 +1,7 @@
 package roguelite.game
 
 import roguelite.engine.{
+  ClassId,
   CombatAction,
   CombatActionType,
   CombatState,
@@ -18,11 +19,20 @@ import boundary.break
   * This class owns all combat math. The [[roguelite.engine.StateMachine]] delegates every
   * [[CombatAction]] here, keeping the state machine thin.
   *
-  * <p>Turn sequence per player action:</p> <ul> <li>Apply player action (Attack / Defend / Ability
-  * stub / Item stub)</li> <li>If enemy dies → victory: return to ExplorationState, award XP</li>
-  * <li>If player acts without killing enemy → resolve enemy turn</li> <li>If player dies from enemy
-  * counter → GameOverState</li> <li>Otherwise → return to CombatState, player's turn again</li>
-  * </ul>
+  * Turn sequence per player action:
+  *   - Apply player action (Attack / Defend / Ability / Item)
+  *   - If enemy dies → victory: return to ExplorationState, award XP
+  *   - If player acts without killing enemy → resolve enemy counter-action
+  *   - If player dies from enemy counter → GameOverState
+  *   - Otherwise → return to CombatState, player's turn again
+  *
+  * Resource generation rules (applied inside enemyTurn and player action handlers):
+  *   - Warrior: +5 Rage when attacking, +10 Rage when hit by an enemy
+  *   - Archer: +8 Focus when defending, +5 Focus at the end of every round
+  *   - Mage: no in-combat regeneration (pure resource-management pressure)
+  *
+  * Ability cost checks: insufficient resource does NOT consume the player's turn. The state is
+  * returned unchanged so the player can choose a different action.
   *
   * @param rng
   *   Random instance — inject a seeded one for deterministic tests.
@@ -35,7 +45,7 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
       case CombatActionType.Attack  => handleAttack(state)
       case CombatActionType.Defend  => handleDefend(state)
       case CombatActionType.Item    => handleItem(state, action.itemId)
-      case CombatActionType.Ability => handleAbilityStub(state)
+      case CombatActionType.Ability => handleAbility(state)
     }
 
   // ---------------------------------------------
@@ -43,20 +53,51 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
   // ---------------------------------------------
 
   private def handleAttack(state: CombatState): (GameState, List[String]) =
-    val damage       = calcDamage(state.player.attack, state.combat.enemy.defense)
-    val damagedEnemy = state.combat.enemy.takeDamage(damage)
-    val log          = List(s"You strike the ${damagedEnemy.label} for $damage damage.")
+    val pending = state.combat.pendingAbility
 
-    if !damagedEnemy.isAlive then victory(state, damagedEnemy, log)
-    else
-      val afterPlayer =
-        state.copy(combat = state.combat.copy(enemy = damagedEnemy, playerIsDefending = false))
-      enemyTurn(afterPlayer, log)
+    // Ability activation banner
+    val abilityLog: List[String] = pending match {
+      case Some(PendingAbilityEffect.DoubleNextAttack)        => List("Berserker Slash activates!")
+      case Some(PendingAbilityEffect.IgnoreDefenseNextAttack) => List("Precise Shot activates!")
+      case None                                               => Nil
+    }
+
+    // Damage modified by pending ability effect
+    val damage = pending match {
+      case Some(PendingAbilityEffect.DoubleNextAttack) =>
+        // Double the full post-jitter value
+        calcDamage(state.player.attack, state.combat.enemy.defense) * 2
+      case Some(PendingAbilityEffect.IgnoreDefenseNextAttack) =>
+        // Roll against 0 defense
+        calcDamage(state.player.attack, 0)
+      case None =>
+        calcDamage(state.player.attack, state.combat.enemy.defense)
+    }
+
+    val damagedEnemy = state.combat.enemy.takeDamage(damage)
+    val strikeLog    = List(s"You strike the ${damagedEnemy.label} for $damage damage.")
+    val log          = abilityLog ++ strikeLog
+
+    // Warrior: +5 Rage on every action
+    val playerAfterResource = gainResource(state.player, onAttack = true)
+
+    // Consume the pending effect
+    val updatedCombat = state.combat.copy(
+      enemy = damagedEnemy,
+      pendingAbility = None,
+      playerIsDefending = false
+    )
+
+    if !damagedEnemy.isAlive then
+      victory(state.copy(player = playerAfterResource, combat = updatedCombat), damagedEnemy, log)
+    else enemyTurn(state.copy(player = playerAfterResource, combat = updatedCombat), log)
 
   private def handleDefend(state: CombatState): (GameState, List[String]) =
-    val log         = List("You brace for impact. Incoming damage is halved this round.")
-    val afterPlayer = state.copy(combat = state.combat.copy(playerIsDefending = true))
-    enemyTurn(afterPlayer, log)
+    val log = List("You brace for impact. Incoming damage is halved this round.")
+    // Archer: +8 Focus when defending
+    val playerAfterResource = gainResource(state.player, onDefend = true)
+    val updatedCombat       = state.combat.copy(playerIsDefending = true)
+    enemyTurn(state.copy(player = playerAfterResource, combat = updatedCombat), log)
 
   private def handleItem(state: CombatState, itemId: Option[String]): (GameState, List[String]) =
     itemId match {
@@ -72,16 +113,93 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
             val (_, newInventory)          = state.player.inventory.removeAt(idx)
             val playerWithoutItem          = state.player.copy(inventory = newInventory)
             val (updatedPlayer, effectLog) = applyConsumableEffect(playerWithoutItem, consumable)
-            val afterPlayer =
-              state.copy(player = updatedPlayer,
-                         combat = state.combat.copy(playerIsDefending = false)
-              )
-            enemyTurn(afterPlayer, effectLog)
+            val updatedCombat              = state.combat.copy(playerIsDefending = false)
+            enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), effectLog)
         }
     }
 
-  private def handleAbilityStub(state: CombatState): (GameState, List[String]) =
-    (state, List("Abilities are not yet implemented."))
+  /** Route to the correct class ability. Insufficient resource returns the state unchanged. */
+  private def handleAbility(state: CombatState): (GameState, List[String]) =
+    state.player.classId match {
+      case ClassId.Warrior => handleBerserkerSlash(state)
+      case ClassId.Archer  => handlePreciseShot(state)
+      case ClassId.Mage    => handleArcaneBlast(state)
+    }
+
+  /** Warrior: Berserker Slash (40 Rage) — next attack deals double damage. */
+  private def handleBerserkerSlash(state: CombatState): (GameState, List[String]) =
+    val cost = 40
+    if state.player.resourceCurrent < cost then
+      (state, List(s"Not enough Rage — Berserker Slash requires $cost Rage."))
+    else
+      val updatedPlayer = state.player.copy(resourceCurrent = state.player.resourceCurrent - cost)
+      val updatedCombat = state.combat.copy(
+        pendingAbility = Some(PendingAbilityEffect.DoubleNextAttack),
+        playerIsDefending = false
+      )
+      val log = List("Berserker Slash! Your next attack will deal double damage.")
+      enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), log)
+
+  /** Archer: Precise Shot (30 Focus) — next attack ignores enemy defense. */
+  private def handlePreciseShot(state: CombatState): (GameState, List[String]) =
+    val cost = 30
+    if state.player.resourceCurrent < cost then
+      (state, List(s"Not enough Focus — Precise Shot requires $cost Focus."))
+    else
+      val updatedPlayer = state.player.copy(resourceCurrent = state.player.resourceCurrent - cost)
+      val updatedCombat = state.combat.copy(
+        pendingAbility = Some(PendingAbilityEffect.IgnoreDefenseNextAttack),
+        playerIsDefending = false
+      )
+      val log = List("Precise Shot! Your next attack will bypass enemy defense.")
+      enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), log)
+
+  /** Mage: Arcane Blast (30 Mana) — 45 flat arcane damage, defense formula bypassed entirely. */
+  private def handleArcaneBlast(state: CombatState): (GameState, List[String]) =
+    val cost   = 30
+    val damage = 45
+    if state.player.resourceCurrent < cost then
+      (state, List(s"Not enough Mana — Arcane Blast requires $cost Mana."))
+    else
+      val updatedPlayer = state.player.copy(resourceCurrent = state.player.resourceCurrent - cost)
+      // Flat damage: no calcDamage call, no jitter, no defense subtraction
+      val damagedEnemy  = state.combat.enemy.takeDamage(damage)
+      val log           = List(s"Arcane Blast! You unleash arcane energy for $damage damage.")
+      val updatedCombat = state.combat.copy(enemy = damagedEnemy, playerIsDefending = false)
+
+      if !damagedEnemy.isAlive then
+        victory(state.copy(player = updatedPlayer, combat = updatedCombat), damagedEnemy, log)
+      else enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), log)
+
+  // -----------------------------------------------------------------------
+  // Resource generation
+  // -----------------------------------------------------------------------
+
+  /** Apply resource generation events to the player, capped at resourceMax.
+    *
+    * Each flag represents a distinct combat event; multiple flags can be combined in a single call
+    * (e.g. onHit + onRound at the end of an enemy attack turn).
+    *
+    * Class rules:
+    *   - Warrior: +5 on attack, +10 on hit — no per-round or defend gain
+    *   - Archer: +8 on defend, +5 per round — no attack or hit gain
+    *   - Mage: 0 in all cases
+    */
+  private[game] def gainResource(player: Player,
+                                 onAttack: Boolean = false,
+                                 onDefend: Boolean = false,
+                                 onHit: Boolean = false,
+                                 onRound: Boolean = false
+  ): Player =
+    val gain = player.classId match {
+      case ClassId.Warrior =>
+        (if onAttack then 5 else 0) + (if onHit then 10 else 0)
+      case ClassId.Archer =>
+        (if onDefend then 8 else 0) + (if onRound then 5 else 0)
+      case ClassId.Mage => 0
+    }
+    if gain == 0 then player
+    else player.copy(resourceCurrent = (player.resourceCurrent + gain).min(player.resourceMax))
 
   // ---------------------------------------------
   // Consumable effect application
@@ -122,32 +240,43 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
         val rawDamage = calcDamage(state.combat.enemy.attack, state.player.defense)
         val finalDamage =
           if state.combat.playerIsDefending then (rawDamage / 2).max(1) else rawDamage
-        val newHp         = (state.player.hp - finalDamage).max(0)
-        val damagedPlayer = state.player.copy(hp = newHp)
-        val defendNote    = if state.combat.playerIsDefending then " (halved)" else ""
-        val log =
+        val newHp      = (state.player.hp - finalDamage).max(0)
+        val defendNote = if state.combat.playerIsDefending then " (halved)" else ""
+        val attackLog =
           priorLog :+ s"${state.combat.enemy.label} attacks you for $finalDamage damage$defendNote."
 
-        if newHp <= 0 then defeat(state, damagedPlayer, log)
+        if newHp <= 0 then defeat(state, state.player.copy(hp = 0), attackLog)
         else
-          val nextCombat = state.combat.copy(isPlayerTurn = true,
-                                             round = state.combat.round + 1,
-                                             playerIsDefending = false
+          // Warrior +10 Rage when hit; Archer +5 Focus per round — both fire here
+          val playerAfterHit = gainResource(
+            state.player.copy(hp = newHp),
+            onHit = true,
+            onRound = true
           )
-          (state.copy(player = damagedPlayer, combat = nextCombat), log)
+          val nextCombat = state.combat.copy(
+            isPlayerTurn = true,
+            round = state.combat.round + 1,
+            playerIsDefending = false
+          )
+          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog)
 
       case "DEFEND" =>
-        val log = priorLog :+ s"${state.combat.enemy.label} takes a defensive stance."
-        val nextCombat = state.combat.copy(isPlayerTurn = true,
-                                           round = state.combat.round + 1,
-                                           playerIsDefending = false
+        val roundLog = priorLog :+ s"${state.combat.enemy.label} takes a defensive stance."
+        // Archer +5 Focus per round even when the enemy defends
+        val playerAfterRound = gainResource(state.player, onRound = true)
+        val nextCombat = state.combat.copy(
+          isPlayerTurn = true,
+          round = state.combat.round + 1,
+          playerIsDefending = false
         )
-        (state.copy(combat = nextCombat), log)
+        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog)
 
       case other =>
         // Unknow action -> skip enemy turn
-        val log = priorLog :+ s"${state.combat.enemy.label} hesitates."
-        (state.copy(combat = state.combat.copy(isPlayerTurn = true)), log)
+        val roundLog         = priorLog :+ s"${state.combat.enemy.label} hesitates."
+        val playerAfterRound = gainResource(state.player, onRound = true)
+        val nextCombat       = state.combat.copy(isPlayerTurn = true, playerIsDefending = false)
+        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog)
     }
 
   /** Pick an enemy action using weighted random selection. */

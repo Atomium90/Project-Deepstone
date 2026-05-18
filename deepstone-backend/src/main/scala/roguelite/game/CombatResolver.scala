@@ -107,14 +107,14 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
         state.player.inventory.findById(id) match {
           case None =>
             (state, List("Item not found in inventory."))
-          case Some((_, nonConsumable)) if !nonConsumable.isInstanceOf[Consumable] =>
-            (state, List(s"${nonConsumable.name} cannot be used in combat."))
           case Some((idx, consumable: Consumable)) =>
             val (_, newInventory)          = state.player.inventory.removeAt(idx)
             val playerWithoutItem          = state.player.copy(inventory = newInventory)
             val (updatedPlayer, effectLog) = applyConsumableEffect(playerWithoutItem, consumable)
             val updatedCombat              = state.combat.copy(playerIsDefending = false)
             enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), effectLog)
+          case Some((_, item)) =>
+            (state, List(s"${item.name} cannot be used in combat."))
         }
     }
 

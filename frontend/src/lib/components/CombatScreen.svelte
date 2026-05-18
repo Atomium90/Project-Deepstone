@@ -1,6 +1,6 @@
 <script lang="ts">
     import { gameState, client, combatLog } from "../engine/StateStore";
-    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, RESOURCE_LABELS } from "../engine/constants";
+    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, RESOURCE_LABELS, ABILITY_INFO } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
 
@@ -14,6 +14,9 @@
     $: resourceLabel   = player ? RESOURCE_LABELS[player.classId] : "Resource";
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : "#888";
     $: isPlayerTurn    = combat?.isPlayerTurn ?? false;
+
+    $: abilityInfo     = player ? ABILITY_INFO[player.classId] : null;
+    $: abilityDisabled = !isPlayerTurn || !player || player.resourceCurrent < (abilityInfo?.cost ?? Infinity);
 
     /** Only consumables can be used in combat. */
     $: consumables = inventory.filter((i): i is ItemView => i.kind === "consumable");
@@ -109,10 +112,14 @@
 
             <button
                     class="action-btn ability"
-                    disabled={!isPlayerTurn}
+                    disabled={abilityDisabled}
+                    title={abilityInfo?.description ?? ""}
                     on:click={() => sendAction("ABILITY")}
             >
-                ✦ Ability
+                ✦ {abilityInfo?.name ?? "Ability"}
+                <span class="ability-cost">
+                    {abilityInfo?.cost ?? 0} {resourceLabel}
+                </span>
             </button>
 
             <!-- Item button toggles the consumable picker -->
@@ -283,6 +290,10 @@
         font-size: 0.85rem;
         letter-spacing: 0.05em;
         transition: background 0.12s, border-color 0.12s, color 0.12s;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
     }
 
     .action-btn:hover:not(:disabled) {
@@ -304,6 +315,15 @@
     .action-btn.item:hover:not(:disabled)    { border-color: #27ae60; }
 
     .action-btn.item.active { background: #1a2a1a; border-color: #27ae60; color: #5ce07a; }
+
+    .ability-cost {
+        font-size: 0.6rem;
+        color: #666;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .action-btn.ability:not(:disabled) .ability-cost { color: #7a5a9a; }
 
     /* -- Item picker ------------------------------------------------------ */
 

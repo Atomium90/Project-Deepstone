@@ -52,6 +52,8 @@ case class Player(
     level: Int,
     xp: Int,
     metaCurrency: Int,
+    bonusAttack: Int = 0,
+    bonusDefense: Int = 0,
     inventory: Inventory = Inventory.empty
 ):
   def toView: PlayerView = PlayerView(

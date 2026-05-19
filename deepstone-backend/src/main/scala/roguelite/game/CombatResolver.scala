@@ -317,7 +317,7 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
       s"You gain $xpGained XP."
     )
 
-    val (finalPlayer, lootLog) = LootTable.rollEnemy(deadEnemy, itemDefs, rng) match {
+    val (playerAfterLoot, lootLog) = LootTable.rollEnemy(deadEnemy, itemDefs, rng) match {
       case None => (playerWithXp, Nil)
       case Some(item) =>
         playerWithXp.withItemPickup(item) match {
@@ -330,13 +330,16 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
         }
     }
 
+    // Level-up after loot
+    val (finalPlayer, levelUpLog) = LevelUpSystem.applyLevelUps(playerAfterLoot, rng)
+
     val nextState = ExplorationState(
       player = finalPlayer,
       dungeon = updatedDungeon,
       playerX = state.playerX,
       playerY = state.playerY
     )
-    (nextState, victoryLog ++ lootLog)
+    (nextState, victoryLog ++ lootLog ++ levelUpLog)
   }
 
   /** Player loses: transition to GameOver, preserve meta-currency. */
@@ -368,7 +371,7 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
   extension (player: Player)
     /** Effective attack: base formula + weapon bonuses from inventory. */
     private def attack: Int =
-      player.level * 5 + (player.maxHp / 10) + player.inventory.totalAttackBonus
+      player.level * 5 + (player.maxHp / 10) + player.inventory.totalAttackBonus + player.bonusAttack
 
     /** Effective defense: base formula + armor bonuses from inventory. */
-    private def defense: Int = player.level * 2 + player.inventory.totalDefenseBonus
+    private def defense: Int = player.level * 2 + player.inventory.totalDefenseBonus + player.bonusDefense

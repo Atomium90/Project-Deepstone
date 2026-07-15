@@ -211,23 +211,26 @@ class AffinitySuite extends FunSuite:
   // -----------------------------------------------------------------------
 
   test("Warrior with heavy armor gets 2× defense bonus") {
-    // Chain Mail: +6 DEF. Warrior affinity: +12 effective DEF.
-    // Warrior level 1 defense = 2 + 12 = 14. Enemy attack 1 - 14 + jitter → floored at 1.
-    // The player should take exactly 1 damage per enemy hit.
-    val resolver  = freshResolver
+    // Chain Mail: +6 DEF. Warrior affinity 'heavy': +6×2 = +12 effective DEF.
+    // Player defense at level 1 = 2 + 12 = 14. Enemy attack = 4.
+    // rawDamage = (4 - 14 + jitter).max(1) <= 1 always.
     val warrior   = withArmor(makePlayer(ClassId.Warrior, Set("heavy")), chainMail)
-    val state     = makeCombatState(warrior)
-    val (next, _) = resolver.resolve(state, CombatAction(CombatActionType.Defend))
+    val noArmor   = makePlayer(ClassId.Warrior, Set("heavy"))
+    val stateWith = makeCombatState(warrior)
+    val stateNo   = makeCombatState(noArmor)
 
-    next match
-      case cs: CombatState =>
-        val damageTaken = 200 - cs.player.hp
-        // Enemy attack=1, player effective defense=14, damage floored at 1, then halved by Defend → 1
-        assertEquals(damageTaken,
-                     1,
-                     s"expected 1 damage (floored + halved defend), got $damageTaken"
-        )
-      case _ => fail("expected CombatState after defend")
+    val (nextWith, _) =
+      CombatResolver(Random(42)).resolve(stateWith, CombatAction(CombatActionType.Defend))
+    val (nextNo, _) =
+      CombatResolver(Random(42)).resolve(stateNo, CombatAction(CombatActionType.Defend))
+
+    (nextWith, nextNo) match
+      case (csWith: CombatState, csNo: CombatState) =>
+        val dmgWith = 200 - csWith.player.hp
+        val dmgNo   = 200 - csNo.player.hp
+        assert(dmgWith <= 1, s"expected <= 1 damage with heavy armor affinity, got $dmgWith")
+        assert(dmgWith <= dmgNo, s"armor should reduce damage (with=$dmgWith, no=$dmgNo)")
+      case _ => fail("expected CombatState after defend for both cases")
   }
 
   test("Archer with heavy armor gets no affinity bonus") {

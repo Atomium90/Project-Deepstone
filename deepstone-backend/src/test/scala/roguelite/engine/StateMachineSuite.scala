@@ -37,13 +37,43 @@ class StateMachineSuite extends FunSuite:
 
   val enemyStatsMap: Map[String, EnemyStats] = Map("goblin" -> goblinStats)
 
+  /** Minimal class definitions mirroring classes.json — avoids file I/O in unit tests. */
+  val testClassDefs: Map[ClassId, ClassDef] = Map(
+    ClassId.Warrior -> ClassDef(ClassId.Warrior,
+                                hp = 120,
+                                resourceMax = 100,
+                                resourceStart = 0,
+                                affinityTags = Set("heavy"),
+                                startingKit = Nil
+    ),
+    ClassId.Archer -> ClassDef(ClassId.Archer,
+                               hp = 90,
+                               resourceMax = 50,
+                               resourceStart = 50,
+                               affinityTags = Set("ranged"),
+                               startingKit = Nil
+    ),
+    ClassId.Mage -> ClassDef(ClassId.Mage,
+                             hp = 70,
+                             resourceMax = 80,
+                             resourceStart = 80,
+                             affinityTags = Set("magic"),
+                             startingKit = Nil
+    )
+  )
+
   def simpleDungeon(entities: List[Entity] = Nil): Dungeon =
     val r1 = makeRoom("r1", entities = entities)
     val r2 = makeRoom("r2")
     Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
 
   def sm(dungeon: Dungeon = simpleDungeon()): StateMachine =
-    StateMachine(dungeon, enemyStatsMap, Map.empty[String, Item], CombatResolver(Random(0L)))
+    StateMachine(dungeon,
+                 enemyStatsMap,
+                 Map.empty[String, Item],
+                 testClassDefs,
+                 CombatResolver(Random(0L))
+    )
 
   def hubPlayer: Player =
     Player(ClassId.Warrior,
@@ -74,6 +104,13 @@ class StateMachineSuite extends FunSuite:
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Mage))
       )
     assertEquals(next.player.classId, ClassId.Mage)
+
+  test("StartRun player has correct affinityTags from classDef"):
+    val (next, _) =
+      sm().applyActionPure(HubState(hubPlayer),
+                           HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer))
+      )
+    assertEquals(next.player.affinityTags, Set("ranged"))
 
   test("StartRun without classId stays in Hub"):
     val (next, _) =
@@ -149,8 +186,8 @@ class StateMachineSuite extends FunSuite:
     val state     = CombatState(hubPlayer, simpleDungeon(List(enemy)), 1, 1, Combat(instance), "e1")
     val (next, _) = sm().applyActionPure(state, CombatAction(CombatActionType.Attack))
     assert(
-      next.isInstanceOf[CombatState] || next.isInstanceOf[ExplorationState] || next
-        .isInstanceOf[GameOverState]
+      next.isInstanceOf[CombatState] || next.isInstanceOf[ExplorationState] ||
+        next.isInstanceOf[GameOverState]
     )
 
   // --- StateUpdate projection -----------------------------------------------
@@ -165,7 +202,7 @@ class StateMachineSuite extends FunSuite:
   test("GameOverState.toStateUpdate has GameOver phase"):
     assertEquals(GameOverState(hubPlayer).toStateUpdate().phase, GamePhase.GameOver)
 
-  test("StateUpdate always contains inventory list (empty at run start)"):
+  test("StateUpdate always contains inventory list (empty at run start with empty startingKit)"):
     val (next, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))

@@ -369,9 +369,29 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
 
   /** Will be tuned later. */
   extension (player: Player)
-    /** Effective attack: base formula + weapon bonuses from inventory. */
+    /** Effective attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon
+      * sum.
+      *
+      * Weapons whose typeTag is in the player's affinityTags contribute double their attackBonus.
+      * Example: Hunter's Bow (+5 ATK, "ranged") held by an Archer (affinity: "ranged") → +10 ATK.
+      */
     private def attack: Int =
-      player.level * 5 + (player.maxHp / 10) + player.inventory.totalAttackBonus + player.bonusAttack
+      val weaponBonus = player.inventory.slots.collect {
+        case Some(w: Weapon) =>
+          val multiplier = if w.typeTag.exists(player.affinityTags.contains) then 2 else 1
+          w.attackBonus * multiplier
+      }.sum
+      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus
 
-    /** Effective defense: base formula + armor bonuses from inventory. */
-    private def defense: Int = player.level * 2 + player.inventory.totalDefenseBonus + player.bonusDefense
+    /** Effective defense: level scaling + permanent bonus + affinity-aware armor sum.
+      *
+      * Armors whose typeTag is in the player's affinityTags contribute double their defenseBonus.
+      * Example: Chain Mail (+6 DEF, "heavy") held by a Warrior (affinity: "heavy") → +12 DEF.
+      */
+    private def defense: Int =
+      val armorBonus = player.inventory.slots.collect {
+        case Some(a: Armor) =>
+          val multiplier = if a.typeTag.exists(player.affinityTags.contains) then 2 else 1
+          a.defenseBonus * multiplier
+      }.sum
+      player.level * 2 + player.bonusDefense + armorBonus

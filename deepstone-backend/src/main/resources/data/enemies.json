@@ -12,9 +12,12 @@
     ],
     "dropChance": 25,
     "lootTable": [
-      { "typeId": "health_potion", "weight": 60 },
-      { "typeId": "iron_sword",    "weight": 25 },
-      { "typeId": "leather_armor", "weight": 15 }
+      { "typeId": "bread",         "weight": 30 },
+      { "typeId": "health_potion", "weight": 25 },
+      { "typeId": "short_sword",   "weight": 15 },
+      { "typeId": "shortbow",      "weight": 15 },
+      { "typeId": "padded_robe",   "weight": 10 },
+      { "typeId": "copper_bracelet","weight": 5 }
     ]
   },
   {
@@ -30,10 +33,13 @@
     ],
     "dropChance": 30,
     "lootTable": [
-      { "typeId": "health_potion", "weight": 40 },
-      { "typeId": "iron_sword",    "weight": 28 },
-      { "typeId": "leather_armor", "weight": 22 },
-      { "typeId": "iron_ring",     "weight": 10 }
+      { "typeId": "health_potion", "weight": 25 },
+      { "typeId": "iron_sword",    "weight": 20 },
+      { "typeId": "battle_axe",    "weight": 15 },
+      { "typeId": "leather_armor", "weight": 15 },
+      { "typeId": "iron_plate",    "weight": 10 },
+      { "typeId": "rage_draught",  "weight": 10 },
+      { "typeId": "iron_ring",     "weight": 5 }
     ]
   },
   {
@@ -49,10 +55,13 @@
     ],
     "dropChance": 25,
     "lootTable": [
-      { "typeId": "health_potion", "weight": 40 },
-      { "typeId": "leather_armor", "weight": 35 },
-      { "typeId": "iron_ring",     "weight": 15 },
-      { "typeId": "iron_sword",    "weight": 10 }
+      { "typeId": "health_potion", "weight": 20 },
+      { "typeId": "oak_staff",     "weight": 20 },
+      { "typeId": "crystal_wand",  "weight": 15 },
+      { "typeId": "padded_robe",   "weight": 15 },
+      { "typeId": "leather_armor", "weight": 15 },
+      { "typeId": "iron_ring",     "weight": 10 },
+      { "typeId": "ether",         "weight": 5 }
     ]
   },
   {
@@ -68,12 +77,16 @@
     ],
     "dropChance": 40,
     "lootTable": [
-      { "typeId": "health_potion", "weight": 30 },
-      { "typeId": "iron_sword",    "weight": 20 },
-      { "typeId": "leather_armor", "weight": 20 },
-      { "typeId": "iron_ring",     "weight": 15 },
-      { "typeId": "steel_sword",   "weight": 10 },
-      { "typeId": "chain_mail",    "weight": 5 }
+      { "typeId": "health_potion",  "weight": 15 },
+      { "typeId": "war_hammer",     "weight": 12 },
+      { "typeId": "steel_sword",    "weight": 12 },
+      { "typeId": "crossbow",       "weight": 12 },
+      { "typeId": "arcane_tome",    "weight": 10 },
+      { "typeId": "chain_mail",     "weight": 10 },
+      { "typeId": "studded_leather","weight": 10 },
+      { "typeId": "silver_ring",    "weight": 8 },
+      { "typeId": "greater_potion", "weight": 6 },
+      { "typeId": "elixir",         "weight": 5 }
     ]
   },
   {
@@ -89,11 +102,15 @@
     ],
     "dropChance": 100,
     "lootTable": [
-      { "typeId": "steel_sword",    "weight": 25 },
-      { "typeId": "chain_mail",     "weight": 25 },
-      { "typeId": "amulet_of_vigor","weight": 25 },
-      { "typeId": "greater_potion", "weight": 15 },
-      { "typeId": "ether",          "weight": 10 }
+      { "typeId": "war_hammer",      "weight": 15 },
+      { "typeId": "plate_armor",     "weight": 15 },
+      { "typeId": "longbow",         "weight": 12 },
+      { "typeId": "elder_staff",     "weight": 12 },
+      { "typeId": "amulet_of_vigor", "weight": 12 },
+      { "typeId": "life_crystal",    "weight": 10 },
+      { "typeId": "greater_potion",  "weight": 10 },
+      { "typeId": "elixir",          "weight": 8 },
+      { "typeId": "mana_crystal",    "weight": 6 }
     ]
   },
   {
@@ -108,11 +125,16 @@
     ],
     "dropChance": 100,
     "lootTable": [
-      { "typeId": "steel_sword",    "weight": 20 },
-      { "typeId": "chain_mail",     "weight": 20 },
-      { "typeId": "amulet_of_vigor","weight": 30 },
-      { "typeId": "greater_potion", "weight": 20 },
-      { "typeId": "ether",          "weight": 10 }
+      { "typeId": "longbow",         "weight": 15 },
+      { "typeId": "great_axe",       "weight": 12 },
+      { "typeId": "elder_staff",     "weight": 12 },
+      { "typeId": "plate_armor",     "weight": 10 },
+      { "typeId": "studded_leather", "weight": 10 },
+      { "typeId": "amulet_of_vigor", "weight": 10 },
+      { "typeId": "life_crystal",    "weight": 10 },
+      { "typeId": "greater_potion",  "weight": 8 },
+      { "typeId": "mana_crystal",    "weight": 8 },
+      { "typeId": "elixir",          "weight": 5 }
     ]
   }
 ]

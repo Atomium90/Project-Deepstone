@@ -9,22 +9,58 @@ import scala.util.Random
 class GameSessionSuite extends CatsEffectSuite:
 
   def makeTiles(w: Int = 8, h: Int = 6): Vector[Vector[Tile]] =
-    Vector.tabulate(h, w): (row, col) =>
-      if row == 0 || row == h - 1 || col == 0 || col == w - 1 then Tile.Wall else Tile.Floor
+    Vector.tabulate(h, w):
+      (row, col) =>
+        if row == 0 || row == h - 1 || col == 0 || col == w - 1 then Tile.Wall else Tile.Floor
 
   val goblinStats: EnemyStats = EnemyStats(
-    typeId = "goblin", label = "Goblin", maxHp = 20, attack = 5, defense = 0, xpReward = 15,
-    actions = List(EnemyActionWeight("ATTACK", 100)),
+    typeId = "goblin",
+    label = "Goblin",
+    maxHp = 20,
+    attack = 5,
+    defense = 0,
+    xpReward = 15,
+    actions = List(EnemyActionWeight("ATTACK", 100))
+  )
+
+  /** Minimal class definitions. */
+  val testClassDefs: Map[ClassId, ClassDef] = Map(
+    ClassId.Warrior -> ClassDef(ClassId.Warrior,
+                                hp = 120,
+                                resourceMax = 100,
+                                resourceStart = 0,
+                                affinityTags = Set("heavy"),
+                                startingKit = Nil
+    ),
+    ClassId.Archer -> ClassDef(ClassId.Archer,
+                               hp = 90,
+                               resourceMax = 50,
+                               resourceStart = 50,
+                               affinityTags = Set("ranged"),
+                               startingKit = Nil
+    ),
+    ClassId.Mage -> ClassDef(ClassId.Mage,
+                             hp = 70,
+                             resourceMax = 80,
+                             resourceStart = 80,
+                             affinityTags = Set("magic"),
+                             startingKit = Nil
+    )
   )
 
   def testDungeon: Dungeon =
     val tiles = makeTiles()
-    val r1 = Room("r1", RoomType.Combat, 8, 6, tiles, Nil)
-    val r2 = Room("r2", RoomType.Loot,   8, 6, tiles, Nil)
+    val r1    = Room("r1", RoomType.Combat, 8, 6, tiles, Nil)
+    val r2    = Room("r2", RoomType.Loot, 8, 6, tiles, Nil)
     Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
 
   def sm: StateMachine =
-    StateMachine(testDungeon, Map("goblin" -> goblinStats), Map.empty, CombatResolver(Random(0L)))
+    StateMachine(testDungeon,
+                 Map("goblin" -> goblinStats),
+                 Map.empty,
+                 testClassDefs,
+                 CombatResolver(Random(0L))
+    )
 
   test("new session starts in Hub phase"):
     for
@@ -59,17 +95,15 @@ class GameSessionSuite extends CatsEffectSuite:
     for
       session <- GameSession.create(sm)
       update  <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
-    yield
-      // inventory field is always present (empty at run start)
-      assertEquals(update.inventory, Nil)
+    yield assertEquals(update.inventory, Nil)
 
   test("handle is concurrency-safe"):
     for
       session <- GameSession.create(sm)
       _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Mage)))
-      _       <- IO.both(
+      _ <- IO.both(
         session.handle(Move(Direction.Right)),
-        session.handle(Move(Direction.Down)),
+        session.handle(Move(Direction.Down))
       )
-      update  <- session.currentUpdate
+      update <- session.currentUpdate
     yield assertEquals(update.phase, GamePhase.Exploration)

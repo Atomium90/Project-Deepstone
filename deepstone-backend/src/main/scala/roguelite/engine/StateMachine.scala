@@ -4,6 +4,7 @@ import cats.effect.IO
 import roguelite.game.{
   Accessory,
   Chest,
+  ClassDef,
   Combat,
   CombatResolver,
   Door,
@@ -54,6 +55,7 @@ case class Player(
     metaCurrency: Int,
     bonusAttack: Int = 0,
     bonusDefense: Int = 0,
+    affinityTags: Set[String] = Set.empty,
     inventory: Inventory = Inventory.empty
 ):
   def toView: PlayerView = PlayerView(
@@ -89,40 +91,6 @@ case class Player(
             case _ =>
               copy(inventory = newInventory)
           }
-
-object Player:
-  def startingPlayer(classId: ClassId): Player = classId match {
-    case ClassId.Warrior =>
-      Player(ClassId.Warrior,
-             hp = 120,
-             maxHp = 120,
-             resourceCurrent = 0,
-             resourceMax = 100,
-             level = 1,
-             xp = 0,
-             metaCurrency = 0
-      )
-    case ClassId.Archer =>
-      Player(ClassId.Archer,
-             hp = 90,
-             maxHp = 90,
-             resourceCurrent = 50,
-             resourceMax = 50,
-             level = 1,
-             xp = 0,
-             metaCurrency = 0
-      )
-    case ClassId.Mage =>
-      Player(ClassId.Mage,
-             hp = 70,
-             maxHp = 70,
-             resourceCurrent = 80,
-             resourceMax = 80,
-             level = 1,
-             xp = 0,
-             metaCurrency = 0
-      )
-  }
 
 // ---------------------------------------------
 // Game states (one per game phase)
@@ -212,6 +180,8 @@ case class GameOverState(player: Player) extends GameState:
   *   Lookup table of enemy stats keyed by typeId.
   * @param itemDefs
   *   Prototype item map keyed by typeId, used by [[LootTable]] for chest rolls.
+  * @param classDefs
+  *   Definitions of all playable classes (warrior, mage…), used to build the player at run start.
   * @param resolver
   *   Resolves combat turns.
   * @param rng
@@ -220,6 +190,7 @@ case class GameOverState(player: Player) extends GameState:
 class StateMachine(dungeon: Dungeon,
                    enemyStats: Map[String, EnemyStats],
                    itemDefs: Map[String, Item],
+                   classDefs: Map[ClassId, ClassDef],
                    resolver: CombatResolver,
                    rng: Random = Random()
 ):
@@ -233,9 +204,37 @@ class StateMachine(dungeon: Dungeon,
       // -- Hub --------------------------------------------------------------
 
       case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _)) =>
-        val player    = Player.startingPlayer(classId)
-        val nextState = ExplorationState(player, dungeon, playerX = 1, playerY = 1)
-        (nextState, List(s"A new run begins. Good luck, $classId."))
+        classDefs.get(classId) match {
+          case None => (hub, List(s"Unknown class '$classId'. Cannot start run."))
+
+          case Some(classDef) =>
+            val basePlayer = Player(
+              classId = classId,
+              hp = classDef.hp,
+              maxHp = classDef.hp,
+              resourceCurrent = classDef.resourceStart,
+              resourceMax = classDef.resourceMax,
+              level = 1,
+              xp = 0,
+              metaCurrency = hub.player.metaCurrency,
+              affinityTags = classDef.affinityTags
+            )
+
+            // Resolve starting kit: unknown typeIds are skipped, full inventory is not expected
+            val playerWithKit = classDef.startingKit.foldLeft(basePlayer):
+              (p, typeId) =>
+                itemDefs.get(typeId) match {
+                  case None => p
+                  case Some(proto) =>
+                    p.withItemPickup(proto.withNewId) match {
+                      case Right(updated) => updated
+                      case Left(_)        => p
+                    }
+                }
+
+            val nextState = ExplorationState(playerWithKit, dungeon, playerX = 1, playerY = 1)
+            (nextState, List(s"A new run begins. Good luck, $classId."))
+        }
 
       case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _)) =>
         // Upgrade logic will be added later

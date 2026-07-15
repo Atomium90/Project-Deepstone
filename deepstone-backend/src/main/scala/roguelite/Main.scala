@@ -5,7 +5,14 @@ import com.comcast.ip4s.{ host, port }
 import org.http4s.ember.server.EmberServerBuilder
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import roguelite.engine.{ StateMachine, WebSocketRouter }
-import roguelite.game.{ CombatResolver, DungeonBuilder, EnemyLoader, ItemLoader, RoomLoader }
+import roguelite.game.{
+  ClassLoader,
+  CombatResolver,
+  DungeonBuilder,
+  EnemyLoader,
+  ItemLoader,
+  RoomLoader
+}
 
 object Main extends IOApp.Simple:
 
@@ -18,6 +25,7 @@ object Main extends IOApp.Simple:
       roomPool   <- RoomLoader.loadAll()
       enemyStats <- EnemyLoader.loadAll()
       itemDefs   <- ItemLoader.loadAll()
+      classDefs  <- ClassLoader.loadAll()
       _ <- logger.info(
         s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types."
       )
@@ -33,7 +41,7 @@ object Main extends IOApp.Simple:
       _ <- logger.info(s"Built dungeon: ${dungeon.rooms.keys.mkString(" → ")}")
 
       resolver     = CombatResolver()
-      stateMachine = StateMachine(dungeon, enemyStats, itemDefs, resolver)
+      stateMachine = StateMachine(dungeon, enemyStats, itemDefs, classDefs, resolver)
       router       = WebSocketRouter(stateMachine)
 
       _ <- EmberServerBuilder

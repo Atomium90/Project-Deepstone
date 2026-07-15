@@ -50,10 +50,14 @@ case class Weapon(
     typeId: String,
     name: String,
     rarity: Rarity,
-    attackBonus: Int
+    attackBonus: Int,
+    typeTag: Option[String] = None,
 ) extends Item:
   val kind             = "weapon"
-  def statLine: String = s"+$attackBonus ATK"
+  def statLine: String = typeTag match {
+    case Some(tag)  => s"+$attackBonus ATK [$tag]"
+    case None       => s"+$attackBonus ATK"
+  }
   def withNewId: Item  = copy(id = Item.newId())
 
 case class Armor(
@@ -61,13 +65,17 @@ case class Armor(
     typeId: String,
     name: String,
     rarity: Rarity,
-    defenseBonus: Int
+    defenseBonus: Int,
+    typeTag: Option[String] = None
 ) extends Item:
   val kind: String     = "armor"
-  def statLine: String = s"+$defenseBonus DEF"
+  def statLine: String = typeTag match {
+    case Some(tag)  => s"+$defenseBonus DEF [$tag]"
+    case None       => s"+$defenseBonus DEF"
+  }
   def withNewId: Item  = copy(id = Item.newId())
 
-/** Accessories increase the player's max HP when picked up. */
+/** Accessories increase the player's max HP when picked up. No affinity tag. */
 case class Accessory(
     id: String,
     typeId: String,

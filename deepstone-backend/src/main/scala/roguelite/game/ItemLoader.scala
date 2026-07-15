@@ -104,6 +104,7 @@ object ItemLoader:
                                kind: String,
                                name: String,
                                rarity: String,
+                               typeTag: Option[String] = None,
                                attackBonus: Option[Int] = None,
                                defenseBonus: Option[Int] = None,
                                hpBonus: Option[Int] = None,
@@ -124,11 +125,12 @@ object ItemLoader:
       kind         <- c.get[String]("kind")
       name         <- c.get[String]("name")
       rarity       <- c.get[String]("rarity")
+      typeTag      <- c.get[Option[String]]("typeTag")
       attackBonus  <- c.get[Option[Int]]("attackBonus")
       defenseBonus <- c.get[Option[Int]]("defenseBonus")
       hpBonus      <- c.get[Option[Int]]("hpBonus")
       effect       <- c.get[Option[ConsumableEffectJson]]("effect")
-    yield ItemJson(typeId, kind, name, rarity, attackBonus, defenseBonus, hpBonus, effect)
+    yield ItemJson(typeId, kind, name, rarity, typeTag, attackBonus, defenseBonus, hpBonus, effect)
 
   // Cats traverse helper for Either (same pattern as RoomLoader)
   extension [A, B](list: List[A])

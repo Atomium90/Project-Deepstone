@@ -1,0 +1,26 @@
+[
+  {
+    "classId": "warrior",
+    "hp": 120,
+    "resourceMax": 100,
+    "resourceStart": 0,
+    "affinityTags": ["heavy"],
+    "startingKit": ["iron_sword", "leather_armor", "health_potion"]
+  },
+  {
+    "classId": "archer",
+    "hp": 90,
+    "resourceMax": 50,
+    "resourceStart": 50,
+    "affinityTags": ["ranged"],
+    "startingKit": ["hunters_bow", "leather_armor", "health_potion"]
+  },
+  {
+    "classId": "mage",
+    "hp": 70,
+    "resourceMax": 80,
+    "resourceStart": 80,
+    "affinityTags": ["magic"],
+    "startingKit": ["oak_staff", "padded_robe", "health_potion"]
+  }
+]

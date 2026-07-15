@@ -1,45 +1,191 @@
 [
   {
+    "typeId": "short_sword",
+    "kind": "weapon",
+    "name": "Short Sword",
+    "rarity": "common",
+    "typeTag": "heavy",
+    "attackBonus": 2
+  },
+  {
     "typeId": "iron_sword",
     "kind": "weapon",
     "name": "Iron Sword",
     "rarity": "common",
-    "attackBonus": 3
+    "typeTag": "heavy",
+    "attackBonus": 4
+  },
+  {
+    "typeId": "battle_axe",
+    "kind": "weapon",
+    "name": "Battle Axe",
+    "rarity": "common",
+    "typeTag": "heavy",
+    "attackBonus": 5
   },
   {
     "typeId": "steel_sword",
     "kind": "weapon",
     "name": "Steel Sword",
     "rarity": "uncommon",
-    "attackBonus": 7
+    "typeTag": "heavy",
+    "attackBonus": 8
+  },
+  {
+    "typeId": "war_hammer",
+    "kind": "weapon",
+    "name": "War Hammer",
+    "rarity": "uncommon",
+    "typeTag": "heavy",
+    "attackBonus": 10
+  },
+  {
+    "typeId": "great_axe",
+    "kind": "weapon",
+    "name": "Great Axe",
+    "rarity": "uncommon",
+    "typeTag": "heavy",
+    "attackBonus": 9
+  },
+  {
+    "typeId": "shortbow",
+    "kind": "weapon",
+    "name": "Shortbow",
+    "rarity": "common",
+    "typeTag": "ranged",
+    "attackBonus": 3
   },
   {
     "typeId": "hunters_bow",
     "kind": "weapon",
     "name": "Hunter's Bow",
     "rarity": "common",
-    "attackBonus": 4
+    "typeTag": "ranged",
+    "attackBonus": 5
+  },
+  {
+    "typeId": "crossbow",
+    "kind": "weapon",
+    "name": "Crossbow",
+    "rarity": "uncommon",
+    "typeTag": "ranged",
+    "attackBonus": 7
+  },
+  {
+    "typeId": "longbow",
+    "kind": "weapon",
+    "name": "Longbow",
+    "rarity": "uncommon",
+    "typeTag": "ranged",
+    "attackBonus": 9
+  },
+  {
+    "typeId": "oak_staff",
+    "kind": "weapon",
+    "name": "Oak Staff",
+    "rarity": "common",
+    "typeTag": "magic",
+    "attackBonus": 3
+  },
+  {
+    "typeId": "crystal_wand",
+    "kind": "weapon",
+    "name": "Crystal Wand",
+    "rarity": "common",
+    "typeTag": "magic",
+    "attackBonus": 5
+  },
+  {
+    "typeId": "arcane_tome",
+    "kind": "weapon",
+    "name": "Arcane Tome",
+    "rarity": "uncommon",
+    "typeTag": "magic",
+    "attackBonus": 7
+  },
+  {
+    "typeId": "elder_staff",
+    "kind": "weapon",
+    "name": "Elder Staff",
+    "rarity": "uncommon",
+    "typeTag": "magic",
+    "attackBonus": 10
+  },
+  {
+    "typeId": "padded_robe",
+    "kind": "armor",
+    "name": "Padded Robe",
+    "rarity": "common",
+    "typeTag": "light",
+    "defenseBonus": 1
   },
   {
     "typeId": "leather_armor",
     "kind": "armor",
     "name": "Leather Armor",
     "rarity": "common",
-    "defenseBonus": 2
+    "typeTag": "light",
+    "defenseBonus": 3
+  },
+  {
+    "typeId": "studded_leather",
+    "kind": "armor",
+    "name": "Studded Leather",
+    "rarity": "uncommon",
+    "typeTag": "light",
+    "defenseBonus": 5
+  },
+  {
+    "typeId": "iron_plate",
+    "kind": "armor",
+    "name": "Iron Plate",
+    "rarity": "common",
+    "typeTag": "heavy",
+    "defenseBonus": 3
   },
   {
     "typeId": "chain_mail",
     "kind": "armor",
     "name": "Chain Mail",
     "rarity": "uncommon",
-    "defenseBonus": 5
+    "typeTag": "heavy",
+    "defenseBonus": 6
+  },
+  {
+    "typeId": "plate_armor",
+    "kind": "armor",
+    "name": "Plate Armor",
+    "rarity": "uncommon",
+    "typeTag": "heavy",
+    "defenseBonus": 9
+  },
+  {
+    "typeId": "copper_bracelet",
+    "kind": "accessory",
+    "name": "Copper Bracelet",
+    "rarity": "common",
+    "hpBonus": 8
   },
   {
     "typeId": "iron_ring",
     "kind": "accessory",
     "name": "Iron Ring",
     "rarity": "common",
-    "hpBonus": 10
+    "hpBonus": 12
+  },
+  {
+    "typeId": "silver_ring",
+    "kind": "accessory",
+    "name": "Silver Ring",
+    "rarity": "uncommon",
+    "hpBonus": 15
+  },
+  {
+    "typeId": "ruby_pendant",
+    "kind": "accessory",
+    "name": "Ruby Pendant",
+    "rarity": "uncommon",
+    "hpBonus": 18
   },
   {
     "typeId": "amulet_of_vigor",
@@ -47,6 +193,20 @@
     "name": "Amulet of Vigor",
     "rarity": "uncommon",
     "hpBonus": 20
+  },
+  {
+    "typeId": "life_crystal",
+    "kind": "accessory",
+    "name": "Life Crystal",
+    "rarity": "uncommon",
+    "hpBonus": 25
+  },
+  {
+    "typeId": "bread",
+    "kind": "consumable",
+    "name": "Bread",
+    "rarity": "common",
+    "effect": { "type": "HealFixed", "amount": 15 }
   },
   {
     "typeId": "health_potion",
@@ -63,10 +223,31 @@
     "effect": { "type": "HealFixed", "amount": 60 }
   },
   {
+    "typeId": "elixir",
+    "kind": "consumable",
+    "name": "Elixir",
+    "rarity": "uncommon",
+    "effect": { "type": "HealPercent", "percent": 40 }
+  },
+  {
+    "typeId": "rage_draught",
+    "kind": "consumable",
+    "name": "Rage Draught",
+    "rarity": "common",
+    "effect": { "type": "RestoreResource", "amount": 25 }
+  },
+  {
     "typeId": "ether",
     "kind": "consumable",
     "name": "Ether",
     "rarity": "uncommon",
     "effect": { "type": "RestoreResource", "amount": 20 }
+  },
+  {
+    "typeId": "mana_crystal",
+    "kind": "consumable",
+    "name": "Mana Crystal",
+    "rarity": "uncommon",
+    "effect": { "type": "RestoreResource", "amount": 40 }
   }
 ]

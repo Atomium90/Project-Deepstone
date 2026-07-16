@@ -298,13 +298,17 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
   // Outcome helpers
   // ---------------------------------------------
 
-  /** Player wins: remove enemy from room, award XP, roll for a loot drop, return to exploration. */
+  /** Player wins: remove enemy from room, award XP & Coins, roll for a loot drop, return to exploration. */
   private def victory(state: CombatState,
                       deadEnemy: EnemyInstance,
                       log: List[String]
   ): (GameState, List[String]) = {
-    val xpGained     = deadEnemy.xpReward
-    val playerWithXp = state.player.copy(xp = state.player.xp + xpGained)
+    val xpGained = deadEnemy.xpReward
+    // Stone Shards: 1 per 5 XP, minimum 1 per kill
+    val shardsEarned = (xpGained / 5).max(1)
+    val playerWithXp = state.player.copy(xp = state.player.xp + xpGained,
+                                         metaCurrency = state.player.metaCurrency + shardsEarned
+    )
 
     // Remove the defeated enemy
     val updatedRoom = state.dungeon.currentRoom.removeEntity(deadEnemy.entityId)
@@ -314,7 +318,7 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
 
     val victoryLog = log ++ List(
       s"${deadEnemy.label} has been defeated!",
-      s"You gain $xpGained XP."
+      s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
     )
 
     val (playerAfterLoot, lootLog) = LootTable.rollEnemy(deadEnemy, itemDefs, rng) match {

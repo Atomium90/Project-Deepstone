@@ -4,6 +4,7 @@ project/target/
 project/project/
 
 ### Metals / Bloop / BSP ###
+metals.sbt
 .metals/
 .bloop/
 .bsp/

@@ -97,7 +97,11 @@ object Database:
     )
     for
       xa <- HikariTransactor.newHikariTransactor[IO](
-        Driver, s"jdbc:sqlite:$filePath", "", "", connectEC
+        Driver,
+        s"jdbc:sqlite:$filePath",
+        "",
+        "",
+        connectEC
       )
       db = new Database(xa)
       _ <- Resource.eval(db.initialize())
@@ -112,9 +116,13 @@ object Database:
     val connectEC = ExecutionContext.fromExecutorService(
       Executors.newFixedThreadPool(1)
     )
-    for 
+    for
       xa <- HikariTransactor.newHikariTransactor[IO](
-        Driver, "jdbc:sqlite::memory:", "", "", connectEC
+        Driver,
+        "jdbc:sqlite::memory:",
+        "",
+        "",
+        connectEC
       )
       db = new Database(xa)
       _ <- Resource.eval(db.initialize())

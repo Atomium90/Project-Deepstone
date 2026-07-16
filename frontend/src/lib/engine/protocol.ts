@@ -5,10 +5,10 @@
 export type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT";
 export type GamePhase = "HUB" | "EXPLORATION" | "COMBAT" | "GAMEOVER";
 export type CombatActionType = "ATTACK" | "ABILITY" | "ITEM" | "DEFEND";
-export type HubActionType = "STARTRUN" | "BUYUPGRADE";
+export type HubActionType = "STARTRUN" | "BUYUPGRADE" | "RETURNTOHUB";
 export type ClassId = "warrior" | "archer" | "mage";
 
-export type ItemKind   = "weapon" | "armor" | "accessory" | "consumable";
+export type ItemKind = "weapon" | "armor" | "accessory" | "consumable";
 export type ItemRarity = "common" | "uncommon";
 
 // ---------------------------------------------
@@ -39,7 +39,11 @@ export interface HubAction {
   upgradeId?: string;
 }
 
-export type PlayerAction = MoveAction | InteractAction | CombatAction | HubAction;
+export type PlayerAction =
+  | MoveAction
+  | InteractAction
+  | CombatAction
+  | HubAction;
 
 // ---------------------------------------------
 // Server → Client views
@@ -67,7 +71,7 @@ export interface EntityView {
 export interface RoomView {
   width: number;
   height: number;
-  tiles: string[][];    // "floor" | "wall"
+  tiles: string[][]; // "floor" | "wall"
   entities: EntityView[];
   playerX: number;
   playerY: number;
@@ -84,6 +88,7 @@ export interface CombatView {
 export interface UpgradeView {
   id: string;
   label: string;
+  description: string;
   cost: number;
   unlocked: boolean;
 }

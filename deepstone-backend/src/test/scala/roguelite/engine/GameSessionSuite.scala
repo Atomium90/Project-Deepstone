@@ -2,6 +2,7 @@ package roguelite.engine
 
 import cats.effect.IO
 import munit.CatsEffectSuite
+import roguelite.db.Database
 import roguelite.game.*
 
 import scala.util.Random
@@ -23,7 +24,6 @@ class GameSessionSuite extends CatsEffectSuite:
     actions = List(EnemyActionWeight("ATTACK", 100))
   )
 
-  /** Minimal class definitions. */
   val testClassDefs: Map[ClassId, ClassDef] = Map(
     ClassId.Warrior -> ClassDef(ClassId.Warrior,
                                 hp = 120,
@@ -62,48 +62,131 @@ class GameSessionSuite extends CatsEffectSuite:
                  CombatResolver(Random(0L))
     )
 
-  test("new session starts in Hub phase"):
-    for
-      session <- GameSession.create(sm)
-      update  <- session.currentUpdate
-    yield assertEquals(update.phase, GamePhase.Hub)
+  // One fresh in-memory DB per test
+  val db = ResourceFixture(Database.inMemory())
 
-  test("StartRun transitions session to Exploration"):
-    for
-      session <- GameSession.create(sm)
-      update  <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
-    yield assertEquals(update.phase, GamePhase.Exploration)
+  db.test("new session starts in Hub phase") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty)
+        update  <- session.currentUpdate
+      yield assertEquals(update.phase, GamePhase.Hub)
+  }
 
-  test("session state persists across multiple handle calls"):
-    for
-      session <- GameSession.create(sm)
-      _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
-      update  <- session.handle(Move(Direction.Right))
-    yield
-      assertEquals(update.phase, GamePhase.Exploration)
-      assertEquals(update.player.classId, ClassId.Archer)
+  db.test("hub state update includes upgrade list") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty)
+        update  <- session.currentUpdate
+      yield
+        assert(update.hub.isDefined, "hub should be present")
+        assertEquals(update.hub.get.upgrades.length, UpgradeDef.all.length)
+  }
 
-  test("invalid action in wrong state returns log and does not crash"):
-    for
-      session <- GameSession.create(sm)
-      update  <- session.handle(Move(Direction.Up))
-    yield
-      assertEquals(update.phase, GamePhase.Hub)
-      assert(update.log.nonEmpty)
+  db.test("hub upgrade list shows zero unlocked upgrades on fresh DB") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty)
+        update  <- session.currentUpdate
+      yield assert(update.hub.get.upgrades.forall(!_.unlocked), "no upgrades should be unlocked")
+  }
 
-  test("StateUpdate always contains inventory list"):
-    for
-      session <- GameSession.create(sm)
-      update  <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
-    yield assertEquals(update.inventory, Nil)
+  db.test("StartRun transitions session to Exploration") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty)
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assertEquals(update.phase, GamePhase.Exploration)
+  }
 
-  test("handle is concurrency-safe"):
-    for
-      session <- GameSession.create(sm)
-      _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Mage)))
-      _ <- IO.both(
-        session.handle(Move(Direction.Right)),
-        session.handle(Move(Direction.Down))
-      )
-      update <- session.currentUpdate
-    yield assertEquals(update.phase, GamePhase.Exploration)
+  db.test("session state persists across multiple handle calls") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty)
+        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
+        update  <- session.handle(Move(Direction.Right))
+      yield
+        assertEquals(update.phase, GamePhase.Exploration)
+        assertEquals(update.player.classId, ClassId.Archer)
+  }
+
+  db.test("invalid action in wrong state returns log and does not crash") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty)
+        update  <- session.handle(Move(Direction.Up))
+      yield
+        assertEquals(update.phase, GamePhase.Hub)
+        assert(update.log.nonEmpty)
+  }
+
+  db.test("StateUpdate always contains inventory list") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty)
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assertEquals(update.inventory, Nil)
+  }
+
+  db.test("handle is concurrency-safe") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty)
+        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Mage)))
+        _ <- IO.both(
+          session.handle(Move(Direction.Right)),
+          session.handle(Move(Direction.Down))
+        )
+        update <- session.currentUpdate
+      yield assertEquals(update.phase, GamePhase.Exploration)
+  }
+
+  db.test("BuyUpgrade with insufficient currency returns error log") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty) // starts with 0 currency
+        update <- session.handle(
+          HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))
+        )
+      yield
+        assertEquals(update.phase, GamePhase.Hub)
+        assert(update.log.exists(_.contains("Not enough")),
+               s"expected insufficient funds error: ${update.log}"
+        )
+  }
+
+  db.test("BuyUpgrade succeeds and persists when currency is available") {
+    database =>
+      for
+        _       <- database.saveCurrency(100)
+        session <- GameSession.create(sm, database, Map.empty)
+        update <- session.handle(
+          HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))
+        )
+        meta <- database.loadMeta()
+      yield
+        assert(update.log.exists(_.contains("purchased")), s"expected success log: ${update.log}")
+        assert(meta.isUnlocked("hp_boost_1"), "upgrade should be persisted in DB")
+        assertEquals(meta.currency, 70) // 100 - 30
+  }
+
+  db.test("hub upgrade appears as unlocked after purchase") {
+    database =>
+      for
+        _       <- database.saveCurrency(100)
+        session <- GameSession.create(sm, database, Map.empty)
+        _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        update <- session.currentUpdate
+      yield
+        val hp1 = update.hub.get.upgrades.find(_.id == "hp_boost_1")
+        assert(hp1.exists(_.unlocked), "hp_boost_1 should show as unlocked in hub view")
+  }
+
+  db.test("metaCurrency from previous session is loaded at session start") {
+    database =>
+      for
+        _       <- database.saveCurrency(42)
+        session <- GameSession.create(sm, database, Map.empty)
+        update  <- session.currentUpdate
+      yield assertEquals(update.player.metaCurrency, 42)
+  }

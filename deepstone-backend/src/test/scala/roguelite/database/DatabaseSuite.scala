@@ -1,0 +1,173 @@
+package roguelite.db
+
+import munit.CatsEffectSuite
+import roguelite.game.{ MetaProgression, UpgradeDef }
+
+/** Tests for [[Database]]: schema initialisation, meta loading, currency persistence,
+  * and upgrade purchase atomicity.
+  *
+  * Each test runs against a fresh in-memory SQLite database via [[Database.inMemory()]].
+  * The ResourceFixture guarantees the database is initialised before the test body runs
+  * and the HikariCP pool is released cleanly after.
+  */
+class DatabaseSuite extends CatsEffectSuite:
+
+  // One independent in-memory DB per test
+  val db = ResourceFixture(Database.inMemory())
+
+  // -----------------------------------------------------------------------
+  // Initialisation
+  // -----------------------------------------------------------------------
+
+  db.test("fresh database has zero currency") {
+    db =>
+      db.loadMeta()
+        .map:
+          meta => assertEquals(meta.currency, 0)
+  }
+
+  db.test("fresh database has no unlocked upgrades") {
+    db =>
+      db.loadMeta()
+        .map:
+          meta => assertEquals(meta.unlockedUpgrades, Set.empty[String])
+  }
+
+  db.test("initialize is idempotent — safe to call multiple times") {
+    db =>
+      // initialize() is already called by inMemory(); calling it again should not fail or duplicate rows
+      db.initialize() *> db.initialize() *> db
+        .loadMeta()
+        .map:
+          meta => assertEquals(meta.currency, 0)
+  }
+
+  // -----------------------------------------------------------------------
+  // Currency persistence
+  // -----------------------------------------------------------------------
+
+  db.test("saveCurrency persists the new balance") {
+    db =>
+      for
+        _    <- db.saveCurrency(150)
+        meta <- db.loadMeta()
+      yield assertEquals(meta.currency, 150)
+  }
+
+  db.test("saveCurrency overwrites the previous balance") {
+    db =>
+      for
+        _    <- db.saveCurrency(100)
+        _    <- db.saveCurrency(75)
+        meta <- db.loadMeta()
+      yield assertEquals(meta.currency, 75)
+  }
+
+  db.test("saveCurrency accepts zero") {
+    db =>
+      for
+        _    <- db.saveCurrency(200)
+        _    <- db.saveCurrency(0)
+        meta <- db.loadMeta()
+      yield assertEquals(meta.currency, 0)
+  }
+
+  // -----------------------------------------------------------------------
+  // Upgrade purchases
+  // -----------------------------------------------------------------------
+
+  db.test("purchaseUpgrade records the upgrade and updates currency atomically") {
+    db =>
+      for
+        _    <- db.saveCurrency(100)
+        _    <- db.purchaseUpgrade("hp_boost_1", newCurrency = 70) // cost 30
+        meta <- db.loadMeta()
+      yield
+        assertEquals(meta.currency, 70)
+        assert(meta.isUnlocked("hp_boost_1"), "hp_boost_1 should be unlocked")
+  }
+
+  db.test("purchaseUpgrade does not affect other upgrades") {
+    db =>
+      for
+        _    <- db.saveCurrency(200)
+        _    <- db.purchaseUpgrade("hp_boost_1", newCurrency = 170)
+        meta <- db.loadMeta()
+      yield
+        assert(!meta.isUnlocked("hp_boost_2"), "hp_boost_2 should NOT be unlocked")
+        assert(!meta.isUnlocked("potion_start"), "potion_start should NOT be unlocked")
+        assert(!meta.isUnlocked("archer_unlock"), "archer_unlock should NOT be unlocked")
+  }
+
+  db.test("purchaseUpgrade is idempotent — INSERT OR IGNORE prevents duplicates") {
+    db =>
+      for
+        _ <- db.saveCurrency(200)
+        _ <- db.purchaseUpgrade("hp_boost_1", newCurrency = 170)
+        _ <- db.purchaseUpgrade("hp_boost_1",
+                                newCurrency = 100
+        ) // second purchase overrides currency
+        meta <- db.loadMeta()
+      yield
+        // Upgrade is still unlocked (only once in the set)
+        assert(meta.isUnlocked("hp_boost_1"))
+        assertEquals(meta.unlockedUpgrades.count(_ == "hp_boost_1"), 1)
+  }
+
+  db.test("multiple upgrades can be purchased independently") {
+    db =>
+      for
+        _    <- db.saveCurrency(500)
+        _    <- db.purchaseUpgrade("hp_boost_1", newCurrency = 470)
+        _    <- db.purchaseUpgrade("archer_unlock", newCurrency = 420)
+        _    <- db.purchaseUpgrade("mage_unlock", newCurrency = 340)
+        meta <- db.loadMeta()
+      yield
+        assertEquals(meta.currency, 340)
+        assertEquals(meta.unlockedUpgrades, Set("hp_boost_1", "archer_unlock", "mage_unlock"))
+  }
+
+  // -----------------------------------------------------------------------
+  // MetaProgression domain logic (pure — no DB needed)
+  // -----------------------------------------------------------------------
+
+  test("MetaProgression.purchase deducts cost and records upgrade") {
+    val meta = MetaProgression(currency = 80, unlockedUpgrades = Set.empty)
+    meta.purchase("hp_boost_1") match
+      case Right(newMeta) =>
+        assertEquals(newMeta.currency, 50) // 80 - 30
+        assert(newMeta.isUnlocked("hp_boost_1"))
+      case Left(err) => fail(s"unexpected error: $err")
+  }
+
+  test("MetaProgression.purchase fails when already unlocked") {
+    val meta = MetaProgression(currency = 200, unlockedUpgrades = Set("hp_boost_1"))
+    meta.purchase("hp_boost_1") match
+      case Left(msg) => assert(msg.contains("already purchased"), s"unexpected message: $msg")
+      case Right(_)  => fail("expected Left for already-unlocked upgrade")
+  }
+
+  test("MetaProgression.purchase fails when currency is insufficient") {
+    val meta = MetaProgression(currency = 10, unlockedUpgrades = Set.empty)
+    meta.purchase("hp_boost_1") match // costs 30
+      case Left(msg) => assert(msg.contains("Not enough"), s"unexpected message: $msg")
+      case Right(_)  => fail("expected Left for insufficient currency")
+  }
+
+  test("MetaProgression.purchase fails for unknown upgradeId") {
+    val meta = MetaProgression(currency = 9999, unlockedUpgrades = Set.empty)
+    meta.purchase("nonexistent_upgrade") match
+      case Left(msg) => assert(msg.contains("Unknown"), s"unexpected message: $msg")
+      case Right(_)  => fail("expected Left for unknown upgrade")
+  }
+
+  test("UpgradeDef.all covers all expected upgrade ids") {
+    val expectedIds =
+      Set("hp_boost_1", "hp_boost_2", "potion_start", "archer_unlock", "mage_unlock", "extra_slot")
+    assertEquals(UpgradeDef.all.map(_.id).toSet, expectedIds)
+  }
+
+  test("UpgradeDef.byId lookup is consistent with UpgradeDef.all") {
+    UpgradeDef.all.foreach:
+      u => assertEquals(UpgradeDef.byId.get(u.id), Some(u))
+  }

@@ -18,7 +18,7 @@ enum CombatActionType:
   case Attack, Ability, Item, Defend
 
 enum HubActionType:
-  case StartRun, BuyUpgrade
+  case StartRun, BuyUpgrade, ReturnToHub
 
 enum ClassId:
   case Warrior, Archer, Mage
@@ -43,7 +43,7 @@ case class CombatAction(
     itemId: Option[String] = None
 ) extends PlayerAction
 
-/** Perform a hub action (start a run, buy an upgrade). */
+/** Perform a hub action (start a run, buy an upgrade, or return to hub after game over). */
 case class HubAction(
     action: HubActionType,
     classId: Option[ClassId] = None,
@@ -95,7 +95,8 @@ case class CombatView(
 )
 
 /** Hub data: available upgrades and their unlock status. */
-case class UpgradeView(id: String, cost: Int, unlocked: Boolean)
+case class UpgradeView(id: String, label: String, description: String, cost: Int, unlocked: Boolean)
+
 case class HubView(upgrades: List[UpgradeView])
 
 case class ItemView(
@@ -136,7 +137,7 @@ object MessageProtocol:
   given Encoder[GamePhase] = Encoder[String].contramap(_.toString.toUpperCase)
   given Decoder[GamePhase] = Decoder[String].emap(
     s =>
-      GamePhase.values.find(_.toString.toUpperCase == s.toUpperCase).toRight(s"Unknown phase :$s")
+      GamePhase.values.find(_.toString.toUpperCase == s.toUpperCase).toRight(s"Unknown phase: $s")
   )
 
   given Encoder[CombatActionType] = Encoder[String].contramap(_.toString.toUpperCase)

@@ -24,10 +24,10 @@ export const ENTITY_LABEL_OFFSET = 12;
 // Colors — tile
 // ---------------------------------------------
 
-export const COLOR_TILE_FLOOR        = "#2a2a2a";
-export const COLOR_TILE_WALL         = "#0f0f0f";
+export const COLOR_TILE_FLOOR = "#2a2a2a";
+export const COLOR_TILE_WALL = "#0f0f0f";
 export const COLOR_TILE_FLOOR_BORDER = "#333333";
-export const COLOR_TILE_GRID_WIDTH   = 0.5;
+export const COLOR_TILE_GRID_WIDTH = 0.5;
 
 // ---------------------------------------------
 // Colors — entities
@@ -35,7 +35,7 @@ export const COLOR_TILE_GRID_WIDTH   = 0.5;
 
 export const COLOR_ENTITY_ENEMY = "#c0392b";
 export const COLOR_ENTITY_CHEST = "#d4ac0d";
-export const COLOR_ENTITY_DOOR  = "#5d6d7e";
+export const COLOR_ENTITY_DOOR = "#5d6d7e";
 export const COLOR_ENTITY_LABEL = "#ccc";
 
 /** Fallback color for entity kinds not explicitly mapped. */
@@ -46,20 +46,20 @@ export const COLOR_ENTITY_FALLBACK = "#888";
 // ---------------------------------------------
 
 export const PLAYER_CLASS_COLORS = {
-    warrior: "#e05c5c",
-    archer:  "#5ce07a",
-    mage:    "#5c9be0",
+  warrior: "#e05c5c",
+  archer: "#5ce07a",
+  mage: "#5c9be0",
 } as const;
 
-export const COLOR_PLAYER_OUTLINE       = "rgba(255,255,255,0.4)";
+export const COLOR_PLAYER_OUTLINE = "rgba(255,255,255,0.4)";
 export const COLOR_PLAYER_OUTLINE_WIDTH = 2;
-export const COLOR_PLAYER_INITIAL       = "#fff";
+export const COLOR_PLAYER_INITIAL = "#fff";
 
 // ---------------------------------------------
 // Colors — loading state
 // ---------------------------------------------
 
-export const COLOR_LOADING_BG   = "#1a1a1a";
+export const COLOR_LOADING_BG = "#1a1a1a";
 export const COLOR_LOADING_TEXT = "#555";
 
 // ---------------------------------------------
@@ -71,18 +71,18 @@ export const STATS_PANEL_WIDTH = 160;
 
 /** Resource bar color per class. */
 export const RESOURCE_BAR_COLORS = {
-    warrior: "#c0392b", // Rage — red
-    archer:  "#27ae60", // Focus — green
-    mage:    "#2980b9", // Mana — blue
+  warrior: "#c0392b", // Rage — red
+  archer: "#27ae60", // Focus — green
+  mage: "#2980b9", // Mana — blue
 } as const;
 
 export const HP_BAR_COLOR = "#c0392b";
 
 /** Human-readable resource name per class. */
 export const RESOURCE_LABELS = {
-    warrior: "Rage",
-    archer:  "Focus",
-    mage:    "Mana",
+  warrior: "Rage",
+  archer: "Focus",
+  mage: "Mana",
 } as const;
 
 // ---------------------------------------------
@@ -91,24 +91,56 @@ export const RESOURCE_LABELS = {
 
 /** Metadata for each class ability shown in the combat UI. */
 export const ABILITY_INFO = {
-    warrior: {
-        name:        "Berserker Slash",
-        cost:        40,
-        description: "2× damage on your next attack",
-    },
-    archer: {
-        name:        "Precise Shot",
-        cost:        30,
-        description: "Next attack bypasses enemy defense",
-    },
-    mage: {
-        name:        "Arcane Blast",
-        cost:        30,
-        description: "45 flat arcane damage",
-    },
-} as const satisfies Record<string, { name: string; cost: number; description: string }>;
+  warrior: {
+    name: "Berserker Slash",
+    cost: 40,
+    description: "2× damage on your next attack",
+  },
+  archer: {
+    name: "Precise Shot",
+    cost: 30,
+    description: "Next attack bypasses enemy defense",
+  },
+  mage: {
+    name: "Arcane Blast",
+    cost: 30,
+    description: "45 flat arcane damage",
+  },
+} as const satisfies Record<
+  string,
+  { name: string; cost: number; description: string }
+>;
 
 export type AbilityInfo = (typeof ABILITY_INFO)[keyof typeof ABILITY_INFO];
+
+// ---------------------------------------------
+// Hub screen
+// ---------------------------------------------
+
+export const CURRENCY_SYMBOL = "◈";
+export const CURRENCY_NAME = "Shards";
+
+/** Display metadata for each class shown in the hub selection. */
+export const CLASS_INFO = {
+  warrior: {
+    icon: "⚔",
+    label: "Warrior",
+    description: "120 HP · Rage builds on hit",
+    affinity: "Heavy weapons & armor",
+  },
+  archer: {
+    icon: "🏹",
+    label: "Archer",
+    description: "90 HP · Focus regens each round",
+    affinity: "Ranged weapons",
+  },
+  mage: {
+    icon: "✦",
+    label: "Mage",
+    description: "70 HP · Fixed Mana pool",
+    affinity: "Magic weapons & staves",
+  },
+} as const;
 
 // ---------------------------------------------
 // Item slot colors (inventory panel and pickers)
@@ -116,16 +148,16 @@ export type AbilityInfo = (typeof ABILITY_INFO)[keyof typeof ABILITY_INFO];
 
 /** Background fill color of the icon badge per item kind. */
 export const ITEM_KIND_COLORS = {
-    weapon:     "#4a2222",
-    armor:      "#22354a",
-    accessory:  "#2a3a1a",
-    consumable: "#3a2a4a",
+  weapon: "#4a2222",
+  armor: "#22354a",
+  accessory: "#2a3a1a",
+  consumable: "#3a2a4a",
 } as const;
 
 /** Border / accent color per item rarity. */
 export const ITEM_RARITY_COLORS = {
-    common:   "#333333",
-    uncommon: "#8e44ad",
+  common: "#333333",
+  uncommon: "#8e44ad",
 } as const;
 
 // ---------------------------------------------

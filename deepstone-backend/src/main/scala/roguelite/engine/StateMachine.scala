@@ -19,6 +19,8 @@ import roguelite.game.{
 }
 
 import scala.util.Random
+import roguelite.game.MetaProgression
+import roguelite.game.UpgradeDef
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -92,6 +94,46 @@ case class Player(
               copy(inventory = newInventory)
           }
 
+object Player:
+  /** Convenience constructor used in tests and as a fallback. Production code should use ClassDef
+    * loaded from classes.json via StateMachine.
+    */
+  def startingPlayer(classId: ClassId): Player = classId match {
+    case ClassId.Warrior =>
+      Player(classId = ClassId.Warrior,
+             hp = 120,
+             maxHp = 120,
+             resourceCurrent = 0,
+             resourceMax = 100,
+             level = 1,
+             xp = 0,
+             metaCurrency = 0,
+             affinityTags = Set("heavy")
+      )
+    case ClassId.Archer =>
+      Player(classId = ClassId.Archer,
+             hp = 90,
+             maxHp = 90,
+             resourceCurrent = 50,
+             resourceMax = 50,
+             level = 1,
+             xp = 0,
+             metaCurrency = 0,
+             affinityTags = Set("ranged")
+      )
+    case ClassId.Mage =>
+      Player(classId = ClassId.Mage,
+             hp = 70,
+             maxHp = 70,
+             resourceCurrent = 80,
+             resourceMax = 80,
+             level = 1,
+             xp = 0,
+             metaCurrency = 0,
+             affinityTags = Set("magic")
+      )
+  }
+
 // ---------------------------------------------
 // Game states (one per game phase)
 // ---------------------------------------------
@@ -103,12 +145,22 @@ sealed trait GameState:
   /** Project this game state into a StateUpdate for the client. */
   def toStateUpdate(log: List[String] = Nil): StateUpdate
 
-case class HubState(player: Player) extends GameState:
+case class HubState(player: Player, meta: MetaProgression = MetaProgression.empty)
+    extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Hub,
       player = player.toView,
-      hub = Some(HubView(upgrades = Nil)),
+      hub = Some(HubView(upgrades = UpgradeDef.all.map {
+        u =>
+          UpgradeView(
+            id = u.id,
+            label = u.label,
+            description = u.description,
+            cost = u.cost,
+            unlocked = meta.isUnlocked(u.id)
+          )
+      })),
       inventory = inventoryToViews(player.inventory),
       log = log
     )
@@ -237,8 +289,26 @@ class StateMachine(dungeon: Dungeon,
         }
 
       case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _)) =>
-        // Upgrade logic will be added later
-        (hub, List(s"Upgrades are not yet available."))
+        // BuyUpgrade is intercepted by GameSession (needs DB access); reject here as a safety net
+        (hub, List("Upgrade purchases must be routed through GameSession."))
+
+      // Return to hub after death: GameSession enriches the HubState with real meta
+      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _)) =>
+        // Placeholder — class is re-chosen on next StartRun
+        val hubPlayer = Player(
+          classId = ClassId.Warrior,
+          hp = 100,
+          maxHp = 100,
+          resourceCurrent = 0,
+          resourceMax = 100,
+          level = 1,
+          xp = 0,
+          metaCurrency = gameOver.player.metaCurrency
+        )
+        // MetaProgression.empty is a placeholder; GameSession replaces it with the real meta
+        (HubState(hubPlayer, MetaProgression.empty),
+         List("You return to the hub, wiser from your journey.")
+        )
 
       // -- Exploration ------------------------------------------------------
 
@@ -339,43 +409,3 @@ class StateMachine(dungeon: Dungeon,
     }
 
     if room.isWalkable(candidate._1, candidate._2) then candidate else (1, 1)
-
-object Player:
-  /** Convenience constructor used in tests and as a fallback. Production code should use ClassDef
-    * loaded from classes.json via StateMachine.
-    */
-  def startingPlayer(classId: ClassId): Player = classId match {
-    case ClassId.Warrior =>
-      Player(classId = ClassId.Warrior,
-             hp = 120,
-             maxHp = 120,
-             resourceCurrent = 0,
-             resourceMax = 100,
-             level = 1,
-             xp = 0,
-             metaCurrency = 0,
-             affinityTags = Set("heavy")
-      )
-    case ClassId.Archer =>
-      Player(classId = ClassId.Archer,
-             hp = 90,
-             maxHp = 90,
-             resourceCurrent = 50,
-             resourceMax = 50,
-             level = 1,
-             xp = 0,
-             metaCurrency = 0,
-             affinityTags = Set("ranged")
-      )
-    case ClassId.Mage =>
-      Player(classId = ClassId.Mage,
-             hp = 70,
-             maxHp = 70,
-             resourceCurrent = 80,
-             resourceMax = 80,
-             level = 1,
-             xp = 0,
-             metaCurrency = 0,
-             affinityTags = Set("magic")
-      )
-  }

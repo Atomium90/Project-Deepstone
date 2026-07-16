@@ -11,27 +11,23 @@ import org.http4s.websocket.WebSocketFrame.{ Close, Ping, Pong, Text }
 import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.*
+import roguelite.db.Database
+import roguelite.game.Item
 
 /** Builds the HTTP routes for the game server.
   *
-  * Currently exposes a single WebSocket endpoint at `GET /ws`. Every connection gets its own
-  * [[GameSession]].
-  *
-  * Uses the explicit `build(send, receive)` API with an internal [[Queue]] so that the initial
-  * state is always emitted before any incoming frame is processed, avoiding backpressure issues
-  * with the pipe-based approach.
-  *
-  * A periodic [[Ping]] is sent every 30 seconds so the browser responds with a [[Pong]], resetting
-  * Ember's idle connection timer. Without this, Ember closes idle connections after 60 seconds even
-  * if the player is just looking at the screen.
+  * Exposes a single WebSocket endpoint at `GET /ws`. Every connection gets its own
+  * [[GameSession]] backed by the shared [[Database]] and item prototype map.
   */
-class WebSocketRouter(stateMachine: StateMachine)(using logger: Logger[IO]):
+class WebSocketRouter(stateMachine: StateMachine, database: Database, itemDefs: Map[String, Item])(
+    using logger: Logger[IO]
+):
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] =
     HttpRoutes.of[IO]:
       case GET -> Root / "ws" =>
         for
-          session <- GameSession.create(stateMachine)
+          session <- GameSession.create(stateMachine, database, itemDefs)
           // Unbounded queue used to push outgoing frames from the receive handler
           outgoing <- Queue.unbounded[IO, WebSocketFrame]
           // Seed the queue with the initial state so the client receives it immediately on connect, before sending any action
@@ -86,7 +82,7 @@ class WebSocketRouter(stateMachine: StateMachine)(using logger: Logger[IO]):
         response.flatMap(outgoing.offer)
 
       case Pong(_) =>
-        IO.unit // Heartbeat acknowledged -> connectin is alive
+        IO.unit // Heartbeat acknowledged -> connection is alive
 
       case Close(_) =>
         logger.info("Client disconnected")

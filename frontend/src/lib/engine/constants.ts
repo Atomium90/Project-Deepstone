@@ -78,41 +78,6 @@ export const RESOURCE_BAR_COLORS = {
 
 export const HP_BAR_COLOR = "#c0392b";
 
-/** Human-readable resource name per class. */
-export const RESOURCE_LABELS = {
-  warrior: "Rage",
-  archer: "Focus",
-  mage: "Mana",
-} as const;
-
-// ---------------------------------------------
-// Abilities (CombatScreen)
-// ---------------------------------------------
-
-/** Metadata for each class ability shown in the combat UI. */
-export const ABILITY_INFO = {
-  warrior: {
-    name: "Berserker Slash",
-    cost: 40,
-    description: "2× damage on your next attack",
-  },
-  archer: {
-    name: "Precise Shot",
-    cost: 30,
-    description: "Next attack bypasses enemy defense",
-  },
-  mage: {
-    name: "Arcane Blast",
-    cost: 30,
-    description: "45 flat arcane damage",
-  },
-} as const satisfies Record<
-  string,
-  { name: string; cost: number; description: string }
->;
-
-export type AbilityInfo = (typeof ABILITY_INFO)[keyof typeof ABILITY_INFO];
-
 // ---------------------------------------------
 // Hub screen
 // ---------------------------------------------

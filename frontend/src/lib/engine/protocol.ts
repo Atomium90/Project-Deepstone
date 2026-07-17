@@ -108,6 +108,18 @@ export interface ItemView {
   statLine: string;
 }
 
+/** Static description of one class's combat ability, sent by the server so the client never
+ * hardcodes ability names, costs, or resource labels. */
+export interface AbilityView {
+  classId: ClassId;
+  id: string;
+  name: string;
+  cost: number;
+  /** e.g. "Rage" — the resource pool this ability spends. */
+  resourceName: string;
+  description: string;
+}
+
 export interface StateUpdate {
   phase: GamePhase;
   player: PlayerView;
@@ -116,5 +128,7 @@ export interface StateUpdate {
   hub?: HubView;
   /** Current contents of the player's inventory (up to 6 items). */
   inventory: ItemView[];
+  /** Per-class ability catalog — always present, independent of game phase. */
+  abilities: AbilityView[];
   log: string[];
 }

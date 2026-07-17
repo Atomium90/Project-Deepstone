@@ -3,7 +3,6 @@
     import { gameState, client } from "../engine/StateStore";
     import { Renderer } from "../engine/Renderer";
     import {
-        RESOURCE_LABELS,
         RESOURCE_BAR_COLORS,
         HP_BAR_COLOR,
         ITEM_KIND_COLORS,
@@ -67,9 +66,10 @@
 
     $: player          = $gameState?.player;
     $: inventory       = $gameState?.inventory ?? [];
+    $: abilities       = $gameState?.abilities ?? [];
     $: hpPercent       = player ? (player.hp / player.maxHp) * 100 : 100;
     $: resourcePercent = player ? (player.resourceCurrent / player.resourceMax) * 100 : 100;
-    $: resourceLabel   = player ? RESOURCE_LABELS[player.classId] : "Resource";
+    $: resourceLabel   = player ? abilities.find((a) => a.classId === player.classId)?.resourceName ?? "Resource" : "Resource";
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : COLOR_ENTITY_FALLBACK;
 
     /** Pad the inventory array to always show 6 slots (some may be null). */

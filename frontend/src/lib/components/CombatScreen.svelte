@@ -1,21 +1,22 @@
 <script lang="ts">
     import { gameState, client, combatLog } from "../engine/StateStore";
-    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, RESOURCE_LABELS, ABILITY_INFO } from "../engine/constants";
+    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
 
     $: player         = $gameState?.player;
     $: combat         = $gameState?.combat;
     $: inventory      = $gameState?.inventory ?? [];
+    $: abilities      = $gameState?.abilities ?? [];
 
     $: hpPercent       = player ? (player.hp / player.maxHp) * 100 : 100;
     $: enemyHpPercent  = combat ? (combat.enemyHp / combat.enemyMaxHp) * 100 : 100;
     $: resourcePercent = player ? (player.resourceCurrent / player.resourceMax) * 100 : 100;
-    $: resourceLabel   = player ? RESOURCE_LABELS[player.classId] : "Resource";
+    $: abilityInfo     = player ? abilities.find((a) => a.classId === player.classId) ?? null : null;
+    $: resourceLabel   = abilityInfo?.resourceName ?? "Resource";
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : "#888";
     $: isPlayerTurn    = combat?.isPlayerTurn ?? false;
 
-    $: abilityInfo     = player ? ABILITY_INFO[player.classId] : null;
     $: abilityDisabled = !isPlayerTurn || !player || player.resourceCurrent < (abilityInfo?.cost ?? Infinity);
 
     /** Only consumables can be used in combat. */

@@ -1,46 +1,26 @@
 package roguelite.game
 
-import cats.effect.IO
 import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 
-import scala.io.Source
-
 /** Loads enemy definitions from `data/enemies.json` on the classpath.
   *
   * Enemy data is immutable reference data — read once at startup and held for the lifetime of the
-  * server. The loader is intentionally strict: a malformed enemies.json is a programming error, so
-  * it raises an IO failure rather than silently skipping bad entries.
+  * server. Only the JSON shape and the map key are specific to this loader; resource reading and
+  * error wrapping are handled by [[JsonResourceLoader]].
   */
-object EnemyLoader:
+object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
 
-  private val EnemiesResourcePath = "data/enemies.json"
+  protected val resourcePath = "data/enemies.json"
 
-  /** Load all enemy definitions from the bundled JSON resource.
-    *
-    * @return
-    *   A map from typeId → [[EnemyStats]], wrapped in IO.
-    */
-  def loadAll(): IO[Map[String, EnemyStats]] =
-    for
-      json <- readResource(EnemiesResourcePath)
-      enemies <- IO.fromEither(
-        parseEnemies(json).leftMap(
-          err => RuntimeException(s"Failed to parse enemies.json: $err")
-        )
-      )
-    yield enemies
-      .map(
-        e => e.typeId -> e
-      )
-      .toMap
+  protected def keyOf(entry: EnemyStats): String = entry.typeId
 
   // ---------------------------------------------
   // JSON parsing
   // ---------------------------------------------
 
-  private def parseEnemies(json: String): Either[String, List[EnemyStats]] =
+  protected def parseEntries(json: String): Either[String, List[EnemyStats]] =
     decode[List[EnemyStatsJson]](json)
       .leftMap(_.getMessage)
       .flatMap(
@@ -67,12 +47,6 @@ object EnemyLoader:
           )
       )
     )
-
-  private def readResource(path: String): IO[String] =
-    IO.blocking:
-      val stream = getClass.getClassLoader.getResourceAsStream(path)
-      if stream == null then throw RuntimeException(s"Resource not found on classpath: $path")
-      Source.fromInputStream(stream, "UTF-8").mkString
 
   // ---------------------------------------------
   // Internal JSON DTOs
@@ -131,9 +105,3 @@ object EnemyLoader:
                            dropChance,
                            lootTable
       )
-
-  // Cats traverse helper for Either (same pattern as RoomLoader)
-  extension [A, B](list: List[A])
-    private def traverse(f: A => Either[String, B]): Either[String, List[B]] =
-      list.foldRight(Right(Nil): Either[String, List[B]]):
-        (a, acc) => for b <- f(a); rest <- acc yield b :: rest

@@ -45,8 +45,8 @@ class CombatResolverSuite extends FunSuite:
                   actions = List(EnemyActionWeight("ATTACK", 100))
     )
 
-  def fullHpPlayer(classId: ClassId = ClassId.Warrior): Player = Player.startingPlayer(classId)
-  def lowHpPlayer: Player = Player.startingPlayer(ClassId.Warrior).copy(hp = 1)
+  def fullHpPlayer(classId: ClassId = ClassId.Warrior): Player = PlayerFixtures.startingPlayer(classId)
+  def lowHpPlayer: Player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(hp = 1)
 
   def combatState(enemy: EnemyInstance, player: Player = fullHpPlayer()): CombatState =
     CombatState(

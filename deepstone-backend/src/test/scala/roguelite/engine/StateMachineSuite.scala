@@ -106,7 +106,7 @@ class StateMachineSuite extends FunSuite:
     )
 
   def explorationAt(x: Int, y: Int, entities: List[Entity] = Nil): ExplorationState =
-    ExplorationState(Player.startingPlayer(ClassId.Warrior), simpleDungeon(entities), x, y)
+    ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), simpleDungeon(entities), x, y)
 
   // --- Hub -----------------------------------------------------------------
 
@@ -258,7 +258,7 @@ class StateMachineSuite extends FunSuite:
                             ConsumableEffect.HealFixed(30)
     )
     val inv    = Inventory.empty.addItem(potion).getOrElse(fail("expected Right"))
-    val player = Player.startingPlayer(ClassId.Warrior).copy(inventory = inv)
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(inventory = inv)
     val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
     assertEquals(update.inventory.length, 1)
     assertEquals(update.inventory.head.typeId, "health_potion")

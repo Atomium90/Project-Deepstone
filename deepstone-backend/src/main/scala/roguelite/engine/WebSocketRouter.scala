@@ -13,21 +13,24 @@ import org.typelevel.log4cats.Logger
 import scala.concurrent.duration.*
 import roguelite.db.Database
 import roguelite.game.Item
+import roguelite.game.AbilityDef
 
 /** Builds the HTTP routes for the game server.
   *
   * Exposes a single WebSocket endpoint at `GET /ws`. Every connection gets its own
-  * [[GameSession]] backed by the shared [[Database]] and item prototype map.
+  * [[GameSession]] backed by the shared [[Database]] and reference data maps.
   */
-class WebSocketRouter(stateMachine: StateMachine, database: Database, itemDefs: Map[String, Item])(
-    using logger: Logger[IO]
-):
+class WebSocketRouter(stateMachine: StateMachine,
+                      database: Database,
+                      itemDefs: Map[String, Item],
+                      abilityDefs: Map[ClassId, AbilityDef]
+)(using logger: Logger[IO]):
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] =
     HttpRoutes.of[IO]:
       case GET -> Root / "ws" =>
         for
-          session <- GameSession.create(stateMachine, database, itemDefs)
+          session <- GameSession.create(stateMachine, database, itemDefs, abilityDefs)
           // Unbounded queue used to push outgoing frames from the receive handler
           outgoing <- Queue.unbounded[IO, WebSocketFrame]
           // Seed the queue with the initial state so the client receives it immediately on connect, before sending any action

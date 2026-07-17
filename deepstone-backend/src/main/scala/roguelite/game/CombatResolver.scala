@@ -32,12 +32,19 @@ import boundary.break
   *   - Mage: no in-combat regeneration (pure resource-management pressure)
   *
   * Ability cost checks: insufficient resource does NOT consume the player's turn. The state is
-  * returned unchanged so the player can choose a different action.
+  * returned unchanged so the player can choose a different action. Ability data (cost, resource
+  * name, and effect) comes from [[abilityDefs]] — see [[AbilityDef]] — so adding or tuning a class
+  * ability never requires touching this class.
   *
   * @param rng
   *   Random instance — inject a seeded one for deterministic tests.
+  * @param abilityDefs
+  *   Loaded ability catalog, keyed by class. See [[AbilityLoader]].
   */
-class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.empty):
+class CombatResolver(rng: Random = Random(),
+                     itemDefs: Map[String, Item] = Map.empty,
+                     abilityDefs: Map[ClassId, AbilityDef] = Map.empty
+):
 
   /** Entry point called by the StateMachine for every CombatAction. */
   def resolve(state: CombatState, action: CombatAction): (GameState, List[String]) =
@@ -55,11 +62,11 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
   private def handleAttack(state: CombatState): (GameState, List[String]) =
     val pending = state.combat.pendingAbility
 
-    // Ability activation banner
+    // Ability activation banner — the pending effect was armed by this player's own class
+    // ability, so the ability name is always resolvable from their classId.
     val abilityLog: List[String] = pending match {
-      case Some(PendingAbilityEffect.DoubleNextAttack)        => List("Berserker Slash activates!")
-      case Some(PendingAbilityEffect.IgnoreDefenseNextAttack) => List("Precise Shot activates!")
-      case None                                               => Nil
+      case Some(_) => abilityDefs.get(state.player.classId).map(a => s"${a.name} activates!").toList
+      case None    => Nil
     }
 
     // Damage modified by pending ability effect
@@ -118,58 +125,60 @@ class CombatResolver(rng: Random = Random(), itemDefs: Map[String, Item] = Map.e
         }
     }
 
-  /** Route to the correct class ability. Insufficient resource returns the state unchanged. */
+  /** Look up the player's class ability and apply it. Insufficient resource returns the state
+    * unchanged; a class with no ability defined (should not happen with a valid abilities.json)
+    * also returns the state unchanged.
+    */
   private def handleAbility(state: CombatState): (GameState, List[String]) =
-    state.player.classId match {
-      case ClassId.Warrior => handleBerserkerSlash(state)
-      case ClassId.Archer  => handlePreciseShot(state)
-      case ClassId.Mage    => handleArcaneBlast(state)
+    abilityDefs.get(state.player.classId) match {
+      case None =>
+        (state, List("No ability available for this class."))
+
+      case Some(ability) if state.player.resourceCurrent < ability.cost =>
+        (state,
+         List(
+           s"Not enough ${ability.resourceName} — ${ability.name} requires ${ability.cost} ${ability.resourceName}."
+         )
+        )
+
+      case Some(ability) =>
+        val updatedPlayer = state.player.copy(
+          resourceCurrent = state.player.resourceCurrent - ability.cost
+        )
+        applyAbilityEffect(state.copy(player = updatedPlayer), ability)
     }
 
-  /** Warrior: Berserker Slash (40 Rage) — next attack deals double damage. */
-  private def handleBerserkerSlash(state: CombatState): (GameState, List[String]) =
-    val cost = 40
-    if state.player.resourceCurrent < cost then
-      (state, List(s"Not enough Rage — Berserker Slash requires $cost Rage."))
-    else
-      val updatedPlayer = state.player.copy(resourceCurrent = state.player.resourceCurrent - cost)
-      val updatedCombat = state.combat.copy(
-        pendingAbility = Some(PendingAbilityEffect.DoubleNextAttack),
-        playerIsDefending = false
-      )
-      val log = List("Berserker Slash! Your next attack will deal double damage.")
-      enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), log)
+  /** Apply an ability's effect once its cost has already been deducted. */
+  private def applyAbilityEffect(state: CombatState,
+                                 ability: AbilityDef
+  ): (GameState, List[String]) =
+    ability.effect match {
+      case AbilityEffect.DoubleNextAttack =>
+        val updatedCombat = state.combat.copy(
+          pendingAbility = Some(PendingAbilityEffect.DoubleNextAttack),
+          playerIsDefending = false
+        )
+        val log = List(s"${ability.name}! Your next attack will deal double damage.")
+        enemyTurn(state.copy(combat = updatedCombat), log)
 
-  /** Archer: Precise Shot (30 Focus) — next attack ignores enemy defense. */
-  private def handlePreciseShot(state: CombatState): (GameState, List[String]) =
-    val cost = 30
-    if state.player.resourceCurrent < cost then
-      (state, List(s"Not enough Focus — Precise Shot requires $cost Focus."))
-    else
-      val updatedPlayer = state.player.copy(resourceCurrent = state.player.resourceCurrent - cost)
-      val updatedCombat = state.combat.copy(
-        pendingAbility = Some(PendingAbilityEffect.IgnoreDefenseNextAttack),
-        playerIsDefending = false
-      )
-      val log = List("Precise Shot! Your next attack will bypass enemy defense.")
-      enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), log)
+      case AbilityEffect.IgnoreDefenseNextAttack =>
+        val updatedCombat = state.combat.copy(
+          pendingAbility = Some(PendingAbilityEffect.IgnoreDefenseNextAttack),
+          playerIsDefending = false
+        )
+        val log = List(s"${ability.name}! Your next attack will bypass enemy defense.")
+        enemyTurn(state.copy(combat = updatedCombat), log)
 
-  /** Mage: Arcane Blast (30 Mana) — 45 flat arcane damage, defense formula bypassed entirely. */
-  private def handleArcaneBlast(state: CombatState): (GameState, List[String]) =
-    val cost   = 30
-    val damage = 45
-    if state.player.resourceCurrent < cost then
-      (state, List(s"Not enough Mana — Arcane Blast requires $cost Mana."))
-    else
-      val updatedPlayer = state.player.copy(resourceCurrent = state.player.resourceCurrent - cost)
-      // Flat damage: no calcDamage call, no jitter, no defense subtraction
-      val damagedEnemy  = state.combat.enemy.takeDamage(damage)
-      val log           = List(s"Arcane Blast! You unleash arcane energy for $damage damage.")
-      val updatedCombat = state.combat.copy(enemy = damagedEnemy, playerIsDefending = false)
+      case AbilityEffect.FlatDamage(amount) =>
+        // Flat damage: no calcDamage call, no jitter, no defense subtraction
+        val damagedEnemy  = state.combat.enemy.takeDamage(amount)
+        val log           = List(s"${ability.name}! You unleash arcane energy for $amount damage.")
+        val updatedCombat = state.combat.copy(enemy = damagedEnemy, playerIsDefending = false)
 
-      if !damagedEnemy.isAlive then
-        victory(state.copy(player = updatedPlayer, combat = updatedCombat), damagedEnemy, log)
-      else enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), log)
+        if !damagedEnemy.isAlive then
+          victory(state.copy(combat = updatedCombat), damagedEnemy, log)
+        else enemyTurn(state.copy(combat = updatedCombat), log)
+    }
 
   // -----------------------------------------------------------------------
   // Resource generation

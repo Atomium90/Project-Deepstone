@@ -1,3 +1,5 @@
+import type { ClassId } from "./protocol";
+
 // ---------------------------------------------
 // Renderer
 // ---------------------------------------------
@@ -105,6 +107,13 @@ export const CLASS_INFO = {
     description: "70 HP · Fixed Mana pool",
     affinity: "Magic weapons & staves",
   },
+} as const;
+
+/** Upgrade id gating each class in the hub (null = always unlocked). Must match upgrades.json ids. */
+export const CLASS_UNLOCK_UPGRADE_ID: Record<ClassId, string | null> = {
+  warrior: null,
+  archer: "archer_unlock",
+  mage: "mage_unlock",
 } as const;
 
 // ---------------------------------------------

@@ -10,6 +10,7 @@
         COLOR_ENTITY_FALLBACK,
     } from "../engine/constants";
     import type { Direction, ItemView } from "../engine/protocol";
+    import StatBar from "./StatBar.svelte";
 
     let canvasEl: HTMLCanvasElement;
     let renderer: Renderer | null = null;
@@ -67,8 +68,6 @@
     $: player          = $gameState?.player;
     $: inventory       = $gameState?.inventory ?? [];
     $: abilities       = $gameState?.abilities ?? [];
-    $: hpPercent       = player ? (player.hp / player.maxHp) * 100 : 100;
-    $: resourcePercent = player ? (player.resourceCurrent / player.resourceMax) * 100 : 100;
     $: resourceLabel   = player ? abilities.find((a) => a.classId === player.classId)?.resourceName ?? "Resource" : "Resource";
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : COLOR_ENTITY_FALLBACK;
 
@@ -99,22 +98,10 @@
             <div class="class-badge">{player.classId.toUpperCase()}</div>
 
             <!-- HP -->
-            <div class="stat-block">
-                <span class="stat-label">HP</span>
-                <div class="bar-track">
-                    <div class="bar" style="width:{hpPercent}%; background:{HP_BAR_COLOR}" />
-                </div>
-                <span class="stat-value">{player.hp} / {player.maxHp}</span>
-            </div>
+            <StatBar layout="column" label="HP" current={player.hp} max={player.maxHp} color={HP_BAR_COLOR} />
 
             <!-- Resource -->
-            <div class="stat-block">
-                <span class="stat-label">{resourceLabel}</span>
-                <div class="bar-track">
-                    <div class="bar" style="width:{resourcePercent}%; background:{resourceColor}" />
-                </div>
-                <span class="stat-value">{player.resourceCurrent} / {player.resourceMax}</span>
-            </div>
+            <StatBar layout="column" label={resourceLabel} current={player.resourceCurrent} max={player.resourceMax} color={resourceColor} />
 
             <!-- Level / XP -->
             <div class="stat-block inline">
@@ -216,19 +203,6 @@
     .stat-value {
         font-size: 0.78rem;
         color: #bbb;
-    }
-
-    .bar-track {
-        height: 5px;
-        background: #252525;
-        border-radius: 2px;
-        overflow: hidden;
-    }
-
-    .bar {
-        height: 100%;
-        border-radius: 2px;
-        transition: width 0.15s ease;
     }
 
     /* ── Inventory ─────────────────────────────── */

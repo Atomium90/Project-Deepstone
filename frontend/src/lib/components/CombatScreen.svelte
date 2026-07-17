@@ -3,15 +3,13 @@
     import { HP_BAR_COLOR, RESOURCE_BAR_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
+    import StatBar from "./StatBar.svelte";
 
     $: player         = $gameState?.player;
     $: combat         = $gameState?.combat;
     $: inventory      = $gameState?.inventory ?? [];
     $: abilities      = $gameState?.abilities ?? [];
 
-    $: hpPercent       = player ? (player.hp / player.maxHp) * 100 : 100;
-    $: enemyHpPercent  = combat ? (combat.enemyHp / combat.enemyMaxHp) * 100 : 100;
-    $: resourcePercent = player ? (player.resourceCurrent / player.resourceMax) * 100 : 100;
     $: abilityInfo     = player ? abilities.find((a) => a.classId === player.classId) ?? null : null;
     $: resourceLabel   = abilityInfo?.resourceName ?? "Resource";
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : "#888";
@@ -50,21 +48,8 @@
         <div class="combatant player-side">
             <p class="combatant-name">{player?.classId.toUpperCase() ?? "—"}</p>
 
-            <div class="bar-row">
-                <span class="bar-label">HP</span>
-                <div class="bar-track">
-                    <div class="bar" style="width:{hpPercent}%; background:{HP_BAR_COLOR}" />
-                </div>
-                <span class="bar-value">{player?.hp ?? 0} / {player?.maxHp ?? 0}</span>
-            </div>
-
-            <div class="bar-row">
-                <span class="bar-label">{resourceLabel}</span>
-                <div class="bar-track">
-                    <div class="bar" style="width:{resourcePercent}%; background:{resourceColor}" />
-                </div>
-                <span class="bar-value">{player?.resourceCurrent ?? 0} / {player?.resourceMax ?? 0}</span>
-            </div>
+            <StatBar label="HP" current={player?.hp ?? 0} max={player?.maxHp ?? 0} color={HP_BAR_COLOR} />
+            <StatBar label={resourceLabel} current={player?.resourceCurrent ?? 0} max={player?.resourceMax ?? 0} color={resourceColor} />
         </div>
 
         <!-- VS divider -->
@@ -81,13 +66,7 @@
         <div class="combatant enemy-side">
             <p class="combatant-name">{combat?.enemyLabel ?? "—"}</p>
 
-            <div class="bar-row">
-                <span class="bar-label">HP</span>
-                <div class="bar-track">
-                    <div class="bar enemy-hp-bar" style="width:{enemyHpPercent}%" />
-                </div>
-                <span class="bar-value">{combat?.enemyHp ?? 0} / {combat?.enemyMaxHp ?? 0}</span>
-            </div>
+            <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0} color={HP_BAR_COLOR} />
         </div>
 
     </div>
@@ -206,41 +185,6 @@
 
     .player-side { border-color: #2a4a2a; }
     .enemy-side  { border-color: #4a2a2a; }
-
-    .bar-row {
-        display: grid;
-        grid-template-columns: 3rem 1fr 4rem;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .bar-label {
-        font-size: 0.65rem;
-        color: #555;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-    }
-
-    .bar-track {
-        height: 6px;
-        background: #252525;
-        border-radius: 2px;
-        overflow: hidden;
-    }
-
-    .bar {
-        height: 100%;
-        border-radius: 2px;
-        transition: width 0.3s ease;
-    }
-
-    .enemy-hp-bar { background: #c0392b; }
-
-    .bar-value {
-        font-size: 0.7rem;
-        color: #888;
-        text-align: right;
-    }
 
     /* -- VS divider ------------------------------------------------------- */
 

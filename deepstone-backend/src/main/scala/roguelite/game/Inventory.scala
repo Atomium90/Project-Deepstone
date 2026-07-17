@@ -42,18 +42,6 @@ case class Inventory(slots: Vector[Option[Item]]):
     slots.zipWithIndex.collectFirst:
       case (Some(item), idx) if item.id == id => (idx, item)
 
-  // ---------------------------------------------
-  // Passive stat aggregation
-  // ---------------------------------------------
-
-  /** Sum of all [[Weapon]] attack bonuses currently in inventory. */
-  def totalAttackBonus: Int =
-    slots.collect { case Some(w: Weapon) => w.attackBonus }.sum
-
-  /** Sum of all [[Armor]] defense bonuses currently in inventory. */
-  def totalDefenseBonus: Int =
-    slots.collect { case Some(a: Armor) => a.defenseBonus }.sum
-
   /** All consumables in the inventory, paired with their slot index, in slot order. */
   def consumables: List[(Int, Consumable)] =
     slots.zipWithIndex.collect:

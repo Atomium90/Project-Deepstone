@@ -1,44 +1,27 @@
 package roguelite.game
 
-import cats.effect.IO
 import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
-
-import scala.io.Source
 
 /** Loads item definitions from `data/items.json` on the classpath.
  *
  * Item data is immutable reference data — read once at startup and held for the lifetime of the
  * server. Each entry is decoded into a ''prototype'' [[Item]] with `id = ""`; call
  * [[Item.withNewId]] (via [[LootTable]]) at drop time to produce distinct inventory instances.
- *
- * The loader is intentionally strict: a malformed items.json is a programming error, so it raises
- * an IO failure rather than silently skipping bad entries.
+ * Resource reading and error wrapping are handled by [[JsonResourceLoader]].
  */
-object ItemLoader:
+object ItemLoader extends JsonResourceLoader[Item, String]:
 
-  private val ItemsResourcePath = "data/items.json"
+  protected val resourcePath = "data/items.json"
 
-  /** Load all item definitions from the bundled JSON resource.
-   *
-   * @return A map from typeId → prototype [[Item]], wrapped in IO.
-   */
-  def loadAll(): IO[Map[String, Item]] =
-    for
-      json  <- readResource(ItemsResourcePath)
-      items <- IO.fromEither(
-        parseItems(json).leftMap(
-          err => RuntimeException(s"Failed to parse items.json: $err")
-        )
-      )
-    yield items.map(i => i.typeId -> i).toMap
+  protected def keyOf(entry: Item): String = entry.typeId
 
   // ---------------------------------------------
   // JSON parsing
   // ---------------------------------------------
 
-  private def parseItems(json: String): Either[String, List[Item]] =
+  protected def parseEntries(json: String): Either[String, List[Item]] =
     decode[List[ItemJson]](json)
       .leftMap(_.getMessage)
       .flatMap(ijs => ijs.traverse(toItem))
@@ -83,12 +66,6 @@ object ItemLoader:
       case other =>
         Left(s"Unknown consumable effect type: '$other'")
 
-  private def readResource(path: String): IO[String] =
-    IO.blocking:
-      val stream = getClass.getClassLoader.getResourceAsStream(path)
-      if stream == null then throw RuntimeException(s"Resource not found on classpath: $path")
-      Source.fromInputStream(stream, "UTF-8").mkString
-
   // ---------------------------------------------
   // Internal JSON DTOs
   // ---------------------------------------------
@@ -131,9 +108,3 @@ object ItemLoader:
       hpBonus      <- c.get[Option[Int]]("hpBonus")
       effect       <- c.get[Option[ConsumableEffectJson]]("effect")
     yield ItemJson(typeId, kind, name, rarity, typeTag, attackBonus, defenseBonus, hpBonus, effect)
-
-  // Cats traverse helper for Either (same pattern as RoomLoader)
-  extension [A, B](list: List[A])
-    private def traverse(f: A => Either[String, B]): Either[String, List[B]] =
-      list.foldRight(Right(Nil): Either[String, List[B]]):
-        (a, acc) => for b <- f(a); rest <- acc yield b :: rest

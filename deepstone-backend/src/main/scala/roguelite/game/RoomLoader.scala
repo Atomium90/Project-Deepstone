@@ -1,49 +1,27 @@
 package roguelite.game
 
-import cats.effect.IO
 import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 import roguelite.engine.Direction
 
-import scala.io.Source
-
 /** Loads and parses room definitions from the JSON data file at startup.
   *
   * Room data lives in `resources/data/rooms.json` and is treated as immutable reference data — it
-  * is read once and held in memory for the lifetime of the server.
-  *
-  * The loader is intentionally strict: a malformed rooms.json is a programming error, so it raises
-  * an IO failure rather than silently skipping bad entries.
+  * is read once and held in memory for the lifetime of the server. Resource reading and error
+  * wrapping are handled by [[JsonResourceLoader]].
   */
-object RoomLoader:
+object RoomLoader extends JsonResourceLoader[Room, String]:
 
-  private val RoomsResourcePath = "data/rooms.json"
+  protected val resourcePath = "data/rooms.json"
 
-  /** Load all rooms from the bundled JSON resource.
-    *
-    * @return
-    *   A map from room id to parsed [[Room]], wrapped in IO.
-    */
-  def loadAll(): IO[Map[String, Room]] =
-    for
-      json <- readResource(RoomsResourcePath)
-      rooms <- IO.fromEither(
-        parseRooms(json).leftMap(
-          err => RuntimeException(s"Failed to parse rooms.json: $err")
-        )
-      )
-    yield rooms
-      .map(
-        r => r.id -> r
-      )
-      .toMap
+  protected def keyOf(entry: Room): String = entry.id
 
   // ---------------------------
   // JSON parsing
   // ---------------------------
 
-  private def parseRooms(json: String): Either[String, List[Room]] =
+  protected def parseEntries(json: String): Either[String, List[Room]] =
     decode[List[RoomJson]](json)
       .leftMap(_.getMessage)
       .flatMap(
@@ -108,12 +86,6 @@ object RoomLoader:
       case other   => Left(s"Unknown direction: '$other'")
     }
 
-  private def readResource(path: String): IO[String] =
-    IO.blocking:
-      val stream = getClass.getClassLoader.getResourceAsStream(path)
-      if stream == null then throw RuntimeException(s"Resource not found on classpath: $path")
-      Source.fromInputStream(stream, "UTF-8").mkString
-
   // --------------------------
   // Internal JSON DTOs
   // --------------------------
@@ -162,9 +134,3 @@ object RoomLoader:
         tiles    <- c.get[List[List[String]]]("tiles")
         entities <- c.get[List[EntityJson]]("entities")
       yield RoomJson(id, roomType, width, height, tiles, entities)
-
-  // Cats traverse helper for Either
-  extension [A, B](list: List[A])
-    private def traverse(f: A => Either[String, B]): Either[String, List[B]] =
-      list.foldRight(Right(Nil): Either[String, List[B]]):
-        (a, acc) => for b <- f(a); rest <- acc yield b :: rest

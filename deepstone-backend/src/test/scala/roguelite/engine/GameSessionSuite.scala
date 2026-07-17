@@ -48,6 +48,52 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
+  /** Minimal upgrade catalog mirroring upgrades.json — avoids file I/O in unit tests. */
+  val testUpgradeDefs: Map[String, UpgradeDef] = Map(
+    "hp_boost_1" -> UpgradeDef("hp_boost_1",
+                               "Iron Constitution I",
+                               "+20 max HP for the next run",
+                               cost = 30,
+                               displayOrder = 0,
+                               effect = UpgradeEffect.MaxHpBoost(20)
+    ),
+    "hp_boost_2" -> UpgradeDef("hp_boost_2",
+                               "Iron Constitution II",
+                               "+40 max HP for the next run",
+                               cost = 75,
+                               displayOrder = 1,
+                               effect = UpgradeEffect.MaxHpBoost(40)
+    ),
+    "potion_start" -> UpgradeDef("potion_start",
+                                 "Emergency Supplies",
+                                 "Start each run with a Health Potion",
+                                 cost = 40,
+                                 displayOrder = 2,
+                                 effect = UpgradeEffect.StartingItem("health_potion")
+    ),
+    "archer_unlock" -> UpgradeDef("archer_unlock",
+                                  "Ranger's Path",
+                                  "Unlock the Archer class",
+                                  cost = 50,
+                                  displayOrder = 3,
+                                  effect = UpgradeEffect.UnlockClass(ClassId.Archer)
+    ),
+    "mage_unlock" -> UpgradeDef("mage_unlock",
+                                "Arcane Studies",
+                                "Unlock the Mage class",
+                                cost = 80,
+                                displayOrder = 4,
+                                effect = UpgradeEffect.UnlockClass(ClassId.Mage)
+    ),
+    "extra_slot" -> UpgradeDef("extra_slot",
+                               "Packrat",
+                               "Expand your inventory to 7 item slots",
+                               cost = 60,
+                               displayOrder = 5,
+                               effect = UpgradeEffect.ExtraInventorySlot
+    )
+  )
+
   def testDungeon: Dungeon =
     val tiles = makeTiles()
     val r1    = Room("r1", RoomType.Combat, 8, 6, tiles, Nil)
@@ -59,6 +105,7 @@ class GameSessionSuite extends CatsEffectSuite:
                  Map("goblin" -> goblinStats),
                  Map.empty,
                  testClassDefs,
+                 testUpgradeDefs,
                  CombatResolver(Random(0L))
     )
 
@@ -68,7 +115,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("new session starts in Hub phase") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         update  <- session.currentUpdate
       yield assertEquals(update.phase, GamePhase.Hub)
   }
@@ -76,17 +123,17 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("hub state update includes upgrade list") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         update  <- session.currentUpdate
       yield
         assert(update.hub.isDefined, "hub should be present")
-        assertEquals(update.hub.get.upgrades.length, UpgradeDef.all.length)
+        assertEquals(update.hub.get.upgrades.length, testUpgradeDefs.size)
   }
 
   db.test("hub upgrade list shows zero unlocked upgrades on fresh DB") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         update  <- session.currentUpdate
       yield assert(update.hub.get.upgrades.forall(!_.unlocked), "no upgrades should be unlocked")
   }
@@ -94,7 +141,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("StartRun transitions session to Exploration") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
       yield assertEquals(update.phase, GamePhase.Exploration)
   }
@@ -102,18 +149,18 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("session state persists across multiple handle calls") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty)
-        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
-        update  <- session.handle(Move(Direction.Right))
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        _ <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        update <- session.handle(Move(Direction.Right))
       yield
         assertEquals(update.phase, GamePhase.Exploration)
-        assertEquals(update.player.classId, ClassId.Archer)
+        assertEquals(update.player.classId, ClassId.Warrior)
   }
 
   db.test("invalid action in wrong state returns log and does not crash") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         update  <- session.handle(Move(Direction.Up))
       yield
         assertEquals(update.phase, GamePhase.Hub)
@@ -123,7 +170,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("StateUpdate always contains inventory list") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
       yield assertEquals(update.inventory, Nil)
   }
@@ -131,8 +178,8 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("handle is concurrency-safe") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty)
-        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Mage)))
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        _ <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
         _ <- IO.both(
           session.handle(Move(Direction.Right)),
           session.handle(Move(Direction.Down))
@@ -144,7 +191,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("BuyUpgrade with insufficient currency returns error log") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty) // starts with 0 currency
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty) // starts with 0 currency
         update <- session.handle(
           HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))
         )
@@ -159,7 +206,7 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         _       <- database.saveCurrency(100)
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         update <- session.handle(
           HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))
         )
@@ -174,7 +221,7 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         _       <- database.saveCurrency(100)
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
         update <- session.currentUpdate
       yield
@@ -186,7 +233,47 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         _       <- database.saveCurrency(42)
-        session <- GameSession.create(sm, database, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
         update  <- session.currentUpdate
       yield assertEquals(update.player.metaCurrency, 42)
+  }
+
+  // -----------------------------------------------------------------------
+  // UnlockClass gating (StartRun rejects classes behind an unpurchased upgrade)
+  // -----------------------------------------------------------------------
+
+  db.test("StartRun for a class locked behind an unpurchased upgrade is rejected") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
+      yield
+        assertEquals(update.phase, GamePhase.Hub)
+        assert(update.log.exists(_.contains("Ranger's Path")), s"expected lock message: ${update.log}")
+  }
+
+  db.test("StartRun succeeds for a class once its unlock upgrade is purchased") {
+    database =>
+      for
+        _       <- database.saveCurrency(50)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("archer_unlock")))
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
+      yield
+        assertEquals(update.phase, GamePhase.Exploration)
+        assertEquals(update.player.classId, ClassId.Archer)
+  }
+
+  // -----------------------------------------------------------------------
+  // applyMetaBonuses (upgrade effects applied at Hub -> Exploration)
+  // -----------------------------------------------------------------------
+
+  db.test("hp_boost_1 increases maxHp on the run started right after purchase") {
+    database =>
+      for
+        _       <- database.saveCurrency(30)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assertEquals(update.player.maxHp, 140) // base Warrior 120 (test fixture) + 20
   }

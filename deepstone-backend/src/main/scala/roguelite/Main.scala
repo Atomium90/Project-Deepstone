@@ -12,7 +12,8 @@ import roguelite.game.{
   DungeonBuilder,
   EnemyLoader,
   ItemLoader,
-  RoomLoader
+  RoomLoader,
+  UpgradeLoader
 }
 import roguelite.db.Database
 
@@ -37,9 +38,10 @@ object Main extends IOApp.Simple:
             itemDefs    <- ItemLoader.loadAll()
             classDefs   <- ClassLoader.loadAll()
             abilityDefs <- AbilityLoader.loadAll()
+            upgradeDefs <- UpgradeLoader.loadAll()
             _ <- logger.info(
               s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
-                s"${abilityDefs.size} abilities."
+                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades."
             )
 
             dungeon <- IO.fromEither(
@@ -52,9 +54,15 @@ object Main extends IOApp.Simple:
             )
             _ <- logger.info(s"Built dungeon: ${dungeon.rooms.keys.mkString(" → ")}")
 
-            resolver     = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs)
-            stateMachine = StateMachine(dungeon, enemyStats, itemDefs, classDefs, resolver)
-            router       = WebSocketRouter(stateMachine, database, itemDefs, abilityDefs)
+            resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs)
+            stateMachine = StateMachine(dungeon,
+                                        enemyStats,
+                                        itemDefs,
+                                        classDefs,
+                                        upgradeDefs,
+                                        resolver
+            )
+            router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs)
 
             _ <- EmberServerBuilder
               .default[IO]

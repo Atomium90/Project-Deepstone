@@ -1,0 +1,50 @@
+[
+  {
+    "id": "hp_boost_1",
+    "label": "Iron Constitution I",
+    "description": "+20 max HP for the next run",
+    "cost": 30,
+    "displayOrder": 0,
+    "effect": { "type": "MaxHpBoost", "amount": 20 }
+  },
+  {
+    "id": "hp_boost_2",
+    "label": "Iron Constitution II",
+    "description": "+40 max HP for the next run",
+    "cost": 75,
+    "displayOrder": 1,
+    "effect": { "type": "MaxHpBoost", "amount": 40 }
+  },
+  {
+    "id": "potion_start",
+    "label": "Emergency Supplies",
+    "description": "Start each run with a Health Potion",
+    "cost": 40,
+    "displayOrder": 2,
+    "effect": { "type": "StartingItem", "typeId": "health_potion" }
+  },
+  {
+    "id": "archer_unlock",
+    "label": "Ranger's Path",
+    "description": "Unlock the Archer class",
+    "cost": 50,
+    "displayOrder": 3,
+    "effect": { "type": "UnlockClass", "classId": "archer" }
+  },
+  {
+    "id": "mage_unlock",
+    "label": "Arcane Studies",
+    "description": "Unlock the Mage class",
+    "cost": 80,
+    "displayOrder": 4,
+    "effect": { "type": "UnlockClass", "classId": "mage" }
+  },
+  {
+    "id": "extra_slot",
+    "label": "Packrat",
+    "description": "Expand your inventory to 7 item slots",
+    "cost": 60,
+    "displayOrder": 5,
+    "effect": { "type": "ExtraInventorySlot" }
+  }
+]

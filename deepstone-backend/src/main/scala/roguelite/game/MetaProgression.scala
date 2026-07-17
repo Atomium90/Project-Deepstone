@@ -1,34 +1,5 @@
 package roguelite.game
 
-/** Static definition of one hub upgrade available for purchase. */
-case class UpgradeDef(
-    id: String,
-    label: String,
-    description: String,
-    cost: Int
-)
-
-object UpgradeDef:
-  /** All upgrades available in the hub, in display order. */
-  val all: List[UpgradeDef] = List(
-    UpgradeDef("hp_boost_1", "Iron Constitution I", "+20 max HP for the next run", cost = 30),
-    UpgradeDef("hp_boost_2", "Iron Constitution II", "+40 max HP for the next run", cost = 75),
-    UpgradeDef("potion_start",
-               "Emergency Supplies",
-               "Start each run with a Health Potion",
-               cost = 40
-    ),
-    UpgradeDef("archer_unlock", "Ranger's Path", "Unlock the Archer class", cost = 50),
-    UpgradeDef("mage_unlock", "Arcane Studies", "Unlock the Mage class", cost = 80),
-    UpgradeDef("extra_slot", "Packrat", "Expand your inventory to 7 item slots", cost = 60)
-  )
-
-  val byId: Map[String, UpgradeDef] = all
-    .map(
-      u => u.id -> u
-    )
-    .toMap
-
 /** Meta-progression state that persists between runs and survives death.
   *
   * Loaded from SQLite at session start by [[roguelite.db.Database.loadMeta]] and kept in a `Ref[IO,
@@ -49,8 +20,11 @@ case class MetaProgression(
   def isUnlocked(upgradeId: String): Boolean =
     unlockedUpgrades.contains(upgradeId)
 
-  def purchase(upgradeId: String): Either[String, MetaProgression] =
-    UpgradeDef.byId.get(upgradeId) match {
+  /** Validate and apply a purchase against the loaded upgrade catalog (see [[UpgradeLoader]]). */
+  def purchase(upgradeId: String,
+              upgradeDefs: Map[String, UpgradeDef]
+  ): Either[String, MetaProgression] =
+    upgradeDefs.get(upgradeId) match {
       case None => Left(s"Unknown upgrade: '$upgradeId'.")
       case Some(u) if unlockedUpgrades.contains(upgradeId) =>
         Left(s"${u.label} is already purchased.")

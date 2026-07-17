@@ -5,6 +5,7 @@
         CURRENCY_SYMBOL,
         CURRENCY_NAME,
         CLASS_INFO,
+        CLASS_UNLOCK_UPGRADE_ID,
     } from "../engine/constants";
     import type { ClassId, UpgradeView } from "../engine/protocol";
 
@@ -17,7 +18,15 @@
 
     const classes: ClassId[] = ["warrior", "archer", "mage"];
 
+    /** A class is unlocked if it has no gating upgrade, or that upgrade has been bought. */
+    function isClassUnlocked(c: ClassId): boolean {
+        const upgradeId = CLASS_UNLOCK_UPGRADE_ID[c];
+        if (upgradeId === null) return true;
+        return upgrades.find((u) => u.id === upgradeId)?.unlocked ?? false;
+    }
+
     function selectClass(c: ClassId): void {
+        if (!isClassUnlocked(c)) return;
         selectedClass = c;
     }
 
@@ -30,7 +39,12 @@
         client.send({ type: "HUB_ACTION", action: "BUYUPGRADE", upgradeId: u.id });
     }
 
-    /** The last log line from the server — shown as feedback after a buy attempt. */
+    /**
+     * The last log line from the server — shown as feedback after a buy attempt.
+     * Fragile: if another log entry arrives before the player reads it, the
+     * displayed message no longer corresponds to their action. Fine for now,
+     * would need a dedicated feedback field in the protocol to fix properly.
+     */
     $: feedback = $gameState?.log.at(-1) ?? "";
 </script>
 
@@ -56,14 +70,20 @@
                 {#each classes as c}
                     {@const info  = CLASS_INFO[c]}
                     {@const color = PLAYER_CLASS_COLORS[c]}
+                    {@const unlocked = isClassUnlocked(c)}
                     <button
                         class="class-card"
                         class:selected={selectedClass === c}
+                        class:locked={!unlocked}
+                        disabled={!unlocked}
                         style="--accent: {color}"
                         on:click={() => selectClass(c)}
                     >
                         <span class="class-icon">{info.icon}</span>
-                        <span class="class-name">{info.label}</span>
+                        <span class="class-name">
+                            {info.label}
+                            {#if !unlocked}<span class="lock-badge">🔒</span>{/if}
+                        </span>
                         <span class="class-desc">{info.description}</span>
                         <span class="class-affinity">Affinity: {info.affinity}</span>
                     </button>
@@ -232,6 +252,21 @@
     .class-affinity { grid-area: affinity; font-size: 0.65rem; color: #555; margin-top: 0.15rem; }
 
     .class-card.selected .class-name { color: var(--accent); }
+
+    .class-card.locked {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .class-card.locked:hover {
+        background: #161616;
+        border-color: #252525;
+    }
+
+    .lock-badge {
+        margin-left: 0.4rem;
+        font-size: 0.8rem;
+    }
 
     .start-btn {
         margin-top: auto;

@@ -7,6 +7,7 @@ import roguelite.db.Database
 import roguelite.game.Item
 import doobie.util.update
 import roguelite.game.UpgradeDef
+import roguelite.game.AbilityDef
 import roguelite.game.Inventory
 
 /** Represents one active player connection.
@@ -22,23 +23,32 @@ class GameSession private (
     metaRef: Ref[IO, MetaProgression],
     stateMachine: StateMachine,
     database: Database,
-    itemDefs: Map[String, Item]
+    itemDefs: Map[String, Item],
+    abilityCatalog: List[AbilityView]
 ):
 
   /** Process a player action, update the internal state, and return the new state snapshot to be
     * serialized and sent to the client.
     */
-  def handle(action: PlayerAction): IO[StateUpdate] = action match
-    case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId)) =>
-      handleBuyUpgrade(upgradeId)
-    case _ =>
-      handleTransition(action)
+  def handle(action: PlayerAction): IO[StateUpdate] =
+    val result = action match
+      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId)) =>
+        handleBuyUpgrade(upgradeId)
+      case _ =>
+        handleTransition(action)
+    result.map(withCatalog)
 
   /** Return the current state snapshot without changing anything. Useful for sending the initial
     * state right after connection.
     */
   def currentUpdate: IO[StateUpdate] =
-    stateRef.get.map(_.toStateUpdate())
+    stateRef.get.map(_.toStateUpdate()).map(withCatalog)
+
+  /** Attach the static per-class ability catalog to every outgoing update, so the client never
+    * has to hardcode ability names, costs, or resource labels — see [[AbilityView]].
+    */
+  private def withCatalog(update: StateUpdate): StateUpdate =
+    update.copy(abilities = abilityCatalog)
 
   // -----------------------------------------------------------------------
   // Internal — transition handling
@@ -155,10 +165,13 @@ object GameSession:
     * @param stateMachine  Shared across all connections for a server instance.
     * @param database      Per-server (shared) persistence layer.
     * @param itemDefs      Item prototype map, used to resolve the `potion_start` upgrade.
+    * @param abilityDefs   The loaded ability catalog (see [[roguelite.game.AbilityLoader]]),
+    *                      projected once into the [[AbilityView]] catalog sent on every update.
     */
   def create(stateMachine: StateMachine,
              database: Database,
-             itemDefs: Map[String, Item]
+             itemDefs: Map[String, Item],
+             abilityDefs: Map[ClassId, AbilityDef]
   ): IO[GameSession] =
     for
       meta <- database.loadMeta()
@@ -173,4 +186,15 @@ object GameSession:
       )
       stateRef <- Ref.of[IO, GameState](HubState(initPlayer, meta))
       metaRef  <- Ref.of[IO, MetaProgression](meta)
-    yield new GameSession(stateRef, metaRef, stateMachine, database, itemDefs)
+      abilityCatalog = abilityDefs.values.map(toAbilityView).toList
+    yield new GameSession(stateRef, metaRef, stateMachine, database, itemDefs, abilityCatalog)
+
+  private def toAbilityView(a: AbilityDef): AbilityView =
+    AbilityView(
+      classId = a.classId,
+      id = a.id,
+      name = a.name,
+      cost = a.cost,
+      resourceName = a.resourceName,
+      description = a.description
+    )

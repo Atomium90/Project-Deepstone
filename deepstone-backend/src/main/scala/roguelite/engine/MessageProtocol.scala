@@ -108,6 +108,19 @@ case class ItemView(
     statLine: String // e.g. "+3 ATK", "Heal 30 HP"
 )
 
+/** Static description of one class's combat ability. Sent as a small catalog on every
+  * [[StateUpdate]] (not just during combat) so the client never needs to hardcode ability names,
+  * costs, or resource labels — see [[roguelite.engine.GameSession]].
+  */
+case class AbilityView(
+    classId: ClassId,
+    id: String,
+    name: String,
+    cost: Int,
+    resourceName: String, // e.g. "Rage" — the resource pool this ability spends
+    description: String
+)
+
 /** Full game state snapshot sent by the server after every action. */
 case class StateUpdate(
     phase: GamePhase,
@@ -116,6 +129,7 @@ case class StateUpdate(
     combat: Option[CombatView] = None,
     hub: Option[HubView] = None,
     inventory: List[ItemView] = Nil,
+    abilities: List[AbilityView] = Nil,
     log: List[String] = Nil
 )
 
@@ -193,10 +207,11 @@ object MessageProtocol:
   given Encoder[EntityView]  = deriveEncoder
   given Encoder[RoomView]    = deriveEncoder
   given Encoder[CombatView]  = deriveEncoder
-  given Encoder[UpgradeView] = deriveEncoder
-  given Encoder[HubView]     = deriveEncoder
-  given Encoder[ItemView]    = deriveEncoder
-  given Encoder[StateUpdate] = deriveEncoder
+  given Encoder[UpgradeView]  = deriveEncoder
+  given Encoder[HubView]      = deriveEncoder
+  given Encoder[ItemView]     = deriveEncoder
+  given Encoder[AbilityView]  = deriveEncoder
+  given Encoder[StateUpdate]  = deriveEncoder
 
   /** Serialize a StateUpdate to a JSON string to be sent over the WebSocket. */
   def encodeUpdate(update: StateUpdate): String = update.asJson.noSpaces

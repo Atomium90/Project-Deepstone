@@ -6,6 +6,7 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import roguelite.engine.{ StateMachine, WebSocketRouter }
 import roguelite.game.{
+  AbilityLoader,
   ClassLoader,
   CombatResolver,
   DungeonBuilder,
@@ -30,13 +31,15 @@ object Main extends IOApp.Simple:
             given org.typelevel.log4cats.Logger[IO] <- Slf4jLogger.create[IO]
             logger                                  <- Slf4jLogger.create[IO]
 
-            _          <- logger.info("Loading game data...")
-            roomPool   <- RoomLoader.loadAll()
-            enemyStats <- EnemyLoader.loadAll()
-            itemDefs   <- ItemLoader.loadAll()
-            classDefs  <- ClassLoader.loadAll()
+            _           <- logger.info("Loading game data...")
+            roomPool    <- RoomLoader.loadAll()
+            enemyStats  <- EnemyLoader.loadAll()
+            itemDefs    <- ItemLoader.loadAll()
+            classDefs   <- ClassLoader.loadAll()
+            abilityDefs <- AbilityLoader.loadAll()
             _ <- logger.info(
-              s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types."
+              s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
+                s"${abilityDefs.size} abilities."
             )
 
             dungeon <- IO.fromEither(
@@ -49,9 +52,9 @@ object Main extends IOApp.Simple:
             )
             _ <- logger.info(s"Built dungeon: ${dungeon.rooms.keys.mkString(" → ")}")
 
-            resolver     = CombatResolver(itemDefs = itemDefs)
+            resolver     = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs)
             stateMachine = StateMachine(dungeon, enemyStats, itemDefs, classDefs, resolver)
-            router       = WebSocketRouter(stateMachine, database, itemDefs)
+            router       = WebSocketRouter(stateMachine, database, itemDefs, abilityDefs)
 
             _ <- EmberServerBuilder
               .default[IO]

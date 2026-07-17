@@ -1,0 +1,29 @@
+[
+  {
+    "classId": "warrior",
+    "id": "berserker_slash",
+    "name": "Berserker Slash",
+    "cost": 40,
+    "resourceName": "Rage",
+    "description": "2× damage on your next attack",
+    "effect": { "type": "DoubleNextAttack" }
+  },
+  {
+    "classId": "archer",
+    "id": "precise_shot",
+    "name": "Precise Shot",
+    "cost": 30,
+    "resourceName": "Focus",
+    "description": "Next attack bypasses enemy defense",
+    "effect": { "type": "IgnoreDefenseNextAttack" }
+  },
+  {
+    "classId": "mage",
+    "id": "arcane_blast",
+    "name": "Arcane Blast",
+    "cost": 30,
+    "resourceName": "Mana",
+    "description": "45 flat arcane damage",
+    "effect": { "type": "FlatDamage", "amount": 45 }
+  }
+]

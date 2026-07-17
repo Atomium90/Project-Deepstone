@@ -26,7 +26,39 @@ class AbilitySuite extends FunSuite:
   // Fixtures
   // -----------------------------------------------------------------------
 
-  private def freshResolver: CombatResolver = CombatResolver(Random(42))
+  /** Minimal ability catalog mirroring abilities.json — avoids file I/O in unit tests. */
+  private val testAbilityDefs: Map[ClassId, AbilityDef] = Map(
+    ClassId.Warrior -> AbilityDef(
+      classId = ClassId.Warrior,
+      id = "berserker_slash",
+      name = "Berserker Slash",
+      cost = 40,
+      resourceName = "Rage",
+      description = "2x damage on your next attack",
+      effect = AbilityEffect.DoubleNextAttack
+    ),
+    ClassId.Archer -> AbilityDef(
+      classId = ClassId.Archer,
+      id = "precise_shot",
+      name = "Precise Shot",
+      cost = 30,
+      resourceName = "Focus",
+      description = "Next attack bypasses enemy defense",
+      effect = AbilityEffect.IgnoreDefenseNextAttack
+    ),
+    ClassId.Mage -> AbilityDef(
+      classId = ClassId.Mage,
+      id = "arcane_blast",
+      name = "Arcane Blast",
+      cost = 30,
+      resourceName = "Mana",
+      description = "45 flat arcane damage",
+      effect = AbilityEffect.FlatDamage(45)
+    )
+  )
+
+  private def freshResolver: CombatResolver =
+    CombatResolver(Random(42), abilityDefs = testAbilityDefs)
 
   /** Minimal enemy that always attacks and has plenty of HP to survive the test. */
   private val tankGoblin: EnemyInstance = EnemyInstance(

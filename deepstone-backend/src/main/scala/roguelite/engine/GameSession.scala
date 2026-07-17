@@ -7,6 +7,7 @@ import roguelite.db.Database
 import roguelite.game.Item
 import doobie.util.update
 import roguelite.game.UpgradeDef
+import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
 import roguelite.game.Inventory
 
@@ -24,6 +25,7 @@ class GameSession private (
     stateMachine: StateMachine,
     database: Database,
     itemDefs: Map[String, Item],
+    upgradeDefs: Map[String, UpgradeDef],
     abilityCatalog: List[AbilityView]
 ):
 
@@ -108,7 +110,7 @@ class GameSession private (
     for
       state <- stateRef.get
       meta  <- metaRef.get
-      update <- meta.purchase(upgradeId) match
+      update <- meta.purchase(upgradeId, upgradeDefs) match
         case Left(err) =>
           IO.pure(state.toStateUpdate(List(err)))
 
@@ -117,43 +119,43 @@ class GameSession private (
             _ <- database.purchaseUpgrade(upgradeId, newMeta.currency)
             _ <- metaRef.set(newMeta)
             newPlayer = state.player.copy(metaCurrency = newMeta.currency)
-            newState  = HubState(newPlayer, newMeta)
+            newState  = HubState(newPlayer, upgradeDefs, newMeta)
             _ <- stateRef.set(newState)
-            label = UpgradeDef.byId.get(upgradeId).map(_.label).getOrElse(upgradeId)
+            label = upgradeDefs.get(upgradeId).map(_.label).getOrElse(upgradeId)
           yield newState.toStateUpdate(List(s"$label purchased!"))
     yield update
 
-  /** Apply purchased upgrade effects to the player at the start of a new run.
+  /** Apply every unlocked upgrade's [[UpgradeEffect]] to the player at the start of a new run.
     *
-    * Effects are cumulative and applied in definition order:
-    *   - `hp_boost_1` / `hp_boost_2`: increase maxHp and current HP
-    *   - `extra_slot`: expand inventory from 6 to 7 slots
-    *   - `potion_start`: add 1 Health Potion to inventory (silently skipped if full)
+    * Generic over the effect kind: adding a new upgrade only means adding an entry to
+    * `upgrades.json` (and, if it's a genuinely new *kind* of effect, one case here and in
+    * [[UpgradeEffect]]) — never a change keyed by upgrade id.
     */
   private def applyMetaBonuses(state: ExplorationState, meta: MetaProgression): ExplorationState =
-    var player = state.player
+    val effects       = meta.unlockedUpgrades.toList.flatMap(upgradeDefs.get).map(_.effect)
+    val boostedPlayer = effects.foldLeft(state.player)(applyUpgradeEffect)
+    state.copy(player = boostedPlayer)
 
-    if meta.isUnlocked("hp_boost_1") then
-      player = player.copy(maxHp = player.maxHp + 20, hp = player.hp + 20)
+  private def applyUpgradeEffect(player: Player, effect: UpgradeEffect): Player = effect match
+    case UpgradeEffect.MaxHpBoost(amount) =>
+      player.copy(maxHp = player.maxHp + amount, hp = player.hp + amount)
 
-    if meta.isUnlocked("hp_boost_2") then
-      player = player.copy(maxHp = player.maxHp + 40, hp = player.hp + 40)
+    case UpgradeEffect.ExtraInventorySlot =>
+      if player.inventory.slots.length <= Inventory.MaxSlots
+      then player.copy(inventory = Inventory(player.inventory.slots :+ None))
+      else player
 
-    if meta.isUnlocked("extra_slot") && player.inventory.slots.length < 7 then
-      // Append one empty slot to the inventory vector
-      val expanded = Inventory(player.inventory.slots :+ None)
-      player = player.copy(inventory = expanded)
+    case UpgradeEffect.StartingItem(typeId) =>
+      itemDefs.get(typeId) match
+        case None => player
+        case Some(proto) =>
+          player.withItemPickup(proto.withNewId) match
+            case Right(p) => p
+            case Left(_)  => player // inventory full => silently skip
 
-    if meta.isUnlocked("potion_start") then
-      itemDefs
-        .get("health_potion")
-        .foreach:
-          proto =>
-            player.withItemPickup(proto.withNewId) match
-              case Right(p) => player = p
-              case Left(_)  => () // inventory full => silently skip
-
-    state.copy(player = player)
+    case UpgradeEffect.UnlockClass(_) =>
+      // Gates class selection at StartRun (see StateMachine) — no player-state effect to apply.
+      player
 
 object GameSession:
 
@@ -164,13 +166,15 @@ object GameSession:
     *
     * @param stateMachine  Shared across all connections for a server instance.
     * @param database      Per-server (shared) persistence layer.
-    * @param itemDefs      Item prototype map, used to resolve the `potion_start` upgrade.
+    * @param itemDefs      Item prototype map, used to resolve the `StartingItem` upgrade effect.
+    * @param upgradeDefs   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]).
     * @param abilityDefs   The loaded ability catalog (see [[roguelite.game.AbilityLoader]]),
     *                      projected once into the [[AbilityView]] catalog sent on every update.
     */
   def create(stateMachine: StateMachine,
              database: Database,
              itemDefs: Map[String, Item],
+             upgradeDefs: Map[String, UpgradeDef],
              abilityDefs: Map[ClassId, AbilityDef]
   ): IO[GameSession] =
     for
@@ -184,10 +188,10 @@ object GameSession:
                           xp = 0,
                           metaCurrency = meta.currency
       )
-      stateRef <- Ref.of[IO, GameState](HubState(initPlayer, meta))
+      stateRef <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta))
       metaRef  <- Ref.of[IO, MetaProgression](meta)
       abilityCatalog = abilityDefs.values.map(toAbilityView).toList
-    yield new GameSession(stateRef, metaRef, stateMachine, database, itemDefs, abilityCatalog)
+    yield new GameSession(stateRef, metaRef, stateMachine, database, itemDefs, upgradeDefs, abilityCatalog)
 
   private def toAbilityView(a: AbilityDef): AbilityView =
     AbilityView(

@@ -21,6 +21,7 @@ import roguelite.game.{
 import scala.util.Random
 import roguelite.game.MetaProgression
 import roguelite.game.UpgradeDef
+import roguelite.game.UpgradeEffect
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -145,13 +146,20 @@ sealed trait GameState:
   /** Project this game state into a StateUpdate for the client. */
   def toStateUpdate(log: List[String] = Nil): StateUpdate
 
-case class HubState(player: Player, meta: MetaProgression = MetaProgression.empty)
-    extends GameState:
+/** @param upgradeDefs
+  *   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]), used to render [[HubView]].
+  *   Defaults to empty so tests that don't care about the upgrade list can keep using
+  *   `HubState(player)`.
+  */
+case class HubState(player: Player,
+                    upgradeDefs: Map[String, UpgradeDef] = Map.empty,
+                    meta: MetaProgression = MetaProgression.empty
+) extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Hub,
       player = player.toView,
-      hub = Some(HubView(upgrades = UpgradeDef.all.map {
+      hub = Some(HubView(upgrades = upgradeDefs.values.toList.sortBy(_.displayOrder).map {
         u =>
           UpgradeView(
             id = u.id,
@@ -234,6 +242,9 @@ case class GameOverState(player: Player) extends GameState:
   *   Prototype item map keyed by typeId, used by [[LootTable]] for chest rolls.
   * @param classDefs
   *   Definitions of all playable classes (warrior, mage…), used to build the player at run start.
+  * @param upgradeDefs
+  *   The loaded upgrade catalog, used to build [[HubState]] and to gate `StartRun` behind any
+  *   matching `UnlockClass` upgrade (see [[roguelite.game.UpgradeEffect.UnlockClass]]).
   * @param resolver
   *   Resolves combat turns.
   * @param rng
@@ -243,6 +254,7 @@ class StateMachine(dungeon: Dungeon,
                    enemyStats: Map[String, EnemyStats],
                    itemDefs: Map[String, Item],
                    classDefs: Map[ClassId, ClassDef],
+                   upgradeDefs: Map[String, UpgradeDef],
                    resolver: CombatResolver,
                    rng: Random = Random()
 ):
@@ -256,10 +268,17 @@ class StateMachine(dungeon: Dungeon,
       // -- Hub --------------------------------------------------------------
 
       case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _)) =>
-        classDefs.get(classId) match {
-          case None => (hub, List(s"Unknown class '$classId'. Cannot start run."))
+        val lockedBehind = upgradeDefs.values.find {
+          u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
+        }
 
-          case Some(classDef) =>
+        (lockedBehind, classDefs.get(classId)) match {
+          case (Some(u), _) =>
+            (hub, List(s"${u.label} required — purchase it in the hub to unlock this class."))
+
+          case (None, None) => (hub, List(s"Unknown class '$classId'. Cannot start run."))
+
+          case (None, Some(classDef)) =>
             val basePlayer = Player(
               classId = classId,
               hp = classDef.hp,
@@ -306,7 +325,7 @@ class StateMachine(dungeon: Dungeon,
           metaCurrency = gameOver.player.metaCurrency
         )
         // MetaProgression.empty is a placeholder; GameSession replaces it with the real meta
-        (HubState(hubPlayer, MetaProgression.empty),
+        (HubState(hubPlayer, upgradeDefs, MetaProgression.empty),
          List("You return to the hub, wiser from your journey.")
         )
 

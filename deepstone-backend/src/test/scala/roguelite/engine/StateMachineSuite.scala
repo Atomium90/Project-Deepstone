@@ -62,16 +62,35 @@ class StateMachineSuite extends FunSuite:
     )
   )
 
+  /** Minimal upgrade catalog mirroring upgrades.json — avoids file I/O in unit tests. */
+  val testUpgradeDefs: Map[String, UpgradeDef] = Map(
+    "archer_unlock" -> UpgradeDef("archer_unlock",
+                                  "Ranger's Path",
+                                  "Unlock the Archer class",
+                                  cost = 50,
+                                  displayOrder = 0,
+                                  effect = UpgradeEffect.UnlockClass(ClassId.Archer)
+    ),
+    "mage_unlock" -> UpgradeDef("mage_unlock",
+                                "Arcane Studies",
+                                "Unlock the Mage class",
+                                cost = 80,
+                                displayOrder = 1,
+                                effect = UpgradeEffect.UnlockClass(ClassId.Mage)
+    )
+  )
+
   def simpleDungeon(entities: List[Entity] = Nil): Dungeon =
     val r1 = makeRoom("r1", entities = entities)
     val r2 = makeRoom("r2")
     Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
 
-  def sm(dungeon: Dungeon = simpleDungeon()): StateMachine =
+  def sm(dungeon: Dungeon = simpleDungeon(), upgradeDefs: Map[String, UpgradeDef] = Map.empty): StateMachine =
     StateMachine(dungeon,
                  enemyStatsMap,
                  Map.empty[String, Item],
                  testClassDefs,
+                 upgradeDefs,
                  CombatResolver(Random(0L))
     )
 
@@ -116,6 +135,28 @@ class StateMachineSuite extends FunSuite:
     val (next, _) =
       sm().applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = None))
     assert(next.isInstanceOf[HubState])
+
+  // --- Hub — class unlock gating --------------------------------------------
+
+  test("StartRun with a locked class is rejected and stays in Hub"):
+    val hub = HubState(hubPlayer, testUpgradeDefs, MetaProgression.empty)
+    val (next, log) = sm(upgradeDefs = testUpgradeDefs)
+      .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
+    assert(next.isInstanceOf[HubState])
+    assert(log.exists(_.contains("Ranger's Path")), s"expected lock message: $log")
+
+  test("StartRun with an unlocked class succeeds"):
+    val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("archer_unlock"))
+    val hub  = HubState(hubPlayer, testUpgradeDefs, meta)
+    val (next, _) = sm(upgradeDefs = testUpgradeDefs)
+      .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
+    assert(next.isInstanceOf[ExplorationState])
+
+  test("StartRun with Warrior is never gated (no matching UnlockClass upgrade)"):
+    val hub = HubState(hubPlayer, testUpgradeDefs, MetaProgression.empty)
+    val (next, _) = sm(upgradeDefs = testUpgradeDefs)
+      .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+    assert(next.isInstanceOf[ExplorationState])
 
   test("Invalid action in Hub produces log"):
     val (next, log) = sm().applyActionPure(HubState(hubPlayer), Move(Direction.Up))

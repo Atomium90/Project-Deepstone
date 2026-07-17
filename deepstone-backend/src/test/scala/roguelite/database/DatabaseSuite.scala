@@ -1,7 +1,7 @@
 package roguelite.db
 
 import munit.CatsEffectSuite
-import roguelite.game.{ MetaProgression, UpgradeDef }
+import roguelite.game.{ MetaProgression, UpgradeDef, UpgradeEffect }
 
 /** Tests for [[Database]]: schema initialisation, meta loading, currency persistence,
   * and upgrade purchase atomicity.
@@ -131,9 +131,20 @@ class DatabaseSuite extends CatsEffectSuite:
   // MetaProgression domain logic (pure — no DB needed)
   // -----------------------------------------------------------------------
 
+  /** Minimal upgrade catalog mirroring upgrades.json — avoids file I/O in unit tests. */
+  private val testUpgradeDefs: Map[String, UpgradeDef] = Map(
+    "hp_boost_1" -> UpgradeDef("hp_boost_1",
+                               "Iron Constitution I",
+                               "+20 max HP for the next run",
+                               cost = 30,
+                               displayOrder = 0,
+                               effect = UpgradeEffect.MaxHpBoost(20)
+    )
+  )
+
   test("MetaProgression.purchase deducts cost and records upgrade") {
     val meta = MetaProgression(currency = 80, unlockedUpgrades = Set.empty)
-    meta.purchase("hp_boost_1") match
+    meta.purchase("hp_boost_1", testUpgradeDefs) match
       case Right(newMeta) =>
         assertEquals(newMeta.currency, 50) // 80 - 30
         assert(newMeta.isUnlocked("hp_boost_1"))
@@ -142,32 +153,21 @@ class DatabaseSuite extends CatsEffectSuite:
 
   test("MetaProgression.purchase fails when already unlocked") {
     val meta = MetaProgression(currency = 200, unlockedUpgrades = Set("hp_boost_1"))
-    meta.purchase("hp_boost_1") match
+    meta.purchase("hp_boost_1", testUpgradeDefs) match
       case Left(msg) => assert(msg.contains("already purchased"), s"unexpected message: $msg")
       case Right(_)  => fail("expected Left for already-unlocked upgrade")
   }
 
   test("MetaProgression.purchase fails when currency is insufficient") {
     val meta = MetaProgression(currency = 10, unlockedUpgrades = Set.empty)
-    meta.purchase("hp_boost_1") match // costs 30
+    meta.purchase("hp_boost_1", testUpgradeDefs) match // costs 30
       case Left(msg) => assert(msg.contains("Not enough"), s"unexpected message: $msg")
       case Right(_)  => fail("expected Left for insufficient currency")
   }
 
   test("MetaProgression.purchase fails for unknown upgradeId") {
     val meta = MetaProgression(currency = 9999, unlockedUpgrades = Set.empty)
-    meta.purchase("nonexistent_upgrade") match
+    meta.purchase("nonexistent_upgrade", testUpgradeDefs) match
       case Left(msg) => assert(msg.contains("Unknown"), s"unexpected message: $msg")
       case Right(_)  => fail("expected Left for unknown upgrade")
-  }
-
-  test("UpgradeDef.all covers all expected upgrade ids") {
-    val expectedIds =
-      Set("hp_boost_1", "hp_boost_2", "potion_start", "archer_unlock", "mage_unlock", "extra_slot")
-    assertEquals(UpgradeDef.all.map(_.id).toSet, expectedIds)
-  }
-
-  test("UpgradeDef.byId lookup is consistent with UpgradeDef.all") {
-    UpgradeDef.all.foreach:
-      u => assertEquals(UpgradeDef.byId.get(u.id), Some(u))
   }

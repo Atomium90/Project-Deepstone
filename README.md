@@ -23,6 +23,15 @@ roguelite/
 
 ## Getting started
 
+### Quick start (Windows)
+
+```powershell
+./run-dev.ps1
+```
+
+Opens the backend and frontend dev servers in their own windows. Use the manual
+steps below if you only need one of the two, or if you're not on Windows.
+
 ### Backend
 
 Requires: Java 17+, sbt 1.9+

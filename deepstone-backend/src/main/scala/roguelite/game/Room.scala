@@ -91,6 +91,37 @@ case class Room(
   def removeEntity(id: String): Room =
     copy(entities = entities.filterNot(_.id == id))
 
+  /** Add new entities to the room (e.g. enemies spawned by a trapped chest). */
+  def withEntities(newEntities: List[Entity]): Room =
+    copy(entities = entities ++ newEntities)
+
+  /** Find up to `count` free tiles (walkable, unoccupied, and not in `exclude`) near (x, y),
+    * searching outward in rings of increasing Chebyshev distance starting at the tile itself.
+    * Returns fewer than `count` tiles if the room runs out of space.
+    */
+  def nearbyFreeTiles(x: Int, y: Int, count: Int, exclude: Set[(Int, Int)] = Set.empty): List[(Int, Int)] =
+    val maxRadius = width.max(height)
+    val found     = scala.collection.mutable.ListBuffer.empty[(Int, Int)]
+
+    def isFree(tx: Int, ty: Int): Boolean =
+      isWalkable(tx, ty) && entityAt(tx, ty).isEmpty && !exclude.contains((tx, ty))
+
+    var radius = 0
+    while found.size < count && radius <= maxRadius do
+      val ring =
+        if radius == 0 then Seq((x, y))
+        else
+          for
+            tx <- (x - radius) to (x + radius)
+            ty <- (y - radius) to (y + radius)
+            if math.max(math.abs(tx - x), math.abs(ty - y)) == radius
+          yield (tx, ty)
+      ring.foreach:
+        case (tx, ty) => if found.size < count && isFree(tx, ty) then found += ((tx, ty))
+      radius += 1
+
+    found.toList
+
   /** Project to the client-facing view.
     *
     * @param playerX

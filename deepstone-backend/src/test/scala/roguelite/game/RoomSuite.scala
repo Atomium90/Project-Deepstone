@@ -89,3 +89,36 @@ class RoomSuite extends FunSuite:
     val view  = testRoom(entities = List(enemy)).toView(1, 1)
     assertEquals(view.entities.length, 1)
     assertEquals(view.entities.head.kind, "enemy")
+
+  // -- withEntities ------------------------------------------------------------
+
+  test("withEntities appends new entities to the room"):
+    val e1    = Enemy("e1", x = 1, y = 1, typeId = "goblin", label = "Goblin")
+    val e2    = Enemy("e2", x = 2, y = 2, typeId = "orc", label = "Orc")
+    val room  = testRoom(entities = List(e1))
+    val after = room.withEntities(List(e2))
+    assertEquals(after.entities, List(e1, e2))
+
+  // -- nearbyFreeTiles ---------------------------------------------------------
+
+  test("nearbyFreeTiles returns the origin tile itself if it is free"):
+    assertEquals(testRoom().nearbyFreeTiles(1, 1, count = 1), List((1, 1)))
+
+  test("nearbyFreeTiles skips excluded tiles and searches outward"):
+    val found = testRoom().nearbyFreeTiles(1, 1, count = 1, exclude = Set((1, 1)))
+    assertEquals(found, List((1, 2)))
+
+  test("nearbyFreeTiles skips tiles occupied by another entity"):
+    val chest = Chest("c1", x = 1, y = 1)
+    val found = testRoom(entities = List(chest)).nearbyFreeTiles(1, 1, count = 1)
+    assertEquals(found, List((1, 2)))
+
+  test("nearbyFreeTiles never returns wall tiles"):
+    val room  = testRoom()
+    val found = room.nearbyFreeTiles(0, 0, count = 4)
+    assert(found.forall { case (x, y) => room.isWalkable(x, y) }, s"expected only walkable tiles: $found")
+
+  test("nearbyFreeTiles returns fewer tiles than requested when the room runs out of space"):
+    // testRoom only has 4 floor tiles total: (1,1), (1,2), (2,1), (2,2)
+    val found = testRoom().nearbyFreeTiles(1, 1, count = 10)
+    assertEquals(found.size, 4)

@@ -60,7 +60,7 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
         yield Enemy(id = ej.id, x = ej.x, y = ej.y, typeId = typeId, label = label)
 
       case "chest" =>
-        Right(Chest(id = ej.id, x = ej.x, y = ej.y))
+        Right(Chest(id = ej.id, x = ej.x, y = ej.y, trapped = ej.trapped.getOrElse(false)))
 
       case "door" =>
         for
@@ -98,7 +98,8 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       typeId: Option[String] = None,
       label: Option[String] = None,
       direction: Option[String] = None,
-      targetRoomId: Option[String] = None
+      targetRoomId: Option[String] = None,
+      trapped: Option[Boolean] = None
   )
 
   private case class RoomJson(
@@ -122,7 +123,8 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
         label        <- c.get[Option[String]]("label")
         direction    <- c.get[Option[String]]("direction")
         targetRoomId <- c.get[Option[String]]("targetRoomId")
-      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId)
+        trapped      <- c.get[Option[Boolean]]("trapped")
+      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId, trapped)
 
   private given Decoder[RoomJson] = Decoder.instance:
     (c: HCursor) =>

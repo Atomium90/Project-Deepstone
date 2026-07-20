@@ -347,14 +347,18 @@ class CombatResolver(rng: Random = Random(),
     // Level-up after loot
     val (finalPlayer, levelUpLog) = LevelUpSystem.applyLevelUps(playerAfterLoot, rng)
 
-    val nextState = ExplorationState(
-      player = finalPlayer,
-      dungeon = updatedDungeon,
-      playerX = state.playerX,
-      playerY = state.playerY,
-      difficulty = state.difficulty
-    )
-    (nextState, victoryLog ++ lootLog ++ levelUpLog)
+    if updatedDungeon.isAtBoss then
+      val runCompleteLog = List("You have vanquished the dungeon's guardian! Victory is yours.")
+      (GameOverState(finalPlayer, victory = true), victoryLog ++ lootLog ++ levelUpLog ++ runCompleteLog)
+    else
+      val nextState = ExplorationState(
+        player = finalPlayer,
+        dungeon = updatedDungeon,
+        playerX = state.playerX,
+        playerY = state.playerY,
+        difficulty = state.difficulty
+      )
+      (nextState, victoryLog ++ lootLog ++ levelUpLog)
   }
 
   /** Player loses: transition to GameOver, preserve meta-currency. */

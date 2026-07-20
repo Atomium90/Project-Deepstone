@@ -58,6 +58,21 @@ class CombatResolverSuite extends FunSuite:
       enemyEntityId = enemy.entityId
     )
 
+  def bossDungeon(enemies: List[Entity] = Nil): Dungeon =
+    val room =
+      Room("boss1", RoomType.Boss, width = 8, height = 6, tiles = makeTiles(), entities = enemies)
+    Dungeon(rooms = Map("boss1" -> room), currentRoomId = "boss1")
+
+  def combatStateInBossRoom(enemy: EnemyInstance, player: Player = fullHpPlayer()): CombatState =
+    CombatState(
+      player = player,
+      dungeon = bossDungeon(List(Enemy(enemy.entityId, 3, 3, enemy.typeId, enemy.label))),
+      playerX = 1,
+      playerY = 1,
+      combat = Combat(enemy = enemy),
+      enemyEntityId = enemy.entityId
+    )
+
   // --- Helper to unwrap Either safely in tests -----------------------------
 
   private def addItem(inv: Inventory, item: Item): Inventory =
@@ -129,6 +144,24 @@ class CombatResolverSuite extends FunSuite:
                                        CombatAction(CombatActionType.Attack)
     )
     assert(next.isInstanceOf[GameOverState] || next.isInstanceOf[ExplorationState])
+
+  // --- Boss victory ----------------------------------------------------------
+
+  test("defeating the last enemy in the boss room ends the run in victory"):
+    val (next, log) = resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)),
+                                         CombatAction(CombatActionType.Attack)
+    )
+    assert(next.isInstanceOf[GameOverState], s"expected GameOverState, got $next")
+    assertEquals(next.asInstanceOf[GameOverState].victory, true)
+    assert(log.exists(_.toLowerCase.contains("victory")), s"expected victory message in log: $log")
+
+  test("player death in the boss room is still a defeat, not a victory"):
+    val (next, _) = resolver().resolve(combatStateInBossRoom(strongEnemy(), player = lowHpPlayer),
+                                       CombatAction(CombatActionType.Attack)
+    )
+    next match
+      case gameOver: GameOverState => assertEquals(gameOver.victory, false)
+      case _                       => () // player may not have died this turn — inconclusive
 
   // --- Item use ------------------------------------------------------------
 

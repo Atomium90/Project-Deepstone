@@ -106,10 +106,14 @@ case class CombatState(player: Player,
       log = log
     )
 
-case class GameOverState(player: Player) extends GameState:
+/** @param victory
+  *   True if the run ended by defeating the dungeon's boss, false if the player died.
+  */
+case class GameOverState(player: Player, victory: Boolean = false) extends GameState:
   def toStateUpdate(log: List[String]): StateUpdate =
     StateUpdate(phase = GamePhase.GameOver,
                 player = player.toView,
                 inventory = inventoryToViews(player.inventory),
+                victory = victory,
                 log = log
     )

@@ -160,6 +160,10 @@ case class StateUpdate(
     hub: Option[HubView] = None,
     inventory: List[ItemView] = Nil,
     abilities: List[AbilityView] = Nil,
+    /** Only meaningful when phase is GameOver: true if the dungeon's boss was defeated, false if
+      * the player died.
+      */
+    victory: Boolean = false,
     log: List[String] = Nil
 )
 

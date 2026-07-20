@@ -22,3 +22,9 @@ dist/
 # Temporary files
 *.tmp
 *.swp
+
+# Metals (root-level, opened as a multi-root workspace)
+.metals/
+
+# Local SQLite dev database
+*.db

@@ -1,19 +1,22 @@
 <script lang="ts">
     import { gameState, client } from "../engine/StateStore";
 
-    $: player = $gameState?.player;
+    $: player  = $gameState?.player;
+    $: victory = $gameState?.victory ?? false;
 
     function returnToHub(): void {
         client.send({ type: "HUB_ACTION", action: "RETURNTOHUB" });
     }
 </script>
 
-<div class="over-root">
+<div class="over-root" class:victory>
     <div class="over-content">
 
-        <div class="skull">†</div>
-        <h1 class="title">DEFEATED</h1>
-        <p class="subtitle">The dungeon claims another soul.</p>
+        <div class="skull">{victory ? "★" : "†"}</div>
+        <h1 class="title">{victory ? "VICTORY" : "DEFEATED"}</h1>
+        <p class="subtitle">
+            {victory ? "You have conquered the dungeon." : "The dungeon claims another soul."}
+        </p>
 
         <!-- Run stats -->
         {#if player}
@@ -70,6 +73,11 @@
         font-size: 2rem;
         letter-spacing: 0.3em;
         color: #c0392b;
+    }
+
+    .over-root.victory .skull,
+    .over-root.victory .title {
+        color: #5ce07a;
     }
 
     .subtitle {

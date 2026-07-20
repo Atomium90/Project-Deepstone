@@ -132,5 +132,7 @@ export interface StateUpdate {
   inventory: ItemView[];
   /** Per-class ability catalog — always present, independent of game phase. */
   abilities: AbilityView[];
+  /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
+  victory: boolean;
   log: string[];
 }

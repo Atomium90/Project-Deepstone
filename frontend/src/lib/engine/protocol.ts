@@ -7,6 +7,7 @@ export type GamePhase = "HUB" | "EXPLORATION" | "COMBAT" | "GAMEOVER";
 export type CombatActionType = "ATTACK" | "ABILITY" | "ITEM" | "DEFEND";
 export type HubActionType = "STARTRUN" | "BUYUPGRADE" | "RETURNTOHUB";
 export type ClassId = "warrior" | "archer" | "mage";
+export type Difficulty = "easy" | "normal" | "hard";
 
 export type ItemKind = "weapon" | "armor" | "accessory" | "consumable";
 export type ItemRarity = "common" | "uncommon";
@@ -37,6 +38,7 @@ export interface HubAction {
   action: HubActionType;
   classId?: ClassId;
   upgradeId?: string;
+  difficulty?: Difficulty;
 }
 
 export type PlayerAction =

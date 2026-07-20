@@ -6,17 +6,23 @@
         CURRENCY_NAME,
         CLASS_INFO,
         CLASS_UNLOCK_UPGRADE_ID,
+        DIFFICULTY_INFO,
+        DIFFICULTY_COLORS,
     } from "../engine/constants";
-    import type { ClassId, UpgradeView } from "../engine/protocol";
+    import type { ClassId, Difficulty, UpgradeView } from "../engine/protocol";
 
     // Selected class (Warrior by default)
     let selectedClass: ClassId = "warrior";
+
+    // Selected difficulty (Normal by default)
+    let selectedDifficulty: Difficulty = "normal";
 
     $: player   = $gameState?.player;
     $: upgrades = $gameState?.hub?.upgrades ?? [];
     $: shards   = player?.metaCurrency ?? 0;
 
     const classes: ClassId[] = ["warrior", "archer", "mage"];
+    const difficulties: Difficulty[] = ["easy", "normal", "hard"];
 
     /** A class is unlocked if it has no gating upgrade, or that upgrade has been bought. */
     function isClassUnlocked(c: ClassId): boolean {
@@ -30,8 +36,17 @@
         selectedClass = c;
     }
 
+    function selectDifficulty(d: Difficulty): void {
+        selectedDifficulty = d;
+    }
+
     function startRun(): void {
-        client.send({ type: "HUB_ACTION", action: "STARTRUN", classId: selectedClass });
+        client.send({
+            type: "HUB_ACTION",
+            action: "STARTRUN",
+            classId: selectedClass,
+            difficulty: selectedDifficulty,
+        });
     }
 
     function buyUpgrade(u: UpgradeView): void {
@@ -90,9 +105,30 @@
                 {/each}
             </div>
 
+            <p class="section-label">Difficulty</p>
+
+            <div class="difficulty-list">
+                {#each difficulties as d}
+                    {@const info  = DIFFICULTY_INFO[d]}
+                    {@const color = DIFFICULTY_COLORS[d]}
+                    <button
+                        class="difficulty-card"
+                        class:selected={selectedDifficulty === d}
+                        style="--accent: {color}"
+                        on:click={() => selectDifficulty(d)}
+                        title={info.description}
+                    >
+                        <span class="difficulty-icon">{info.icon}</span>
+                        <span class="difficulty-name">{info.label}</span>
+                    </button>
+                {/each}
+            </div>
+
             <button class="start-btn" on:click={startRun}>
                 ▶ Start Run
-                <span class="start-class">as {CLASS_INFO[selectedClass].label}</span>
+                <span class="start-class">
+                    as {CLASS_INFO[selectedClass].label} · {DIFFICULTY_INFO[selectedDifficulty].label}
+                </span>
             </button>
         </section>
 
@@ -267,6 +303,40 @@
         margin-left: 0.4rem;
         font-size: 0.8rem;
     }
+
+    .difficulty-list {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .difficulty-card {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+        padding: 0.6rem 0.4rem;
+        background: #161616;
+        border: 1px solid #252525;
+        color: #aaa;
+        cursor: pointer;
+        font-family: monospace;
+        transition: background 0.12s, border-color 0.12s;
+    }
+
+    .difficulty-card:hover {
+        background: #1e1e1e;
+        border-color: #444;
+    }
+
+    .difficulty-card.selected {
+        background: #1a1a1a;
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+
+    .difficulty-icon { font-size: 1.1rem; }
+    .difficulty-name { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
 
     .start-btn {
         margin-top: auto;

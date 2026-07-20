@@ -469,5 +469,97 @@
       { "kind": "enemy", "id": "boss_spider", "x": 6, "y": 5, "label": "Giant Spider", "typeId": "giant_spider" },
       { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
     ]
+  },
+  {
+    "id": "boss_003",
+    "type": "boss",
+    "width": 12,
+    "height": 10,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "wall",  "wall",  "floor", "floor", "wall",  "wall",  "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "wall",  "floor", "floor", "floor", "floor", "wall",  "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "wall",  "floor", "floor", "floor", "floor", "wall",  "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "wall",  "wall",  "floor", "floor", "wall",  "wall",  "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "enemy", "id": "boss_troll_king", "x": 6, "y": 5, "label": "Troll King", "typeId": "troll_king" },
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+    ]
+  },
+  {
+    "id": "boss_004",
+    "type": "boss",
+    "width": 12,
+    "height": 12,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "wall",  "floor", "floor", "wall",  "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "wall",  "floor", "floor", "wall",  "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "enemy", "id": "boss_wraith", "x": 6, "y": 5, "label": "Wraith", "typeId": "wraith" },
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+    ]
+  },
+  {
+    "id": "boss_005",
+    "type": "boss",
+    "width": 14,
+    "height": 12,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "wall",  "wall",  "floor", "floor", "floor", "floor", "wall",  "wall",  "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall",  "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall",  "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "wall",  "wall",  "floor", "floor", "floor", "floor", "wall",  "wall",  "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "enemy", "id": "boss_lich", "x": 7, "y": 6, "label": "Lich", "typeId": "lich" },
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+    ]
+  },
+  {
+    "id": "boss_006",
+    "type": "boss",
+    "width": 12,
+    "height": 10,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "wall",  "wall",  "floor", "floor", "wall",  "wall",  "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "wall",  "wall",  "floor", "floor", "wall",  "wall",  "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "wall",  "wall",  "floor", "floor", "wall",  "wall",  "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "enemy", "id": "boss_ogre_warlord", "x": 6, "y": 5, "label": "Ogre Warlord", "typeId": "ogre_warlord" },
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+    ]
   }
 ]

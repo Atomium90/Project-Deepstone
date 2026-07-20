@@ -94,14 +94,16 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
-  def testDungeon: Dungeon =
+  /** Room pool for DungeonBuilder — needs at least one Combat (entrance) and one Boss room. */
+  def testRoomPool: Map[String, Room] =
     val tiles = makeTiles()
     val r1    = Room("r1", RoomType.Combat, 8, 6, tiles, Nil)
     val r2    = Room("r2", RoomType.Loot, 8, 6, tiles, Nil)
-    Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
+    val r3    = Room("r3", RoomType.Boss, 8, 6, tiles, Nil)
+    Map("r1" -> r1, "r2" -> r2, "r3" -> r3)
 
   def sm: StateMachine =
-    StateMachine(testDungeon,
+    StateMachine(testRoomPool,
                  Map("goblin" -> goblinStats),
                  Map.empty,
                  testClassDefs,

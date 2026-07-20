@@ -59,8 +59,12 @@ case class HubState(player: Player,
       log = log
     )
 
-case class ExplorationState(player: Player, dungeon: Dungeon, playerX: Int, playerY: Int)
-    extends GameState:
+case class ExplorationState(player: Player,
+                            dungeon: Dungeon,
+                            playerX: Int,
+                            playerY: Int,
+                            difficulty: Difficulty = Difficulty.Normal
+) extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Exploration,
@@ -82,7 +86,8 @@ case class CombatState(player: Player,
                        playerX: Int,
                        playerY: Int,
                        combat: Combat,
-                       enemyEntityId: String
+                       enemyEntityId: String,
+                       difficulty: Difficulty = Difficulty.Normal
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(

@@ -9,7 +9,6 @@ import roguelite.game.{
   AbilityLoader,
   ClassLoader,
   CombatResolver,
-  DungeonBuilder,
   EnemyLoader,
   ItemLoader,
   RoomLoader,
@@ -44,18 +43,8 @@ object Main extends IOApp.Simple:
                 s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades."
             )
 
-            dungeon <- IO.fromEither(
-              DungeonBuilder(roomPool)
-                .build(totalRooms = 4)
-                .left
-                .map(
-                  err => RuntimeException(s"Failed to build dungeon: $err")
-                )
-            )
-            _ <- logger.info(s"Built dungeon: ${dungeon.rooms.keys.mkString(" → ")}")
-
             resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs)
-            stateMachine = StateMachine(dungeon,
+            stateMachine = StateMachine(roomPool,
                                         enemyStats,
                                         itemDefs,
                                         classDefs,

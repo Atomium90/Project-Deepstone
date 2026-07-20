@@ -1,6 +1,7 @@
 package roguelite.game
 
 import munit.CatsEffectSuite
+import roguelite.engine.Difficulty
 
 class EnemyLoaderSuite extends CatsEffectSuite:
 
@@ -51,6 +52,44 @@ class EnemyLoaderSuite extends CatsEffectSuite:
       assertEquals(instance.hp, goblin.maxHp)
       assertEquals(instance.label, goblin.label)
       assertEquals(instance.entityId, "entity_01")
+
+  test("EnemyInstance.fromStats defaults to Normal difficulty (no scaling)"):
+    for stats <- EnemyLoader.loadAll()
+    yield
+      val goblin   = stats("goblin")
+      val instance = EnemyInstance.fromStats("entity_01", goblin)
+      assertEquals(instance.maxHp, goblin.maxHp)
+      assertEquals(instance.attack, goblin.attack)
+      assertEquals(instance.defense, goblin.defense)
+      assertEquals(instance.xpReward, goblin.xpReward)
+
+  test("EnemyInstance.fromStats scales stats on Easy and Hard"):
+    for stats <- EnemyLoader.loadAll()
+    yield
+      val goblin = stats("goblin")
+      val easy   = EnemyInstance.fromStats("e1", goblin, Difficulty.Easy)
+      val hard   = EnemyInstance.fromStats("e1", goblin, Difficulty.Hard)
+      assertEquals(easy.maxHp, math.round(goblin.maxHp * 0.75).toInt)
+      assertEquals(hard.maxHp, math.round(goblin.maxHp * 1.25).toInt)
+      assertEquals(easy.hp, easy.maxHp)
+      assert(easy.maxHp < goblin.maxHp)
+      assert(hard.maxHp > goblin.maxHp)
+
+  test("EnemyInstance.fromStats never scales maxHp/attack/xpReward below 1"):
+    val fragile = EnemyStats(
+      typeId = "sprite",
+      label = "Sprite",
+      maxHp = 1,
+      attack = 1,
+      defense = 0,
+      xpReward = 1,
+      actions = List(EnemyActionWeight("ATTACK", 100))
+    )
+    val easy = EnemyInstance.fromStats("e1", fragile, Difficulty.Easy)
+    assertEquals(easy.maxHp, 1)
+    assertEquals(easy.attack, 1)
+    assertEquals(easy.xpReward, 1)
+    assertEquals(easy.defense, 0)
 
   // ---------------------------------------------
   // Loot table fields (new in item system)

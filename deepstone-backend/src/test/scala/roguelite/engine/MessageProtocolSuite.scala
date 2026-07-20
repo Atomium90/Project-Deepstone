@@ -38,6 +38,29 @@ class MessageProtocolSuite extends FunSuite:
     val result = MessageProtocol.decodeAction(json)
     assertEquals(result, Right(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))))
 
+  test("decode HUB_ACTION start run with difficulty"):
+    val json   = """{"type":"HUB_ACTION","action":"STARTRUN","classId":"mage","difficulty":"hard"}"""
+    val result = MessageProtocol.decodeAction(json)
+    assertEquals(
+      result,
+      Right(
+        HubAction(HubActionType.StartRun,
+                  classId = Some(ClassId.Mage),
+                  difficulty = Some(Difficulty.Hard)
+        )
+      )
+    )
+
+  test("decode HUB_ACTION start run without difficulty leaves it None"):
+    val json   = """{"type":"HUB_ACTION","action":"STARTRUN","classId":"warrior"}"""
+    val result = MessageProtocol.decodeAction(json)
+    assertEquals(result.map(_.asInstanceOf[HubAction].difficulty), Right(None))
+
+  test("decode HUB_ACTION with unknown difficulty returns Left"):
+    val json   = """{"type":"HUB_ACTION","action":"STARTRUN","classId":"warrior","difficulty":"nightmare"}"""
+    val result = MessageProtocol.decodeAction(json)
+    assert(result.isLeft, s"Expected Left but got $result")
+
   test("decode HUB_ACTION buy upgrade"):
     val json   = """{"type":"HUB_ACTION","action":"BUYUPGRADE","upgradeId":"hp_boost_1"}"""
     val result = MessageProtocol.decodeAction(json)

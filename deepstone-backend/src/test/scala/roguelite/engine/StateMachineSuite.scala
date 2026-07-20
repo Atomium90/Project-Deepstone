@@ -85,8 +85,19 @@ class StateMachineSuite extends FunSuite:
     val r2 = makeRoom("r2")
     Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
 
-  def sm(dungeon: Dungeon = simpleDungeon(), upgradeDefs: Map[String, UpgradeDef] = Map.empty): StateMachine =
-    StateMachine(dungeon,
+  /** Minimal pool for DungeonBuilder: one entrance (Combat) and one boss room. Used only by
+    * StartRun — every other test builds its own state directly via `explorationAt`/`simpleDungeon`
+    * and never touches this pool.
+    */
+  def defaultRoomPool: Map[String, Room] =
+    Map("entrance" -> makeRoom("entrance", roomType = RoomType.Combat),
+        "boss"     -> makeRoom("boss", roomType = RoomType.Boss)
+    )
+
+  def sm(roomPool: Map[String, Room] = defaultRoomPool,
+         upgradeDefs: Map[String, UpgradeDef] = Map.empty
+  ): StateMachine =
+    StateMachine(roomPool,
                  enemyStatsMap,
                  Map.empty[String, Item],
                  testClassDefs,
@@ -158,6 +169,46 @@ class StateMachineSuite extends FunSuite:
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[ExplorationState])
 
+  // --- Hub — difficulty -----------------------------------------------------
+
+  /** Pool with enough middle rooms for Easy/Normal/Hard's totalRooms to actually differ. */
+  def richRoomPool: Map[String, Room] =
+    val middles = (1 to 6).map(i => s"middle$i" -> makeRoom(s"middle$i")).toMap
+    middles ++ defaultRoomPool
+
+  test("StartRun without difficulty defaults to Normal"):
+    val (next, _) =
+      sm().applyActionPure(HubState(hubPlayer),
+                           HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))
+      )
+    assertEquals(next.asInstanceOf[ExplorationState].difficulty, Difficulty.Normal)
+
+  test("StartRun room count scales with difficulty"):
+    val (easyNext, _) = sm(richRoomPool).applyActionPure(
+      HubState(hubPlayer),
+      HubAction(HubActionType.StartRun,
+                classId = Some(ClassId.Warrior),
+                difficulty = Some(Difficulty.Easy)
+      )
+    )
+    val (hardNext, _) = sm(richRoomPool).applyActionPure(
+      HubState(hubPlayer),
+      HubAction(HubActionType.StartRun,
+                classId = Some(ClassId.Warrior),
+                difficulty = Some(Difficulty.Hard)
+      )
+    )
+    val easyRooms = easyNext.asInstanceOf[ExplorationState].dungeon.rooms.size
+    val hardRooms = hardNext.asInstanceOf[ExplorationState].dungeon.rooms.size
+    assert(hardRooms > easyRooms, s"expected Hard ($hardRooms) > Easy ($easyRooms)")
+
+  test("CombatState enemy stats scale with difficulty"):
+    val enemy = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
+    val state = explorationAt(3, 3, entities = List(enemy)).copy(difficulty = Difficulty.Hard)
+    val (next, _) = sm().applyActionPure(state, Interact("e1"))
+    val combat    = next.asInstanceOf[CombatState].combat
+    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.25).toInt)
+
   test("Invalid action in Hub produces log"):
     val (next, log) = sm().applyActionPure(HubState(hubPlayer), Move(Direction.Up))
     assert(next.isInstanceOf[HubState])
@@ -178,19 +229,19 @@ class StateMachineSuite extends FunSuite:
   test("Interact with Door navigates to target room"):
     val d         = door("r1", "r2")
     val state     = explorationAt(3, 3, entities = List(d))
-    val (next, _) = sm(simpleDungeon(List(d))).applyActionPure(state, Interact(d.id))
+    val (next, _) = sm().applyActionPure(state, Interact(d.id))
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
 
   test("Interact with Enemy transitions to CombatState"):
     val enemy     = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
     val state     = explorationAt(3, 3, entities = List(enemy))
-    val (next, _) = sm(simpleDungeon(List(enemy))).applyActionPure(state, Interact("e1"))
+    val (next, _) = sm().applyActionPure(state, Interact("e1"))
     assert(next.isInstanceOf[CombatState])
 
   test("CombatState has correct enemy stats after engaging"):
     val enemy     = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
     val state     = explorationAt(3, 3, entities = List(enemy))
-    val (next, _) = sm(simpleDungeon(List(enemy))).applyActionPure(state, Interact("e1"))
+    val (next, _) = sm().applyActionPure(state, Interact("e1"))
     val combat    = next.asInstanceOf[CombatState].combat
     assertEquals(combat.enemy.maxHp, goblinStats.maxHp)
     assertEquals(combat.enemy.label, "Goblin")
@@ -198,20 +249,20 @@ class StateMachineSuite extends FunSuite:
   test("Interact with unknown enemy typeId stays in Exploration with error"):
     val badEnemy    = Enemy("e2", x = 3, y = 3, typeId = "dragon", label = "Dragon")
     val state       = explorationAt(3, 3, entities = List(badEnemy))
-    val (next, log) = sm(simpleDungeon(List(badEnemy))).applyActionPure(state, Interact("e2"))
+    val (next, log) = sm().applyActionPure(state, Interact("e2"))
     assert(next.isInstanceOf[ExplorationState])
     assert(log.exists(_.contains("Unknown enemy type")))
 
   test("Interact with Chest removes it from room"):
     val chest     = Chest("c1", x = 3, y = 3)
     val state     = explorationAt(3, 3, entities = List(chest))
-    val (next, _) = sm(simpleDungeon(List(chest))).applyActionPure(state, Interact("c1"))
+    val (next, _) = sm().applyActionPure(state, Interact("c1"))
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoom.entityById("c1"), None)
 
   test("Interact with Chest with empty itemDefs gives 'empty' log"):
     val chest    = Chest("c1", x = 3, y = 3)
     val state    = explorationAt(3, 3, entities = List(chest))
-    val (_, log) = sm(simpleDungeon(List(chest))).applyActionPure(state, Interact("c1"))
+    val (_, log) = sm().applyActionPure(state, Interact("c1"))
     assert(log.exists(_.toLowerCase.contains("empty")), s"Expected 'empty' in log: $log")
 
   test("Interact with unknown entity id returns error log"):

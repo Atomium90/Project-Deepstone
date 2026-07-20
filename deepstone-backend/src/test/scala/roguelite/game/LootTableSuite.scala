@@ -1,6 +1,8 @@
 package roguelite.game
 
 import munit.FunSuite
+import roguelite.engine.Difficulty
+
 import scala.util.Random
 
 class LootTableSuite extends FunSuite:
@@ -73,6 +75,33 @@ class LootTableSuite extends FunSuite:
     val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))
     val item  = LootTable.rollEnemy(enemy, itemDefs, Random()).getOrElse(fail("expected Some"))
     assertEquals(item.typeId, "iron_sword")
+
+  // --- Difficulty-aware rarity weighting ------------------------------------
+
+  test("Easy and Normal difficulty do not change loot odds"):
+    val enemy = makeEnemy(dropChance = 100,
+                          lootTable = List(LootEntry("iron_sword", 50), LootEntry("steel_sword", 50))
+    )
+    assertEquals(
+      LootTable.rollEnemy(enemy, itemDefs, Random(9), Difficulty.Easy).map(_.typeId),
+      LootTable.rollEnemy(enemy, itemDefs, Random(9), Difficulty.Normal).map(_.typeId)
+    )
+
+  test("Hard difficulty increases the relative odds of Uncommon loot"):
+    val enemy = makeEnemy(dropChance = 100,
+                          lootTable = List(LootEntry("iron_sword", 50), LootEntry("steel_sword", 50))
+    )
+
+    def uncommonRate(difficulty: Difficulty): Double =
+      val rng    = Random(123)
+      val trials = 2000
+      val hits = (1 to trials).count:
+        _ => LootTable.rollEnemy(enemy, itemDefs, rng, difficulty).exists(_.typeId == "steel_sword")
+      hits.toDouble / trials
+
+    val normalRate = uncommonRate(Difficulty.Normal)
+    val hardRate    = uncommonRate(Difficulty.Hard)
+    assert(hardRate > normalRate, s"expected Hard ($hardRate) > Normal ($normalRate)")
 
   // --- Helper --------------------------------------------------------------
 

@@ -3,6 +3,7 @@ package roguelite.engine
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
 import io.circe.{ Decoder, Encoder }
+import roguelite.game.Rarity
 
 // -------------------
 // Shared enumerations
@@ -22,6 +23,34 @@ enum HubActionType:
 
 enum ClassId:
   case Warrior, Archer, Mage
+
+/** Run difficulty, chosen alongside the class at StartRun.
+  *
+  * Values are starting points meant to be adjusted after playtesting.
+  */
+enum Difficulty:
+  case Easy, Normal, Hard
+
+  /** Multiplier applied to enemy maxHp/attack/defense/xpReward at instance creation. */
+  def statMultiplier: Double = this match
+    case Difficulty.Easy   => 0.75
+    case Difficulty.Normal => 1.0
+    case Difficulty.Hard   => 1.25
+
+  /** Total room count passed to [[roguelite.game.DungeonBuilder.build]]. Normal matches today's
+    * fixed baseline.
+    */
+  def totalRooms: Int = this match
+    case Difficulty.Easy   => 3
+    case Difficulty.Normal => 4
+    case Difficulty.Hard   => 6
+
+  /** Relative weight multiplier applied to a loot candidate based on its rarity. Only Hard biases
+    * toward Uncommon for now — Easy/Normal keep today's unweighted behavior.
+    */
+  def rarityWeightMultiplier(rarity: Rarity): Double = (this, rarity) match
+    case (Difficulty.Hard, Rarity.Uncommon) => 2.0
+    case _                                  => 1.0
 
 // ---------------------------------------------
 // Client → Server: player actions
@@ -47,7 +76,8 @@ case class CombatAction(
 case class HubAction(
     action: HubActionType,
     classId: Option[ClassId] = None,
-    upgradeId: Option[String] = None
+    upgradeId: Option[String] = None,
+    difficulty: Option[Difficulty] = None
 ) extends PlayerAction
 
 // ---------------------------------------------
@@ -173,6 +203,14 @@ object MessageProtocol:
   given Encoder[ClassId] = Encoder[String].contramap(_.toString.toLowerCase)
   given Decoder[ClassId] = Decoder[String].emap(
     s => ClassId.values.find(_.toString.toLowerCase == s.toLowerCase).toRight(s"Unknown class: $s")
+  )
+
+  given Encoder[Difficulty] = Encoder[String].contramap(_.toString.toLowerCase)
+  given Decoder[Difficulty] = Decoder[String].emap(
+    s =>
+      Difficulty.values
+        .find(_.toString.toLowerCase == s.toLowerCase)
+        .toRight(s"Unknown difficulty: $s")
   )
 
   // Actions (client → server)

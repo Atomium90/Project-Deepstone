@@ -330,18 +330,19 @@ class CombatResolver(rng: Random = Random(),
       s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
     )
 
-    val (playerAfterLoot, lootLog) = LootTable.rollEnemy(deadEnemy, itemDefs, rng) match {
-      case None => (playerWithXp, Nil)
-      case Some(item) =>
-        playerWithXp.withItemPickup(item) match {
-          case Right(p) =>
-            (p, List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"))
-          case Left(_) =>
-            (playerWithXp,
-             List(s"${deadEnemy.label} dropped ${item.name}, but your inventory is full!")
-            )
-        }
-    }
+    val (playerAfterLoot, lootLog) =
+      LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty) match {
+        case None => (playerWithXp, Nil)
+        case Some(item) =>
+          playerWithXp.withItemPickup(item) match {
+            case Right(p) =>
+              (p, List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"))
+            case Left(_) =>
+              (playerWithXp,
+               List(s"${deadEnemy.label} dropped ${item.name}, but your inventory is full!")
+              )
+          }
+      }
 
     // Level-up after loot
     val (finalPlayer, levelUpLog) = LevelUpSystem.applyLevelUps(playerAfterLoot, rng)
@@ -350,7 +351,8 @@ class CombatResolver(rng: Random = Random(),
       player = finalPlayer,
       dungeon = updatedDungeon,
       playerX = state.playerX,
-      playerY = state.playerY
+      playerY = state.playerY,
+      difficulty = state.difficulty
     )
     (nextState, victoryLog ++ lootLog ++ levelUpLog)
   }

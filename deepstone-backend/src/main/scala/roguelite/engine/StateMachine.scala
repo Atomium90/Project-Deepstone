@@ -7,7 +7,7 @@ import roguelite.game.{
   Combat,
   CombatResolver,
   Door,
-  Dungeon,
+  DungeonBuilder,
   Enemy,
   EnemyInstance,
   EnemyStats,
@@ -28,8 +28,9 @@ import roguelite.game.UpgradeEffect
   *   - [[CombatResolver]] for all combat math
   *   - [[LootTable]] for all drop rolls
   *
-  * @param dungeon
-  *   The dungeon to enter when a new run starts.
+  * @param roomPool
+  *   All available rooms, keyed by id. A fresh [[roguelite.game.Dungeon]] is assembled from this
+  *   pool via [[DungeonBuilder]] on every `StartRun`, so each run gets a different layout.
   * @param enemyStats
   *   Lookup table of enemy stats keyed by typeId.
   * @param itemDefs
@@ -42,9 +43,10 @@ import roguelite.game.UpgradeEffect
   * @param resolver
   *   Resolves combat turns.
   * @param rng
-  *   Random instance for chest loot rolls. Inject a seeded one for deterministic tests.
+  *   Random instance for dungeon assembly and chest loot rolls. Inject a seeded one for
+  *   deterministic tests.
   */
-class StateMachine(dungeon: Dungeon,
+class StateMachine(roomPool: Map[String, Room],
                    enemyStats: Map[String, EnemyStats],
                    itemDefs: Map[String, Item],
                    classDefs: Map[ClassId, ClassDef],
@@ -61,7 +63,7 @@ class StateMachine(dungeon: Dungeon,
 
       // -- Hub --------------------------------------------------------------
 
-      case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _)) =>
+      case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt)) =>
         val lockedBehind = upgradeDefs.values.find {
           u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
         }
@@ -73,40 +75,49 @@ class StateMachine(dungeon: Dungeon,
           case (None, None) => (hub, List(s"Unknown class '$classId'. Cannot start run."))
 
           case (None, Some(classDef)) =>
-            val basePlayer = Player(
-              classId = classId,
-              hp = classDef.hp,
-              maxHp = classDef.hp,
-              resourceCurrent = classDef.resourceStart,
-              resourceMax = classDef.resourceMax,
-              level = 1,
-              xp = 0,
-              metaCurrency = hub.player.metaCurrency,
-              affinityTags = classDef.affinityTags
-            )
+            val difficulty = difficultyOpt.getOrElse(Difficulty.Normal)
 
-            // Resolve starting kit: unknown typeIds are skipped, full inventory is not expected
-            val playerWithKit = classDef.startingKit.foldLeft(basePlayer):
-              (p, typeId) =>
-                itemDefs.get(typeId) match {
-                  case None => p
-                  case Some(proto) =>
-                    p.withItemPickup(proto.withNewId) match {
-                      case Right(updated) => updated
-                      case Left(_)        => p
+            DungeonBuilder(roomPool, rng).build(totalRooms = difficulty.totalRooms) match {
+              case Left(err) =>
+                (hub, List(s"Failed to build dungeon: $err"))
+
+              case Right(dungeon) =>
+                val basePlayer = Player(
+                  classId = classId,
+                  hp = classDef.hp,
+                  maxHp = classDef.hp,
+                  resourceCurrent = classDef.resourceStart,
+                  resourceMax = classDef.resourceMax,
+                  level = 1,
+                  xp = 0,
+                  metaCurrency = hub.player.metaCurrency,
+                  affinityTags = classDef.affinityTags
+                )
+
+                // Resolve starting kit: unknown typeIds are skipped, full inventory is not expected
+                val playerWithKit = classDef.startingKit.foldLeft(basePlayer):
+                  (p, typeId) =>
+                    itemDefs.get(typeId) match {
+                      case None => p
+                      case Some(proto) =>
+                        p.withItemPickup(proto.withNewId) match {
+                          case Right(updated) => updated
+                          case Left(_)        => p
+                        }
                     }
-                }
 
-            val nextState = ExplorationState(playerWithKit, dungeon, playerX = 1, playerY = 1)
-            (nextState, List(s"A new run begins. Good luck, $classId."))
+                val nextState =
+                  ExplorationState(playerWithKit, dungeon, playerX = 1, playerY = 1, difficulty)
+                (nextState, List(s"A new run begins. Good luck, $classId."))
+            }
         }
 
-      case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _)) =>
+      case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _)) =>
         // BuyUpgrade is intercepted by GameSession (needs DB access); reject here as a safety net
         (hub, List("Upgrade purchases must be routed through GameSession."))
 
       // Return to hub after death: GameSession enriches the HubState with real meta
-      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _)) =>
+      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _)) =>
         // Placeholder — class is re-chosen on next StartRun
         val hubPlayer = Player(
           classId = ClassId.Warrior,
@@ -161,10 +172,16 @@ class StateMachine(dungeon: Dungeon,
               case None =>
                 (exp, List(s"Unknown enemy type '${enemy.typeId}' — cannot start combat."))
               case Some(stats) =>
-                val instance = EnemyInstance.fromStats(enemy.id, stats)
+                val instance = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty)
                 val combat   = Combat(enemy = instance)
-                val nextState =
-                  CombatState(exp.player, exp.dungeon, exp.playerX, exp.playerY, combat, enemy.id)
+                val nextState = CombatState(exp.player,
+                                            exp.dungeon,
+                                            exp.playerX,
+                                            exp.playerY,
+                                            combat,
+                                            enemy.id,
+                                            exp.difficulty
+                )
                 (nextState, List(s"You engage the ${stats.label}!"))
             }
 
@@ -173,7 +190,7 @@ class StateMachine(dungeon: Dungeon,
             val updatedDungeon =
               exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(updatedRoom.id, updatedRoom))
 
-            LootTable.rollChest(itemDefs, rng) match {
+            LootTable.rollChest(itemDefs, rng, exp.difficulty) match {
               case None =>
                 (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."))
               case Some(item) =>

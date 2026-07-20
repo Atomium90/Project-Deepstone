@@ -1,5 +1,7 @@
 package roguelite.game
 
+import roguelite.engine.Difficulty
+
 // ---------------------------------------------
 // Static enemy data (loaded from enemies.json)
 // ---------------------------------------------
@@ -62,17 +64,26 @@ case class EnemyInstance(
     copy(hp = (hp - amount).max(0))
 
 object EnemyInstance:
-  /** Create a fresh combat instance from static stats and the entity id. */
-  def fromStats(entityId: String, stats: EnemyStats): EnemyInstance =
+  /** Create a fresh combat instance from static stats and the entity id, scaled by difficulty.
+    *
+    * maxHp/attack/xpReward are floored at 1 so a low base stat never scales down to 0 or negative
+    * on Easy; defense is floored at 0 since a defenseless enemy is valid.
+    */
+  def fromStats(entityId: String,
+                stats: EnemyStats,
+                difficulty: Difficulty = Difficulty.Normal
+  ): EnemyInstance =
+    val mult      = difficulty.statMultiplier
+    val scaledHp  = math.max(1, math.round(stats.maxHp * mult).toInt)
     EnemyInstance(
       entityId = entityId,
       typeId = stats.typeId,
       label = stats.label,
-      hp = stats.maxHp,
-      maxHp = stats.maxHp,
-      attack = stats.attack,
-      defense = stats.defense,
-      xpReward = stats.xpReward,
+      hp = scaledHp,
+      maxHp = scaledHp,
+      attack = math.max(1, math.round(stats.attack * mult).toInt),
+      defense = math.max(0, math.round(stats.defense * mult).toInt),
+      xpReward = math.max(1, math.round(stats.xpReward * mult).toInt),
       actions = stats.actions,
       dropChance = stats.dropChance,
       lootTable = stats.lootTable

@@ -1,5 +1,7 @@
 package roguelite.game
 
+import roguelite.engine.Difficulty
+
 import scala.util.Random
 
 /** Weighted loot roll logic used by chests and enemy drops.
@@ -27,9 +29,12 @@ object LootTable:
     * Returns None only if none of the pool typeIds exist in `itemDefs` (should not happen at
     * runtime with a valid items.json).
     */
-  def rollChest(itemDefs: Map[String, Item], rng: Random): Option[Item] =
+  def rollChest(itemDefs: Map[String, Item],
+                rng: Random,
+                difficulty: Difficulty = Difficulty.Normal
+  ): Option[Item] =
     val pool = ChestPool.flatMap {
-      case (typeId, w) => itemDefs.get(typeId).map(_ -> w)
+      case (typeId, w) => itemDefs.get(typeId).map(item => item -> weightFor(item, w, difficulty))
     }
     pickWeighted(pool, rng).map(_.withNewId)
 
@@ -39,13 +44,23 @@ object LootTable:
     * typeId from the enemy's own loot table using weighted random. Returns None if the chance roll
     * fails or the loot table is empty / unresolvable.
     */
-  def rollEnemy(enemy: EnemyInstance, itemDefs: Map[String, Item], rng: Random): Option[Item] =
+  def rollEnemy(enemy: EnemyInstance,
+                itemDefs: Map[String, Item],
+                rng: Random,
+                difficulty: Difficulty = Difficulty.Normal
+  ): Option[Item] =
     if enemy.dropChance <= 0 || rng.nextInt(100) >= enemy.dropChance then None
     else
       val pool = enemy.lootTable.flatMap(
-        e => itemDefs.get(e.typeId).map(_ -> e.weight)
+        e => itemDefs.get(e.typeId).map(item => item -> weightFor(item, e.weight, difficulty))
       )
       pickWeighted(pool, rng).map(_.withNewId)
+
+  /** Apply the difficulty's rarity multiplier to a base weight, rounding to the nearest int. Below
+    * 1.0 total the item is effectively removed from the pool.
+    */
+  private def weightFor(item: Item, baseWeight: Int, difficulty: Difficulty): Int =
+    math.round(baseWeight * difficulty.rarityWeightMultiplier(item.rarity)).toInt
 
   /** Pick one element from a weighted list using a single uniform random draw.
     *

@@ -34,7 +34,7 @@ class GameSession private (
     */
   def handle(action: PlayerAction): IO[StateUpdate] =
     val result = action match
-      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId)) =>
+      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _) =>
         handleBuyUpgrade(upgradeId)
       case _ =>
         handleTransition(action)

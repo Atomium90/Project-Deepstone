@@ -1,4 +1,4 @@
-import type { ClassId } from "./protocol";
+import type { ClassId, Difficulty } from "./protocol";
 
 // ---------------------------------------------
 // Renderer
@@ -114,6 +114,32 @@ export const CLASS_UNLOCK_UPGRADE_ID: Record<ClassId, string | null> = {
   warrior: null,
   archer: "archer_unlock",
   mage: "mage_unlock",
+} as const;
+
+/** Display metadata for each difficulty shown in the hub selection. */
+export const DIFFICULTY_INFO = {
+  easy: {
+    icon: "🌱",
+    label: "Easy",
+    description: "Weaker enemies, shorter runs",
+  },
+  normal: {
+    icon: "⚖",
+    label: "Normal",
+    description: "The baseline experience",
+  },
+  hard: {
+    icon: "🔥",
+    label: "Hard",
+    description: "Tougher enemies, longer runs, better loot",
+  },
+} as const;
+
+/** Accent color per difficulty, same role as PLAYER_CLASS_COLORS for classes. */
+export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
+  easy: "#5ce07a",
+  normal: "#e0c15c",
+  hard: "#e05c5c",
 } as const;
 
 // ---------------------------------------------

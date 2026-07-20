@@ -136,5 +136,161 @@
       { "typeId": "mana_crystal",    "weight": 8 },
       { "typeId": "elixir",          "weight": 5 }
     ]
+  },
+  {
+    "typeId": "bandit",
+    "label": "Bandit",
+    "maxHp": 28,
+    "attack": 11,
+    "defense": 3,
+    "xpReward": 18,
+    "actions": [
+      { "action": "ATTACK", "weight": 75 },
+      { "action": "DEFEND", "weight": 25 }
+    ],
+    "dropChance": 28,
+    "lootTable": [
+      { "typeId": "short_sword",     "weight": 25 },
+      { "typeId": "shortbow",        "weight": 20 },
+      { "typeId": "health_potion",   "weight": 20 },
+      { "typeId": "iron_ring",       "weight": 15 },
+      { "typeId": "leather_armor",   "weight": 15 },
+      { "typeId": "copper_bracelet", "weight": 5 }
+    ]
+  },
+  {
+    "typeId": "dire_wolf",
+    "label": "Dire Wolf",
+    "maxHp": 30,
+    "attack": 14,
+    "defense": 2,
+    "xpReward": 22,
+    "actions": [
+      { "action": "ATTACK", "weight": 100 }
+    ],
+    "dropChance": 30,
+    "lootTable": [
+      { "typeId": "health_potion",   "weight": 30 },
+      { "typeId": "leather_armor",   "weight": 20 },
+      { "typeId": "rage_draught",    "weight": 20 },
+      { "typeId": "studded_leather", "weight": 15 },
+      { "typeId": "iron_ring",       "weight": 15 }
+    ]
+  },
+  {
+    "typeId": "cultist",
+    "label": "Cultist",
+    "maxHp": 32,
+    "attack": 11,
+    "defense": 6,
+    "xpReward": 28,
+    "actions": [
+      { "action": "ATTACK", "weight": 60 },
+      { "action": "DEFEND", "weight": 40 }
+    ],
+    "dropChance": 32,
+    "lootTable": [
+      { "typeId": "oak_staff",     "weight": 25 },
+      { "typeId": "crystal_wand",  "weight": 20 },
+      { "typeId": "padded_robe",   "weight": 20 },
+      { "typeId": "ether",         "weight": 15 },
+      { "typeId": "health_potion", "weight": 15 },
+      { "typeId": "silver_ring",   "weight": 5 }
+    ]
+  },
+  {
+    "typeId": "troll_king",
+    "label": "Troll King",
+    "maxHp": 150,
+    "attack": 24,
+    "defense": 12,
+    "xpReward": 180,
+    "actions": [
+      { "action": "ATTACK", "weight": 90 },
+      { "action": "DEFEND", "weight": 10 }
+    ],
+    "dropChance": 100,
+    "lootTable": [
+      { "typeId": "war_hammer",      "weight": 15 },
+      { "typeId": "chain_mail",      "weight": 15 },
+      { "typeId": "great_axe",       "weight": 12 },
+      { "typeId": "plate_armor",     "weight": 12 },
+      { "typeId": "amulet_of_vigor", "weight": 12 },
+      { "typeId": "greater_potion",  "weight": 12 },
+      { "typeId": "life_crystal",    "weight": 10 },
+      { "typeId": "elixir",          "weight": 8 },
+      { "typeId": "mana_crystal",    "weight": 4 }
+    ]
+  },
+  {
+    "typeId": "wraith",
+    "label": "Wraith",
+    "maxHp": 80,
+    "attack": 26,
+    "defense": 4,
+    "xpReward": 160,
+    "actions": [
+      { "action": "ATTACK", "weight": 100 }
+    ],
+    "dropChance": 100,
+    "lootTable": [
+      { "typeId": "elder_staff",     "weight": 15 },
+      { "typeId": "arcane_tome",     "weight": 15 },
+      { "typeId": "crystal_wand",    "weight": 12 },
+      { "typeId": "mana_crystal",    "weight": 12 },
+      { "typeId": "amulet_of_vigor", "weight": 10 },
+      { "typeId": "life_crystal",    "weight": 10 },
+      { "typeId": "silver_ring",     "weight": 10 },
+      { "typeId": "greater_potion",  "weight": 10 },
+      { "typeId": "elixir",          "weight": 6 }
+    ]
+  },
+  {
+    "typeId": "lich",
+    "label": "Lich",
+    "maxHp": 100,
+    "attack": 23,
+    "defense": 8,
+    "xpReward": 170,
+    "actions": [
+      { "action": "ATTACK", "weight": 80 },
+      { "action": "DEFEND", "weight": 20 }
+    ],
+    "dropChance": 100,
+    "lootTable": [
+      { "typeId": "arcane_tome",     "weight": 15 },
+      { "typeId": "elder_staff",     "weight": 15 },
+      { "typeId": "mana_crystal",    "weight": 13 },
+      { "typeId": "life_crystal",    "weight": 12 },
+      { "typeId": "amulet_of_vigor", "weight": 12 },
+      { "typeId": "elixir",          "weight": 11 },
+      { "typeId": "greater_potion",  "weight": 11 },
+      { "typeId": "silver_ring",     "weight": 6 },
+      { "typeId": "crystal_wand",    "weight": 5 }
+    ]
+  },
+  {
+    "typeId": "ogre_warlord",
+    "label": "Ogre Warlord",
+    "maxHp": 135,
+    "attack": 25,
+    "defense": 10,
+    "xpReward": 175,
+    "actions": [
+      { "action": "ATTACK", "weight": 95 },
+      { "action": "DEFEND", "weight": 5 }
+    ],
+    "dropChance": 100,
+    "lootTable": [
+      { "typeId": "war_hammer",      "weight": 15 },
+      { "typeId": "great_axe",       "weight": 15 },
+      { "typeId": "chain_mail",      "weight": 13 },
+      { "typeId": "plate_armor",     "weight": 13 },
+      { "typeId": "steel_sword",     "weight": 10 },
+      { "typeId": "amulet_of_vigor", "weight": 10 },
+      { "typeId": "life_crystal",    "weight": 10 },
+      { "typeId": "greater_potion",  "weight": 9 },
+      { "typeId": "elixir",          "weight": 5 }
+    ]
   }
 ]

@@ -11,7 +11,10 @@ class EnemyLoaderSuite extends CatsEffectSuite:
   test("loadAll contains all expected enemy types"):
     for stats <- EnemyLoader.loadAll()
     yield
-      val expected = List("goblin", "orc", "skeleton", "cave_troll", "stone_golem", "giant_spider")
+      val expected = List(
+        "goblin", "orc", "skeleton", "cave_troll", "bandit", "dire_wolf", "cultist",
+        "stone_golem", "giant_spider", "troll_king", "wraith", "lich", "ogre_warlord"
+      )
       expected.foreach:
         typeId => assert(stats.contains(typeId), s"Missing enemy type: $typeId")
 
@@ -56,14 +59,16 @@ class EnemyLoaderSuite extends CatsEffectSuite:
   test("boss enemies have 100% drop chance"):
     for stats <- EnemyLoader.loadAll()
     yield
-      assertEquals(stats("stone_golem").dropChance, 100, "Stone Golem should have 100% drop")
-      assertEquals(stats("giant_spider").dropChance, 100, "Giant Spider should have 100% drop")
+      val bosses = List("stone_golem", "giant_spider", "troll_king", "wraith", "lich", "ogre_warlord")
+      bosses.foreach:
+        typeId => assertEquals(stats(typeId).dropChance, 100, s"$typeId should have 100% drop")
 
   test("boss enemies have non-empty loot tables"):
     for stats <- EnemyLoader.loadAll()
     yield
-      assert(stats("stone_golem").lootTable.nonEmpty, "Stone Golem must have a loot table")
-      assert(stats("giant_spider").lootTable.nonEmpty, "Giant Spider must have a loot table")
+      val bosses = List("stone_golem", "giant_spider", "troll_king", "wraith", "lich", "ogre_warlord")
+      bosses.foreach:
+        typeId => assert(stats(typeId).lootTable.nonEmpty, s"$typeId must have a loot table")
 
   test("regular enemies have dropChance in 0-100 range"):
     for stats <- EnemyLoader.loadAll()

@@ -325,6 +325,12 @@ class StateMachineSuite extends FunSuite:
   test("GameOverState.toStateUpdate has GameOver phase"):
     assertEquals(GameOverState(hubPlayer).toStateUpdate().phase, GamePhase.GameOver)
 
+  test("GameOverState.toStateUpdate defaults victory to false"):
+    assertEquals(GameOverState(hubPlayer).toStateUpdate().victory, false)
+
+  test("GameOverState.toStateUpdate reflects victory = true"):
+    assertEquals(GameOverState(hubPlayer, victory = true).toStateUpdate().victory, true)
+
   test("StateUpdate always contains inventory list (empty at run start with empty startingKit)"):
     val (next, _) =
       sm().applyActionPure(HubState(hubPlayer),

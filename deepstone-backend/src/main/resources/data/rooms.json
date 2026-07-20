@@ -128,7 +128,7 @@
     "entities": [
       { "kind": "chest", "id": "chest_c", "x": 3, "y": 1 },
       { "kind": "chest", "id": "chest_d", "x": 7, "y": 6 },
-      { "kind": "chest", "id": "chest_e", "x": 5, "y": 4 },
+      { "kind": "chest", "id": "chest_e", "x": 5, "y": 4, "trapped": true },
       { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
       { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
     ]
@@ -354,7 +354,7 @@
     ],
     "entities": [
       { "kind": "chest", "id": "chest_a", "x": 2, "y": 2 },
-      { "kind": "chest", "id": "chest_b", "x": 7, "y": 3 },
+      { "kind": "chest", "id": "chest_b", "x": 7, "y": 3, "trapped": true },
       { "kind": "chest", "id": "chest_c", "x": 5, "y": 5 },
       { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
       { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }

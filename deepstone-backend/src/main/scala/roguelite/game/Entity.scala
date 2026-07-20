@@ -31,11 +31,17 @@ case class Enemy(
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label)
 
-/** A loot container. Clicking it grants items. */
+/** A loot container. Clicking it grants items - unless it's trapped, in which case it spawns
+  * enemies instead.
+  *
+  * @param trapped
+  *   Not exposed to the client via [[toView]] - staying trapped should be a surprise.
+  */
 case class Chest(
     id: String,
     x: Int,
-    y: Int
+    y: Int,
+    trapped: Boolean = false
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest")
 

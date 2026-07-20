@@ -186,26 +186,35 @@ class StateMachine(roomPool: Map[String, Room],
             }
 
           case Some(chest: Chest) =>
-            val updatedRoom = exp.dungeon.currentRoom.removeEntity(chest.id)
-            val updatedDungeon =
-              exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(updatedRoom.id, updatedRoom))
+            val roomWithoutChest = exp.dungeon.currentRoom.removeEntity(chest.id)
 
-            LootTable.rollChest(itemDefs, rng, exp.difficulty) match {
-              case None =>
-                (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."))
-              case Some(item) =>
-                exp.player.withItemPickup(item) match {
-                  case Left(_) =>
-                    (exp.copy(dungeon = updatedDungeon),
-                     List(s"You open the chest but your inventory is full — ${item.name} is lost!")
-                    )
+            if chest.trapped then
+              val (trappedRoom, trapLog) =
+                spawnTrapEnemies(roomWithoutChest, chest, exp.playerX, exp.playerY)
+              val updatedDungeon =
+                exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(trappedRoom.id, trappedRoom))
+              (exp.copy(dungeon = updatedDungeon), trapLog)
+            else
+              val updatedDungeon = exp.dungeon.copy(
+                rooms = exp.dungeon.rooms.updated(roomWithoutChest.id, roomWithoutChest)
+              )
 
-                  case Right(updatedPlayer) =>
-                    (exp.copy(dungeon = updatedDungeon, player = updatedPlayer),
-                     List(s"You open the chest and find ${item.name}! (${item.statLine})")
-                    )
-                }
-            }
+              LootTable.rollChest(itemDefs, rng, exp.difficulty) match {
+                case None =>
+                  (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."))
+                case Some(item) =>
+                  exp.player.withItemPickup(item) match {
+                    case Left(_) =>
+                      (exp.copy(dungeon = updatedDungeon),
+                       List(s"You open the chest but your inventory is full — ${item.name} is lost!")
+                      )
+
+                    case Right(updatedPlayer) =>
+                      (exp.copy(dungeon = updatedDungeon, player = updatedPlayer),
+                       List(s"You open the chest and find ${item.name}! (${item.statLine})")
+                      )
+                  }
+              }
         }
 
       // -- Combat -----------------------------------------------------------
@@ -239,3 +248,32 @@ class StateMachine(roomPool: Map[String, Room],
     }
 
     if room.isWalkable(candidate._1, candidate._2) then candidate else (1, 1)
+
+  /** Non-boss enemy typeIds eligible to spawn from a trapped chest. Deliberately excludes
+    * boss-tier enemies (roughly half the roster) so opening a chest never ambushes the player with
+    * a full boss encounter.
+    */
+  private val TrapEnemyPool =
+    List("goblin", "orc", "skeleton", "cave_troll", "bandit", "dire_wolf", "cultist")
+
+  /** Spawn 1-2 enemies from [[TrapEnemyPool]] on free tiles near the chest, avoiding the player's
+    * own tile. Falls back to fewer enemies (or none) if the room has no space.
+    */
+  private def spawnTrapEnemies(room: Room,
+                               chest: Chest,
+                               playerX: Int,
+                               playerY: Int
+  ): (Room, List[String]) =
+    val pool = TrapEnemyPool.filter(enemyStats.contains)
+    if pool.isEmpty then (room, List("It's a trap! But nothing emerges from the shadows."))
+    else
+      val count   = rng.nextInt(2) + 1
+      val typeIds = List.fill(count)(pool(rng.nextInt(pool.size)))
+      val spots   = room.nearbyFreeTiles(chest.x, chest.y, count, exclude = Set((playerX, playerY)))
+
+      val newEnemies = typeIds.zip(spots).zipWithIndex.map {
+        case ((typeId, (x, y)), i) =>
+          Enemy(id = s"${chest.id}_trap_$i", x = x, y = y, typeId = typeId, label = enemyStats(typeId).label)
+      }
+
+      (room.withEntities(newEnemies), List("It's a trap! Enemies emerge from the shadows!"))

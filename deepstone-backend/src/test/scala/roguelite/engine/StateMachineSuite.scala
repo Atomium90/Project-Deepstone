@@ -265,6 +265,37 @@ class StateMachineSuite extends FunSuite:
     val (_, log) = sm().applyActionPure(state, Interact("c1"))
     assert(log.exists(_.toLowerCase.contains("empty")), s"Expected 'empty' in log: $log")
 
+  test("Trapped chest spawns enemies instead of giving loot"):
+    val chest        = Chest("c1", x = 3, y = 3, trapped = true)
+    val state        = explorationAt(3, 3, entities = List(chest))
+    val (next, log)  = sm().applyActionPure(state, Interact("c1"))
+    val nextExp      = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.dungeon.currentRoom.entityById("c1"), None)
+    val spawned = nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
+    assert(spawned.nonEmpty, "expected at least one enemy to spawn from the trap")
+    assert(spawned.forall(_.typeId == "goblin"), s"expected only goblin typeIds: $spawned")
+    assertEquals(nextExp.player.inventory.items, Nil)
+    assert(log.exists(_.toLowerCase.contains("trap")), s"expected trap message in log: $log")
+
+  test("Trapped chest enemies spawn on free tiles, not on the player"):
+    val chest     = Chest("c1", x = 3, y = 3, trapped = true)
+    val state     = explorationAt(3, 3, entities = List(chest))
+    val (next, _) = sm().applyActionPure(state, Interact("c1"))
+    val nextExp   = next.asInstanceOf[ExplorationState]
+    val spawned   = nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
+    val room      = nextExp.dungeon.currentRoom
+    assert(spawned.forall(e => room.isWalkable(e.x, e.y)), s"expected walkable spawn tiles: $spawned")
+    assert(spawned.forall(e => (e.x, e.y) != (nextExp.playerX, nextExp.playerY)),
+           s"expected no enemy on the player's tile: $spawned"
+    )
+
+  test("Non-trapped chest is unaffected by the trapped-chest path"):
+    val chest     = Chest("c1", x = 3, y = 3, trapped = false)
+    val state     = explorationAt(3, 3, entities = List(chest))
+    val (next, _) = sm().applyActionPure(state, Interact("c1"))
+    val nextExp   = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }, Nil)
+
   test("Interact with unknown entity id returns error log"):
     val (next, log) = sm().applyActionPure(explorationAt(3, 3), Interact("ghost"))
     assert(next.isInstanceOf[ExplorationState])

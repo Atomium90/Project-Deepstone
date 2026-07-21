@@ -15,6 +15,10 @@ export const gamePhase = derived(gameState, ($s) => $s?.phase ?? null);
 /** Derived convenience: combat log lines for the current state. */
 export const combatLog = derived(gameState, ($s) => $s?.log ?? []);
 
+/** Derived convenience: the current NPC dialogue line to show, or null. Only present on the
+ * StateUpdate an NPC interaction produced - any other action clears it back to null. */
+export const npcDialogue = derived(gameState, ($s) => $s?.dialogue ?? null);
+
 // ---------------------------------------------
 // Client singleton
 // ---------------------------------------------

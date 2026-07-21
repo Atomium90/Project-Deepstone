@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
-    import { gameState, client, combatLog } from "../engine/StateStore";
+    import { gameState, client, combatLog, npcDialogue } from "../engine/StateStore";
     import { Renderer } from "../engine/Renderer";
     import {
         RESOURCE_BAR_COLORS,
@@ -12,6 +12,7 @@
     import type { Direction, ItemView } from "../engine/protocol";
     import StatBar from "./StatBar.svelte";
     import CombatLog from "./CombatLog.svelte";
+    import NpcDialogue from "./NpcDialogue.svelte";
 
     let canvasEl: HTMLCanvasElement;
     let renderer: Renderer | null = null;
@@ -36,9 +37,10 @@
             return;
         }
         
-        // Interact (E key)
-        if (e.key === "e" || e.key === "E") {
+        // Interact (E key) - guarded against native key-repeat the same way Move already is
+        if ((e.key === "e" || e.key === "E") && !heldKeys.has(e.key)) {
             e.preventDefault();
+            heldKeys.add(e.key);
             const entity = renderer?.nearestInteractable();
             if (entity) client.send({ type: "INTERACT", targetId: entity.id });
         }
@@ -94,6 +96,8 @@
 <div class="hud-root">
     <div class="hud-main">
         <canvas class="game-canvas" bind:this={canvasEl} />
+
+        <NpcDialogue dialogue={$npcDialogue} />
 
         {#if player}
             <aside class="stats-panel">
@@ -161,6 +165,7 @@
     }
 
     .hud-main {
+        position: relative;
         display: flex;
         flex: 1 1 0;
         min-height: 0;

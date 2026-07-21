@@ -30,7 +30,7 @@ sealed trait GameState:
   def player: Player
 
   /** Project this game state into a StateUpdate for the client. */
-  def toStateUpdate(log: List[String] = Nil): StateUpdate
+  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate
 
 /** @param upgradeDefs
   *   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]), used to render [[HubView]].
@@ -41,7 +41,7 @@ case class HubState(player: Player,
                     upgradeDefs: Map[String, UpgradeDef] = Map.empty,
                     meta: MetaProgression = MetaProgression.empty
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
       phase = GamePhase.Hub,
       player = player.toView,
@@ -65,13 +65,14 @@ case class ExplorationState(player: Player,
                             playerY: Int,
                             difficulty: Difficulty = Difficulty.Normal
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
       phase = GamePhase.Exploration,
       player = player.toView,
       room = Some(dungeon.currentRoom.toView(playerX, playerY)),
       inventory = inventoryToViews(player.inventory),
-      log = log
+      log = log,
+      dialogue = dialogue
     )
 
 /** Active combat state.
@@ -89,7 +90,7 @@ case class CombatState(player: Player,
                        enemyEntityId: String,
                        difficulty: Difficulty = Difficulty.Normal
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
       phase = GamePhase.Combat,
       player = player.toView,
@@ -110,7 +111,7 @@ case class CombatState(player: Player,
   *   True if the run ended by defeating the dungeon's boss, false if the player died.
   */
 case class GameOverState(player: Player, victory: Boolean = false) extends GameState:
-  def toStateUpdate(log: List[String]): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(phase = GamePhase.GameOver,
                 player = player.toView,
                 inventory = inventoryToViews(player.inventory),

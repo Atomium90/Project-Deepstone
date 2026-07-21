@@ -99,11 +99,16 @@ case class PlayerView(
 /** Describes one entity visible in the room (enemy, chest, door, etc.). */
 case class EntityView(
     id: String,
-    kind: String, // "enemy" | "chest" | "door" | "locked_door"
+    kind: String, // "enemy" | "chest" | "door" | "locked_door" | "npc"
     x: Int,
     y: Int,
     label: String // display name shown in the UI
 )
+
+/** One line of NPC dialogue to show the player, produced by an [[Interact]] on an [[roguelite.game.Npc]].
+  * Transient - only present on the single [[StateUpdate]] the interaction produced, not persisted.
+  */
+case class DialogueView(npcName: String, line: String)
 
 /** The current room's layout and its entities. */
 case class RoomView(
@@ -164,7 +169,8 @@ case class StateUpdate(
       * the player died.
       */
     victory: Boolean = false,
-    log: List[String] = Nil
+    log: List[String] = Nil,
+    dialogue: Option[DialogueView] = None
 )
 
 // ---------------------------------------------
@@ -253,6 +259,7 @@ object MessageProtocol:
   given Encoder[HubView]      = deriveEncoder
   given Encoder[ItemView]     = deriveEncoder
   given Encoder[AbilityView]  = deriveEncoder
+  given Encoder[DialogueView] = deriveEncoder
   given Encoder[StateUpdate]  = deriveEncoder
 
   /** Serialize a StateUpdate to a JSON string to be sent over the WebSocket. */

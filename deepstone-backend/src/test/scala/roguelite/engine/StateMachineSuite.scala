@@ -202,13 +202,6 @@ class StateMachineSuite extends FunSuite:
     val hardRooms = hardNext.asInstanceOf[ExplorationState].dungeon.rooms.size
     assert(hardRooms > easyRooms, s"expected Hard ($hardRooms) > Easy ($easyRooms)")
 
-  test("CombatState enemy stats scale with difficulty"):
-    val enemy = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
-    val state = explorationAt(3, 3, entities = List(enemy)).copy(difficulty = Difficulty.Hard)
-    val (next, _) = sm().applyActionPure(state, Interact("e1"))
-    val combat    = next.asInstanceOf[CombatState].combat
-    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.25).toInt)
-
   test("Invalid action in Hub produces log"):
     val (next, log) = sm().applyActionPure(HubState(hubPlayer), Move(Direction.Up))
     assert(next.isInstanceOf[HubState])
@@ -226,80 +219,15 @@ class StateMachineSuite extends FunSuite:
 
   // --- Exploration — interaction --------------------------------------------
 
-  test("Interact with Door navigates to target room"):
+  /** Thorough Door/Enemy/Chest/LockedDoor/trap/secret-door interaction behavior now lives in
+    * InteractionResolverSuite, testing InteractionResolver directly (mirrors how CombatResolverSuite
+    * tests CombatResolver directly rather than through StateMachine). This one test stays here just
+    * to confirm the Interact action is actually wired through to InteractionResolver. */
+  test("Interact action routes through to InteractionResolver"):
     val d         = door("r1", "r2")
     val state     = explorationAt(3, 3, entities = List(d))
     val (next, _) = sm().applyActionPure(state, Interact(d.id))
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
-
-  test("Interact with Enemy transitions to CombatState"):
-    val enemy     = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
-    val state     = explorationAt(3, 3, entities = List(enemy))
-    val (next, _) = sm().applyActionPure(state, Interact("e1"))
-    assert(next.isInstanceOf[CombatState])
-
-  test("CombatState has correct enemy stats after engaging"):
-    val enemy     = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
-    val state     = explorationAt(3, 3, entities = List(enemy))
-    val (next, _) = sm().applyActionPure(state, Interact("e1"))
-    val combat    = next.asInstanceOf[CombatState].combat
-    assertEquals(combat.enemy.maxHp, goblinStats.maxHp)
-    assertEquals(combat.enemy.label, "Goblin")
-
-  test("Interact with unknown enemy typeId stays in Exploration with error"):
-    val badEnemy    = Enemy("e2", x = 3, y = 3, typeId = "dragon", label = "Dragon")
-    val state       = explorationAt(3, 3, entities = List(badEnemy))
-    val (next, log) = sm().applyActionPure(state, Interact("e2"))
-    assert(next.isInstanceOf[ExplorationState])
-    assert(log.exists(_.contains("Unknown enemy type")))
-
-  test("Interact with Chest removes it from room"):
-    val chest     = Chest("c1", x = 3, y = 3)
-    val state     = explorationAt(3, 3, entities = List(chest))
-    val (next, _) = sm().applyActionPure(state, Interact("c1"))
-    assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoom.entityById("c1"), None)
-
-  test("Interact with Chest with empty itemDefs gives 'empty' log"):
-    val chest    = Chest("c1", x = 3, y = 3)
-    val state    = explorationAt(3, 3, entities = List(chest))
-    val (_, log) = sm().applyActionPure(state, Interact("c1"))
-    assert(log.exists(_.toLowerCase.contains("empty")), s"Expected 'empty' in log: $log")
-
-  test("Trapped chest spawns enemies instead of giving loot"):
-    val chest        = Chest("c1", x = 3, y = 3, trapped = true)
-    val state        = explorationAt(3, 3, entities = List(chest))
-    val (next, log)  = sm().applyActionPure(state, Interact("c1"))
-    val nextExp      = next.asInstanceOf[ExplorationState]
-    assertEquals(nextExp.dungeon.currentRoom.entityById("c1"), None)
-    val spawned = nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
-    assert(spawned.nonEmpty, "expected at least one enemy to spawn from the trap")
-    assert(spawned.forall(_.typeId == "goblin"), s"expected only goblin typeIds: $spawned")
-    assertEquals(nextExp.player.inventory.items, Nil)
-    assert(log.exists(_.toLowerCase.contains("trap")), s"expected trap message in log: $log")
-
-  test("Trapped chest enemies spawn on free tiles, not on the player"):
-    val chest     = Chest("c1", x = 3, y = 3, trapped = true)
-    val state     = explorationAt(3, 3, entities = List(chest))
-    val (next, _) = sm().applyActionPure(state, Interact("c1"))
-    val nextExp   = next.asInstanceOf[ExplorationState]
-    val spawned   = nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
-    val room      = nextExp.dungeon.currentRoom
-    assert(spawned.forall(e => room.isWalkable(e.x, e.y)), s"expected walkable spawn tiles: $spawned")
-    assert(spawned.forall(e => (e.x, e.y) != (nextExp.playerX, nextExp.playerY)),
-           s"expected no enemy on the player's tile: $spawned"
-    )
-
-  test("Non-trapped chest is unaffected by the trapped-chest path"):
-    val chest     = Chest("c1", x = 3, y = 3, trapped = false)
-    val state     = explorationAt(3, 3, entities = List(chest))
-    val (next, _) = sm().applyActionPure(state, Interact("c1"))
-    val nextExp   = next.asInstanceOf[ExplorationState]
-    assertEquals(nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }, Nil)
-
-  test("Interact with unknown entity id returns error log"):
-    val (next, log) = sm().applyActionPure(explorationAt(3, 3), Interact("ghost"))
-    assert(next.isInstanceOf[ExplorationState])
-    assert(log.exists(_.contains("No entity found")))
 
   // --- Combat routing -------------------------------------------------------
 

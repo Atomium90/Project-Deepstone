@@ -55,3 +55,21 @@ case class Door(
 ) extends Entity:
   def toView: EntityView =
     EntityView(id = id, kind = "door", x = x, y = y, label = direction.toString)
+
+/** A passage gated by a matching [[Key]] in the player's inventory. Once `unlocked`, behaves
+  * exactly like a normal [[Door]].
+  *
+  * @param doorTag
+  *   Unused by [[KeyKind.Generic]] (reserved for future [[KeyKind.Typed]] content).
+  */
+case class LockedDoor(
+    id: String,
+    x: Int,
+    y: Int,
+    direction: Direction,
+    targetRoomId: String,
+    doorTag: Option[String] = None,
+    unlocked: Boolean = false
+) extends Entity:
+  def toView: EntityView =
+    EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString)

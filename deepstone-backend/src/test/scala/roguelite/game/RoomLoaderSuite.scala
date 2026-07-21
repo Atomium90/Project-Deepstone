@@ -77,3 +77,21 @@ class RoomLoaderSuite extends CatsEffectSuite:
     yield
       val allChests = rooms.values.flatMap(_.entities.collect { case c: Chest => c })
       assert(allChests.exists(_.trapped), "expected at least one trapped chest in rooms.json")
+
+  test("loadAll includes a Vault room"):
+    for rooms <- RoomLoader.loadAll()
+    yield assert(rooms.values.exists(_.roomType == RoomType.Vault), "expected a Vault room in rooms.json")
+
+  test("locked doors have direction and targetRoomId"):
+    for rooms <- RoomLoader.loadAll()
+    yield
+      val lockedDoors = rooms.values.flatMap(_.entities.collect { case d: LockedDoor => d })
+      assert(lockedDoors.nonEmpty, "expected at least one locked_door in rooms.json")
+      lockedDoors.foreach(d => assert(d.targetRoomId.nonEmpty))
+
+  test("every LockedDoor's targetRoomId resolves to a room in the pool"):
+    for rooms <- RoomLoader.loadAll()
+    yield
+      val lockedDoors = rooms.values.flatMap(_.entities.collect { case d: LockedDoor => d })
+      lockedDoors.foreach:
+        d => assert(rooms.contains(d.targetRoomId), s"LockedDoor '${d.id}' targets unknown room '${d.targetRoomId}'")

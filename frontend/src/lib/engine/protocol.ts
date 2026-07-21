@@ -9,7 +9,7 @@ export type HubActionType = "STARTRUN" | "BUYUPGRADE" | "RETURNTOHUB";
 export type ClassId = "warrior" | "archer" | "mage";
 export type Difficulty = "easy" | "normal" | "hard";
 
-export type ItemKind = "weapon" | "armor" | "accessory" | "consumable";
+export type ItemKind = "weapon" | "armor" | "accessory" | "consumable" | "key";
 export type ItemRarity = "common" | "uncommon";
 
 // ---------------------------------------------
@@ -64,7 +64,7 @@ export interface PlayerView {
 
 export interface EntityView {
   id: string;
-  kind: "enemy" | "chest" | "door";
+  kind: "enemy" | "chest" | "door" | "locked_door";
   x: number;
   y: number;
   label: string;

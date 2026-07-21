@@ -11,6 +11,7 @@ import {
     COLOR_ENTITY_ENEMY,
     COLOR_ENTITY_CHEST,
     COLOR_ENTITY_DOOR,
+    COLOR_ENTITY_LOCKED_DOOR,
     COLOR_ENTITY_LABEL,
     COLOR_ENTITY_FALLBACK,
     COLOR_PLAYER_OUTLINE,
@@ -32,6 +33,7 @@ const ENTITY_COLORS: Record<string, string> = {
     enemy: COLOR_ENTITY_ENEMY,
     chest: COLOR_ENTITY_CHEST,
     door:  COLOR_ENTITY_DOOR,
+    locked_door: COLOR_ENTITY_LOCKED_DOOR,
 };
 
 /** Distance in tiles within which an entity is considered reachable (E key). */

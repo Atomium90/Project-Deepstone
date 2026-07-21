@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
-    import { gameState, client } from "../engine/StateStore";
+    import { gameState, client, combatLog } from "../engine/StateStore";
     import { Renderer } from "../engine/Renderer";
     import {
         RESOURCE_BAR_COLORS,
@@ -11,6 +11,7 @@
     } from "../engine/constants";
     import type { Direction, ItemView } from "../engine/protocol";
     import StatBar from "./StatBar.svelte";
+    import CombatLog from "./CombatLog.svelte";
 
     let canvasEl: HTMLCanvasElement;
     let renderer: Renderer | null = null;
@@ -91,65 +92,86 @@
   occupies the full viewport.
 -->
 <div class="hud-root">
-    <canvas class="game-canvas" bind:this={canvasEl} />
+    <div class="hud-main">
+        <canvas class="game-canvas" bind:this={canvasEl} />
 
-    {#if player}
-        <aside class="stats-panel">
-            <div class="class-badge">{player.classId.toUpperCase()}</div>
+        {#if player}
+            <aside class="stats-panel">
+                <div class="class-badge">{player.classId.toUpperCase()}</div>
 
-            <!-- HP -->
-            <StatBar layout="column" label="HP" current={player.hp} max={player.maxHp} color={HP_BAR_COLOR} />
+                <!-- HP -->
+                <StatBar layout="column" label="HP" current={player.hp} max={player.maxHp} color={HP_BAR_COLOR} />
 
-            <!-- Resource -->
-            <StatBar layout="column" label={resourceLabel} current={player.resourceCurrent} max={player.resourceMax} color={resourceColor} />
+                <!-- Resource -->
+                <StatBar layout="column" label={resourceLabel} current={player.resourceCurrent} max={player.resourceMax} color={resourceColor} />
 
-            <!-- Level / XP -->
-            <div class="stat-block inline">
-                <span class="stat-label">Level</span>
-                <span class="stat-value">{player.level}</span>
-            </div>
-
-            <div class="stat-block inline">
-                <span class="stat-label">XP</span>
-                <span class="stat-value">{player.xp}</span>
-            </div>
-
-            <!-- Inventory -->
-            <div class="inv-section">
-                <span class="stat-label">Inventory</span>
-                <div class="inv-grid">
-                    {#each slots as item}
-                        <div
-                                class="inv-slot"
-                                class:occupied={!!item}
-                                style={item ? `border-color:${ITEM_RARITY_COLORS[item.rarity]}` : ""}
-                                title={item ? `${item.name}\n${item.statLine}` : "Empty"}
-                        >
-                            {#if item}
-                                <div
-                                        class="slot-icon"
-                                        style="background:{ITEM_KIND_COLORS[item.kind]}"
-                                >
-                                    {abbrev(item.name)}
-                                </div>
-                                <span class="slot-stat">{item.statLine}</span>
-                            {/if}
-                        </div>
-                    {/each}
+                <!-- Level / XP -->
+                <div class="stat-block inline">
+                    <span class="stat-label">Level</span>
+                    <span class="stat-value">{player.level}</span>
                 </div>
-            </div>
 
-            <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E</p>
-        </aside>
-    {/if}
+                <div class="stat-block inline">
+                    <span class="stat-label">XP</span>
+                    <span class="stat-value">{player.xp}</span>
+                </div>
+
+                <!-- Inventory -->
+                <div class="inv-section">
+                    <span class="stat-label">Inventory</span>
+                    <div class="inv-grid">
+                        {#each slots as item}
+                            <div
+                                    class="inv-slot"
+                                    class:occupied={!!item}
+                                    style={item ? `border-color:${ITEM_RARITY_COLORS[item.rarity]}` : ""}
+                                    title={item ? `${item.name}\n${item.statLine}` : "Empty"}
+                            >
+                                {#if item}
+                                    <div
+                                            class="slot-icon"
+                                            style="background:{ITEM_KIND_COLORS[item.kind]}"
+                                    >
+                                        {abbrev(item.name)}
+                                    </div>
+                                    <span class="slot-stat">{item.statLine}</span>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+
+                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E</p>
+            </aside>
+        {/if}
+    </div>
+
+    <div class="exploration-log">
+        <CombatLog log={$combatLog} />
+    </div>
 </div>
 
 <style>
     .hud-root {
         display: flex;
+        flex-direction: column;
         width: 100%;
         height: 100%;
         overflow: hidden;
+    }
+
+    .hud-main {
+        display: flex;
+        flex: 1 1 0;
+        min-height: 0;
+    }
+
+    .exploration-log {
+        flex: 0 0 110px;
+        padding: 0.6rem 1rem;
+        background: #161616;
+        border-top: 1px solid #2a2a2a;
+        font-family: monospace;
     }
 
     /* Canvas fills all remaining space after the stats panel */

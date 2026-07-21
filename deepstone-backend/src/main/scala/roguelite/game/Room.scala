@@ -100,6 +100,15 @@ case class Room(
   def withEntities(newEntities: List[Entity]): Room =
     copy(entities = entities ++ newEntities)
 
+  /** Replace the tile at (x, y) with Floor. Used to open a passage previously blocked by a wall,
+    * either a locked door being unlocked or a secret door being revealed. */
+  def withFloorAt(x: Int, y: Int): Room =
+    copy(tiles = tiles.updated(y, tiles(y).updated(x, Tile.Floor)))
+
+  /** Replace the entity with the given id using `f`. No-op if the id is not found. */
+  def updateEntity(id: String)(f: Entity => Entity): Room =
+    copy(entities = entities.map(e => if e.id == id then f(e) else e))
+
   /** Find up to `count` free tiles (walkable, unoccupied, and not in `exclude`) near (x, y),
     * searching outward in rings of increasing Chebyshev distance starting at the tile itself.
     * Returns fewer than `count` tiles if the room runs out of space.
@@ -142,7 +151,15 @@ case class Room(
       tiles = tiles.map(
         row => row.map(_.toProtocolString)
       ),
-      entities = entities.map(_.toView),
+      entities = entities.filter(isVisible).map(_.toView),
       playerX = playerX,
       playerY = playerY
     )
+
+  /** An unrevealed secret door must be absent from the client-facing view entirely, not just
+    * visually hidden, so the client never learns its position. Every other entity is always
+    * visible. */
+  private def isVisible(e: Entity): Boolean = e match {
+    case d: Door => d.revealed
+    case _       => true
+  }

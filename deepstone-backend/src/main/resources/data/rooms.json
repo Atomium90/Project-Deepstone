@@ -40,7 +40,8 @@
       { "kind": "enemy", "id": "orc_b",    "x": 9,  "y": 2, "label": "Orc",    "typeId": "orc" },
       { "kind": "enemy", "id": "goblin_c", "x": 10, "y": 5, "label": "Goblin", "typeId": "goblin" },
       { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" },
+      { "kind": "door",  "id": "door_secret",   "x": 2, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT", "doorKind": "secret", "revealed": false }
     ]
   },
   {
@@ -101,13 +102,14 @@
       ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
       ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
       ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
-      ["wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall"]
+      ["wall",  "floor", "wall",  "wall",  "floor", "wall",  "wall",  "wall"]
     ],
     "entities": [
       { "kind": "chest", "id": "chest_a", "x": 2, "y": 2 },
       { "kind": "chest", "id": "chest_b", "x": 6, "y": 5 },
       { "kind": "door",  "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" },
+      { "kind": "door",  "id": "door_trap",     "x": 1, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT", "doorKind": "trapped" }
     ]
   },
   {

@@ -8,6 +8,7 @@ import roguelite.game.{
   EnemyStats,
   InteractionResolver,
   Item,
+  NpcDialogueDef,
   Room
 }
 
@@ -40,6 +41,9 @@ import roguelite.game.UpgradeEffect
   * @param rng
   *   Random instance for dungeon assembly and chest loot rolls. Inject a seeded one for
   *   deterministic tests.
+  * @param npcDialogueDefs
+  *   NPC dialogue catalog (see [[roguelite.game.NpcDialogueLoader]]), passed through to
+  *   [[InteractionResolver]].
   */
 class StateMachine(roomPool: Map[String, Room],
                    enemyStats: Map[String, EnemyStats],
@@ -47,71 +51,80 @@ class StateMachine(roomPool: Map[String, Room],
                    classDefs: Map[ClassId, ClassDef],
                    upgradeDefs: Map[String, UpgradeDef],
                    resolver: CombatResolver,
-                   rng: Random = Random()
+                   rng: Random = Random(),
+                   npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty
 ):
-  private val interactionResolver = InteractionResolver(enemyStats, itemDefs, rng)
+  private val interactionResolver = InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs)
 
-  def transition(state: GameState, action: PlayerAction): IO[(GameState, List[String])] =
+  /** Lifts a plain (state, log) transition result into the richer type `applyActionPure` returns,
+    * so every action that never produces dialogue (everything except Interact on an Npc) can keep
+    * its existing shape untouched. */
+  private def withNoDialogue(r: (GameState, List[String])): (GameState, List[String], Option[DialogueView]) =
+    (r._1, r._2, None)
+
+  def transition(state: GameState, action: PlayerAction): IO[(GameState, List[String], Option[DialogueView])] =
     IO.pure(applyActionPure(state, action))
 
   /** Pure (non-IO) version used internally and by GameSession. */
-  def applyActionPure(state: GameState, action: PlayerAction): (GameState, List[String]) =
+  def applyActionPure(state: GameState, action: PlayerAction): (GameState, List[String], Option[DialogueView]) =
     (state, action) match
 
       // -- Hub --------------------------------------------------------------
 
       case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt)) =>
-        val lockedBehind = upgradeDefs.values.find {
-          u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
-        }
+        withNoDialogue({
+          val lockedBehind = upgradeDefs.values.find {
+            u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
+          }
 
-        (lockedBehind, classDefs.get(classId)) match {
-          case (Some(u), _) =>
-            (hub, List(s"${u.label} required — purchase it in the hub to unlock this class."))
+          (lockedBehind, classDefs.get(classId)) match {
+            case (Some(u), _) =>
+              (hub, List(s"${u.label} required — purchase it in the hub to unlock this class."))
 
-          case (None, None) => (hub, List(s"Unknown class '$classId'. Cannot start run."))
+            case (None, None) => (hub, List(s"Unknown class '$classId'. Cannot start run."))
 
-          case (None, Some(classDef)) =>
-            val difficulty = difficultyOpt.getOrElse(Difficulty.Normal)
+            case (None, Some(classDef)) =>
+              val difficulty = difficultyOpt.getOrElse(Difficulty.Normal)
 
-            DungeonBuilder(roomPool, rng).build(totalRooms = difficulty.totalRooms) match {
-              case Left(err) =>
-                (hub, List(s"Failed to build dungeon: $err"))
+              DungeonBuilder(roomPool, rng).build(totalRooms = difficulty.totalRooms) match {
+                case Left(err) =>
+                  (hub, List(s"Failed to build dungeon: $err"))
 
-              case Right(dungeon) =>
-                val basePlayer = Player(
-                  classId = classId,
-                  hp = classDef.hp,
-                  maxHp = classDef.hp,
-                  resourceCurrent = classDef.resourceStart,
-                  resourceMax = classDef.resourceMax,
-                  level = 1,
-                  xp = 0,
-                  metaCurrency = hub.player.metaCurrency,
-                  affinityTags = classDef.affinityTags
-                )
+                case Right(dungeon) =>
+                  val basePlayer = Player(
+                    classId = classId,
+                    hp = classDef.hp,
+                    maxHp = classDef.hp,
+                    resourceCurrent = classDef.resourceStart,
+                    resourceMax = classDef.resourceMax,
+                    level = 1,
+                    xp = 0,
+                    metaCurrency = hub.player.metaCurrency,
+                    affinityTags = classDef.affinityTags
+                  )
 
-                // Resolve starting kit: unknown typeIds are skipped, full inventory is not expected
-                val playerWithKit = classDef.startingKit.foldLeft(basePlayer):
-                  (p, typeId) =>
-                    itemDefs.get(typeId) match {
-                      case None => p
-                      case Some(proto) =>
-                        p.withItemPickup(proto.withNewId) match {
-                          case Right(updated) => updated
-                          case Left(_)        => p
-                        }
-                    }
+                  // Resolve starting kit: unknown typeIds are skipped, full inventory is not expected
+                  val playerWithKit = classDef.startingKit.foldLeft(basePlayer):
+                    (p, typeId) =>
+                      itemDefs.get(typeId) match {
+                        case None => p
+                        case Some(proto) =>
+                          p.withItemPickup(proto.withNewId) match {
+                            case Right(updated) => updated
+                            case Left(_)        => p
+                          }
+                      }
 
-                val nextState =
-                  ExplorationState(playerWithKit, dungeon, playerX = 1, playerY = 1, difficulty)
-                (nextState, List(s"A new run begins. Good luck, $classId."))
-            }
-        }
+                  val nextState =
+                    ExplorationState(playerWithKit, dungeon, playerX = 1, playerY = 1, difficulty)
+                  (nextState, List(s"A new run begins. Good luck, $classId."))
+              }
+          }
+        })
 
       case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _)) =>
         // BuyUpgrade is intercepted by GameSession (needs DB access); reject here as a safety net
-        (hub, List("Upgrade purchases must be routed through GameSession."))
+        withNoDialogue((hub, List("Upgrade purchases must be routed through GameSession.")))
 
       // Return to hub after death: GameSession enriches the HubState with real meta
       case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _)) =>
@@ -127,31 +140,35 @@ class StateMachine(roomPool: Map[String, Room],
           metaCurrency = gameOver.player.metaCurrency
         )
         // MetaProgression.empty is a placeholder; GameSession replaces it with the real meta
-        (HubState(hubPlayer, upgradeDefs, MetaProgression.empty),
-         List("You return to the hub, wiser from your journey.")
+        withNoDialogue(
+          (HubState(hubPlayer, upgradeDefs, MetaProgression.empty),
+           List("You return to the hub, wiser from your journey.")
+          )
         )
 
       // -- Exploration ------------------------------------------------------
 
       case (exp: ExplorationState, Move(direction)) =>
-        val (dx, dy) = direction match {
-          case Direction.Up    => (0, -1)
-          case Direction.Down  => (0, 1)
-          case Direction.Left  => (-1, 0)
-          case Direction.Right => (1, 0)
-        }
+        withNoDialogue({
+          val (dx, dy) = direction match {
+            case Direction.Up    => (0, -1)
+            case Direction.Down  => (0, 1)
+            case Direction.Left  => (-1, 0)
+            case Direction.Right => (1, 0)
+          }
 
-        val newX = exp.playerX + dx
-        val newY = exp.playerY + dy
+          val newX = exp.playerX + dx
+          val newY = exp.playerY + dy
 
-        if !exp.dungeon.currentRoom.isWalkable(newX, newY)
-        then (exp, Nil) // Silently blocked
-        else
-          val (revealedRoom, revealLog) =
-            interactionResolver.revealSecretDoors(exp.dungeon.currentRoom, newX, newY)
-          val updatedDungeon =
-            exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(revealedRoom.id, revealedRoom))
-          (exp.copy(dungeon = updatedDungeon, playerX = newX, playerY = newY), revealLog)
+          if !exp.dungeon.currentRoom.isWalkable(newX, newY)
+          then (exp, Nil) // Silently blocked
+          else
+            val (revealedRoom, revealLog) =
+              interactionResolver.revealSecretDoors(exp.dungeon.currentRoom, newX, newY)
+            val updatedDungeon =
+              exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(revealedRoom.id, revealedRoom))
+            (exp.copy(dungeon = updatedDungeon, playerX = newX, playerY = newY), revealLog)
+        })
 
       case (exp: ExplorationState, Interact(targetId)) =>
         interactionResolver.interact(exp, targetId)
@@ -159,13 +176,15 @@ class StateMachine(roomPool: Map[String, Room],
       // -- Combat -----------------------------------------------------------
 
       case (combat: CombatState, action: CombatAction) =>
-        resolver.resolve(combat, action)
+        withNoDialogue(resolver.resolve(combat, action))
 
       // -- Invalid combinations ----------------------------------------------
 
       case (currentState, invalidAction) =>
-        (currentState,
-         List(
-           s"Action ${invalidAction.getClass.getSimpleName} is not valid in state ${currentState.getClass.getSimpleName}."
-         )
+        withNoDialogue(
+          (currentState,
+           List(
+             s"Action ${invalidAction.getClass.getSimpleName} is not valid in state ${currentState.getClass.getSimpleName}."
+           )
+          )
         )

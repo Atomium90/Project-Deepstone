@@ -74,6 +74,19 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
                    targetRoomId = targetRoomId
         )
 
+      case "locked_door" =>
+        for
+          dirStr       <- ej.direction.toRight("LockedDoor entity is missing 'direction' field")
+          direction    <- parseDirection(dirStr)
+          targetRoomId <- ej.targetRoomId.toRight("LockedDoor entity is missing 'targetRoomId' field")
+        yield LockedDoor(id = ej.id,
+                          x = ej.x,
+                          y = ej.y,
+                          direction = direction,
+                          targetRoomId = targetRoomId,
+                          doorTag = ej.doorTag
+        )
+
       case other =>
         Left(s"Unknown entity kind: '$other'")
 
@@ -99,7 +112,8 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       label: Option[String] = None,
       direction: Option[String] = None,
       targetRoomId: Option[String] = None,
-      trapped: Option[Boolean] = None
+      trapped: Option[Boolean] = None,
+      doorTag: Option[String] = None
   )
 
   private case class RoomJson(
@@ -124,7 +138,8 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
         direction    <- c.get[Option[String]]("direction")
         targetRoomId <- c.get[Option[String]]("targetRoomId")
         trapped      <- c.get[Option[Boolean]]("trapped")
-      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId, trapped)
+        doorTag      <- c.get[Option[String]]("doorTag")
+      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId, trapped, doorTag)
 
   private given Decoder[RoomJson] = Decoder.instance:
     (c: HCursor) =>

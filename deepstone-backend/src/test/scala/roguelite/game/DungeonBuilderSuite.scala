@@ -139,3 +139,47 @@ class DungeonBuilderSuite extends FunSuite:
       DungeonBuilder(testPool, Random(99L)).build(totalRooms = 4).getOrElse(fail("build 2 failed"))
     assertEquals(d1.rooms.keys.toSet, d2.rooms.keys.toSet)
     assertEquals(d1.currentRoomId, d2.currentRoomId)
+
+  // ---------------------------------------------
+  // Vault rooms (LockedDoor injection)
+  // ---------------------------------------------
+
+  /** A minimal pool with exactly one Combat room (so it's always the deterministic entrance),
+    * one Boss room, and one Vault room. The Combat room's LockedDoor references `vaultTarget`. */
+  def vaultPool(vaultTarget: String = "v1"): Map[String, Room] = Map(
+    "c1" -> makeRoom(
+      "c1",
+      RoomType.Combat,
+      List(exitDoor(), LockedDoor("ld1", x = 2, y = 2, direction = Direction.Right, targetRoomId = vaultTarget))
+    ),
+    "b1" -> makeRoom("b1", RoomType.Boss, List(entranceDoor())),
+    "v1" -> makeRoom("v1", RoomType.Vault, Nil)
+  )
+
+  test("build injects a Vault room referenced by a LockedDoor in the wired chain"):
+    val dungeon =
+      DungeonBuilder(vaultPool(), Random(1L)).build(totalRooms = 2).getOrElse(fail("build failed"))
+    assert(dungeon.rooms.contains("v1"), "expected vault room to be injected")
+
+  test("build fails when a LockedDoor references an unknown room id"):
+    val result = DungeonBuilder(vaultPool(vaultTarget = "missing_vault"), Random(1L)).build(totalRooms = 2)
+    result match
+      case Left(err) => assert(err.toLowerCase.contains("unknown room"), s"expected clear error: $err")
+      case Right(_)  => fail("expected build to fail for an unresolvable LockedDoor target")
+
+  test("a Vault room not referenced by any LockedDoor is absent from the dungeon"):
+    val poolNoLockedDoor = Map(
+      "c1" -> makeRoom("c1", RoomType.Combat, List(exitDoor())),
+      "b1" -> makeRoom("b1", RoomType.Boss, List(entranceDoor())),
+      "v1" -> makeRoom("v1", RoomType.Vault, Nil)
+    )
+    val dungeon =
+      DungeonBuilder(poolNoLockedDoor, Random(1L)).build(totalRooms = 2).getOrElse(fail("build failed"))
+    assert(!dungeon.rooms.contains("v1"), "vault room should not appear without a referencing LockedDoor")
+
+  test("Vault rooms are never auto-selected into the random middle chain"):
+    val poolWithVault = testPool + ("v1" -> makeRoom("v1", RoomType.Vault, Nil))
+    val dungeon = DungeonBuilder(poolWithVault, Random(7L))
+      .build(totalRooms = poolWithVault.size)
+      .getOrElse(fail("build failed"))
+    assert(!dungeon.rooms.contains("v1"), "Vault room should not be auto-selected without a LockedDoor reference")

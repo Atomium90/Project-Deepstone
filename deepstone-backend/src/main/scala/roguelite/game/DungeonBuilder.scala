@@ -29,13 +29,14 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
     val count = totalRooms.max(2).min(pool.size)
 
     for
-      entrance <- pickOne(RoomType.Combat, exclude = Set.empty)
-      boss     <- pickOne(RoomType.Boss, exclude = Set(entrance.id))
-      midCount = count - 2
-      middle   <- pickMiddle(midCount, exclude = Set(entrance.id, boss.id))
-      ordered  = entrance :: middle ::: List(boss)
-      dungeon  <- wire(ordered)
-    yield dungeon
+      entrance   <- pickOne(RoomType.Combat, exclude = Set.empty)
+      boss       <- pickOne(RoomType.Boss, exclude = Set(entrance.id))
+      midCount    = count - 2
+      middle     <- pickMiddle(midCount, exclude = Set(entrance.id, boss.id))
+      ordered     = entrance :: middle ::: List(boss)
+      dungeon    <- wire(ordered)
+      withVaults <- injectVaultRooms(dungeon)
+    yield withVaults
 
 
   // ---------------------------------------------
@@ -91,3 +92,22 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
         d.copy(targetRoomId = newTarget)
       case other => other
     room.copy(entities = updated)
+
+  /** Merge any Vault room referenced by a [[LockedDoor]] in the wired chain into the dungeon,
+   * looked up from the full pool (Vault rooms are deliberately excluded from random selection,
+   * see [[RoomType.Vault]]). Fails fast if a LockedDoor references a room id that doesn't exist in
+   * the pool, so a content typo surfaces at build time rather than mid-playtest.
+   */
+  private def injectVaultRooms(dungeon: Dungeon): Either[String, Dungeon] =
+    val referenced = dungeon.rooms.values.flatMap(_.entities).collect:
+      case d: LockedDoor => d.targetRoomId
+
+    referenced.foldLeft[Either[String, Dungeon]](Right(dungeon)):
+      case (acc, roomId) =>
+        acc.flatMap: d =>
+          if d.rooms.contains(roomId) then Right(d)
+          else
+            pool
+              .get(roomId)
+              .toRight(s"LockedDoor references unknown room '$roomId'.")
+              .map(room => d.copy(rooms = d.rooms.updated(roomId, room)))

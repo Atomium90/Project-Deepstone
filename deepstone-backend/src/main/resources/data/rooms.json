@@ -325,7 +325,7 @@
       ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
       ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
       ["wall",  "floor", "floor", "wall",  "wall",  "floor", "floor", "wall"],
-      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor"],
       ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
       ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
       ["wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall"]
@@ -334,7 +334,8 @@
       { "kind": "chest", "id": "chest_a", "x": 2, "y": 2 },
       { "kind": "chest", "id": "chest_b", "x": 5, "y": 5 },
       { "kind": "door",  "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" },
+      { "kind": "locked_door", "id": "door_vault", "x": 7, "y": 4, "direction": "RIGHT", "targetRoomId": "vault_001" }
     ]
   },
   {
@@ -560,6 +561,24 @@
     "entities": [
       { "kind": "enemy", "id": "boss_ogre_warlord", "x": 6, "y": 5, "label": "Ogre Warlord", "typeId": "ogre_warlord" },
       { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+    ]
+  },
+  {
+    "id": "vault_001",
+    "type": "vault",
+    "width": 6,
+    "height": 6,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "wall"],
+      ["floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "chest", "id": "chest_vault", "x": 4, "y": 3 },
+      { "kind": "door",  "id": "door_return", "x": 0, "y": 2, "direction": "LEFT", "targetRoomId": "loot_003" }
     ]
   }
 ]

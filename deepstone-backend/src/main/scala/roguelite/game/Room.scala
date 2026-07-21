@@ -24,9 +24,13 @@ object Tile:
 
 // Room type
 
-/** Classification of a room that drives gameplay rules (loot tables, music, etc.). */
+/** Classification of a room that drives gameplay rules (loot tables, music, etc.).
+  *
+  * `Vault` is deliberately excluded from [[DungeonBuilder]]'s `midTypes`: it is never picked into
+  * the random room chain, only reached via a [[LockedDoor]] that references it explicitly.
+  */
 enum RoomType:
-  case Combat, Loot, Rest, Boss
+  case Combat, Loot, Rest, Boss, Vault
 
 object RoomType:
   def fromString(s: String): Either[String, RoomType] = s.toLowerCase match {
@@ -34,6 +38,7 @@ object RoomType:
     case "loot"   => Right(RoomType.Loot)
     case "rest"   => Right(RoomType.Rest)
     case "boss"   => Right(RoomType.Boss)
+    case "vault"  => Right(RoomType.Vault)
     case other    => Left(s"Unknown room type: '$other'")
   }
 

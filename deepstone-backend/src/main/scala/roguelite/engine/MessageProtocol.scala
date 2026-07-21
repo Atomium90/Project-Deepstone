@@ -99,7 +99,7 @@ case class PlayerView(
 /** Describes one entity visible in the room (enemy, chest, door, etc.). */
 case class EntityView(
     id: String,
-    kind: String, // "enemy" | "chest" | "door"
+    kind: String, // "enemy" | "chest" | "door" | "locked_door"
     x: Int,
     y: Int,
     label: String // display name shown in the UI

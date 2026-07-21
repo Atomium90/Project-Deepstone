@@ -11,6 +11,7 @@ import roguelite.game.{
   CombatResolver,
   EnemyLoader,
   ItemLoader,
+  NpcDialogueLoader,
   RoomLoader,
   UpgradeLoader
 }
@@ -38,9 +39,10 @@ object Main extends IOApp.Simple:
             classDefs   <- ClassLoader.loadAll()
             abilityDefs <- AbilityLoader.loadAll()
             upgradeDefs <- UpgradeLoader.loadAll()
+            npcDialogueDefs <- NpcDialogueLoader.loadAll()
             _ <- logger.info(
               s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
-                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades."
+                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, ${npcDialogueDefs.size} npc dialogues."
             )
 
             resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs)
@@ -49,7 +51,8 @@ object Main extends IOApp.Simple:
                                         itemDefs,
                                         classDefs,
                                         upgradeDefs,
-                                        resolver
+                                        resolver,
+                                        npcDialogueDefs = npcDialogueDefs
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs)
 

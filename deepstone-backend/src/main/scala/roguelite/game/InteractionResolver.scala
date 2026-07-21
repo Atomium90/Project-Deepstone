@@ -1,6 +1,6 @@
 package roguelite.game
 
-import roguelite.engine.{ CombatState, Direction, ExplorationState, GameState }
+import roguelite.engine.{ CombatState, DialogueView, Direction, ExplorationState, GameState }
 
 import scala.util.Random
 
@@ -8,7 +8,7 @@ import scala.util.Random
   * the secret-door reveal check (triggered by [[roguelite.engine.Move]], but the same family of
   * "entities reacting to the player" logic). Kept separate from [[roguelite.engine.StateMachine]]
   * for the same reason [[CombatResolver]] and [[LootTable]] already are: the state machine stays a
-  * thin router as more entity kinds are added (NPC dialogue is next, in a later phase).
+  * thin router as more entity kinds are added.
   *
   * @param enemyStats
   *   Lookup table of enemy stats keyed by typeId, used to start combat.
@@ -16,35 +16,50 @@ import scala.util.Random
   *   Prototype item map keyed by typeId, used by [[LootTable]] for chest rolls.
   * @param rng
   *   Random instance for chest loot rolls and trapped-chest enemy spawns.
+  * @param npcDialogueDefs
+  *   Dialogue content keyed by [[Npc.id]], used by [[handleNpc]].
+  * @param clock
+  *   Wall-clock time source for the NPC interact cooldown. Inject a fake one for deterministic
+  *   tests; defaults to real time in production.
   */
 class InteractionResolver(enemyStats: Map[String, EnemyStats],
                           itemDefs: Map[String, Item],
-                          rng: Random = Random()
+                          rng: Random = Random(),
+                          npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
+                          clock: () => Long = () => System.currentTimeMillis()
 ):
 
-  def interact(exp: ExplorationState, targetId: String): (GameState, List[String]) =
+  def interact(exp: ExplorationState, targetId: String): (GameState, List[String], Option[DialogueView]) =
     exp.dungeon.currentRoom.entityById(targetId) match {
       case None =>
-        (exp, List(s"No entity found with id '$targetId'."))
+        (exp, List(s"No entity found with id '$targetId'."), None)
 
       case Some(door: Door) if door.doorKind == DoorKind.Secret && !door.revealed =>
-        (exp, List(s"No entity found with id '$targetId'.")) // never acknowledge an unrevealed door
+        (exp, List(s"No entity found with id '$targetId'."), None) // never acknowledge an unrevealed door
 
       case Some(door: Door) if door.doorKind == DoorKind.Trapped =>
-        handleTrappedDoor(exp, door)
+        withNoDialogue(handleTrappedDoor(exp, door))
 
       case Some(door: Door) =>
-        handleDoor(exp, door)
+        withNoDialogue(handleDoor(exp, door))
 
       case Some(door: LockedDoor) =>
-        handleLockedDoor(exp, door)
+        withNoDialogue(handleLockedDoor(exp, door))
 
       case Some(enemy: Enemy) =>
-        handleEnemy(exp, enemy)
+        withNoDialogue(handleEnemy(exp, enemy))
 
       case Some(chest: Chest) =>
-        handleChest(exp, chest)
+        withNoDialogue(handleChest(exp, chest))
+
+      case Some(npc: Npc) =>
+        handleNpc(exp, npc)
     }
+
+  /** Lifts a handler that never produces dialogue into the richer return type `interact` needs,
+    * so every existing per-entity handler below can stay untouched. */
+  private def withNoDialogue(r: (GameState, List[String])): (GameState, List[String], Option[DialogueView]) =
+    (r._1, r._2, None)
 
   /** Shared by a normal Door and an already-unlocked LockedDoor: navigate to the target room and
     * place the player at the tile adjacent to the door on the opposite wall. */
@@ -146,6 +161,56 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
           }
       }
 
+  /** Show one line of dialogue. Never touches the narrative log (a chest/door produces "you
+    * open..." style flavor text there, but dialogue rides only [[DialogueView]] so it doesn't get
+    * displayed twice).
+    *
+    * If the NPC has no matching entry in npcs.json, degrades gracefully instead of crashing - a
+    * placed-but-uncontented NPC shouldn't break exploration.
+    */
+  private def handleNpc(exp: ExplorationState,
+                        npc: Npc
+  ): (GameState, List[String], Option[DialogueView]) =
+    npcDialogueDefs.get(npc.id) match
+      case None =>
+        (exp, List(s"${npc.name} has nothing to say."), None)
+
+      case Some(d) =>
+        val now = clock()
+        npc.lastShown match
+          case Some((shownAt, shownLine)) if now - shownAt < InteractionResolver.NpcInteractCooldownMillis =>
+            // Redisplay only: a misclick or key-repeat within the cooldown must never advance past
+            // a line the player hasn't had time to read, so the Npc entity is left untouched here.
+            (exp, Nil, Some(DialogueView(npc.name, shownLine)))
+
+          case _ =>
+            val (line, updatedNpc) = nextLine(npc, d, now)
+            val updatedRoom = exp.dungeon.currentRoom.updateEntity(npc.id):
+              case n: Npc => updatedNpc
+              case o      => o
+            val updatedDungeon =
+              exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(updatedRoom.id, updatedRoom))
+            (exp.copy(dungeon = updatedDungeon), Nil, Some(DialogueView(npc.name, line)))
+
+  /** Pick the next line to show and the updated [[Npc]] progress: advance through `d.dialogue` in
+    * order first, then rotate through `d.fallbackDialogue` forever (never repeating the same
+    * fallback line twice in a row when the pool has more than one entry). If there is no fallback
+    * content, keep re-showing the last main line rather than looping back to the start.
+    */
+  private def nextLine(npc: Npc, d: NpcDialogueDef, now: Long): (String, Npc) =
+    if npc.dialogueIndex < d.dialogue.length then
+      val line = d.dialogue(npc.dialogueIndex)
+      (line, npc.copy(dialogueIndex = npc.dialogueIndex + 1, lastShown = Some((now, line))))
+    else if d.fallbackDialogue.isEmpty then
+      val line = d.dialogue.last
+      (line, npc.copy(lastShown = Some((now, line))))
+    else
+      val nextIdx = npc.fallbackIndex match
+        case None    => 0
+        case Some(i) => if d.fallbackDialogue.length <= 1 then i else (i + 1) % d.fallbackDialogue.length
+      val line = d.fallbackDialogue(nextIdx)
+      (line, npc.copy(fallbackIndex = Some(nextIdx), lastShown = Some((now, line))))
+
   /** Reveal any hidden secret door within Chebyshev distance 1 of (x, y). Called from
     * [[roguelite.engine.StateMachine]]'s Move handling, not Interact (same family of "entities
     * reacting to the player" logic, so it lives here rather than splitting door logic across two
@@ -212,3 +277,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       }
 
       (room.withEntities(newEnemies), List("It's a trap! Enemies emerge from the shadows!"))
+
+object InteractionResolver:
+  /** Minimum real time between two dialogue advances on the same NPC. Re-interacting sooner than
+    * this redisplays the current line instead of advancing - see [[InteractionResolver.handleNpc]].
+    */
+  val NpcInteractCooldownMillis: Long = 1500L

@@ -122,28 +122,28 @@ class StateMachineSuite extends FunSuite:
   // --- Hub -----------------------------------------------------------------
 
   test("StartRun transitions to Exploration"):
-    val (next, _) =
+    val (next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer))
       )
     assert(next.isInstanceOf[ExplorationState])
 
   test("StartRun creates player with chosen class"):
-    val (next, _) =
+    val (next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Mage))
       )
     assertEquals(next.player.classId, ClassId.Mage)
 
   test("StartRun player has correct affinityTags from classDef"):
-    val (next, _) =
+    val (next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer))
       )
     assertEquals(next.player.affinityTags, Set("ranged"))
 
   test("StartRun without classId stays in Hub"):
-    val (next, _) =
+    val (next, _, _) =
       sm().applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = None))
     assert(next.isInstanceOf[HubState])
 
@@ -151,7 +151,7 @@ class StateMachineSuite extends FunSuite:
 
   test("StartRun with a locked class is rejected and stays in Hub"):
     val hub = HubState(hubPlayer, testUpgradeDefs, MetaProgression.empty)
-    val (next, log) = sm(upgradeDefs = testUpgradeDefs)
+    val (next, log, _) = sm(upgradeDefs = testUpgradeDefs)
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
     assert(next.isInstanceOf[HubState])
     assert(log.exists(_.contains("Ranger's Path")), s"expected lock message: $log")
@@ -159,13 +159,13 @@ class StateMachineSuite extends FunSuite:
   test("StartRun with an unlocked class succeeds"):
     val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("archer_unlock"))
     val hub  = HubState(hubPlayer, testUpgradeDefs, meta)
-    val (next, _) = sm(upgradeDefs = testUpgradeDefs)
+    val (next, _, _) = sm(upgradeDefs = testUpgradeDefs)
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
     assert(next.isInstanceOf[ExplorationState])
 
   test("StartRun with Warrior is never gated (no matching UnlockClass upgrade)"):
     val hub = HubState(hubPlayer, testUpgradeDefs, MetaProgression.empty)
-    val (next, _) = sm(upgradeDefs = testUpgradeDefs)
+    val (next, _, _) = sm(upgradeDefs = testUpgradeDefs)
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[ExplorationState])
 
@@ -177,21 +177,21 @@ class StateMachineSuite extends FunSuite:
     middles ++ defaultRoomPool
 
   test("StartRun without difficulty defaults to Normal"):
-    val (next, _) =
+    val (next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))
       )
     assertEquals(next.asInstanceOf[ExplorationState].difficulty, Difficulty.Normal)
 
   test("StartRun room count scales with difficulty"):
-    val (easyNext, _) = sm(richRoomPool).applyActionPure(
+    val (easyNext, _, _) = sm(richRoomPool).applyActionPure(
       HubState(hubPlayer),
       HubAction(HubActionType.StartRun,
                 classId = Some(ClassId.Warrior),
                 difficulty = Some(Difficulty.Easy)
       )
     )
-    val (hardNext, _) = sm(richRoomPool).applyActionPure(
+    val (hardNext, _, _) = sm(richRoomPool).applyActionPure(
       HubState(hubPlayer),
       HubAction(HubActionType.StartRun,
                 classId = Some(ClassId.Warrior),
@@ -203,30 +203,30 @@ class StateMachineSuite extends FunSuite:
     assert(hardRooms > easyRooms, s"expected Hard ($hardRooms) > Easy ($easyRooms)")
 
   test("Invalid action in Hub produces log"):
-    val (next, log) = sm().applyActionPure(HubState(hubPlayer), Move(Direction.Up))
+    val (next, log, _) = sm().applyActionPure(HubState(hubPlayer), Move(Direction.Up))
     assert(next.isInstanceOf[HubState])
     assert(log.nonEmpty)
 
   // --- Exploration — movement -----------------------------------------------
 
   test("Move Up decreases playerY"):
-    val (next, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Up))
+    val (next, _, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 2)
 
   test("Move into wall is blocked"):
-    val (next, _) = sm().applyActionPure(explorationAt(1, 1), Move(Direction.Up))
+    val (next, _, _) = sm().applyActionPure(explorationAt(1, 1), Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 1)
 
   // --- Exploration — interaction --------------------------------------------
 
-  /** Thorough Door/Enemy/Chest/LockedDoor/trap/secret-door interaction behavior now lives in
+  /** Thorough Door/Enemy/Chest/LockedDoor/trap/secret-door/Npc interaction behavior now lives in
     * InteractionResolverSuite, testing InteractionResolver directly (mirrors how CombatResolverSuite
     * tests CombatResolver directly rather than through StateMachine). This one test stays here just
     * to confirm the Interact action is actually wired through to InteractionResolver. */
   test("Interact action routes through to InteractionResolver"):
     val d         = door("r1", "r2")
     val state     = explorationAt(3, 3, entities = List(d))
-    val (next, _) = sm().applyActionPure(state, Interact(d.id))
+    val (next, _, _) = sm().applyActionPure(state, Interact(d.id))
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
 
   // --- Combat routing -------------------------------------------------------
@@ -235,7 +235,7 @@ class StateMachineSuite extends FunSuite:
     val enemy     = Enemy("e1", 3, 3, typeId = "goblin", label = "Goblin")
     val instance  = EnemyInstance.fromStats("e1", goblinStats)
     val state     = CombatState(hubPlayer, simpleDungeon(List(enemy)), 1, 1, Combat(instance), "e1")
-    val (next, _) = sm().applyActionPure(state, CombatAction(CombatActionType.Attack))
+    val (next, _, _) = sm().applyActionPure(state, CombatAction(CombatActionType.Attack))
     assert(
       next.isInstanceOf[CombatState] || next.isInstanceOf[ExplorationState] ||
         next.isInstanceOf[GameOverState]
@@ -260,7 +260,7 @@ class StateMachineSuite extends FunSuite:
     assertEquals(GameOverState(hubPlayer, victory = true).toStateUpdate().victory, true)
 
   test("StateUpdate always contains inventory list (empty at run start with empty startingKit)"):
-    val (next, _) =
+    val (next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))
       )

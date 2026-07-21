@@ -64,10 +64,17 @@ export interface PlayerView {
 
 export interface EntityView {
   id: string;
-  kind: "enemy" | "chest" | "door" | "locked_door";
+  kind: "enemy" | "chest" | "door" | "locked_door" | "npc";
   x: number;
   y: number;
   label: string;
+}
+
+/** One line of NPC dialogue, shown in a transient overlay. Only present on the single
+ * StateUpdate the interaction produced - it's gone again on the next action. */
+export interface DialogueView {
+  npcName: string;
+  line: string;
 }
 
 export interface RoomView {
@@ -135,4 +142,5 @@ export interface StateUpdate {
   /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
   victory: boolean;
   log: string[];
+  dialogue?: DialogueView;
 }

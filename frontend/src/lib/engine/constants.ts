@@ -39,6 +39,7 @@ export const COLOR_ENTITY_ENEMY = "#c0392b";
 export const COLOR_ENTITY_CHEST = "#d4ac0d";
 export const COLOR_ENTITY_DOOR = "#5d6d7e";
 export const COLOR_ENTITY_LOCKED_DOOR = "#8a6d3b";
+export const COLOR_ENTITY_NPC = "#4f9d78";
 export const COLOR_ENTITY_LABEL = "#ccc";
 
 /** Fallback color for entity kinds not explicitly mapped. */

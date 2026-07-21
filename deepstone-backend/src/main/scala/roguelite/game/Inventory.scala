@@ -48,6 +48,12 @@ case class Inventory(slots: Vector[Option[Item]]):
       case (Some(c: Consumable), idx) => (idx, c)
     .toList
 
+  /** All keys in the inventory, paired with their slot index, in slot order. */
+  def keys: List[(Int, Key)] =
+    slots.zipWithIndex.collect:
+      case (Some(k: Key), idx) => (idx, k)
+    .toList
+
   /** All items currently in the inventory, in slot order (None slots filtered out). */
   def items: List[Item] =
     slots.collect { case Some(item) => item }.toList

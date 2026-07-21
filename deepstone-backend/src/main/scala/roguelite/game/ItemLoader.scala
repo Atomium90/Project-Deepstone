@@ -46,6 +46,10 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
             e => parseConsumableEffect(e).map:
               effect => Consumable(id = "", ij.typeId, ij.name, rarity, effect)
 
+        case "key" =>
+          ij.keyKind.toRight("Key is missing 'keyKind' field").flatMap(parseKeyKind(_, ij)).map:
+            kk => Key(id = "", ij.typeId, ij.name, rarity, kk)
+
         case other =>
           Left(s"Unknown item kind: '$other'")
 
@@ -54,6 +58,14 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
       case "common"   => Right(Rarity.Common)
       case "uncommon" => Right(Rarity.Uncommon)
       case other      => Left(s"Unknown rarity: '$other'")
+
+  private def parseKeyKind(s: String, ij: ItemJson): Either[String, KeyKind] =
+    s.toLowerCase match
+      case "generic"   => Right(KeyKind.Generic)
+      case "universal" => Right(KeyKind.Universal)
+      case "specific"  => ij.doorId.toRight("Specific key is missing 'doorId' field").map(KeyKind.Specific.apply)
+      case "typed"     => ij.doorTag.toRight("Typed key is missing 'doorTag' field").map(KeyKind.Typed.apply)
+      case other       => Left(s"Unknown keyKind: '$other'")
 
   private def parseConsumableEffect(e: ConsumableEffectJson): Either[String, ConsumableEffect] =
     e.`type` match
@@ -85,7 +97,10 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
                                attackBonus: Option[Int] = None,
                                defenseBonus: Option[Int] = None,
                                hpBonus: Option[Int] = None,
-                               effect: Option[ConsumableEffectJson] = None
+                               effect: Option[ConsumableEffectJson] = None,
+                               keyKind: Option[String] = None,
+                               doorId: Option[String] = None,
+                               doorTag: Option[String] = None
                              )
 
   // Circe decoders for internal DTOs
@@ -107,4 +122,8 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
       defenseBonus <- c.get[Option[Int]]("defenseBonus")
       hpBonus      <- c.get[Option[Int]]("hpBonus")
       effect       <- c.get[Option[ConsumableEffectJson]]("effect")
-    yield ItemJson(typeId, kind, name, rarity, typeTag, attackBonus, defenseBonus, hpBonus, effect)
+      keyKind      <- c.get[Option[String]]("keyKind")
+      doorId       <- c.get[Option[String]]("doorId")
+      doorTag      <- c.get[Option[String]]("doorTag")
+    yield ItemJson(typeId, kind, name, rarity, typeTag, attackBonus, defenseBonus, hpBonus, effect,
+                    keyKind, doorId, doorTag)

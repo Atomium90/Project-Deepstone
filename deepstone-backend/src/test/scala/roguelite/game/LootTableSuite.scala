@@ -18,6 +18,7 @@ class LootTableSuite extends FunSuite:
     "hunters_bow"     -> Weapon("", "hunters_bow", "Hunter's Bow", Rarity.Common, 4),
     "leather_armor"   -> Armor("", "leather_armor", "Leather Armor", Rarity.Common, 2),
     "iron_ring"       -> Accessory("", "iron_ring", "Iron Ring", Rarity.Common, 10),
+    "rusty_key"       -> Key("", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic),
     "steel_sword"     -> Weapon("", "steel_sword", "Steel Sword", Rarity.Uncommon, 7),
     "chain_mail"      -> Armor("", "chain_mail", "Chain Mail", Rarity.Uncommon, 5),
     "amulet_of_vigor" -> Accessory("", "amulet_of_vigor", "Amulet of Vigor", Rarity.Uncommon, 20)
@@ -45,6 +46,11 @@ class LootTableSuite extends FunSuite:
     val t1 = LootTable.rollChest(itemDefs, Random(7)).map(_.typeId)
     val t2 = LootTable.rollChest(itemDefs, Random(7)).map(_.typeId)
     assertEquals(t1, t2)
+
+  test("rollChest can produce a key"):
+    val rng  = Random(0)
+    val hits = (1 to 500).exists(_ => LootTable.rollChest(itemDefs, rng).exists(_.typeId == "rusty_key"))
+    assert(hits, "expected rusty_key to be a reachable rollChest outcome")
 
   // --- Enemy drops ---------------------------------------------------------
 

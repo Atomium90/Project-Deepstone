@@ -249,5 +249,12 @@
     "name": "Mana Crystal",
     "rarity": "uncommon",
     "effect": { "type": "RestoreResource", "amount": 40 }
+  },
+  {
+    "typeId": "rusty_key",
+    "kind": "key",
+    "name": "Rusty Key",
+    "rarity": "common",
+    "keyKind": "generic"
   }
 ]

@@ -102,6 +102,36 @@ case class Consumable(
   }
   def withNewId: Item = copy(id = Item.newId())
 
+/** What a [[Key]] is able to unlock. Only [[KeyKind.Generic]] has content in V0.2, the other
+  * variants exist so future content (unique keys, elemental-tagged keys, rare passe-partouts) can
+  * be added without touching this logic.
+  */
+enum KeyKind:
+  case Generic
+  case Specific(doorId: String)
+  case Typed(doorTag: String)
+  case Universal
+
+object KeyKind:
+  def canUnlock(key: KeyKind, door: LockedDoor): Boolean = key match {
+    case KeyKind.Generic      => true
+    case KeyKind.Specific(id) => id == door.id
+    case KeyKind.Typed(tag)   => door.doorTag.contains(tag)
+    case KeyKind.Universal    => true
+  }
+
+/** Consumed on use to unlock a matching [[LockedDoor]]. Carries no combat stats. */
+case class Key(
+    id: String,
+    typeId: String,
+    name: String,
+    rarity: Rarity,
+    keyKind: KeyKind
+) extends Item:
+  val kind = "key"
+  def statLine: String = "Opens a locked door"
+  def withNewId: Item = copy(id = Item.newId())
+
 object Item:
   /** Generate a short unique instance identifier (8 hex chars). */
   def newId(): String = UUID.randomUUID().toString.take(8)

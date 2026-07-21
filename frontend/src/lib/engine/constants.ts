@@ -38,6 +38,7 @@ export const COLOR_TILE_GRID_WIDTH = 0.5;
 export const COLOR_ENTITY_ENEMY = "#c0392b";
 export const COLOR_ENTITY_CHEST = "#d4ac0d";
 export const COLOR_ENTITY_DOOR = "#5d6d7e";
+export const COLOR_ENTITY_LOCKED_DOOR = "#8a6d3b";
 export const COLOR_ENTITY_LABEL = "#ccc";
 
 /** Fallback color for entity kinds not explicitly mapped. */
@@ -152,6 +153,7 @@ export const ITEM_KIND_COLORS = {
   armor: "#22354a",
   accessory: "#2a3a1a",
   consumable: "#3a2a4a",
+  key: "#4a4a22",
 } as const;
 
 /** Border / accent color per item rarity. */

@@ -45,13 +45,22 @@ case class Chest(
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest")
 
+/** Sub-behavior of a [[Door]]. Normal doors always navigate to `targetRoomId`; Trapped doors
+  * ignore it and kick the player back through the room's entrance instead; Secret doors stay
+  * absent from the client's [[EntityView]] (and their tile stays a Wall) until `revealed`.
+  */
+enum DoorKind:
+  case Normal, Trapped, Secret
+
 /** A passage to an adjacent room. Clicking it navigates to that room. */
 case class Door(
     id: String,
     x: Int,
     y: Int,
     direction: Direction,
-    targetRoomId: String
+    targetRoomId: String,
+    doorKind: DoorKind = DoorKind.Normal,
+    revealed: Boolean = true
 ) extends Entity:
   def toView: EntityView =
     EntityView(id = id, kind = "door", x = x, y = y, label = direction.toString)

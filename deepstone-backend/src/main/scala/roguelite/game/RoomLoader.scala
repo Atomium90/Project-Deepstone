@@ -67,11 +67,14 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
           dirStr       <- ej.direction.toRight("Door entity is missing 'direction' field")
           direction    <- parseDirection(dirStr)
           targetRoomId <- ej.targetRoomId.toRight("Door entity is missing 'targetRoomId' field")
+          doorKind     <- parseDoorKind(ej.doorKind.getOrElse("normal"))
         yield Door(id = ej.id,
                    x = ej.x,
                    y = ej.y,
                    direction = direction,
-                   targetRoomId = targetRoomId
+                   targetRoomId = targetRoomId,
+                   doorKind = doorKind,
+                   revealed = ej.revealed.getOrElse(doorKind != DoorKind.Secret)
         )
 
       case "locked_door" =>
@@ -99,6 +102,14 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       case other   => Left(s"Unknown direction: '$other'")
     }
 
+  private def parseDoorKind(s: String): Either[String, DoorKind] =
+    s.toLowerCase match {
+      case "normal"  => Right(DoorKind.Normal)
+      case "trapped" => Right(DoorKind.Trapped)
+      case "secret"  => Right(DoorKind.Secret)
+      case other     => Left(s"Unknown door kind: '$other'")
+    }
+
   // --------------------------
   // Internal JSON DTOs
   // --------------------------
@@ -113,6 +124,8 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       direction: Option[String] = None,
       targetRoomId: Option[String] = None,
       trapped: Option[Boolean] = None,
+      doorKind: Option[String] = None,
+      revealed: Option[Boolean] = None,
       doorTag: Option[String] = None
   )
 
@@ -138,8 +151,10 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
         direction    <- c.get[Option[String]]("direction")
         targetRoomId <- c.get[Option[String]]("targetRoomId")
         trapped      <- c.get[Option[Boolean]]("trapped")
+        doorKind     <- c.get[Option[String]]("doorKind")
+        revealed     <- c.get[Option[Boolean]]("revealed")
         doorTag      <- c.get[Option[String]]("doorTag")
-      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId, trapped, doorTag)
+      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId, trapped, doorKind, revealed, doorTag)
 
   private given Decoder[RoomJson] = Decoder.instance:
     (c: HCursor) =>

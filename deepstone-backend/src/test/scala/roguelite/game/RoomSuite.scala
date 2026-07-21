@@ -90,6 +90,53 @@ class RoomSuite extends FunSuite:
     assertEquals(view.entities.length, 1)
     assertEquals(view.entities.head.kind, "enemy")
 
+  test("toView omits an unrevealed secret door"):
+    val secretDoor = Door("d1",
+                          x = 2,
+                          y = 2,
+                          direction = Direction.Down,
+                          targetRoomId = "r2",
+                          doorKind = DoorKind.Secret,
+                          revealed = false
+    )
+    val view = testRoom(entities = List(secretDoor)).toView(1, 1)
+    assertEquals(view.entities, Nil)
+
+  test("toView includes a revealed secret door"):
+    val secretDoor = Door("d1",
+                          x = 2,
+                          y = 2,
+                          direction = Direction.Down,
+                          targetRoomId = "r2",
+                          doorKind = DoorKind.Secret,
+                          revealed = true
+    )
+    val view = testRoom(entities = List(secretDoor)).toView(1, 1)
+    assertEquals(view.entities.length, 1)
+
+  // -- withFloorAt -------------------------------------------------------------
+
+  test("withFloorAt replaces exactly the tile at (x, y) with Floor"):
+    val updated = testRoom().withFloorAt(0, 0)
+    assertEquals(updated.tileAt(0, 0), Tile.Floor)
+    assertEquals(updated.tileAt(3, 0), Tile.Wall) // other border tiles untouched
+
+  // -- updateEntity -------------------------------------------------------------
+
+  test("updateEntity replaces only the entity with the matching id"):
+    val e1    = Enemy("e1", x = 1, y = 1, typeId = "goblin", label = "Goblin")
+    val e2    = Enemy("e2", x = 2, y = 2, typeId = "orc", label = "Orc")
+    val room  = testRoom(entities = List(e1, e2))
+    val after = room.updateEntity("e1") { case e: Enemy => e.copy(label = "Changed"); case o => o }
+    assertEquals(after.entityById("e1").map(_.asInstanceOf[Enemy].label), Some("Changed"))
+    assertEquals(after.entityById("e2"), Some(e2))
+
+  test("updateEntity is a no-op when the id is not found"):
+    val e1    = Enemy("e1", x = 1, y = 1, typeId = "goblin", label = "Goblin")
+    val room  = testRoom(entities = List(e1))
+    val after = room.updateEntity("nope") { case e: Enemy => e.copy(label = "Changed"); case o => o }
+    assertEquals(after.entities, List(e1))
+
   // -- withEntities ------------------------------------------------------------
 
   test("withEntities appends new entities to the room"):

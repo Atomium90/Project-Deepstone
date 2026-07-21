@@ -2,17 +2,12 @@ package roguelite.engine
 
 import cats.effect.IO
 import roguelite.game.{
-  Chest,
   ClassDef,
-  Combat,
   CombatResolver,
-  Door,
   DungeonBuilder,
-  Enemy,
-  EnemyInstance,
   EnemyStats,
+  InteractionResolver,
   Item,
-  LootTable,
   Room
 }
 
@@ -54,6 +49,8 @@ class StateMachine(roomPool: Map[String, Room],
                    resolver: CombatResolver,
                    rng: Random = Random()
 ):
+  private val interactionResolver = InteractionResolver(enemyStats, itemDefs, rng)
+
   def transition(state: GameState, action: PlayerAction): IO[(GameState, List[String])] =
     IO.pure(applyActionPure(state, action))
 
@@ -149,73 +146,15 @@ class StateMachine(roomPool: Map[String, Room],
 
         if !exp.dungeon.currentRoom.isWalkable(newX, newY)
         then (exp, Nil) // Silently blocked
-        else (exp.copy(playerX = newX, playerY = newY), Nil)
+        else
+          val (revealedRoom, revealLog) =
+            interactionResolver.revealSecretDoors(exp.dungeon.currentRoom, newX, newY)
+          val updatedDungeon =
+            exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(revealedRoom.id, revealedRoom))
+          (exp.copy(dungeon = updatedDungeon, playerX = newX, playerY = newY), revealLog)
 
       case (exp: ExplorationState, Interact(targetId)) =>
-        exp.dungeon.currentRoom.entityById(targetId) match {
-          case None =>
-            (exp, List(s"No entity found with id '$targetId'."))
-
-          case Some(door: Door) =>
-            exp.dungeon.navigateTo(door.targetRoomId) match {
-              case Left(err)         => (exp, List(err))
-              case Right(newDungeon) =>
-                // Place the player at the opposite door's position when entering
-                val spawnPoint = findSpawnPoint(newDungeon.currentRoom, door.direction)
-                val nextState =
-                  exp.copy(dungeon = newDungeon, playerX = spawnPoint._1, playerY = spawnPoint._2)
-                (nextState, List(s"You pass through the door heading ${door.direction}."))
-            }
-
-          case Some(enemy: Enemy) =>
-            enemyStats.get(enemy.typeId) match {
-              case None =>
-                (exp, List(s"Unknown enemy type '${enemy.typeId}' — cannot start combat."))
-              case Some(stats) =>
-                val instance = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty)
-                val combat   = Combat(enemy = instance)
-                val nextState = CombatState(exp.player,
-                                            exp.dungeon,
-                                            exp.playerX,
-                                            exp.playerY,
-                                            combat,
-                                            enemy.id,
-                                            exp.difficulty
-                )
-                (nextState, List(s"You engage the ${stats.label}!"))
-            }
-
-          case Some(chest: Chest) =>
-            val roomWithoutChest = exp.dungeon.currentRoom.removeEntity(chest.id)
-
-            if chest.trapped then
-              val (trappedRoom, trapLog) =
-                spawnTrapEnemies(roomWithoutChest, chest, exp.playerX, exp.playerY)
-              val updatedDungeon =
-                exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(trappedRoom.id, trappedRoom))
-              (exp.copy(dungeon = updatedDungeon), trapLog)
-            else
-              val updatedDungeon = exp.dungeon.copy(
-                rooms = exp.dungeon.rooms.updated(roomWithoutChest.id, roomWithoutChest)
-              )
-
-              LootTable.rollChest(itemDefs, rng, exp.difficulty) match {
-                case None =>
-                  (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."))
-                case Some(item) =>
-                  exp.player.withItemPickup(item) match {
-                    case Left(_) =>
-                      (exp.copy(dungeon = updatedDungeon),
-                       List(s"You open the chest but your inventory is full — ${item.name} is lost!")
-                      )
-
-                    case Right(updatedPlayer) =>
-                      (exp.copy(dungeon = updatedDungeon, player = updatedPlayer),
-                       List(s"You open the chest and find ${item.name}! (${item.statLine})")
-                      )
-                  }
-              }
-        }
+        interactionResolver.interact(exp, targetId)
 
       // -- Combat -----------------------------------------------------------
 
@@ -230,50 +169,3 @@ class StateMachine(roomPool: Map[String, Room],
            s"Action ${invalidAction.getClass.getSimpleName} is not valid in state ${currentState.getClass.getSimpleName}."
          )
         )
-
-  /** Find a sensible spawn point in the target room when entering through a door.
-    *
-    * The player arrives at the tile adjacent to the door on the opposite wall. For example,
-    * entering through a DOWN door means the player came from below, so they spawn just inside the
-    * top of the new room. Falls back to (1,1) if the computed position is not walkable.
-    */
-  private def findSpawnPoint(room: Room, fromDirection: Direction): (Int, Int) =
-    val candidate = fromDirection match {
-      case Direction.Down => (room.width / 2, 1) // entered from south → spawn near north
-      case Direction.Up =>
-        (room.width / 2, room.height - 2) // entered from north → spawn near south
-      case Direction.Right => (1, room.height / 2) // entered from east  → spawn near west
-      case Direction.Left =>
-        (room.width - 2, room.height / 2) // entered from west  → spawn near east
-    }
-
-    if room.isWalkable(candidate._1, candidate._2) then candidate else (1, 1)
-
-  /** Non-boss enemy typeIds eligible to spawn from a trapped chest. Deliberately excludes
-    * boss-tier enemies (roughly half the roster) so opening a chest never ambushes the player with
-    * a full boss encounter.
-    */
-  private val TrapEnemyPool =
-    List("goblin", "orc", "skeleton", "cave_troll", "bandit", "dire_wolf", "cultist")
-
-  /** Spawn 1-2 enemies from [[TrapEnemyPool]] on free tiles near the chest, avoiding the player's
-    * own tile. Falls back to fewer enemies (or none) if the room has no space.
-    */
-  private def spawnTrapEnemies(room: Room,
-                               chest: Chest,
-                               playerX: Int,
-                               playerY: Int
-  ): (Room, List[String]) =
-    val pool = TrapEnemyPool.filter(enemyStats.contains)
-    if pool.isEmpty then (room, List("It's a trap! But nothing emerges from the shadows."))
-    else
-      val count   = rng.nextInt(2) + 1
-      val typeIds = List.fill(count)(pool(rng.nextInt(pool.size)))
-      val spots   = room.nearbyFreeTiles(chest.x, chest.y, count, exclude = Set((playerX, playerY)))
-
-      val newEnemies = typeIds.zip(spots).zipWithIndex.map {
-        case ((typeId, (x, y)), i) =>
-          Enemy(id = s"${chest.id}_trap_$i", x = x, y = y, typeId = typeId, label = enemyStats(typeId).label)
-      }
-
-      (room.withEntities(newEnemies), List("It's a trap! Enemies emerge from the shadows!"))

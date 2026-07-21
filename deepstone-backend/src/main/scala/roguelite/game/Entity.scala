@@ -82,3 +82,33 @@ case class LockedDoor(
 ) extends Entity:
   def toView: EntityView =
     EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString)
+
+/** A static, friendly character. Clicking it shows one line of dialogue and advances to the next
+  * on later interactions - see [[InteractionResolver]] for the cooldown/rotation rules.
+  *
+  * @param name
+  *   Duplicated from the matching entry in npcs.json (same pattern as [[Enemy.label]] duplicating
+  *   enemies.json), so [[toView]] never needs the dialogue catalog just to render a label.
+  * @param dialogueIndex
+  *   How many lines of the main `dialogue` list have been shown so far. Internal only, never
+  *   exposed via [[toView]] (same convention as [[Chest.trapped]]/[[Door.doorKind]]).
+  * @param fallbackIndex
+  *   `None` until the main list is exhausted and the first fallback line is shown; `Some(i)` means
+  *   fallback line `i` was shown last, so the next one is `(i + 1) % fallbackDialogue.length`.
+  *   Kept as `Option` rather than defaulting to 0 so the first fallback trigger doesn't skip
+  *   `fallbackDialogue(0)`.
+  * @param lastShown
+  *   The (timestamp, line) last displayed, both set together. While defined and within
+  *   [[InteractionResolver.NpcInteractCooldownMillis]] of now, re-interacting redisplays this same
+  *   line instead of advancing - so a misclick can't skip past a line before it's been read.
+  */
+case class Npc(
+    id: String,
+    x: Int,
+    y: Int,
+    name: String,
+    dialogueIndex: Int = 0,
+    fallbackIndex: Option[Int] = None,
+    lastShown: Option[(Long, String)] = None
+) extends Entity:
+  def toView: EntityView = EntityView(id = id, kind = "npc", x = x, y = y, label = name)

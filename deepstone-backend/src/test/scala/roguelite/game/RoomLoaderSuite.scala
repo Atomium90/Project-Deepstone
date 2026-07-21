@@ -116,3 +116,24 @@ class RoomLoaderSuite extends CatsEffectSuite:
       val normalDoors = rooms.values.flatMap(_.entities.collect { case d: Door if d.doorKind == DoorKind.Normal => d })
       assert(normalDoors.nonEmpty)
       assert(normalDoors.forall(_.revealed), "expected all normal doors to be revealed")
+
+  test("npcs have non-empty id and name"):
+    for rooms <- RoomLoader.loadAll()
+    yield rooms.values.foreach {
+      r =>
+        r.entities
+          .collect {
+            case n: Npc => n
+          }
+          .foreach {
+            n =>
+              assert(n.id.nonEmpty)
+              assert(n.name.nonEmpty)
+          }
+    }
+
+  test("loadAll includes at least one Npc"):
+    for rooms <- RoomLoader.loadAll()
+    yield
+      val allNpcs = rooms.values.flatMap(_.entities.collect { case n: Npc => n })
+      assert(allNpcs.nonEmpty, "expected at least one npc in rooms.json")

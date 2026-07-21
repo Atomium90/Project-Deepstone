@@ -150,7 +150,8 @@
     ],
     "entities": [
       { "kind": "door", "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door", "id": "door_exit",     "x": 4, "y": 5, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door", "id": "door_exit",     "x": 4, "y": 5, "direction": "DOWN", "targetRoomId": "NEXT" },
+      { "kind": "npc",  "id": "wren", "x": 2, "y": 2, "name": "Wren" }
     ]
   },
   {

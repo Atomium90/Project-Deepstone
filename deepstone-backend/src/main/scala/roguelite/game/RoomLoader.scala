@@ -90,6 +90,11 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
                           doorTag = ej.doorTag
         )
 
+      case "npc" =>
+        ej.name.toRight("Npc entity is missing 'name' field").map(
+          name => Npc(id = ej.id, x = ej.x, y = ej.y, name = name)
+        )
+
       case other =>
         Left(s"Unknown entity kind: '$other'")
 
@@ -126,7 +131,8 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       trapped: Option[Boolean] = None,
       doorKind: Option[String] = None,
       revealed: Option[Boolean] = None,
-      doorTag: Option[String] = None
+      doorTag: Option[String] = None,
+      name: Option[String] = None
   )
 
   private case class RoomJson(
@@ -154,7 +160,8 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
         doorKind     <- c.get[Option[String]]("doorKind")
         revealed     <- c.get[Option[Boolean]]("revealed")
         doorTag      <- c.get[Option[String]]("doorTag")
-      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId, trapped, doorKind, revealed, doorTag)
+        name         <- c.get[Option[String]]("name")
+      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId, trapped, doorKind, revealed, doorTag, name)
 
   private given Decoder[RoomJson] = Decoder.instance:
     (c: HCursor) =>

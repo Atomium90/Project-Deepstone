@@ -19,6 +19,7 @@ object LootTable:
     "hunters_bow"     -> 17,
     "leather_armor"   -> 15,
     "iron_ring"       -> 11,
+    "rusty_key"       -> 12,
     "steel_sword"     -> 4,
     "chain_mail"      -> 4,
     "amulet_of_vigor" -> 2

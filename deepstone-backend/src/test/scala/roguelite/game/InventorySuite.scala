@@ -13,6 +13,7 @@ class InventorySuite extends FunSuite:
     ConsumableEffect.HealFixed(30))
   private val ether   = Consumable("e1", "ether", "Ether", Rarity.Uncommon,
     ConsumableEffect.RestoreResource(20))
+  private val key     = Key("k1", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic)
 
   // --- Empty inventory -----------------------------------------------------
 
@@ -100,3 +101,15 @@ class InventorySuite extends FunSuite:
       i2 <- i1.addItem(potion)
     yield i2).getOrElse(fail("expected Right"))
     assertEquals(inv.items, List(sword, potion))
+
+  test("keys returns only Key items with their slot index"):
+    val inv = (for
+      i1 <- Inventory.empty.addItem(sword)
+      i2 <- i1.addItem(key)
+      i3 <- i2.addItem(potion)
+    yield i3).getOrElse(fail("expected Right"))
+    assertEquals(inv.keys, List((1, key)))
+
+  test("keys is empty when the inventory has no Key items"):
+    val inv = Inventory.empty.addItem(sword).getOrElse(fail("expected Right"))
+    assertEquals(inv.keys, Nil)

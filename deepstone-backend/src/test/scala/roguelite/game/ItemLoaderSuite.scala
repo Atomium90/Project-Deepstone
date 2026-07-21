@@ -118,3 +118,10 @@ class ItemLoaderSuite extends CatsEffectSuite:
     yield
       val proto = items("health_potion")
       assertNotEquals(proto.withNewId.id, proto.withNewId.id)
+
+  test("loadAll contains a Generic key"):
+    for items <- ItemLoader.loadAll()
+    yield
+      items.get("rusty_key") match
+        case Some(k: Key) => assertEquals(k.keyKind, KeyKind.Generic)
+        case other        => fail(s"expected rusty_key to be a Key, got: $other")

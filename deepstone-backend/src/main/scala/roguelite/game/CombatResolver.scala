@@ -47,7 +47,7 @@ class CombatResolver(rng: Random = Random(),
 ):
 
   /** Entry point called by the StateMachine for every CombatAction. */
-  def resolve(state: CombatState, action: CombatAction): (GameState, List[String]) =
+  def resolve(state: CombatState, action: CombatAction): (GameState, List[String], List[GameEvent]) =
     action.action match {
       case CombatActionType.Attack  => handleAttack(state)
       case CombatActionType.Defend  => handleDefend(state)
@@ -59,7 +59,7 @@ class CombatResolver(rng: Random = Random(),
   // Player actions
   // ---------------------------------------------
 
-  private def handleAttack(state: CombatState): (GameState, List[String]) =
+  private def handleAttack(state: CombatState): (GameState, List[String], List[GameEvent]) =
     val pending = state.combat.pendingAbility
 
     // Ability activation banner — the pending effect was armed by this player's own class
@@ -99,21 +99,23 @@ class CombatResolver(rng: Random = Random(),
       victory(state.copy(player = playerAfterResource, combat = updatedCombat), damagedEnemy, log)
     else enemyTurn(state.copy(player = playerAfterResource, combat = updatedCombat), log)
 
-  private def handleDefend(state: CombatState): (GameState, List[String]) =
+  private def handleDefend(state: CombatState): (GameState, List[String], List[GameEvent]) =
     val log = List("You brace for impact. Incoming damage is halved this round.")
     // Archer: +8 Focus when defending
     val playerAfterResource = gainResource(state.player, onDefend = true)
     val updatedCombat       = state.combat.copy(playerIsDefending = true)
     enemyTurn(state.copy(player = playerAfterResource, combat = updatedCombat), log)
 
-  private def handleItem(state: CombatState, itemId: Option[String]): (GameState, List[String]) =
+  private def handleItem(state: CombatState,
+                         itemId: Option[String]
+  ): (GameState, List[String], List[GameEvent]) =
     itemId match {
       case None =>
-        (state, List("No item selected."))
+        (state, List("No item selected."), Nil)
       case Some(id) =>
         state.player.inventory.findById(id) match {
           case None =>
-            (state, List("Item not found in inventory."))
+            (state, List("Item not found in inventory."), Nil)
           case Some((idx, consumable: Consumable)) =>
             val (_, newInventory)          = state.player.inventory.removeAt(idx)
             val playerWithoutItem          = state.player.copy(inventory = newInventory)
@@ -121,7 +123,7 @@ class CombatResolver(rng: Random = Random(),
             val updatedCombat              = state.combat.copy(playerIsDefending = false)
             enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), effectLog)
           case Some((_, item)) =>
-            (state, List(s"${item.name} cannot be used in combat."))
+            (state, List(s"${item.name} cannot be used in combat."), Nil)
         }
     }
 
@@ -129,16 +131,17 @@ class CombatResolver(rng: Random = Random(),
     * unchanged; a class with no ability defined (should not happen with a valid abilities.json)
     * also returns the state unchanged.
     */
-  private def handleAbility(state: CombatState): (GameState, List[String]) =
+  private def handleAbility(state: CombatState): (GameState, List[String], List[GameEvent]) =
     abilityDefs.get(state.player.classId) match {
       case None =>
-        (state, List("No ability available for this class."))
+        (state, List("No ability available for this class."), Nil)
 
       case Some(ability) if state.player.resourceCurrent < ability.cost =>
         (state,
          List(
            s"Not enough ${ability.resourceName} — ${ability.name} requires ${ability.cost} ${ability.resourceName}."
-         )
+         ),
+         Nil
         )
 
       case Some(ability) =>
@@ -151,7 +154,7 @@ class CombatResolver(rng: Random = Random(),
   /** Apply an ability's effect once its cost has already been deducted. */
   private def applyAbilityEffect(state: CombatState,
                                  ability: AbilityDef
-  ): (GameState, List[String]) =
+  ): (GameState, List[String], List[GameEvent]) =
     ability.effect match {
       case AbilityEffect.DoubleNextAttack =>
         val updatedCombat = state.combat.copy(
@@ -241,7 +244,9 @@ class CombatResolver(rng: Random = Random(),
   // Enemy turn
   // ---------------------------------------------
 
-  private def enemyTurn(state: CombatState, priorLog: List[String]): (GameState, List[String]) =
+  private def enemyTurn(state: CombatState,
+                        priorLog: List[String]
+  ): (GameState, List[String], List[GameEvent]) =
     val enemyAction = pickEnemyAction(state.combat.enemy)
 
     enemyAction match {
@@ -265,9 +270,10 @@ class CombatResolver(rng: Random = Random(),
           val nextCombat = state.combat.copy(
             isPlayerTurn = true,
             round = state.combat.round + 1,
-            playerIsDefending = false
+            playerIsDefending = false,
+            tookDamage = true
           )
-          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog)
+          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog, Nil)
 
       case "DEFEND" =>
         val roundLog = priorLog :+ s"${state.combat.enemy.label} takes a defensive stance."
@@ -278,14 +284,14 @@ class CombatResolver(rng: Random = Random(),
           round = state.combat.round + 1,
           playerIsDefending = false
         )
-        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog)
+        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog, Nil)
 
       case other =>
         // Unknow action -> skip enemy turn
         val roundLog         = priorLog :+ s"${state.combat.enemy.label} hesitates."
         val playerAfterRound = gainResource(state.player, onRound = true)
         val nextCombat       = state.combat.copy(isPlayerTurn = true, playerIsDefending = false)
-        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog)
+        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog, Nil)
     }
 
   /** Pick an enemy action using weighted random selection. */
@@ -311,7 +317,7 @@ class CombatResolver(rng: Random = Random(),
   private def victory(state: CombatState,
                       deadEnemy: EnemyInstance,
                       log: List[String]
-  ): (GameState, List[String]) = {
+  ): (GameState, List[String], List[GameEvent]) = {
     val xpGained = deadEnemy.xpReward
     // Stone Shards: 1 per 5 XP, minimum 1 per kill
     val shardsEarned = (xpGained / 5).max(1)
@@ -330,26 +336,40 @@ class CombatResolver(rng: Random = Random(),
       s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
     )
 
-    val (playerAfterLoot, lootLog) =
+    val (playerAfterLoot, lootLog, lootEvents) =
       LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty) match {
-        case None => (playerWithXp, Nil)
+        case None => (playerWithXp, Nil, Nil)
         case Some(item) =>
           playerWithXp.withItemPickup(item) match {
             case Right(p) =>
-              (p, List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"))
+              (p,
+               List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
+               List(GameEvent.ItemPickedUp(inventoryFull = p.inventory.isFull))
+              )
             case Left(_) =>
               (playerWithXp,
-               List(s"${deadEnemy.label} dropped ${item.name}, but your inventory is full!")
+               List(s"${deadEnemy.label} dropped ${item.name}, but your inventory is full!"),
+               Nil
               )
           }
       }
 
     // Level-up after loot
+    val startLevel                = playerAfterLoot.level
     val (finalPlayer, levelUpLog) = LevelUpSystem.applyLevelUps(playerAfterLoot, rng)
+    val levelUpEvents = (startLevel + 1 to finalPlayer.level).map(GameEvent.LeveledUp.apply).toList
+
+    val enemyDefeatedEvent =
+      GameEvent.EnemyDefeated(isBoss = updatedDungeon.isAtBoss, tookNoDamage = !state.combat.tookDamage)
 
     if updatedDungeon.isAtBoss then
       val runCompleteLog = List("You have vanquished the dungeon's guardian! Victory is yours.")
-      (GameOverState(finalPlayer, victory = true), victoryLog ++ lootLog ++ levelUpLog ++ runCompleteLog)
+      val events =
+        enemyDefeatedEvent :: lootEvents ::: levelUpEvents ::: List(GameEvent.RunEnded(victory = true))
+      (GameOverState(finalPlayer, victory = true),
+       victoryLog ++ lootLog ++ levelUpLog ++ runCompleteLog,
+       events
+      )
     else
       val nextState = ExplorationState(
         player = finalPlayer,
@@ -358,16 +378,17 @@ class CombatResolver(rng: Random = Random(),
         playerY = state.playerY,
         difficulty = state.difficulty
       )
-      (nextState, victoryLog ++ lootLog ++ levelUpLog)
+      val events = enemyDefeatedEvent :: lootEvents ::: levelUpEvents
+      (nextState, victoryLog ++ lootLog ++ levelUpLog, events)
   }
 
   /** Player loses: transition to GameOver, preserve meta-currency. */
   private def defeat(state: CombatState,
                      deadPlayer: Player,
                      log: List[String]
-  ): (GameState, List[String]) =
+  ): (GameState, List[String], List[GameEvent]) =
     val defeatLog = log :+ "You have been defeated. The dungeon claims another soul."
-    (GameOverState(deadPlayer), defeatLog)
+    (GameOverState(deadPlayer), defeatLog, List(GameEvent.RunEnded(victory = false)))
 
   // ---------------------------------------------
   // Damage formula

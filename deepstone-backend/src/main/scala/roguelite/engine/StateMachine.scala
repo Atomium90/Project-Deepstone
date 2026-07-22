@@ -148,26 +148,27 @@ class StateMachine(roomPool: Map[String, Room],
       // -- Exploration ------------------------------------------------------
 
       case (exp: ExplorationState, Move(direction)) =>
-        lift({
-          val (dx, dy) = direction match {
-            case Direction.Up    => (0, -1)
-            case Direction.Down  => (0, 1)
-            case Direction.Left  => (-1, 0)
-            case Direction.Right => (1, 0)
-          }
+        val (dx, dy) = direction match {
+          case Direction.Up    => (0, -1)
+          case Direction.Down  => (0, 1)
+          case Direction.Left  => (-1, 0)
+          case Direction.Right => (1, 0)
+        }
 
-          val newX = exp.playerX + dx
-          val newY = exp.playerY + dy
+        val newX = exp.playerX + dx
+        val newY = exp.playerY + dy
 
-          if !exp.dungeon.currentRoom.isWalkable(newX, newY)
-          then (exp, Nil) // Silently blocked
-          else
-            val (revealedRoom, revealLog) =
-              interactionResolver.revealSecretDoors(exp.dungeon.currentRoom, newX, newY)
-            val updatedDungeon =
-              exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(revealedRoom.id, revealedRoom))
-            (exp.copy(dungeon = updatedDungeon, playerX = newX, playerY = newY), revealLog)
-        })
+        if !exp.dungeon.currentRoom.isWalkable(newX, newY)
+        then TransitionResult(exp, Nil) // Silently blocked
+        else
+          val (revealedRoom, revealLog, revealEvents) =
+            interactionResolver.revealSecretDoors(exp.dungeon.currentRoom, newX, newY)
+          val updatedDungeon =
+            exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(revealedRoom.id, revealedRoom))
+          TransitionResult(exp.copy(dungeon = updatedDungeon, playerX = newX, playerY = newY),
+                           revealLog,
+                           events = revealEvents
+          )
 
       case (exp: ExplorationState, Interact(targetId)) =>
         interactionResolver.interact(exp, targetId)
@@ -175,7 +176,8 @@ class StateMachine(roomPool: Map[String, Room],
       // -- Combat -----------------------------------------------------------
 
       case (combat: CombatState, action: CombatAction) =>
-        lift(resolver.resolve(combat, action))
+        val (next, log, events) = resolver.resolve(combat, action)
+        TransitionResult(next, log, events = events)
 
       // -- Invalid combinations ----------------------------------------------
 

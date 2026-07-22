@@ -135,7 +135,7 @@ class AbilitySuite extends FunSuite:
     val warrior  = makePlayer(ClassId.Warrior, resource = 100, resourceMax = 100)
     val state    = makeCombatState(warrior)
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     nextState match {
       case cs: CombatState =>
@@ -155,7 +155,7 @@ class AbilitySuite extends FunSuite:
     val warrior  = makePlayer(ClassId.Warrior, resource = 39, resourceMax = 100)
     val state    = makeCombatState(warrior)
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     assertEquals(nextState, state)
     assert(log.exists(_.contains("Not enough Rage")), s"missing error log: $log")
@@ -167,7 +167,7 @@ class AbilitySuite extends FunSuite:
     // Set the pending effect directly so this test is independent of handleBerserkerSlash
     val state = makeCombatState(warrior, pending = Some(PendingAbilityEffect.DoubleNextAttack))
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
 
     nextState match {
       case cs: CombatState =>
@@ -190,7 +190,7 @@ class AbilitySuite extends FunSuite:
     val archer   = makePlayer(ClassId.Archer, resource = 50, resourceMax = 50)
     val state    = makeCombatState(archer)
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     nextState match {
       case cs: CombatState =>
@@ -210,7 +210,7 @@ class AbilitySuite extends FunSuite:
     val archer   = makePlayer(ClassId.Archer, resource = 29, resourceMax = 50)
     val state    = makeCombatState(archer)
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     assertEquals(nextState, state)
     assert(log.exists(_.contains("Not enough Focus")), s"missing error log: $log")
@@ -224,7 +224,7 @@ class AbilitySuite extends FunSuite:
       pending = Some(PendingAbilityEffect.IgnoreDefenseNextAttack)
     )
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
 
     nextState match {
       case cs: CombatState =>
@@ -249,7 +249,7 @@ class AbilitySuite extends FunSuite:
     val mage             = makePlayer(ClassId.Mage, resource = 80, resourceMax = 80)
     val state            = makeCombatState(mage, enemy = highDefenseEnemy)
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     nextState match {
       case cs: CombatState =>
@@ -267,7 +267,7 @@ class AbilitySuite extends FunSuite:
     val mage     = makePlayer(ClassId.Mage, resource = 80, resourceMax = 80)
     val state    = makeCombatState(mage, enemy = dyingGoblin)
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     assert(nextState.isInstanceOf[ExplorationState],
            s"expected ExplorationState, got ${nextState.getClass.getSimpleName}"
@@ -281,7 +281,7 @@ class AbilitySuite extends FunSuite:
     val mage     = makePlayer(ClassId.Mage, resource = 29, resourceMax = 80)
     val state    = makeCombatState(mage)
 
-    val (nextState, log) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     assertEquals(nextState, state)
     assert(log.exists(_.contains("Not enough Mana")), s"missing error log: $log")
@@ -381,7 +381,7 @@ class AbilitySuite extends FunSuite:
     val state = makeCombatState(warrior, enemy = highDefEnemy)
 
     // Attack: Warrior strikes, then enemy counter-attacks
-    val (nextState, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
+    val (nextState, _, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
 
     nextState match {
       case cs: CombatState =>

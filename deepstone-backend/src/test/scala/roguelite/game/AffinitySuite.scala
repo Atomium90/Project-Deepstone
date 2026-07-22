@@ -133,7 +133,7 @@ class AffinitySuite extends FunSuite:
     // Level-1 base attack = 5 + 200/10 = 25. With iron_sword (heavy): +4×2 = +8. Total = 33.
     // Without affinity it would be 25 + 4 = 29.
     val state       = makeCombatState(warrior)
-    val (next, log) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
+    val (next, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
     // Enemy has 500 HP and 0 defense. After attack, enemy HP < 500.
     // With affinity the enemy takes more than without (min damage = 33-2 = 31 vs 27 without).
     next match
@@ -149,7 +149,7 @@ class AffinitySuite extends FunSuite:
     val resolver  = freshResolver
     val archer    = withWeapon(makePlayer(ClassId.Archer, Set("ranged")), huntersBow)
     val state     = makeCombatState(archer)
-    val (next, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
+    val (next, _, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
     next match
       case cs: CombatState =>
         // Archer level 1: 5 + 90/10 = 14 base... but we gave maxHp=200, so 5 + 200/10 = 25.
@@ -163,7 +163,7 @@ class AffinitySuite extends FunSuite:
     val resolver  = freshResolver
     val mage      = withWeapon(makePlayer(ClassId.Mage, Set("magic")), oakStaff)
     val state     = makeCombatState(mage)
-    val (next, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
+    val (next, _, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
     next match
       case cs: CombatState =>
         // Oak Staff magic: +3×2 = +6. Without affinity: +3.
@@ -183,9 +183,9 @@ class AffinitySuite extends FunSuite:
     val rng            = Random(99)
     val resolverShared = CombatResolver(rng)
 
-    val (w, _) =
+    val (w, _, _) =
       CombatResolver(Random(99)).resolve(stateWarrior, CombatAction(CombatActionType.Attack))
-    val (a, _) =
+    val (a, _, _) =
       CombatResolver(Random(99)).resolve(stateArcher, CombatAction(CombatActionType.Attack))
 
     val dmgWarrior = w match { case cs: CombatState => 500 - cs.combat.enemy.hp; case _ => 500 }
@@ -201,7 +201,7 @@ class AffinitySuite extends FunSuite:
     val resolver  = freshResolver
     val warrior   = withWeapon(makePlayer(ClassId.Warrior, Set("heavy")), noTagWeapon)
     val state     = makeCombatState(warrior)
-    val (next, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
+    val (next, _, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
     // Just verify it doesn't crash and produces a valid state
     assert(next.isInstanceOf[CombatState] || next.isInstanceOf[roguelite.engine.ExplorationState])
   }
@@ -219,9 +219,9 @@ class AffinitySuite extends FunSuite:
     val stateWith = makeCombatState(warrior)
     val stateNo   = makeCombatState(noArmor)
 
-    val (nextWith, _) =
+    val (nextWith, _, _) =
       CombatResolver(Random(42)).resolve(stateWith, CombatAction(CombatActionType.Defend))
-    val (nextNo, _) =
+    val (nextNo, _, _) =
       CombatResolver(Random(42)).resolve(stateNo, CombatAction(CombatActionType.Defend))
 
     (nextWith, nextNo) match
@@ -241,8 +241,8 @@ class AffinitySuite extends FunSuite:
     val sa       = makeCombatState(archer)
     val sw       = makeCombatState(warrior)
 
-    val (na, _) = CombatResolver(Random(7)).resolve(sa, CombatAction(CombatActionType.Defend))
-    val (nw, _) = CombatResolver(Random(7)).resolve(sw, CombatAction(CombatActionType.Defend))
+    val (na, _, _) = CombatResolver(Random(7)).resolve(sa, CombatAction(CombatActionType.Defend))
+    val (nw, _, _) = CombatResolver(Random(7)).resolve(sw, CombatAction(CombatActionType.Defend))
 
     val dmgArcher  = na match { case cs: CombatState => 200 - cs.player.hp; case _ => 0 }
     val dmgWarrior = nw match { case cs: CombatState => 200 - cs.player.hp; case _ => 0 }

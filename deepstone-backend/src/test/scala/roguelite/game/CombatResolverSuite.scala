@@ -96,38 +96,38 @@ class CombatResolverSuite extends FunSuite:
   // --- Attack --------------------------------------------------------------
 
   test("Attack on a 1-HP enemy produces victory"):
-    val (next, _) =
+    val (next, _, _) =
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState])
 
   test("Victory awards XP to the player"):
-    val (next, _) =
+    val (next, _, _) =
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assert(next.player.xp > 0)
 
   test("Victory removes the enemy entity from the room"):
-    val (next, _) = resolver().resolve(combatState(weakEnemy(entityId = "e1", hp = 1)),
+    val (next, _, _) = resolver().resolve(combatState(weakEnemy(entityId = "e1", hp = 1)),
                                        CombatAction(CombatActionType.Attack)
     )
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoom.entityById("e1"), None)
 
   test("Attack log mentions damage dealt"):
-    val (_, log) =
+    val (_, log, _) =
       resolver().resolve(combatState(weakEnemy(hp = 999)), CombatAction(CombatActionType.Attack))
     assert(log.exists(_.contains("damage")))
 
   // --- Defend --------------------------------------------------------------
 
   test("Defend stays in CombatState"):
-    val (next, _) =
+    val (next, _, _) =
       resolver().resolve(combatState(weakEnemy(hp = 50)), CombatAction(CombatActionType.Defend))
     assert(next.isInstanceOf[CombatState])
 
   test("Defend reduces damage taken compared to Attack"):
     val enemy = weakEnemy(hp = 50)
-    val (noDefend, _) =
+    val (noDefend, _, _) =
       CombatResolver(Random(1L)).resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
-    val (withDefend, _) =
+    val (withDefend, _, _) =
       CombatResolver(Random(1L)).resolve(combatState(enemy), CombatAction(CombatActionType.Defend))
     (noDefend, withDefend) match
       case (a: CombatState, b: CombatState) =>
@@ -140,7 +140,7 @@ class CombatResolverSuite extends FunSuite:
   // --- Defeat --------------------------------------------------------------
 
   test("Player death transitions to GameOverState"):
-    val (next, _) = resolver().resolve(combatState(strongEnemy(), player = lowHpPlayer),
+    val (next, _, _) = resolver().resolve(combatState(strongEnemy(), player = lowHpPlayer),
                                        CombatAction(CombatActionType.Attack)
     )
     assert(next.isInstanceOf[GameOverState] || next.isInstanceOf[ExplorationState])
@@ -148,7 +148,7 @@ class CombatResolverSuite extends FunSuite:
   // --- Boss victory ----------------------------------------------------------
 
   test("defeating the last enemy in the boss room ends the run in victory"):
-    val (next, log) = resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)),
+    val (next, log, _) = resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)),
                                          CombatAction(CombatActionType.Attack)
     )
     assert(next.isInstanceOf[GameOverState], s"expected GameOverState, got $next")
@@ -156,24 +156,86 @@ class CombatResolverSuite extends FunSuite:
     assert(log.exists(_.toLowerCase.contains("victory")), s"expected victory message in log: $log")
 
   test("player death in the boss room is still a defeat, not a victory"):
-    val (next, _) = resolver().resolve(combatStateInBossRoom(strongEnemy(), player = lowHpPlayer),
+    val (next, _, _) = resolver().resolve(combatStateInBossRoom(strongEnemy(), player = lowHpPlayer),
                                        CombatAction(CombatActionType.Attack)
     )
     next match
       case gameOver: GameOverState => assertEquals(gameOver.victory, false)
       case _                       => () // player may not have died this turn — inconclusive
 
+  // --- GameEvent emission ----------------------------------------------------
+
+  test("boss victory emits EnemyDefeated(isBoss = true) and RunEnded(victory = true)"):
+    val (_, _, events) =
+      resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true)),
+           s"expected EnemyDefeated(isBoss=true, tookNoDamage=true): $events"
+    )
+    assert(events.contains(GameEvent.RunEnded(victory = true)), s"expected RunEnded(true): $events")
+
+  test("non-boss victory emits EnemyDefeated(isBoss = false) and no RunEnded"):
+    val (_, _, events) =
+      resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true)),
+           s"expected EnemyDefeated(isBoss=false, tookNoDamage=true): $events"
+    )
+    assert(!events.exists(_.isInstanceOf[GameEvent.RunEnded]), s"unexpected RunEnded: $events")
+
+  test("victory after taking damage earlier this fight emits tookNoDamage = false"):
+    val hurtState = combatState(weakEnemy(hp = 1))
+    val stateWithDamageTaken = hurtState.copy(combat = hurtState.combat.copy(tookDamage = true))
+    val (_, _, events) = resolver().resolve(stateWithDamageTaken, CombatAction(CombatActionType.Attack))
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false)),
+           s"expected tookNoDamage = false: $events"
+    )
+
+  test("defeat emits RunEnded(victory = false)"):
+    val (_, _, events) = resolver().resolve(combatState(strongEnemy(), player = lowHpPlayer),
+                                            CombatAction(CombatActionType.Attack)
+    )
+    events match
+      case Nil => () // player may not have died this turn — inconclusive
+      case _ =>
+        assert(events.contains(GameEvent.RunEnded(victory = false)), s"expected RunEnded(false): $events")
+
+  test("a kill that crosses an XP threshold emits LeveledUp"):
+    val bigXpEnemy = weakEnemy(hp = 1).copy(xpReward = 200)
+    val (next, _, events) =
+      resolver().resolve(combatState(bigXpEnemy), CombatAction(CombatActionType.Attack))
+    assert(next.player.level > 1, s"expected a level up, player is still level ${next.player.level}")
+    assert(events.contains(GameEvent.LeveledUp(next.player.level)), s"expected LeveledUp: $events")
+
+  test("a kill that fills the last inventory slot emits ItemPickedUp(inventoryFull = true)"):
+    val filler        = Weapon("filler", "sword", "Sword", Rarity.Common, 1)
+    val almostFullInv = Inventory(Vector.fill(Inventory.MaxSlots - 1)(Some(filler)) :+ None)
+    val itemDefs: Map[String, Item] = Map(
+      "health_potion" -> Consumable("",
+                                    "health_potion",
+                                    "Health Potion",
+                                    Rarity.Common,
+                                    ConsumableEffect.HealFixed(30)
+      )
+    )
+    val enemy =
+      weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
+    val state = combatState(enemy, player = fullHpPlayer().copy(inventory = almostFullInv))
+    val (_, _, events) =
+      CombatResolver(Random(0), itemDefs).resolve(state, CombatAction(CombatActionType.Attack))
+    assert(events.contains(GameEvent.ItemPickedUp(inventoryFull = true)),
+           s"expected ItemPickedUp(inventoryFull=true): $events"
+    )
+
   // --- Item use ------------------------------------------------------------
 
   test("Item with no itemId returns 'no item selected'"):
-    val (next, log) = resolver().resolve(combatState(weakEnemy(hp = 50)),
+    val (next, log, _) = resolver().resolve(combatState(weakEnemy(hp = 50)),
                                          CombatAction(CombatActionType.Item, itemId = None)
     )
     assert(next.isInstanceOf[CombatState])
     assert(log.exists(_.toLowerCase.contains("no item")))
 
   test("Item with unknown id returns 'not found'"):
-    val (next, log) = resolver().resolve(combatState(weakEnemy(hp = 50)),
+    val (next, log, _) = resolver().resolve(combatState(weakEnemy(hp = 50)),
                                          CombatAction(CombatActionType.Item, itemId = Some("ghost"))
     )
     assert(next.isInstanceOf[CombatState])
@@ -183,7 +245,7 @@ class CombatResolverSuite extends FunSuite:
     val sword = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, 3)
     val inv   = addItem(Inventory.empty, sword)
     val state = combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(inventory = inv))
-    val (next, log) =
+    val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("w1")))
     assert(next.isInstanceOf[CombatState])
     assert(log.exists(_.toLowerCase.contains("cannot be used")))
@@ -198,7 +260,7 @@ class CombatResolverSuite extends FunSuite:
     val inv = addItem(Inventory.empty, potion)
     val state =
       combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(hp = 50, inventory = inv))
-    val (next, log) =
+    val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(next.player.hp > 50)
     assertEquals(next.player.inventory.findById("p1"), None)
@@ -209,7 +271,7 @@ class CombatResolverSuite extends FunSuite:
     val inv    = addItem(Inventory.empty, potion)
     val state =
       combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(hp = 10, inventory = inv))
-    val (next, _) =
+    val (next, _, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(next.player.hp <= next.player.maxHp)
 
@@ -218,7 +280,7 @@ class CombatResolverSuite extends FunSuite:
       Consumable("p1", "pct", "Pct Potion", Rarity.Common, ConsumableEffect.HealPercent(50))
     val inv    = addItem(Inventory.empty, potion)
     val player = fullHpPlayer().copy(hp = 10, inventory = inv) // maxHp = 120, heal = 60
-    val (next, _) = resolver().resolve(combatState(weakEnemy(hp = 50), player),
+    val (next, _, _) = resolver().resolve(combatState(weakEnemy(hp = 50), player),
                                        CombatAction(CombatActionType.Item, itemId = Some("p1"))
     )
     assert(next.player.hp > 10)
@@ -230,7 +292,7 @@ class CombatResolverSuite extends FunSuite:
     val state = combatState(weakEnemy(hp = 50),
                             player = fullHpPlayer().copy(resourceCurrent = 0, inventory = inv)
     )
-    val (next, log) =
+    val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("e1")))
     assert(next.player.resourceCurrent > 0)
     assert(log.exists(_.contains("Ether")))
@@ -239,7 +301,7 @@ class CombatResolverSuite extends FunSuite:
     val potion = Consumable("p1", "hp", "HP Potion", Rarity.Common, ConsumableEffect.HealFixed(5))
     val inv    = addItem(Inventory.empty, potion)
     val state  = combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(inventory = inv))
-    val (_, log) =
+    val (_, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(log.size >= 2, s"Expected item use + enemy action in log: $log")
 
@@ -249,11 +311,11 @@ class CombatResolverSuite extends FunSuite:
     val sword = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, 3)
     val inv   = addItem(Inventory.empty, sword)
     val heavy = weakEnemy(hp = 999)
-    val (withSword, _) =
+    val (withSword, _, _) =
       CombatResolver(Random(0)).resolve(combatState(heavy, fullHpPlayer().copy(inventory = inv)),
                                         CombatAction(CombatActionType.Attack)
       )
-    val (noSword, _) =
+    val (noSword, _, _) =
       CombatResolver(Random(0)).resolve(combatState(heavy), CombatAction(CombatActionType.Attack))
     val hpWith = withSword.asInstanceOf[CombatState].combat.enemy.hp
     val hpNo   = noSword.asInstanceOf[CombatState].combat.enemy.hp
@@ -262,11 +324,11 @@ class CombatResolverSuite extends FunSuite:
   test("armor bonus reduces damage taken from enemy"):
     val armorItem = Armor("a1", "chain_mail", "Chain Mail", Rarity.Uncommon, defenseBonus = 5)
     val inv       = addItem(Inventory.empty, armorItem)
-    val (withArmor, _) = CombatResolver(Random(0)).resolve(
+    val (withArmor, _, _) = CombatResolver(Random(0)).resolve(
       combatState(weakEnemy(hp = 50), fullHpPlayer().copy(inventory = inv)),
       CombatAction(CombatActionType.Defend)
     )
-    val (noArmor, _) = CombatResolver(Random(0)).resolve(combatState(weakEnemy(hp = 50)),
+    val (noArmor, _, _) = CombatResolver(Random(0)).resolve(combatState(weakEnemy(hp = 50)),
                                                          CombatAction(CombatActionType.Defend)
     )
     assert(withArmor.player.hp >= noArmor.player.hp,
@@ -286,7 +348,7 @@ class CombatResolverSuite extends FunSuite:
     )
     val enemy =
       weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
-    val (next, log) = CombatResolver(Random(0), itemDefs)
+    val (next, log, _) = CombatResolver(Random(0), itemDefs)
       .resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState])
     assertEquals(next.player.inventory.size, 1)
@@ -301,7 +363,7 @@ class CombatResolverSuite extends FunSuite:
                                     ConsumableEffect.HealFixed(30)
       )
     )
-    val (next, _) = CombatResolver(Random(0), itemDefs)
+    val (next, _, _) = CombatResolver(Random(0), itemDefs)
       .resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assertEquals(next.player.inventory.size, 0)
 
@@ -312,6 +374,6 @@ class CombatResolverSuite extends FunSuite:
     val enemy =
       weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("iron_ring", 100)))
     val baseMaxHp = fullHpPlayer().maxHp
-    val (next, _) = CombatResolver(Random(0), itemDefs)
+    val (next, _, _) = CombatResolver(Random(0), itemDefs)
       .resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
     assertEquals(next.player.maxHp, baseMaxHp + 10)

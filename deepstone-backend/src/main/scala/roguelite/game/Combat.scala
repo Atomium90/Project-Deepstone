@@ -37,11 +37,16 @@ enum PendingAbilityEffect:
   * @param pendingAbility
   *   A "next attack" modifier set by an ability action. Consumed on the player's next Attack and
   *   then cleared. [[scala.None]] if no ability is pending.
+  * @param tookDamage
+  *   True once the player has taken any damage during this fight. Never reset mid-fight - only a
+  *   fresh Combat (new encounter) starts it back at false. Backs the "untouchable" achievement,
+  *   read from CombatResolver.victory at the moment the fight ends.
   */
 case class Combat(
     enemy: EnemyInstance,
     isPlayerTurn: Boolean = true,
     round: Int = 1,
     playerIsDefending: Boolean = false,
-    pendingAbility: Option[PendingAbilityEffect] = None
+    pendingAbility: Option[PendingAbilityEffect] = None,
+    tookDamage: Boolean = false
 )

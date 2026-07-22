@@ -44,22 +44,26 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         lift(handleDoor(exp, door))
 
       case Some(door: LockedDoor) =>
-        lift(handleLockedDoor(exp, door))
+        liftEvents(handleLockedDoor(exp, door))
 
       case Some(enemy: Enemy) =>
         lift(handleEnemy(exp, enemy))
 
       case Some(chest: Chest) =>
-        lift(handleChest(exp, chest))
+        liftEvents(handleChest(exp, chest))
 
       case Some(npc: Npc) =>
         val (state, log, dialogue) = handleNpc(exp, npc)
         TransitionResult(state, log, dialogue)
     }
 
-  /** Lifts a handler that never produces dialogue into the richer return type `interact` needs,
-    * so every existing per-entity handler below can stay untouched. */
+  /** Lifts a handler that never produces dialogue or events into the richer return type `interact`
+    * needs, so every existing per-entity handler below can stay untouched. */
   private def lift(r: (GameState, List[String])): TransitionResult = TransitionResult(r._1, r._2)
+
+  /** Same as [[lift]], for handlers that also report [[GameEvent]]s. */
+  private def liftEvents(r: (GameState, List[String], List[GameEvent])): TransitionResult =
+    TransitionResult(r._1, r._2, events = r._3)
 
   /** Shared by a normal Door and an already-unlocked LockedDoor: navigate to the target room and
     * place the player at the tile adjacent to the door on the opposite wall. */
@@ -90,12 +94,16 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         (state, List("A trap triggers! You are thrown back."))
     }
 
-  private def handleLockedDoor(exp: ExplorationState, door: LockedDoor): (GameState, List[String]) =
-    if door.unlocked then navigateThroughDoor(exp, door.targetRoomId, door.direction)
+  private def handleLockedDoor(exp: ExplorationState,
+                               door: LockedDoor
+  ): (GameState, List[String], List[GameEvent]) =
+    if door.unlocked then
+      val (state, log) = navigateThroughDoor(exp, door.targetRoomId, door.direction)
+      (state, log, Nil)
     else
       exp.player.inventory.keys.find { case (_, key) => KeyKind.canUnlock(key.keyKind, door) } match {
         case None =>
-          (exp, List("This door is locked. You need a key."))
+          (exp, List("This door is locked. You need a key."), Nil)
         case Some((idx, key)) =>
           val (_, invAfterRemoval) = exp.player.inventory.removeAt(idx)
           val updatedPlayer        = exp.player.copy(inventory = invAfterRemoval)
@@ -109,7 +117,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
             door.targetRoomId,
             door.direction
           )
-          (state, s"You use ${key.name} to unlock the door." :: navLog)
+          (state, s"You use ${key.name} to unlock the door." :: navLog, List(GameEvent.DoorUnlockedWithKey))
       }
 
   private def handleEnemy(exp: ExplorationState, enemy: Enemy): (GameState, List[String]) =
@@ -130,7 +138,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         (nextState, List(s"You engage the ${stats.label}!"))
     }
 
-  private def handleChest(exp: ExplorationState, chest: Chest): (GameState, List[String]) =
+  private def handleChest(exp: ExplorationState,
+                          chest: Chest
+  ): (GameState, List[String], List[GameEvent]) =
     val roomWithoutChest = exp.dungeon.currentRoom.removeEntity(chest.id)
 
     if chest.trapped then
@@ -138,7 +148,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         spawnTrapEnemies(roomWithoutChest, chest, exp.playerX, exp.playerY)
       val updatedDungeon =
         exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(trappedRoom.id, trappedRoom))
-      (exp.copy(dungeon = updatedDungeon), trapLog)
+      (exp.copy(dungeon = updatedDungeon), trapLog, Nil)
     else
       val updatedDungeon = exp.dungeon.copy(
         rooms = exp.dungeon.rooms.updated(roomWithoutChest.id, roomWithoutChest)
@@ -146,17 +156,19 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
       LootTable.rollChest(itemDefs, rng, exp.difficulty) match {
         case None =>
-          (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."))
+          (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."), Nil)
         case Some(item) =>
           exp.player.withItemPickup(item) match {
             case Left(_) =>
               (exp.copy(dungeon = updatedDungeon),
-               List(s"You open the chest but your inventory is full — ${item.name} is lost!")
+               List(s"You open the chest but your inventory is full — ${item.name} is lost!"),
+               Nil
               )
 
             case Right(updatedPlayer) =>
               (exp.copy(dungeon = updatedDungeon, player = updatedPlayer),
-               List(s"You open the chest and find ${item.name}! (${item.statLine})")
+               List(s"You open the chest and find ${item.name}! (${item.statLine})"),
+               List(GameEvent.ItemPickedUp(inventoryFull = updatedPlayer.inventory.isFull))
               )
           }
       }
@@ -215,21 +227,21 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     * [[roguelite.engine.StateMachine]]'s Move handling, not Interact (same family of "entities
     * reacting to the player" logic, so it lives here rather than splitting door logic across two
     * classes). */
-  def revealSecretDoors(room: Room, x: Int, y: Int): (Room, List[String]) =
+  def revealSecretDoors(room: Room, x: Int, y: Int): (Room, List[String], List[GameEvent]) =
     val toReveal = room.entities.collect:
       case d: Door
           if d.doorKind == DoorKind.Secret && !d.revealed &&
             math.max(math.abs(d.x - x), math.abs(d.y - y)) <= 1 =>
         d
 
-    if toReveal.isEmpty then (room, Nil)
+    if toReveal.isEmpty then (room, Nil, Nil)
     else
       val updated = toReveal.foldLeft(room): (r, d) =>
         r.withFloorAt(d.x, d.y).updateEntity(d.id) {
           case door: Door => door.copy(revealed = true)
           case o          => o
         }
-      (updated, List("You notice a hidden passage in the wall!"))
+      (updated, List("You notice a hidden passage in the wall!"), List(GameEvent.SecretDoorRevealed))
 
   /** Find a sensible spawn point in the target room when entering through a door.
     *

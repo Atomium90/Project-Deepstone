@@ -15,6 +15,7 @@ import roguelite.db.Database
 import roguelite.game.Item
 import roguelite.game.UpgradeDef
 import roguelite.game.AbilityDef
+import roguelite.game.AchievementDef
 
 /** Builds the HTTP routes for the game server.
   *
@@ -25,14 +26,16 @@ class WebSocketRouter(stateMachine: StateMachine,
                       database: Database,
                       itemDefs: Map[String, Item],
                       upgradeDefs: Map[String, UpgradeDef],
-                      abilityDefs: Map[ClassId, AbilityDef]
+                      abilityDefs: Map[ClassId, AbilityDef],
+                      achievementDefs: Map[String, AchievementDef]
 )(using logger: Logger[IO]):
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] =
     HttpRoutes.of[IO]:
       case GET -> Root / "ws" =>
         for
-          session <- GameSession.create(stateMachine, database, itemDefs, upgradeDefs, abilityDefs)
+          session <-
+            GameSession.create(stateMachine, database, itemDefs, upgradeDefs, abilityDefs, achievementDefs)
           // Unbounded queue used to push outgoing frames from the receive handler
           outgoing <- Queue.unbounded[IO, WebSocketFrame]
           // Seed the queue with the initial state so the client receives it immediately on connect, before sending any action

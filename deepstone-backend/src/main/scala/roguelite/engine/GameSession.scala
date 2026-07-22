@@ -10,6 +10,7 @@ import roguelite.game.UpgradeDef
 import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
 import roguelite.game.Inventory
+import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 
 /** Represents one active player connection.
   *
@@ -22,10 +23,12 @@ import roguelite.game.Inventory
 class GameSession private (
     stateRef: Ref[IO, GameState],
     metaRef: Ref[IO, MetaProgression],
+    achievementRef: Ref[IO, AchievementProgress],
     stateMachine: StateMachine,
     database: Database,
     itemDefs: Map[String, Item],
     upgradeDefs: Map[String, UpgradeDef],
+    achievementDefs: Map[String, AchievementDef],
     abilityCatalog: List[AbilityView]
 ):
 
@@ -38,19 +41,39 @@ class GameSession private (
         handleBuyUpgrade(upgradeId)
       case _ =>
         handleTransition(action)
-    result.map(withCatalog)
+    for
+      update   <- result
+      progress <- achievementRef.get
+    yield withAchievements(withCatalog(update), progress)
 
   /** Return the current state snapshot without changing anything. Useful for sending the initial
     * state right after connection.
     */
   def currentUpdate: IO[StateUpdate] =
-    stateRef.get.map(_.toStateUpdate()).map(withCatalog)
+    for
+      state    <- stateRef.get
+      progress <- achievementRef.get
+    yield withAchievements(withCatalog(state.toStateUpdate()), progress)
 
   /** Attach the static per-class ability catalog to every outgoing update, so the client never
     * has to hardcode ability names, costs, or resource labels — see [[AbilityView]].
     */
   private def withCatalog(update: StateUpdate): StateUpdate =
     update.copy(abilities = abilityCatalog)
+
+  /** Attach the full achievement catalog (locked and unlocked) to every outgoing update, so the
+    * client never has to hardcode achievement labels or descriptions — see [[AchievementView]].
+    */
+  private def withAchievements(update: StateUpdate, progress: AchievementProgress): StateUpdate =
+    update.copy(achievements = achievementCatalog(progress))
+
+  private def achievementCatalog(progress: AchievementProgress): List[AchievementView] =
+    achievementDefs.values.toList
+      .sortBy(_.displayOrder)
+      .map(d => toAchievementView(d, progress.isUnlocked(d.id)))
+
+  private def toAchievementView(d: AchievementDef, unlocked: Boolean): AchievementView =
+    AchievementView(id = d.id, label = d.label, description = d.description, unlocked = unlocked)
 
   // -----------------------------------------------------------------------
   // Internal — transition handling
@@ -63,8 +86,11 @@ class GameSession private (
           val transitionResult = stateMachine.applyActionPure(state, action)
           (transitionResult.state, (state, transitionResult))
       (prev, transitionResult) = result
-      finalNext <- handlePostTransition(prev, transitionResult.state)
-    yield finalNext.toStateUpdate(transitionResult.log, transitionResult.dialogue)
+      finalNext     <- handlePostTransition(prev, transitionResult.state)
+      newlyUnlocked <- processAchievementEvents(transitionResult.events)
+    yield finalNext
+      .toStateUpdate(transitionResult.log, transitionResult.dialogue)
+      .copy(newlyUnlocked = newlyUnlocked)
 
   /** Side-effects and state enrichment triggered by specific state transitions.
     *
@@ -100,6 +126,55 @@ class GameSession private (
       case _ =>
         IO.pure(next)
 
+  /** Check the achievement catalog against the events emitted by this transition, persist any
+    * newly-unlocked achievements and updated counters, and return the freshly-unlocked views for
+    * the outgoing [[StateUpdate]].
+    */
+  private def processAchievementEvents(events: List[GameEvent]): IO[List[AchievementView]] =
+    if events.isEmpty then IO.pure(Nil)
+    else
+      for
+        progress <- achievementRef.get
+        (updatedStats, newlyUnlockedDefs) =
+          AchievementChecker.checkEvents(achievementDefs, progress.unlocked, progress.stats, events)
+        _ <-
+          if newlyUnlockedDefs.isEmpty && updatedStats == progress.stats then IO.unit
+          else persistAchievementProgress(progress, updatedStats, newlyUnlockedDefs)
+      yield newlyUnlockedDefs.map(d => toAchievementView(d, unlocked = true))
+
+  /** Same as [[processAchievementEvents]], for the two conditions only reachable from a successful
+    * upgrade purchase ([[roguelite.game.AchievementCondition.TotalShardsSpent]],
+    * [[roguelite.game.AchievementCondition.AllUpgradesUnlocked]]).
+    */
+  private def processAchievementPurchase(spent: Int,
+                                         unlockedUpgradeCount: Int
+  ): IO[List[AchievementView]] =
+    for
+      progress <- achievementRef.get
+      (updatedStats, newlyUnlockedDefs) = AchievementChecker.checkPurchase(
+        achievementDefs,
+        progress.unlocked,
+        progress.stats,
+        spent,
+        unlockedUpgradeCount,
+        upgradeDefs.size
+      )
+      _ <- persistAchievementProgress(progress, updatedStats, newlyUnlockedDefs)
+    yield newlyUnlockedDefs.map(d => toAchievementView(d, unlocked = true))
+
+  private def persistAchievementProgress(prevProgress: AchievementProgress,
+                                         updatedStats: AchievementStats,
+                                         newlyUnlocked: List[AchievementDef]
+  ): IO[Unit] =
+    val newIds = newlyUnlocked.map(_.id)
+    val updatedProgress =
+      prevProgress.copy(unlocked = prevProgress.unlocked ++ newIds, stats = updatedStats)
+    for
+      _ <- database.saveAchievementStats(updatedStats)
+      _ <- newIds.foldLeft(IO.unit)((acc, id) => acc *> database.unlockAchievement(id))
+      _ <- achievementRef.set(updatedProgress)
+    yield ()
+
   /** Validate, persist, and apply an upgrade purchase atomically from the session's perspective.
     *
     * The DB write and the in-memory update happen sequentially. A failure in `database.purchaseUpgrade`
@@ -115,6 +190,7 @@ class GameSession private (
           IO.pure(state.toStateUpdate(List(err)))
 
         case Right(newMeta) =>
+          val spent = upgradeDefs.get(upgradeId).map(_.cost).getOrElse(0)
           for
             _ <- database.purchaseUpgrade(upgradeId, newMeta.currency)
             _ <- metaRef.set(newMeta)
@@ -122,7 +198,8 @@ class GameSession private (
             newState  = HubState(newPlayer, upgradeDefs, newMeta)
             _ <- stateRef.set(newState)
             label = upgradeDefs.get(upgradeId).map(_.label).getOrElse(upgradeId)
-          yield newState.toStateUpdate(List(s"$label purchased!"))
+            newlyUnlocked <- processAchievementPurchase(spent, newMeta.unlockedUpgrades.size)
+          yield newState.toStateUpdate(List(s"$label purchased!")).copy(newlyUnlocked = newlyUnlocked)
     yield update
 
   /** Apply every unlocked upgrade's [[UpgradeEffect]] to the player at the start of a new run.
@@ -170,15 +247,19 @@ object GameSession:
     * @param upgradeDefs   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]).
     * @param abilityDefs   The loaded ability catalog (see [[roguelite.game.AbilityLoader]]),
     *                      projected once into the [[AbilityView]] catalog sent on every update.
+    * @param achievementDefs The loaded achievement catalog (see [[roguelite.game.AchievementLoader]]).
     */
   def create(stateMachine: StateMachine,
              database: Database,
              itemDefs: Map[String, Item],
              upgradeDefs: Map[String, UpgradeDef],
-             abilityDefs: Map[ClassId, AbilityDef]
+             abilityDefs: Map[ClassId, AbilityDef],
+             achievementDefs: Map[String, AchievementDef]
   ): IO[GameSession] =
     for
-      meta <- database.loadMeta()
+      meta                 <- database.loadMeta()
+      achievementStats     <- database.loadAchievementStats()
+      unlockedAchievements <- database.loadUnlockedAchievements()
       initPlayer = Player(classId = ClassId.Warrior,
                           hp = 100,
                           maxHp = 100,
@@ -188,10 +269,20 @@ object GameSession:
                           xp = 0,
                           metaCurrency = meta.currency
       )
-      stateRef <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta))
-      metaRef  <- Ref.of[IO, MetaProgression](meta)
+      stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta))
+      metaRef        <- Ref.of[IO, MetaProgression](meta)
+      achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
       abilityCatalog = abilityDefs.values.map(toAbilityView).toList
-    yield new GameSession(stateRef, metaRef, stateMachine, database, itemDefs, upgradeDefs, abilityCatalog)
+    yield new GameSession(stateRef,
+                          metaRef,
+                          achievementRef,
+                          stateMachine,
+                          database,
+                          itemDefs,
+                          upgradeDefs,
+                          achievementDefs,
+                          abilityCatalog
+    )
 
   private def toAbilityView(a: AbilityDef): AbilityView =
     AbilityView(

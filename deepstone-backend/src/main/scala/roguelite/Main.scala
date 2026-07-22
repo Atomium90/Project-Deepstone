@@ -7,6 +7,7 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import roguelite.engine.{ StateMachine, WebSocketRouter }
 import roguelite.game.{
   AbilityLoader,
+  AchievementLoader,
   ClassLoader,
   CombatResolver,
   EnemyLoader,
@@ -40,9 +41,11 @@ object Main extends IOApp.Simple:
             abilityDefs <- AbilityLoader.loadAll()
             upgradeDefs <- UpgradeLoader.loadAll()
             npcDialogueDefs <- NpcDialogueLoader.loadAll()
+            achievementDefs <- AchievementLoader.loadAll()
             _ <- logger.info(
               s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
-                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, ${npcDialogueDefs.size} npc dialogues."
+                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, ${npcDialogueDefs.size} npc dialogues, " +
+                s"${achievementDefs.size} achievements."
             )
 
             resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs)
@@ -54,7 +57,7 @@ object Main extends IOApp.Simple:
                                         resolver,
                                         npcDialogueDefs = npcDialogueDefs
             )
-            router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs)
+            router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs, achievementDefs)
 
             _ <- EmberServerBuilder
               .default[IO]

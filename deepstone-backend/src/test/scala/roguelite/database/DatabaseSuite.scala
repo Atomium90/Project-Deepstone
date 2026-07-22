@@ -1,7 +1,7 @@
 package roguelite.db
 
 import munit.CatsEffectSuite
-import roguelite.game.{ MetaProgression, UpgradeDef, UpgradeEffect }
+import roguelite.game.{ AchievementStats, MetaProgression, UpgradeDef, UpgradeEffect }
 
 /** Tests for [[Database]]: schema initialisation, meta loading, currency persistence,
   * and upgrade purchase atomicity.
@@ -125,6 +125,68 @@ class DatabaseSuite extends CatsEffectSuite:
       yield
         assertEquals(meta.currency, 340)
         assertEquals(meta.unlockedUpgrades, Set("hp_boost_1", "archer_unlock", "mage_unlock"))
+  }
+
+  // -----------------------------------------------------------------------
+  // Achievement unlocks and lifetime stats
+  // -----------------------------------------------------------------------
+
+  db.test("fresh database has no unlocked achievements") {
+    db =>
+      db.loadUnlockedAchievements()
+        .map:
+          unlocked => assertEquals(unlocked, Set.empty[String])
+  }
+
+  db.test("fresh database has zero-valued achievement stats") {
+    db =>
+      db.loadAchievementStats()
+        .map:
+          stats => assertEquals(stats, AchievementStats.empty)
+  }
+
+  db.test("unlockAchievement records the achievement") {
+    db =>
+      for
+        _        <- db.unlockAchievement("first_blood")
+        unlocked <- db.loadUnlockedAchievements()
+      yield assert(unlocked.contains("first_blood"), "first_blood should be unlocked")
+  }
+
+  db.test("unlockAchievement is idempotent — INSERT OR IGNORE prevents duplicates") {
+    db =>
+      for
+        _        <- db.unlockAchievement("first_blood")
+        _        <- db.unlockAchievement("first_blood")
+        unlocked <- db.loadUnlockedAchievements()
+      yield assertEquals(unlocked.count(_ == "first_blood"), 1)
+  }
+
+  db.test("multiple achievements unlock independently") {
+    db =>
+      for
+        _        <- db.unlockAchievement("first_blood")
+        _        <- db.unlockAchievement("boss_slayer")
+        unlocked <- db.loadUnlockedAchievements()
+      yield assertEquals(unlocked, Set("first_blood", "boss_slayer"))
+  }
+
+  db.test("saveAchievementStats persists and round-trips every counter") {
+    db =>
+      val stats = AchievementStats(runsCompleted = 3, runsWon = 2, currentWinStreak = 2, totalShardsSpent = 150)
+      for
+        _      <- db.saveAchievementStats(stats)
+        loaded <- db.loadAchievementStats()
+      yield assertEquals(loaded, stats)
+  }
+
+  db.test("saveAchievementStats overwrites the previous values") {
+    db =>
+      for
+        _      <- db.saveAchievementStats(AchievementStats(runsCompleted = 1, runsWon = 1, currentWinStreak = 1, totalShardsSpent = 50))
+        _      <- db.saveAchievementStats(AchievementStats(runsCompleted = 5, runsWon = 0, currentWinStreak = 0, totalShardsSpent = 300))
+        loaded <- db.loadAchievementStats()
+      yield assertEquals(loaded, AchievementStats(runsCompleted = 5, runsWon = 0, currentWinStreak = 0, totalShardsSpent = 300))
   }
 
   // -----------------------------------------------------------------------

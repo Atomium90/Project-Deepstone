@@ -59,20 +59,19 @@ class StateMachine(roomPool: Map[String, Room],
   /** Lifts a plain (state, log) transition result into the richer type `applyActionPure` returns,
     * so every action that never produces dialogue (everything except Interact on an Npc) can keep
     * its existing shape untouched. */
-  private def withNoDialogue(r: (GameState, List[String])): (GameState, List[String], Option[DialogueView]) =
-    (r._1, r._2, None)
+  private def lift(r: (GameState, List[String])): TransitionResult = TransitionResult(r._1, r._2)
 
-  def transition(state: GameState, action: PlayerAction): IO[(GameState, List[String], Option[DialogueView])] =
+  def transition(state: GameState, action: PlayerAction): IO[TransitionResult] =
     IO.pure(applyActionPure(state, action))
 
   /** Pure (non-IO) version used internally and by GameSession. */
-  def applyActionPure(state: GameState, action: PlayerAction): (GameState, List[String], Option[DialogueView]) =
+  def applyActionPure(state: GameState, action: PlayerAction): TransitionResult =
     (state, action) match
 
       // -- Hub --------------------------------------------------------------
 
       case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt)) =>
-        withNoDialogue({
+        lift({
           val lockedBehind = upgradeDefs.values.find {
             u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
           }
@@ -124,7 +123,7 @@ class StateMachine(roomPool: Map[String, Room],
 
       case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _)) =>
         // BuyUpgrade is intercepted by GameSession (needs DB access); reject here as a safety net
-        withNoDialogue((hub, List("Upgrade purchases must be routed through GameSession.")))
+        lift((hub, List("Upgrade purchases must be routed through GameSession.")))
 
       // Return to hub after death: GameSession enriches the HubState with real meta
       case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _)) =>
@@ -140,7 +139,7 @@ class StateMachine(roomPool: Map[String, Room],
           metaCurrency = gameOver.player.metaCurrency
         )
         // MetaProgression.empty is a placeholder; GameSession replaces it with the real meta
-        withNoDialogue(
+        lift(
           (HubState(hubPlayer, upgradeDefs, MetaProgression.empty),
            List("You return to the hub, wiser from your journey.")
           )
@@ -149,7 +148,7 @@ class StateMachine(roomPool: Map[String, Room],
       // -- Exploration ------------------------------------------------------
 
       case (exp: ExplorationState, Move(direction)) =>
-        withNoDialogue({
+        lift({
           val (dx, dy) = direction match {
             case Direction.Up    => (0, -1)
             case Direction.Down  => (0, 1)
@@ -176,12 +175,12 @@ class StateMachine(roomPool: Map[String, Room],
       // -- Combat -----------------------------------------------------------
 
       case (combat: CombatState, action: CombatAction) =>
-        withNoDialogue(resolver.resolve(combat, action))
+        lift(resolver.resolve(combat, action))
 
       // -- Invalid combinations ----------------------------------------------
 
       case (currentState, invalidAction) =>
-        withNoDialogue(
+        lift(
           (currentState,
            List(
              s"Action ${invalidAction.getClass.getSimpleName} is not valid in state ${currentState.getClass.getSimpleName}."

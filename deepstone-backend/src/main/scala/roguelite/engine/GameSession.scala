@@ -60,11 +60,11 @@ class GameSession private (
     for
       result <- stateRef.modify:
         state =>
-          val (next, log, dialogue) = stateMachine.applyActionPure(state, action)
-          (next, (state, next, log, dialogue))
-      (prev, next, log, dialogue) = result
-      finalNext <- handlePostTransition(prev, next)
-    yield finalNext.toStateUpdate(log, dialogue)
+          val transitionResult = stateMachine.applyActionPure(state, action)
+          (transitionResult.state, (state, transitionResult))
+      (prev, transitionResult) = result
+      finalNext <- handlePostTransition(prev, transitionResult.state)
+    yield finalNext.toStateUpdate(transitionResult.log, transitionResult.dialogue)
 
   /** Side-effects and state enrichment triggered by specific state transitions.
     *

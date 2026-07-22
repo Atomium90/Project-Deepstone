@@ -1,0 +1,86 @@
+[
+  {
+    "id": "first_blood",
+    "label": "First Blood",
+    "description": "Defeat your first enemy.",
+    "displayOrder": 0,
+    "condition": { "type": "FirstKill" }
+  },
+  {
+    "id": "boss_slayer",
+    "label": "Boss Slayer",
+    "description": "Defeat a dungeon boss.",
+    "displayOrder": 1,
+    "condition": { "type": "DefeatBoss" }
+  },
+  {
+    "id": "level_5",
+    "label": "Rising Power",
+    "description": "Reach level 5 in a single run.",
+    "displayOrder": 2,
+    "condition": { "type": "ReachLevel", "level": 5 }
+  },
+  {
+    "id": "untouchable",
+    "label": "Untouchable",
+    "description": "Win a combat without taking any damage.",
+    "displayOrder": 3,
+    "condition": { "type": "NoDamageVictory" }
+  },
+  {
+    "id": "packrat",
+    "label": "Packrat",
+    "description": "Fill every inventory slot.",
+    "displayOrder": 4,
+    "condition": { "type": "FillInventory" }
+  },
+  {
+    "id": "big_spender",
+    "label": "Big Spender",
+    "description": "Spend 200 Shards total on upgrades.",
+    "displayOrder": 5,
+    "condition": { "type": "TotalShardsSpent", "amount": 200 }
+  },
+  {
+    "id": "key_master",
+    "label": "Key Master",
+    "description": "Unlock a locked door with a key.",
+    "displayOrder": 6,
+    "condition": { "type": "UnlockDoorWithKey" }
+  },
+  {
+    "id": "secret_finder",
+    "label": "Secret Finder",
+    "description": "Reveal a hidden secret door.",
+    "displayOrder": 7,
+    "condition": { "type": "RevealSecretDoor" }
+  },
+  {
+    "id": "veteran",
+    "label": "Veteran",
+    "description": "Complete 5 runs.",
+    "displayOrder": 8,
+    "condition": { "type": "RunsCompleted", "count": 5 }
+  },
+  {
+    "id": "champion",
+    "label": "Champion",
+    "description": "Win 5 runs.",
+    "displayOrder": 9,
+    "condition": { "type": "RunsWon", "count": 5 }
+  },
+  {
+    "id": "win_streak",
+    "label": "Unstoppable",
+    "description": "Win 5 runs in a row.",
+    "displayOrder": 10,
+    "condition": { "type": "WinStreak", "count": 5 }
+  },
+  {
+    "id": "completionist",
+    "label": "Completionist",
+    "description": "Unlock every hub upgrade.",
+    "displayOrder": 11,
+    "condition": { "type": "AllUpgradesUnlocked" }
+  }
+]

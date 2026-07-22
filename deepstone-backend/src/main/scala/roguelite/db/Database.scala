@@ -4,7 +4,7 @@ import doobie.util.transactor.Transactor
 import doobie.implicits.*
 import cats.implicits.*
 import cats.effect.IO
-import roguelite.game.MetaProgression
+import roguelite.game.{ AchievementStats, MetaProgression }
 import cats.effect.kernel.Resource
 import scala.concurrent.ExecutionContext
 import java.util.concurrent.Executors
@@ -41,7 +41,25 @@ class Database private (xa: Transactor[IO]):
               )
             """.update.run *>
         sql"""
+              CREATE TABLE IF NOT EXISTS achievement_unlock (
+                achievement_id TEXT PRIMARY KEY,
+                unlocked_at    INTEGER NOT NULL DEFAULT (unixepoch())
+              )
+            """.update.run *>
+        sql"""
+              CREATE TABLE IF NOT EXISTS achievement_stats (
+                id                 INTEGER PRIMARY KEY CHECK (id = 1),
+                runs_completed     INTEGER NOT NULL DEFAULT 0,
+                runs_won           INTEGER NOT NULL DEFAULT 0,
+                current_win_streak INTEGER NOT NULL DEFAULT 0,
+                total_shards_spent INTEGER NOT NULL DEFAULT 0
+              )
+            """.update.run *>
+        sql"""
               INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)
+            """.update.run *>
+        sql"""
+              INSERT OR IGNORE INTO achievement_stats (id) VALUES (1)
             """.update.run
     ddl.transact(xa).void
 
@@ -79,6 +97,38 @@ class Database private (xa: Transactor[IO]):
     val unlock =
       sql"INSERT OR IGNORE INTO upgrade_unlock (upgrade_id) VALUES ($upgradeId)".update.run
     (deduct *> unlock).transact(xa).void
+
+  /** Load the lifetime achievement counters (runs completed/won, win streak, total Shards spent). */
+  def loadAchievementStats(): IO[AchievementStats] =
+    sql"""SELECT runs_completed, runs_won, current_win_streak, total_shards_spent
+          FROM achievement_stats WHERE id = 1"""
+      .query[(Int, Int, Int, Int)]
+      .unique
+      .map:
+        case (runsCompleted, runsWon, currentWinStreak, totalShardsSpent) =>
+          AchievementStats(runsCompleted, runsWon, currentWinStreak, totalShardsSpent)
+      .transact(xa)
+
+  /** Load the set of permanently-unlocked achievement ids. */
+  def loadUnlockedAchievements(): IO[Set[String]] =
+    sql"SELECT achievement_id FROM achievement_unlock".query[String].to[Set].transact(xa)
+
+  /** Record an achievement as unlocked. Idempotent - safe to call again for an id that is already
+    * unlocked (INSERT OR IGNORE), same pattern as the unlock half of [[purchaseUpgrade]].
+    */
+  def unlockAchievement(achievementId: String): IO[Unit] =
+    sql"INSERT OR IGNORE INTO achievement_unlock (achievement_id) VALUES ($achievementId)".update.run
+      .transact(xa)
+      .void
+
+  /** Overwrite the lifetime achievement counters with their current values. */
+  def saveAchievementStats(stats: AchievementStats): IO[Unit] =
+    sql"""UPDATE achievement_stats
+          SET runs_completed = ${stats.runsCompleted},
+              runs_won = ${stats.runsWon},
+              current_win_streak = ${stats.currentWinStreak},
+              total_shards_spent = ${stats.totalShardsSpent}
+          WHERE id = 1""".update.run.transact(xa).void
 
 object Database:
 

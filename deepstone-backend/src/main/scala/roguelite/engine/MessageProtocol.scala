@@ -156,6 +156,11 @@ case class AbilityView(
     description: String
 )
 
+/** One achievement's display state. Sent as a full catalog on every [[StateUpdate]] (same
+  * rationale as [[AbilityView]] — the client never hardcodes the list), independent of phase.
+  */
+case class AchievementView(id: String, label: String, description: String, unlocked: Boolean)
+
 /** Full game state snapshot sent by the server after every action. */
 case class StateUpdate(
     phase: GamePhase,
@@ -165,12 +170,19 @@ case class StateUpdate(
     hub: Option[HubView] = None,
     inventory: List[ItemView] = Nil,
     abilities: List[AbilityView] = Nil,
+    achievements: List[AchievementView] = Nil,
     /** Only meaningful when phase is GameOver: true if the dungeon's boss was defeated, false if
       * the player died.
       */
     victory: Boolean = false,
     log: List[String] = Nil,
-    dialogue: Option[DialogueView] = None
+    dialogue: Option[DialogueView] = None,
+    /** Achievements newly earned by the action that produced this update. Transient — only
+      * non-empty on the single update where one or more achievements were just unlocked, same
+      * convention as [[dialogue]]. A list, not an Option, since a single action can plausibly earn
+      * more than one at once (e.g. a kill that is simultaneously a first kill and a level-up).
+      */
+    newlyUnlocked: List[AchievementView] = Nil
 )
 
 // ---------------------------------------------
@@ -258,9 +270,10 @@ object MessageProtocol:
   given Encoder[UpgradeView]  = deriveEncoder
   given Encoder[HubView]      = deriveEncoder
   given Encoder[ItemView]     = deriveEncoder
-  given Encoder[AbilityView]  = deriveEncoder
-  given Encoder[DialogueView] = deriveEncoder
-  given Encoder[StateUpdate]  = deriveEncoder
+  given Encoder[AbilityView]     = deriveEncoder
+  given Encoder[AchievementView] = deriveEncoder
+  given Encoder[DialogueView]    = deriveEncoder
+  given Encoder[StateUpdate]     = deriveEncoder
 
   /** Serialize a StateUpdate to a JSON string to be sent over the WebSocket. */
   def encodeUpdate(update: StateUpdate): String = update.asJson.noSpaces

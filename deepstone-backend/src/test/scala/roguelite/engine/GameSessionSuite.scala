@@ -94,6 +94,31 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
+  /** Minimal achievement catalog mirroring achievements.json — avoids file I/O in unit tests.
+    * Only a small representative subset is needed here (thorough per-condition coverage lives in
+    * AchievementCheckerSuite); this just exercises the GameSession wiring end-to-end.
+    */
+  val testAchievementDefs: Map[String, AchievementDef] = Map(
+    "first_blood" -> AchievementDef("first_blood",
+                                    "First Blood",
+                                    "Defeat your first enemy.",
+                                    displayOrder = 0,
+                                    condition = AchievementCondition.FirstKill
+    ),
+    "big_spender" -> AchievementDef("big_spender",
+                                    "Big Spender",
+                                    "Spend 50 Shards total on upgrades.",
+                                    displayOrder = 1,
+                                    condition = AchievementCondition.TotalShardsSpent(50)
+    ),
+    "completionist" -> AchievementDef("completionist",
+                                      "Completionist",
+                                      "Unlock every hub upgrade.",
+                                      displayOrder = 2,
+                                      condition = AchievementCondition.AllUpgradesUnlocked
+    )
+  )
+
   /** Room pool for DungeonBuilder — needs at least one Combat (entrance) and one Boss room. */
   def testRoomPool: Map[String, Room] =
     val tiles = makeTiles()
@@ -111,13 +136,44 @@ class GameSessionSuite extends CatsEffectSuite:
                  CombatResolver(Random(0L))
     )
 
+  /** A single Combat room (guaranteed to be picked as the entrance, since it's the only Combat
+    * room in the pool - see DungeonBuilder.pickOne) with one 1-HP goblin already placed in it, so
+    * an achievement-triggering kill can be reached through a full session.handle(...) sequence
+    * without needing to know where DungeonBuilder actually put the player.
+    */
+  def achievementRoomPool: Map[String, Room] =
+    val tiles = makeTiles()
+    val enemy = Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin")
+    val r1    = Room("r1", RoomType.Combat, 8, 6, tiles, List(enemy))
+    val boss  = Room("boss", RoomType.Boss, 8, 6, tiles, Nil)
+    Map("r1" -> r1, "boss" -> boss)
+
+  val weakGoblinStats: EnemyStats = EnemyStats(
+    typeId = "goblin",
+    label = "Goblin",
+    maxHp = 1,
+    attack = 1,
+    defense = 0,
+    xpReward = 15,
+    actions = List(EnemyActionWeight("ATTACK", 100))
+  )
+
+  def smWithEnemy: StateMachine =
+    StateMachine(achievementRoomPool,
+                 Map("goblin" -> weakGoblinStats),
+                 Map.empty,
+                 testClassDefs,
+                 testUpgradeDefs,
+                 CombatResolver(Random(0L))
+    )
+
   // One fresh in-memory DB per test
   val db = ResourceFixture(Database.inMemory())
 
   db.test("new session starts in Hub phase") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update  <- session.currentUpdate
       yield assertEquals(update.phase, GamePhase.Hub)
   }
@@ -125,7 +181,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("hub state update includes upgrade list") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update  <- session.currentUpdate
       yield
         assert(update.hub.isDefined, "hub should be present")
@@ -135,7 +191,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("hub upgrade list shows zero unlocked upgrades on fresh DB") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update  <- session.currentUpdate
       yield assert(update.hub.get.upgrades.forall(!_.unlocked), "no upgrades should be unlocked")
   }
@@ -143,7 +199,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("StartRun transitions session to Exploration") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
       yield assertEquals(update.phase, GamePhase.Exploration)
   }
@@ -151,7 +207,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("session state persists across multiple handle calls") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         _ <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
         update <- session.handle(Move(Direction.Right))
       yield
@@ -162,7 +218,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("invalid action in wrong state returns log and does not crash") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update  <- session.handle(Move(Direction.Up))
       yield
         assertEquals(update.phase, GamePhase.Hub)
@@ -172,7 +228,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("StateUpdate always contains inventory list") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
       yield assertEquals(update.inventory, Nil)
   }
@@ -180,7 +236,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("handle is concurrency-safe") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         _ <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
         _ <- IO.both(
           session.handle(Move(Direction.Right)),
@@ -193,7 +249,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("BuyUpgrade with insufficient currency returns error log") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty) // starts with 0 currency
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs) // starts with 0 currency
         update <- session.handle(
           HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))
         )
@@ -208,7 +264,7 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         _       <- database.saveCurrency(100)
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update <- session.handle(
           HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))
         )
@@ -223,7 +279,7 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         _       <- database.saveCurrency(100)
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
         update <- session.currentUpdate
       yield
@@ -235,7 +291,7 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         _       <- database.saveCurrency(42)
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update  <- session.currentUpdate
       yield assertEquals(update.player.metaCurrency, 42)
   }
@@ -247,7 +303,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("StartRun for a class locked behind an unpurchased upgrade is rejected") {
     database =>
       for
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
       yield
         assertEquals(update.phase, GamePhase.Hub)
@@ -258,7 +314,7 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         _       <- database.saveCurrency(50)
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("archer_unlock")))
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
       yield
@@ -274,8 +330,87 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         _       <- database.saveCurrency(30)
-        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
       yield assertEquals(update.player.maxHp, 140) // base Warrior 120 (test fixture) + 20
+  }
+
+  // -----------------------------------------------------------------------
+  // Achievements
+  // -----------------------------------------------------------------------
+
+  db.test("fresh session's achievement catalog lists every def, all locked") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        update  <- session.currentUpdate
+      yield
+        assertEquals(update.achievements.length, testAchievementDefs.size)
+        assert(update.achievements.forall(!_.unlocked), "no achievements should be unlocked on a fresh session")
+  }
+
+  db.test("winning the first combat unlocks first_blood and persists it") {
+    database =>
+      for
+        session <- GameSession.create(smWithEnemy, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        _         <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _         <- session.handle(Interact("e1"))
+        afterKill <- session.handle(CombatAction(CombatActionType.Attack))
+        afterNext <- session.handle(Move(Direction.Up)) // any harmless follow-up action
+        unlockedInDb <- database.loadUnlockedAchievements()
+      yield
+        assert(afterKill.newlyUnlocked.exists(_.id == "first_blood"),
+               s"expected first_blood in newlyUnlocked: ${afterKill.newlyUnlocked}"
+        )
+        assertEquals(afterNext.newlyUnlocked, Nil, "newlyUnlocked is transient, not re-sent")
+        assert(unlockedInDb.contains("first_blood"))
+  }
+
+  db.test("purchasing upgrades whose cumulative cost crosses the big_spender threshold unlocks it") {
+    database =>
+      for
+        _       <- database.saveCurrency(200)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        afterFirst <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))) // cost 30
+        afterSecond <-
+          session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("potion_start"))) // cost 40, cumulative 70
+        unlockedInDb <- database.loadUnlockedAchievements()
+      yield
+        assertEquals(afterFirst.newlyUnlocked, Nil)
+        assert(afterSecond.newlyUnlocked.exists(_.id == "big_spender"),
+               s"expected big_spender in newlyUnlocked: ${afterSecond.newlyUnlocked}"
+        )
+        assert(unlockedInDb.contains("big_spender"))
+  }
+
+  db.test("purchasing the last remaining upgrade unlocks completionist") {
+    database =>
+      for
+        _       <- database.saveCurrency(1000)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_2")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("potion_start")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("archer_unlock")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("mage_unlock")))
+        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_slot")))
+      yield
+        assert(last.newlyUnlocked.exists(_.id == "completionist"),
+               s"expected completionist in newlyUnlocked: ${last.newlyUnlocked}"
+        )
+  }
+
+  db.test("an unlocked achievement survives reconnect (fresh GameSession against the same DB)") {
+    database =>
+      for
+        _        <- database.saveCurrency(200)
+        session1 <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        _        <- session1.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        _ <- session1.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("potion_start"))) // crosses 50
+        session2 <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        update   <- session2.currentUpdate
+      yield
+        val bigSpender = update.achievements.find(_.id == "big_spender")
+        assert(bigSpender.exists(_.unlocked), s"expected big_spender unlocked on reconnect: ${update.achievements}")
   }

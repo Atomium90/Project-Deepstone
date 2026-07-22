@@ -19,6 +19,10 @@ export const combatLog = derived(gameState, ($s) => $s?.log ?? []);
  * StateUpdate an NPC interaction produced - any other action clears it back to null. */
 export const npcDialogue = derived(gameState, ($s) => $s?.dialogue ?? null);
 
+/** Derived convenience: achievements newly earned by the most recent action, if any - cleared back
+ * to [] on the next update that doesn't earn a new one. Drives AchievementToast.svelte. */
+export const achievementToast = derived(gameState, ($s) => $s?.newlyUnlocked ?? []);
+
 // ---------------------------------------------
 // Client singleton
 // ---------------------------------------------

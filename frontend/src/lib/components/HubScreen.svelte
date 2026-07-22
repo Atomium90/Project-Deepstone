@@ -10,6 +10,7 @@
         DIFFICULTY_COLORS,
     } from "../engine/constants";
     import type { ClassId, Difficulty, UpgradeView } from "../engine/protocol";
+    import AchievementsPanel from "./AchievementsPanel.svelte";
 
     // Selected class (Warrior by default)
     let selectedClass: ClassId = "warrior";
@@ -173,6 +174,8 @@
             {#if feedback}
                 <p class="feedback">{feedback}</p>
             {/if}
+
+            <AchievementsPanel />
         </section>
 
     </div>

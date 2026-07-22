@@ -129,6 +129,15 @@ export interface AbilityView {
   description: string;
 }
 
+/** One achievement's display state, sent as a full catalog on every StateUpdate (same rationale
+ * as AbilityView — the client never hardcodes the list), independent of phase. */
+export interface AchievementView {
+  id: string;
+  label: string;
+  description: string;
+  unlocked: boolean;
+}
+
 export interface StateUpdate {
   phase: GamePhase;
   player: PlayerView;
@@ -139,8 +148,15 @@ export interface StateUpdate {
   inventory: ItemView[];
   /** Per-class ability catalog — always present, independent of game phase. */
   abilities: AbilityView[];
+  /** Full achievement catalog (locked and unlocked) — always present, independent of phase. */
+  achievements: AchievementView[];
   /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
   victory: boolean;
   log: string[];
   dialogue?: DialogueView;
+  /** Achievements newly earned by the action that produced this update. Transient — only present
+   * on the single update where one or more achievements were just unlocked, same convention as
+   * `dialogue`. A list, not a single value, since one action can plausibly earn more than one at
+   * once. */
+  newlyUnlocked: AchievementView[];
 }

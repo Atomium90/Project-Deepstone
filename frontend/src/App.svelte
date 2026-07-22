@@ -5,6 +5,7 @@
     import CombatScreen    from "./lib/components/CombatScreen.svelte";
     import HubScreen       from "./lib/components/HubScreen.svelte";
     import GameOverScreen  from "./lib/components/GameOverScreen.svelte";
+    import AchievementToast from "./lib/components/AchievementToast.svelte";
 
     onMount(() => {
         connectToServer();
@@ -30,6 +31,8 @@
         <GameOverScreen />
 
     {/if}
+
+    <AchievementToast />
 </main>
 
 <style>

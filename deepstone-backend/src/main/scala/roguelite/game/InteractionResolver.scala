@@ -1,6 +1,6 @@
 package roguelite.game
 
-import roguelite.engine.{ CombatState, DialogueView, Direction, ExplorationState, GameState }
+import roguelite.engine.{ CombatState, DialogueView, Direction, ExplorationState, GameState, TransitionResult }
 
 import scala.util.Random
 
@@ -29,37 +29,37 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                           clock: () => Long = () => System.currentTimeMillis()
 ):
 
-  def interact(exp: ExplorationState, targetId: String): (GameState, List[String], Option[DialogueView]) =
+  def interact(exp: ExplorationState, targetId: String): TransitionResult =
     exp.dungeon.currentRoom.entityById(targetId) match {
       case None =>
-        (exp, List(s"No entity found with id '$targetId'."), None)
+        TransitionResult(exp, List(s"No entity found with id '$targetId'."))
 
       case Some(door: Door) if door.doorKind == DoorKind.Secret && !door.revealed =>
-        (exp, List(s"No entity found with id '$targetId'."), None) // never acknowledge an unrevealed door
+        TransitionResult(exp, List(s"No entity found with id '$targetId'.")) // never acknowledge an unrevealed door
 
       case Some(door: Door) if door.doorKind == DoorKind.Trapped =>
-        withNoDialogue(handleTrappedDoor(exp, door))
+        lift(handleTrappedDoor(exp, door))
 
       case Some(door: Door) =>
-        withNoDialogue(handleDoor(exp, door))
+        lift(handleDoor(exp, door))
 
       case Some(door: LockedDoor) =>
-        withNoDialogue(handleLockedDoor(exp, door))
+        lift(handleLockedDoor(exp, door))
 
       case Some(enemy: Enemy) =>
-        withNoDialogue(handleEnemy(exp, enemy))
+        lift(handleEnemy(exp, enemy))
 
       case Some(chest: Chest) =>
-        withNoDialogue(handleChest(exp, chest))
+        lift(handleChest(exp, chest))
 
       case Some(npc: Npc) =>
-        handleNpc(exp, npc)
+        val (state, log, dialogue) = handleNpc(exp, npc)
+        TransitionResult(state, log, dialogue)
     }
 
   /** Lifts a handler that never produces dialogue into the richer return type `interact` needs,
     * so every existing per-entity handler below can stay untouched. */
-  private def withNoDialogue(r: (GameState, List[String])): (GameState, List[String], Option[DialogueView]) =
-    (r._1, r._2, None)
+  private def lift(r: (GameState, List[String])): TransitionResult = TransitionResult(r._1, r._2)
 
   /** Shared by a normal Door and an already-unlocked LockedDoor: navigate to the target room and
     * place the player at the tile adjacent to the door on the opposite wall. */

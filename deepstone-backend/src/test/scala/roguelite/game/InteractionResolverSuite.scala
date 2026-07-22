@@ -78,11 +78,11 @@ class InteractionResolverSuite extends FunSuite:
   test("Interact with Door navigates to target room"):
     val d            = door("r1", "r2")
     val state        = explorationAt(3, 3, entities = List(d))
-    val (next, _, _) = resolver().interact(state, d.id)
+    val TransitionResult(next, _, _) = resolver().interact(state, d.id)
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
 
   test("Interact with unknown entity id returns error log"):
-    val (next, log, _) = resolver().interact(explorationAt(3, 3), "ghost")
+    val TransitionResult(next, log, _) = resolver().interact(explorationAt(3, 3), "ghost")
     assert(next.isInstanceOf[ExplorationState])
     assert(log.exists(_.contains("No entity found")))
 
@@ -91,13 +91,13 @@ class InteractionResolverSuite extends FunSuite:
   test("Interact with Enemy transitions to CombatState"):
     val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
     val state        = explorationAt(3, 3, entities = List(enemy))
-    val (next, _, _) = resolver().interact(state, "e1")
+    val TransitionResult(next, _, _) = resolver().interact(state, "e1")
     assert(next.isInstanceOf[CombatState])
 
   test("CombatState has correct enemy stats after engaging"):
     val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
     val state        = explorationAt(3, 3, entities = List(enemy))
-    val (next, _, _) = resolver().interact(state, "e1")
+    val TransitionResult(next, _, _) = resolver().interact(state, "e1")
     val combat       = next.asInstanceOf[CombatState].combat
     assertEquals(combat.enemy.maxHp, goblinStats.maxHp)
     assertEquals(combat.enemy.label, "Goblin")
@@ -105,14 +105,14 @@ class InteractionResolverSuite extends FunSuite:
   test("CombatState enemy stats scale with difficulty"):
     val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
     val state        = explorationAt(3, 3, entities = List(enemy)).copy(difficulty = Difficulty.Hard)
-    val (next, _, _) = resolver().interact(state, "e1")
+    val TransitionResult(next, _, _) = resolver().interact(state, "e1")
     val combat       = next.asInstanceOf[CombatState].combat
     assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.25).toInt)
 
   test("Interact with unknown enemy typeId stays in Exploration with error"):
     val badEnemy        = Enemy("e2", x = 3, y = 3, typeId = "dragon", label = "Dragon")
     val state           = explorationAt(3, 3, entities = List(badEnemy))
-    val (next, log, _)  = resolver().interact(state, "e2")
+    val TransitionResult(next, log, _)  = resolver().interact(state, "e2")
     assert(next.isInstanceOf[ExplorationState])
     assert(log.exists(_.contains("Unknown enemy type")))
 
@@ -121,19 +121,19 @@ class InteractionResolverSuite extends FunSuite:
   test("Interact with Chest removes it from room"):
     val chest        = Chest("c1", x = 3, y = 3)
     val state        = explorationAt(3, 3, entities = List(chest))
-    val (next, _, _) = resolver().interact(state, "c1")
+    val TransitionResult(next, _, _) = resolver().interact(state, "c1")
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoom.entityById("c1"), None)
 
   test("Interact with Chest with empty itemDefs gives 'empty' log"):
     val chest       = Chest("c1", x = 3, y = 3)
     val state       = explorationAt(3, 3, entities = List(chest))
-    val (_, log, _) = resolver().interact(state, "c1")
+    val TransitionResult(_, log, _) = resolver().interact(state, "c1")
     assert(log.exists(_.toLowerCase.contains("empty")), s"Expected 'empty' in log: $log")
 
   test("Trapped chest spawns enemies instead of giving loot"):
     val chest           = Chest("c1", x = 3, y = 3, trapped = true)
     val state           = explorationAt(3, 3, entities = List(chest))
-    val (next, log, _)  = resolver().interact(state, "c1")
+    val TransitionResult(next, log, _)  = resolver().interact(state, "c1")
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoom.entityById("c1"), None)
     val spawned = nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
@@ -145,7 +145,7 @@ class InteractionResolverSuite extends FunSuite:
   test("Trapped chest enemies spawn on free tiles, not on the player"):
     val chest        = Chest("c1", x = 3, y = 3, trapped = true)
     val state        = explorationAt(3, 3, entities = List(chest))
-    val (next, _, _) = resolver().interact(state, "c1")
+    val TransitionResult(next, _, _) = resolver().interact(state, "c1")
     val nextExp      = next.asInstanceOf[ExplorationState]
     val spawned      = nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
     val room         = nextExp.dungeon.currentRoom
@@ -157,7 +157,7 @@ class InteractionResolverSuite extends FunSuite:
   test("Non-trapped chest is unaffected by the trapped-chest path"):
     val chest        = Chest("c1", x = 3, y = 3, trapped = false)
     val state        = explorationAt(3, 3, entities = List(chest))
-    val (next, _, _) = resolver().interact(state, "c1")
+    val TransitionResult(next, _, _) = resolver().interact(state, "c1")
     val nextExp      = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }, Nil)
 
@@ -166,7 +166,7 @@ class InteractionResolverSuite extends FunSuite:
   test("Interact with LockedDoor without a matching key is rejected and inventory is untouched"):
     val lockedDoor      = LockedDoor("ld1", x = 3, y = 3, direction = Direction.Down, targetRoomId = "r2")
     val state           = explorationAt(3, 3, entities = List(lockedDoor))
-    val (next, log, _)  = resolver().interact(state, "ld1")
+    val TransitionResult(next, log, _)  = resolver().interact(state, "ld1")
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r1")
     assertEquals(nextExp.player.inventory.items, Nil)
@@ -177,7 +177,7 @@ class InteractionResolverSuite extends FunSuite:
     val key             = testKey()
     val player          = playerWithItems(List(key))
     val state           = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
-    val (next, log, _)  = resolver().interact(state, "ld1")
+    val TransitionResult(next, log, _)  = resolver().interact(state, "ld1")
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r2")
     assertEquals(nextExp.player.inventory.items, Nil)
@@ -191,7 +191,7 @@ class InteractionResolverSuite extends FunSuite:
     val key             = testKey(keyKind = KeyKind.Specific("other_door"))
     val player          = playerWithItems(List(key))
     val state           = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
-    val (next, log, _)  = resolver().interact(state, "ld1")
+    val TransitionResult(next, log, _)  = resolver().interact(state, "ld1")
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r1")
     assertEquals(nextExp.player.inventory.items, List(key))
@@ -203,7 +203,7 @@ class InteractionResolverSuite extends FunSuite:
     val key           = testKey()
     val player        = playerWithItems(List(key))
     val state         = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
-    val (next, _, _)  = resolver().interact(state, "ld1")
+    val TransitionResult(next, _, _)  = resolver().interact(state, "ld1")
     val nextExp       = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r2")
     assertEquals(nextExp.player.inventory.items, List(key))
@@ -220,7 +220,7 @@ class InteractionResolverSuite extends FunSuite:
                         doorKind = DoorKind.Trapped
     )
     val state           = explorationAt(3, 3, entities = List(entranceDoor, trapDoor))
-    val (next, log, _)  = resolver().interact(state, "door_trap")
+    val TransitionResult(next, log, _)  = resolver().interact(state, "door_trap")
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r2")
     assertEquals((nextExp.playerX, nextExp.playerY), (4, 4)) // Up-facing spawn point in an 8x6 room
@@ -235,7 +235,7 @@ class InteractionResolverSuite extends FunSuite:
                         doorKind = DoorKind.Trapped
     )
     val state           = explorationAt(3, 3, entities = List(trapDoor))
-    val (next, log, _)  = resolver().interact(state, "door_trap")
+    val TransitionResult(next, log, _)  = resolver().interact(state, "door_trap")
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r1")
     assert(log.exists(_.toLowerCase.contains("nowhere")), s"expected fallback message: $log")
 
@@ -251,7 +251,7 @@ class InteractionResolverSuite extends FunSuite:
                           revealed = false
     )
     val state           = explorationAt(3, 3, entities = List(secretDoor))
-    val (next, log, _)  = resolver().interact(state, "door_secret")
+    val TransitionResult(next, log, _)  = resolver().interact(state, "door_secret")
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r1")
     assert(log.exists(_.contains("No entity found")), s"expected not-found message: $log")
 
@@ -265,7 +265,7 @@ class InteractionResolverSuite extends FunSuite:
                           revealed = true
     )
     val state        = explorationAt(3, 3, entities = List(secretDoor))
-    val (next, _, _) = resolver().interact(state, "door_secret")
+    val TransitionResult(next, _, _) = resolver().interact(state, "door_secret")
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
 
   test("revealSecretDoors reveals a secret door within Chebyshev distance 1"):
@@ -323,8 +323,9 @@ class InteractionResolverSuite extends FunSuite:
   test("First interact with an Npc shows the first line, advances the index, and logs nothing"):
     val clock                 = FakeClock()
     val state                 = explorationAt(3, 3, entities = List(npc()))
-    val (next, log, dialogue) = resolver(npcDialogueDefs = Map("sage" -> dialogueDef()), clock = clock.now)
-      .interact(state, "sage")
+    val TransitionResult(next, log, dialogue) =
+      resolver(npcDialogueDefs = Map("sage" -> dialogueDef()), clock = clock.now)
+        .interact(state, "sage")
     assertEquals(dialogue.map(_.npcName), Some("Sage"))
     assertEquals(dialogue.map(_.line), Some("Line one."))
     assertEquals(log, Nil)
@@ -336,9 +337,9 @@ class InteractionResolverSuite extends FunSuite:
     val clock    = FakeClock()
     val resolve  = resolver(npcDialogueDefs = Map("sage" -> dialogueDef()), clock = clock.now)
     val state    = explorationAt(3, 3, entities = List(npc()))
-    val (next1, _, d1) = resolve.interact(state, "sage")
+    val TransitionResult(next1, _, d1) = resolve.interact(state, "sage")
     clock.advance(500L)
-    val (next2, _, d2) = resolve.interact(next1.asInstanceOf[ExplorationState], "sage")
+    val TransitionResult(next2, _, d2) = resolve.interact(next1.asInstanceOf[ExplorationState], "sage")
     assertEquals(d1.map(_.line), Some("Line one."))
     assertEquals(d2.map(_.line), Some("Line one."))
     val persisted =
@@ -349,9 +350,9 @@ class InteractionResolverSuite extends FunSuite:
     val clock   = FakeClock()
     val resolve = resolver(npcDialogueDefs = Map("sage" -> dialogueDef()), clock = clock.now)
     val state   = explorationAt(3, 3, entities = List(npc()))
-    val (next1, _, _) = resolve.interact(state, "sage")
+    val TransitionResult(next1, _, _) = resolve.interact(state, "sage")
     clock.advance(cooldown)
-    val (_, _, d2) = resolve.interact(next1.asInstanceOf[ExplorationState], "sage")
+    val TransitionResult(_, _, d2) = resolve.interact(next1.asInstanceOf[ExplorationState], "sage")
     assertEquals(d2.map(_.line), Some("Line two."))
 
   test("Exhausting the main dialogue falls back and rotates without repeating the same line twice in a row"):
@@ -360,13 +361,13 @@ class InteractionResolverSuite extends FunSuite:
     val resolve = resolver(npcDialogueDefs = defs, clock = clock.now)
     val initial = explorationAt(3, 3, entities = List(npc()))
 
-    val (afterFirst, _, firstLine) = resolve.interact(initial, "sage")
+    val TransitionResult(afterFirst, _, firstLine) = resolve.interact(initial, "sage")
     assertEquals(firstLine.map(_.line), Some("Only line."))
 
     val (_, shownFallbacks) = (1 to 4).foldLeft((afterFirst.asInstanceOf[ExplorationState], List.empty[String])):
       case ((state, acc), _) =>
         clock.advance(cooldown)
-        val (next, _, d) = resolve.interact(state, "sage")
+        val TransitionResult(next, _, d) = resolve.interact(state, "sage")
         (next.asInstanceOf[ExplorationState], acc :+ d.map(_.line).getOrElse(fail("expected a dialogue line")))
 
     assert(shownFallbacks.forall(l => List("Fallback one.", "Fallback two.").contains(l)),
@@ -384,12 +385,12 @@ class InteractionResolverSuite extends FunSuite:
     val resolve = resolver(npcDialogueDefs = defs, clock = clock.now)
     val initial = explorationAt(3, 3, entities = List(npc()))
 
-    val (afterFirst, _, _) = resolve.interact(initial, "sage")
+    val TransitionResult(afterFirst, _, _) = resolve.interact(initial, "sage")
 
     val (_, shown) = (1 to 3).foldLeft((afterFirst.asInstanceOf[ExplorationState], List.empty[String])):
       case ((state, acc), _) =>
         clock.advance(cooldown)
-        val (next, _, d) = resolve.interact(state, "sage")
+        val TransitionResult(next, _, d) = resolve.interact(state, "sage")
         (next.asInstanceOf[ExplorationState], acc :+ d.map(_.line).getOrElse(fail("expected a dialogue line")))
 
     assertEquals(shown, List("The one fallback.", "The one fallback.", "The one fallback."))
@@ -400,24 +401,24 @@ class InteractionResolverSuite extends FunSuite:
     val resolve = resolver(npcDialogueDefs = defs, clock = clock.now)
     val initial = explorationAt(3, 3, entities = List(npc()))
 
-    val (afterFirst, _, d1) = resolve.interact(initial, "sage")
+    val TransitionResult(afterFirst, _, d1) = resolve.interact(initial, "sage")
     assertEquals(d1.map(_.line), Some("First."))
 
     clock.advance(cooldown)
-    val (afterSecond, _, d2) = resolve.interact(afterFirst.asInstanceOf[ExplorationState], "sage")
+    val TransitionResult(afterSecond, _, d2) = resolve.interact(afterFirst.asInstanceOf[ExplorationState], "sage")
     assertEquals(d2.map(_.line), Some("Last."))
 
     clock.advance(cooldown)
-    val (afterThird, _, d3) = resolve.interact(afterSecond.asInstanceOf[ExplorationState], "sage")
+    val TransitionResult(afterThird, _, d3) = resolve.interact(afterSecond.asInstanceOf[ExplorationState], "sage")
     assertEquals(d3.map(_.line), Some("Last."))
 
     clock.advance(cooldown)
-    val (_, _, d4) = resolve.interact(afterThird.asInstanceOf[ExplorationState], "sage")
+    val TransitionResult(_, _, d4) = resolve.interact(afterThird.asInstanceOf[ExplorationState], "sage")
     assertEquals(d4.map(_.line), Some("Last."))
 
   test("Interact with an Npc missing from the dialogue catalog degrades gracefully"):
     val state                 = explorationAt(3, 3, entities = List(npc()))
-    val (next, log, dialogue) = resolver().interact(state, "sage")
+    val TransitionResult(next, log, dialogue) = resolver().interact(state, "sage")
     assert(next.isInstanceOf[ExplorationState])
     assertEquals(dialogue, None)
     assert(log.exists(_.contains("nothing to say")), s"expected fallback message: $log")

@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.{ Combat, Dungeon, Inventory, Item, MetaProgression, UpgradeDef }
+import roguelite.game.{ Combat, Dungeon, EnemyStats, Inventory, Item, MetaProgression, UpgradeDef }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -59,17 +59,23 @@ case class HubState(player: Player,
       log = log
     )
 
+/** @param enemyStats
+  *   The loaded enemy catalog (see [[roguelite.game.EnemyLoader]]), forwarded to
+  *   [[roguelite.game.Room.toView]] to resolve each enemy's `spriteId`. Defaults to empty so
+  *   tests that don't care about sprites can keep using the shorter constructor.
+  */
 case class ExplorationState(player: Player,
                             dungeon: Dungeon,
                             playerX: Int,
                             playerY: Int,
-                            difficulty: Difficulty = Difficulty.Normal
+                            difficulty: Difficulty = Difficulty.Normal,
+                            enemyStats: Map[String, EnemyStats] = Map.empty
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
       phase = GamePhase.Exploration,
       player = player.toView,
-      room = Some(dungeon.currentRoom.toView(playerX, playerY)),
+      room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
       inventory = inventoryToViews(player.inventory),
       log = log,
       dialogue = dialogue
@@ -81,6 +87,8 @@ case class ExplorationState(player: Player,
   *   Runtime state of the current fight.
   * @param enemyEntityId
   *   Id of the Enemy entity in the room, used to remove it after a victorious combat.
+  * @param enemyStats
+  *   Same role as on [[ExplorationState]] - forwarded to [[roguelite.game.Room.toView]].
   */
 case class CombatState(player: Player,
                        dungeon: Dungeon,
@@ -88,13 +96,14 @@ case class CombatState(player: Player,
                        playerY: Int,
                        combat: Combat,
                        enemyEntityId: String,
-                       difficulty: Difficulty = Difficulty.Normal
+                       difficulty: Difficulty = Difficulty.Normal,
+                       enemyStats: Map[String, EnemyStats] = Map.empty
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
       phase = GamePhase.Combat,
       player = player.toView,
-      room = Some(dungeon.currentRoom.toView(playerX, playerY)),
+      room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
       combat = Some(
         CombatView(enemyId = combat.enemy.typeId,
                    enemyLabel = combat.enemy.label,

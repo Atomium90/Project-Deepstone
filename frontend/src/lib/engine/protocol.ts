@@ -68,6 +68,9 @@ export interface EntityView {
   x: number;
   y: number;
   label: string;
+  /** Atlas sprite key to draw (see public/atlas/entities.json). Only set for enemies - resolved
+   * server-side from enemies.json, never a mapping the client needs to keep in sync itself. */
+  spriteId?: string;
 }
 
 /** One line of NPC dialogue, shown in a transient overlay. Only present on the single

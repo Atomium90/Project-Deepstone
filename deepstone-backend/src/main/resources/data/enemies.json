@@ -2,6 +2,7 @@
   {
     "typeId": "goblin",
     "label": "Goblin",
+    "spriteId": "mob_orc_rogue_idle",
     "maxHp": 20,
     "attack": 8,
     "defense": 2,
@@ -23,6 +24,7 @@
   {
     "typeId": "orc",
     "label": "Orc",
+    "spriteId": "mob_orc_idle",
     "maxHp": 35,
     "attack": 12,
     "defense": 5,
@@ -45,6 +47,7 @@
   {
     "typeId": "skeleton",
     "label": "Skeleton",
+    "spriteId": "mob_skeleton_idle",
     "maxHp": 25,
     "attack": 10,
     "defense": 3,
@@ -67,6 +70,7 @@
   {
     "typeId": "cave_troll",
     "label": "Cave Troll",
+    "spriteId": "mob_orc_warrior_idle",
     "maxHp": 60,
     "attack": 18,
     "defense": 8,
@@ -92,6 +96,7 @@
   {
     "typeId": "stone_golem",
     "label": "Stone Golem",
+    "spriteId": "mob_skeleton_warrior_idle",
     "maxHp": 120,
     "attack": 22,
     "defense": 15,
@@ -116,6 +121,7 @@
   {
     "typeId": "giant_spider",
     "label": "Giant Spider",
+    "spriteId": "mob_skeleton_rogue_idle",
     "maxHp": 90,
     "attack": 20,
     "defense": 6,
@@ -140,6 +146,7 @@
   {
     "typeId": "bandit",
     "label": "Bandit",
+    "spriteId": "mob_orc_rogue_idle",
     "maxHp": 28,
     "attack": 11,
     "defense": 3,
@@ -161,6 +168,7 @@
   {
     "typeId": "dire_wolf",
     "label": "Dire Wolf",
+    "spriteId": "mob_orc_rogue_idle",
     "maxHp": 30,
     "attack": 14,
     "defense": 2,
@@ -180,6 +188,7 @@
   {
     "typeId": "cultist",
     "label": "Cultist",
+    "spriteId": "mob_skeleton_mage_idle",
     "maxHp": 32,
     "attack": 11,
     "defense": 6,
@@ -201,6 +210,7 @@
   {
     "typeId": "troll_king",
     "label": "Troll King",
+    "spriteId": "mob_orc_warrior_idle",
     "maxHp": 150,
     "attack": 24,
     "defense": 12,
@@ -225,6 +235,7 @@
   {
     "typeId": "wraith",
     "label": "Wraith",
+    "spriteId": "mob_skeleton_mage_idle",
     "maxHp": 80,
     "attack": 26,
     "defense": 4,
@@ -248,6 +259,7 @@
   {
     "typeId": "lich",
     "label": "Lich",
+    "spriteId": "mob_skeleton_mage_idle",
     "maxHp": 100,
     "attack": 23,
     "defense": 8,
@@ -272,6 +284,7 @@
   {
     "typeId": "ogre_warlord",
     "label": "Ogre Warlord",
+    "spriteId": "mob_orc_warrior_idle",
     "maxHp": 135,
     "attack": 25,
     "defense": 10,

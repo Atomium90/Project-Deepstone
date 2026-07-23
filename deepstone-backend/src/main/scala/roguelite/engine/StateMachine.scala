@@ -115,7 +115,13 @@ class StateMachine(roomPool: Map[String, Room],
                       }
 
                   val nextState =
-                    ExplorationState(playerWithKit, dungeon, playerX = 1, playerY = 1, difficulty)
+                    ExplorationState(playerWithKit,
+                                      dungeon,
+                                      playerX = 1,
+                                      playerY = 1,
+                                      difficulty,
+                                      enemyStats = enemyStats
+                    )
                   (nextState, List(s"A new run begins. Good luck, $classId."))
               }
           }

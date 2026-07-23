@@ -20,6 +20,7 @@ case class LootEntry(typeId: String, weight: Int)
 case class EnemyStats(
     typeId: String,
     label: String,
+    spriteId: String,
     maxHp: Int,
     attack: Int,
     defense: Int,

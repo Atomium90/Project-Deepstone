@@ -34,6 +34,7 @@ class InteractionResolverSuite extends FunSuite:
   val goblinStats: EnemyStats = EnemyStats(
     typeId = "goblin",
     label = "Goblin",
+    spriteId = "mob_orc_rogue_idle",
     maxHp = 20,
     attack = 5,
     defense = 0,

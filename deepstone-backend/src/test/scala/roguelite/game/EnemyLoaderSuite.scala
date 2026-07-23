@@ -79,6 +79,7 @@ class EnemyLoaderSuite extends CatsEffectSuite:
     val fragile = EnemyStats(
       typeId = "sprite",
       label = "Sprite",
+      spriteId = "mob_skeleton_idle",
       maxHp = 1,
       attack = 1,
       defense = 0,

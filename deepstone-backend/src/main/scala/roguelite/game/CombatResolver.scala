@@ -376,7 +376,8 @@ class CombatResolver(rng: Random = Random(),
         dungeon = updatedDungeon,
         playerX = state.playerX,
         playerY = state.playerY,
-        difficulty = state.difficulty
+        difficulty = state.difficulty,
+        enemyStats = state.enemyStats
       )
       val events = enemyDefeatedEvent :: lootEvents ::: levelUpEvents
       (nextState, victoryLog ++ lootLog ++ levelUpLog, events)

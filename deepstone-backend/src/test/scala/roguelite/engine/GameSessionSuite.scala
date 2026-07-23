@@ -17,6 +17,7 @@ class GameSessionSuite extends CatsEffectSuite:
   val goblinStats: EnemyStats = EnemyStats(
     typeId = "goblin",
     label = "Goblin",
+    spriteId = "mob_orc_rogue_idle",
     maxHp = 20,
     attack = 5,
     defense = 0,
@@ -151,6 +152,7 @@ class GameSessionSuite extends CatsEffectSuite:
   val weakGoblinStats: EnemyStats = EnemyStats(
     typeId = "goblin",
     label = "Goblin",
+    spriteId = "mob_orc_rogue_idle",
     maxHp = 1,
     attack = 1,
     defense = 0,

@@ -96,13 +96,21 @@ case class PlayerView(
     metaCurrency: Int
 )
 
-/** Describes one entity visible in the room (enemy, chest, door, etc.). */
+/** Describes one entity visible in the room (enemy, chest, door, etc.).
+  *
+  * @param spriteId
+  *   Atlas sprite key to draw (see frontend/public/atlas/entities.json). Only set for enemies -
+  *   resolved from enemies.json's spriteId at the [[roguelite.game.Room.toView]] boundary, not
+  *   carried on the entity itself, so it's never a second place to remember when adding an enemy.
+  *   Absent for every other kind, which each render with one fixed sprite per kind client-side.
+  */
 case class EntityView(
     id: String,
     kind: String, // "enemy" | "chest" | "door" | "locked_door" | "npc"
     x: Int,
     y: Int,
-    label: String // display name shown in the UI
+    label: String, // display name shown in the UI
+    spriteId: Option[String] = None
 )
 
 /** One line of NPC dialogue to show the player, produced by an [[Interact]] on an [[roguelite.game.Npc]].

@@ -32,6 +32,7 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
       EnemyStats(
         typeId = ej.typeId,
         label = ej.label,
+        spriteId = ej.spriteId,
         maxHp = ej.maxHp,
         attack = ej.attack,
         defense = ej.defense,
@@ -59,6 +60,7 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
   private case class EnemyStatsJson(
       typeId: String,
       label: String,
+      spriteId: String,
       maxHp: Int,
       attack: Int,
       defense: Int,
@@ -88,6 +90,7 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
       for
         typeId     <- c.get[String]("typeId")
         label      <- c.get[String]("label")
+        spriteId   <- c.get[String]("spriteId")
         maxHp      <- c.get[Int]("maxHp")
         attack     <- c.get[Int]("attack")
         defense    <- c.get[Int]("defense")
@@ -97,6 +100,7 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
         lootTable  <- c.get[Option[List[LootEntryJson]]]("lootTable")
       yield EnemyStatsJson(typeId,
                            label,
+                           spriteId,
                            maxHp,
                            attack,
                            defense,

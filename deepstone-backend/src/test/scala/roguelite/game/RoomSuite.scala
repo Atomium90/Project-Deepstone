@@ -72,23 +72,43 @@ class RoomSuite extends FunSuite:
   // -- toView ----------------------------------------------------------------
 
   test("toView sets correct player position"):
-    val view = testRoom().toView(playerX = 2, playerY = 1)
+    val view = testRoom().toView(playerX = 2, playerY = 1, enemyStats = Map.empty)
     assertEquals(view.playerX, 2)
     assertEquals(view.playerY, 1)
 
   test("toView serializes floor tiles as 'floor' strings"):
-    val view = testRoom().toView(1, 1)
+    val view = testRoom().toView(1, 1, Map.empty)
     assertEquals(view.tiles(1)(1), "floor")
 
   test("toView serializes wall tiles as 'wall' strings"):
-    val view = testRoom().toView(1, 1)
+    val view = testRoom().toView(1, 1, Map.empty)
     assertEquals(view.tiles(0)(0), "wall")
 
   test("toView includes all entity views"):
     val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
-    val view  = testRoom(entities = List(enemy)).toView(1, 1)
+    val view  = testRoom(entities = List(enemy)).toView(1, 1, Map.empty)
     assertEquals(view.entities.length, 1)
     assertEquals(view.entities.head.kind, "enemy")
+
+  test("toView resolves an enemy's spriteId from the enemy catalog"):
+    val enemy      = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val goblinStats = EnemyStats(
+      typeId = "goblin",
+      label = "Goblin",
+      spriteId = "mob_orc_rogue_idle",
+      maxHp = 20,
+      attack = 8,
+      defense = 2,
+      xpReward = 15,
+      actions = List(EnemyActionWeight("ATTACK", 100))
+    )
+    val view = testRoom(entities = List(enemy)).toView(1, 1, Map("goblin" -> goblinStats))
+    assertEquals(view.entities.head.spriteId, Some("mob_orc_rogue_idle"))
+
+  test("toView leaves spriteId unset when the enemy's typeId isn't in the catalog"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "unknown_type", label = "???")
+    val view  = testRoom(entities = List(enemy)).toView(1, 1, Map.empty)
+    assertEquals(view.entities.head.spriteId, None)
 
   test("toView omits an unrevealed secret door"):
     val secretDoor = Door("d1",
@@ -99,7 +119,7 @@ class RoomSuite extends FunSuite:
                           doorKind = DoorKind.Secret,
                           revealed = false
     )
-    val view = testRoom(entities = List(secretDoor)).toView(1, 1)
+    val view = testRoom(entities = List(secretDoor)).toView(1, 1, Map.empty)
     assertEquals(view.entities, Nil)
 
   test("toView includes a revealed secret door"):
@@ -111,7 +131,7 @@ class RoomSuite extends FunSuite:
                           doorKind = DoorKind.Secret,
                           revealed = true
     )
-    val view = testRoom(entities = List(secretDoor)).toView(1, 1)
+    val view = testRoom(entities = List(secretDoor)).toView(1, 1, Map.empty)
     assertEquals(view.entities.length, 1)
 
   // -- withFloorAt -------------------------------------------------------------

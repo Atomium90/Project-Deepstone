@@ -143,15 +143,22 @@ case class Room(
     *   separate message).
     * @param playerY
     *   Current player tile Y.
+    * @param enemyStats
+    *   The loaded enemy catalog, used to resolve each [[Enemy]]'s `spriteId` here rather than
+    *   duplicating it onto the entity at authoring time - keeps enemies.json the single place a
+    *   new enemy's art gets defined.
     */
-  def toView(playerX: Int, playerY: Int): RoomView =
+  def toView(playerX: Int, playerY: Int, enemyStats: Map[String, EnemyStats]): RoomView =
     RoomView(
       width = width,
       height = height,
       tiles = tiles.map(
         row => row.map(_.toProtocolString)
       ),
-      entities = entities.filter(isVisible).map(_.toView),
+      entities = entities.filter(isVisible).map {
+        case e: Enemy => e.toView.copy(spriteId = enemyStats.get(e.typeId).map(_.spriteId))
+        case other    => other.toView
+      },
       playerX = playerX,
       playerY = playerY
     )

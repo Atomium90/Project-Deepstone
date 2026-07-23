@@ -1,0 +1,395 @@
+{
+  "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
+  "sprites": {
+    "chest_closed": {
+      "x": 224,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "chest_open_empty": {
+      "x": 224,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "chest_open_full": {
+      "x": 224,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "chest_golden_closed": {
+      "x": 240,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "chest_golden_open_empty": {
+      "x": 240,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "chest_golden_open_full": {
+      "x": 240,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "monster_tentackle": {
+      "x": 160,
+      "y": 176,
+      "w": 32,
+      "h": 32
+    },
+    "monster_demon": {
+      "x": 128,
+      "y": 176,
+      "w": 32,
+      "h": 32
+    },
+    "monster_ogre": {
+      "x": 96,
+      "y": 176,
+      "w": 32,
+      "h": 32
+    },
+    "hero_basic": {
+      "x": 64,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "monster_zombie_small": {
+      "x": 0,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "monster_skelet": {
+      "x": 16,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "monster_zombie": {
+      "x": 32,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "monster_zombie_green": {
+      "x": 48,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "monster_bat": {
+      "x": 64,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "monster_necromancer": {
+      "x": 80,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "monster_dark_knight": {
+      "x": 96,
+      "y": 139,
+      "w": 16,
+      "h": 21
+    },
+    "monster_goblin": {
+      "x": 0,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "monster_orc_masked": {
+      "x": 16,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "monster_orc": {
+      "x": 32,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "monster_orc_armored": {
+      "x": 48,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "monster_orc_veteran": {
+      "x": 64,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "monster_orc_shaman": {
+      "x": 80,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "monster_imp": {
+      "x": 0,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "monster_wogol": {
+      "x": 16,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "monster_bies": {
+      "x": 32,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "monster_chort": {
+      "x": 48,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "monster_rokita": {
+      "x": 64,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "monster_demonolog": {
+      "x": 80,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_goo": {
+      "x": 80,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_goo_small": {
+      "x": 80,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_plant": {
+      "x": 64,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_earth": {
+      "x": 0,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_water": {
+      "x": 16,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_fire": {
+      "x": 32,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_air": {
+      "x": 48,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_earth_small": {
+      "x": 0,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_water_small": {
+      "x": 16,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_fire_small": {
+      "x": 32,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_air_small": {
+      "x": 48,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_plant_small": {
+      "x": 64,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_gold_tall": {
+      "x": 0,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "monster_elemental_gold_short": {
+      "x": 16,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "monster_zombie_tall": {
+      "x": 32,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "monster_zombie_short": {
+      "x": 48,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "npc_sage": {
+      "x": 96,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "npc_trickster": {
+      "x": 112,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "npc_mage": {
+      "x": 128,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "npc_wizzard": {
+      "x": 144,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "npc_barbarian": {
+      "x": 160,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "npc_wrestler": {
+      "x": 176,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "npc_merchant": {
+      "x": 96,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "npc_merchant_2": {
+      "x": 112,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "npc_dwarf": {
+      "x": 128,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "npc_dwarf_2": {
+      "x": 144,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "npc_elf": {
+      "x": 160,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "npc_elf_2": {
+      "x": 176,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "npc_knight_yellow": {
+      "x": 192,
+      "y": 236,
+      "w": 16,
+      "h": 20
+    },
+    "npc_knight_green": {
+      "x": 208,
+      "y": 236,
+      "w": 16,
+      "h": 20
+    },
+    "npc_knight_blue": {
+      "x": 224,
+      "y": 236,
+      "w": 16,
+      "h": 20
+    },
+    "npc_paladin": {
+      "x": 240,
+      "y": 236,
+      "w": 16,
+      "h": 20
+    },
+    "door_left": {
+      "x": 352,
+      "y": 16,
+      "w": 16,
+      "h": 32
+    },
+    "door_right": {
+      "x": 400,
+      "y": 16,
+      "w": 16,
+      "h": 32
+    },
+    "door_closed": {
+      "x": 368,
+      "y": 16,
+      "w": 32,
+      "h": 32
+    },
+    "door_open": {
+      "x": 432,
+      "y": 16,
+      "w": 32,
+      "h": 32
+    }
+  }
+}

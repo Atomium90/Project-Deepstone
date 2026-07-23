@@ -1,0 +1,203 @@
+{
+  "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
+  "sprites": {
+    "weapon_sword_wooden": {
+      "x": 144,
+      "y": 0,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_rusty": {
+      "x": 160,
+      "y": 0,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_steel": {
+      "x": 176,
+      "y": 0,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_ruby": {
+      "x": 192,
+      "y": 0,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_big": {
+      "x": 208,
+      "y": 0,
+      "w": 16,
+      "h": 32
+    },
+    "waepon_katana": {
+      "x": 224,
+      "y": 0,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sledgehammer": {
+      "x": 240,
+      "y": 0,
+      "w": 16,
+      "h": 48
+    },
+    "weapon_chopper": {
+      "x": 128,
+      "y": 32,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_small": {
+      "x": 112,
+      "y": 32,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_golden": {
+      "x": 144,
+      "y": 32,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_emerald": {
+      "x": 160,
+      "y": 32,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_silver": {
+      "x": 192,
+      "y": 32,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_katana_silver": {
+      "x": 176,
+      "y": 32,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_silver_topaz": {
+      "x": 208,
+      "y": 32,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_topaz": {
+      "x": 224,
+      "y": 32,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_bomb": {
+      "x": 240,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "weapon_sword_black": {
+      "x": 112,
+      "y": 64,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_green": {
+      "x": 128,
+      "y": 64,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_sword_red": {
+      "x": 144,
+      "y": 64,
+      "w": 16,
+      "h": 32
+    },
+    "weapon_dagger_small": {
+      "x": 128,
+      "y": 96,
+      "w": 8,
+      "h": 16
+    },
+    "weapon_dagger_steel": {
+      "x": 136,
+      "y": 96,
+      "w": 8,
+      "h": 16
+    },
+    "weapon_dagger_golden": {
+      "x": 144,
+      "y": 96,
+      "w": 8,
+      "h": 16
+    },
+    "weapon_dagger_silver": {
+      "x": 152,
+      "y": 96,
+      "w": 8,
+      "h": 16
+    },
+    "weapon_hammer": {
+      "x": 120,
+      "y": 109,
+      "w": 8,
+      "h": 19
+    },
+    "weapon_dagger_long": {
+      "x": 112,
+      "y": 109,
+      "w": 7,
+      "h": 19
+    },
+    "flask_big_red": {
+      "x": 196,
+      "y": 180,
+      "w": 9,
+      "h": 11
+    },
+    "flask_big_green": {
+      "x": 196,
+      "y": 196,
+      "w": 9,
+      "h": 11
+    },
+    "flask_big_blue": {
+      "x": 196,
+      "y": 212,
+      "w": 9,
+      "h": 11
+    },
+    "flask_big_yellow": {
+      "x": 180,
+      "y": 212,
+      "w": 9,
+      "h": 11
+    },
+    "flask_yellow": {
+      "x": 164,
+      "y": 212,
+      "w": 9,
+      "h": 11
+    },
+    "flask_blue": {
+      "x": 148,
+      "y": 212,
+      "w": 9,
+      "h": 11
+    },
+    "flask_green": {
+      "x": 132,
+      "y": 212,
+      "w": 9,
+      "h": 11
+    },
+    "flask_red": {
+      "x": 116,
+      "y": 212,
+      "w": 9,
+      "h": 11
+    }
+  }
+}

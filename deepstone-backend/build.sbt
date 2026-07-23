@@ -6,7 +6,7 @@ val doobieVersion = "1.0.0-RC4"
 
 ThisBuild / scalaVersion := scala3Version
 ThisBuild / organization := "roguelite"
-ThisBuild / version      := "0.1.0-SNAPSHOT"
+ThisBuild / version      := "0.1.2"
 
 lazy val root = (project in file("."))
   .settings(

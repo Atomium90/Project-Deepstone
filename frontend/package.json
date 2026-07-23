@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "generate-atlas": "node scripts/generate-atlas.mjs"
+    "generate-atlas": "node scripts/generate-atlas.mjs",
+    "generate-atlas:pixelcrawler": "node scripts/generate-pixelcrawler-atlas.mjs"
   },
   "dependencies": {
     "svelte": "^4.2.7"

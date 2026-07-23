@@ -1,393 +1,520 @@
 {
-  "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
   "sprites": {
     "chest_closed": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 176,
       "w": 16,
       "h": 16
     },
     "chest_open_empty": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 192,
       "w": 16,
       "h": 16
     },
     "chest_open_full": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 208,
       "w": 16,
       "h": 16
     },
     "chest_golden_closed": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 176,
       "w": 16,
       "h": 16
     },
     "chest_golden_open_empty": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 192,
       "w": 16,
       "h": 16
     },
     "chest_golden_open_full": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 208,
       "w": 16,
       "h": 16
     },
     "monster_tentackle": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 176,
       "w": 32,
       "h": 32
     },
     "monster_demon": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 176,
       "w": 32,
       "h": 32
     },
     "monster_ogre": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 96,
       "y": 176,
       "w": 32,
       "h": 32
     },
     "hero_basic": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "monster_zombie_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 144,
       "w": 16,
       "h": 16
     },
     "monster_skelet": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 144,
       "w": 16,
       "h": 16
     },
     "monster_zombie": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 144,
       "w": 16,
       "h": 16
     },
     "monster_zombie_green": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 144,
       "w": 16,
       "h": 16
     },
     "monster_bat": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 144,
       "w": 16,
       "h": 16
     },
     "monster_necromancer": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 144,
       "w": 16,
       "h": 16
     },
     "monster_dark_knight": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 96,
       "y": 139,
       "w": 16,
       "h": 21
     },
     "monster_goblin": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 160,
       "w": 16,
       "h": 16
     },
     "monster_orc_masked": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 160,
       "w": 16,
       "h": 16
     },
     "monster_orc": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 160,
       "w": 16,
       "h": 16
     },
     "monster_orc_armored": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 160,
       "w": 16,
       "h": 16
     },
     "monster_orc_veteran": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 160,
       "w": 16,
       "h": 16
     },
     "monster_orc_shaman": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 160,
       "w": 16,
       "h": 16
     },
     "monster_imp": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 176,
       "w": 16,
       "h": 16
     },
     "monster_wogol": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 176,
       "w": 16,
       "h": 16
     },
     "monster_bies": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 176,
       "w": 16,
       "h": 16
     },
     "monster_chort": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 176,
       "w": 16,
       "h": 16
     },
     "monster_rokita": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 176,
       "w": 16,
       "h": 16
     },
     "monster_demonolog": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 176,
       "w": 16,
       "h": 16
     },
     "monster_elemental_goo": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 192,
       "w": 16,
       "h": 16
     },
     "monster_elemental_goo_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 208,
       "w": 16,
       "h": 16
     },
     "monster_elemental_plant": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 192,
       "w": 16,
       "h": 16
     },
     "monster_elemental_earth": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 192,
       "w": 16,
       "h": 16
     },
     "monster_elemental_water": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 192,
       "w": 16,
       "h": 16
     },
     "monster_elemental_fire": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 192,
       "w": 16,
       "h": 16
     },
     "monster_elemental_air": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 192,
       "w": 16,
       "h": 16
     },
     "monster_elemental_earth_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 208,
       "w": 16,
       "h": 16
     },
     "monster_elemental_water_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 208,
       "w": 16,
       "h": 16
     },
     "monster_elemental_fire_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 208,
       "w": 16,
       "h": 16
     },
     "monster_elemental_air_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 208,
       "w": 16,
       "h": 16
     },
     "monster_elemental_plant_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 208,
       "w": 16,
       "h": 16
     },
     "monster_elemental_gold_tall": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "monster_elemental_gold_short": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "monster_zombie_tall": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "monster_zombie_short": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "npc_sage": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 96,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "npc_trickster": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 112,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "npc_mage": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "npc_wizzard": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 144,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "npc_barbarian": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "npc_wrestler": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 176,
       "y": 224,
       "w": 16,
       "h": 16
     },
     "npc_merchant": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 96,
       "y": 240,
       "w": 16,
       "h": 16
     },
     "npc_merchant_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 112,
       "y": 240,
       "w": 16,
       "h": 16
     },
     "npc_dwarf": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 240,
       "w": 16,
       "h": 16
     },
     "npc_dwarf_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 144,
       "y": 240,
       "w": 16,
       "h": 16
     },
     "npc_elf": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 240,
       "w": 16,
       "h": 16
     },
     "npc_elf_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 176,
       "y": 240,
       "w": 16,
       "h": 16
     },
     "npc_knight_yellow": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 192,
       "y": 236,
       "w": 16,
       "h": 20
     },
     "npc_knight_green": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 208,
       "y": 236,
       "w": 16,
       "h": 20
     },
     "npc_knight_blue": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 236,
       "w": 16,
       "h": 20
     },
     "npc_paladin": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 236,
       "w": 16,
       "h": 20
     },
     "door_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 352,
       "y": 16,
       "w": 16,
       "h": 32
     },
     "door_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 400,
       "y": 16,
       "w": 16,
       "h": 32
     },
     "door_closed": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 368,
       "y": 16,
       "w": 32,
       "h": 32
     },
     "door_open": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 432,
       "y": 16,
+      "w": 32,
+      "h": 32
+    },
+    "hero_idle": {
+      "sheet": "/sprites/entities/hero/Idle_Down-Sheet.png",
+      "x": 0,
+      "y": 0,
+      "w": 64,
+      "h": 64
+    },
+    "mob_orc_idle": {
+      "sheet": "/sprites/entities/mob_orc/Idle-Sheet.png",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "mob_orc_rogue_idle": {
+      "sheet": "/sprites/entities/mob_orc_rogue/Idle-Sheet.png",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "mob_orc_shaman_idle": {
+      "sheet": "/sprites/entities/mob_orc_shaman/Idle-Sheet.png",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "mob_orc_warrior_idle": {
+      "sheet": "/sprites/entities/mob_orc_warrior/Idle-Sheet.png",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "mob_skeleton_idle": {
+      "sheet": "/sprites/entities/mob_skeleton/Idle-Sheet.png",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "mob_skeleton_mage_idle": {
+      "sheet": "/sprites/entities/mob_skeleton_mage/Idle-Sheet.png",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "mob_skeleton_rogue_idle": {
+      "sheet": "/sprites/entities/mob_skeleton_rogue/Idle-Sheet.png",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "mob_skeleton_warrior_idle": {
+      "sheet": "/sprites/entities/mob_skeleton_warrior/Idle-Sheet.png",
+      "x": 0,
+      "y": 0,
       "w": 32,
       "h": 32
     }

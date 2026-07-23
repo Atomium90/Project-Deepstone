@@ -1,199 +1,231 @@
 {
-  "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
   "sprites": {
     "weapon_sword_wooden": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 144,
       "y": 0,
       "w": 16,
       "h": 32
     },
     "weapon_sword_rusty": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 0,
       "w": 16,
       "h": 32
     },
     "weapon_sword_steel": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 176,
       "y": 0,
       "w": 16,
       "h": 32
     },
     "weapon_sword_ruby": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 192,
       "y": 0,
       "w": 16,
       "h": 32
     },
     "weapon_sword_big": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 208,
       "y": 0,
       "w": 16,
       "h": 32
     },
     "waepon_katana": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 0,
       "w": 16,
       "h": 32
     },
     "weapon_sledgehammer": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 0,
       "w": 16,
       "h": 48
     },
     "weapon_chopper": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 32,
       "w": 16,
       "h": 32
     },
     "weapon_sword_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 112,
       "y": 32,
       "w": 16,
       "h": 32
     },
     "weapon_sword_golden": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 144,
       "y": 32,
       "w": 16,
       "h": 32
     },
     "weapon_sword_emerald": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 32,
       "w": 16,
       "h": 32
     },
     "weapon_sword_silver": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 192,
       "y": 32,
       "w": 16,
       "h": 32
     },
     "weapon_katana_silver": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 176,
       "y": 32,
       "w": 16,
       "h": 32
     },
     "weapon_silver_topaz": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 208,
       "y": 32,
       "w": 16,
       "h": 32
     },
     "weapon_sword_topaz": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 32,
       "w": 16,
       "h": 32
     },
     "weapon_bomb": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "weapon_sword_black": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 112,
       "y": 64,
       "w": 16,
       "h": 32
     },
     "weapon_sword_green": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 64,
       "w": 16,
       "h": 32
     },
     "weapon_sword_red": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 144,
       "y": 64,
       "w": 16,
       "h": 32
     },
     "weapon_dagger_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 96,
       "w": 8,
       "h": 16
     },
     "weapon_dagger_steel": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 136,
       "y": 96,
       "w": 8,
       "h": 16
     },
     "weapon_dagger_golden": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 144,
       "y": 96,
       "w": 8,
       "h": 16
     },
     "weapon_dagger_silver": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 152,
       "y": 96,
       "w": 8,
       "h": 16
     },
     "weapon_hammer": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 120,
       "y": 109,
       "w": 8,
       "h": 19
     },
     "weapon_dagger_long": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 112,
       "y": 109,
       "w": 7,
       "h": 19
     },
     "flask_big_red": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 196,
       "y": 180,
       "w": 9,
       "h": 11
     },
     "flask_big_green": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 196,
       "y": 196,
       "w": 9,
       "h": 11
     },
     "flask_big_blue": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 196,
       "y": 212,
       "w": 9,
       "h": 11
     },
     "flask_big_yellow": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 180,
       "y": 212,
       "w": 9,
       "h": 11
     },
     "flask_yellow": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 164,
       "y": 212,
       "w": 9,
       "h": 11
     },
     "flask_blue": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 148,
       "y": 212,
       "w": 9,
       "h": 11
     },
     "flask_green": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 132,
       "y": 212,
       "w": 9,
       "h": 11
     },
     "flask_red": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 116,
       "y": 212,
       "w": 9,

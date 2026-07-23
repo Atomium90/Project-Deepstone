@@ -1,859 +1,1001 @@
 {
-  "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
   "sprites": {
     "darkness_top": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 112,
       "w": 32,
       "h": 32
     },
     "darkness_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 112,
       "w": 32,
       "h": 32
     },
     "darkness_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 192,
       "y": 112,
       "w": 32,
       "h": 32
     },
     "darkness_bottom": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 112,
       "w": 32,
       "h": 32
     },
     "column": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 208,
       "y": 176,
       "w": 16,
       "h": 48
     },
     "skull": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "floor_plain": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "floor_stain_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "floor_stain_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "floor_stain_3": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "floor_stain_goo": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "wall_goo": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "wall_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "wall_center": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "wall_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "wall_top_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "wall_top_center": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "wall_top_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "wall_pipe_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "wall_pipe_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "wall_pipe_small": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "wall_drain_gate": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "wall_missing_brick_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "wall_missing_brick_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "column_wall": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 96,
       "y": 48,
       "w": 16,
       "h": 48
     },
     "gargoyle_top_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "gargoyle_top_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_red_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_green_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_blue_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_red_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_green_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_blue_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_red_basin": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_green_basin": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_blue_basin": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_red_puddle": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_green_puddle": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_blue_puddle": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "stairs_bottom": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 32,
       "w": 32,
       "h": 16
     },
     "stairs_mid": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 16,
       "w": 32,
       "h": 16
     },
     "stairs_top": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 0,
       "w": 32,
       "h": 16
     },
     "floor_edge_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "floor_edge_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 112,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "floor_edge_3": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 128,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "wall_gratings": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 112,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "black": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "box": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 80,
       "y": 96,
       "w": 16,
       "h": 32
     },
     "boxes_stacked": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 96,
       "y": 96,
       "w": 16,
       "h": 32
     },
     "floor_light": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 64,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "floor_mud_nw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "floor_mud_n_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "floor_mud_n_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "floor_mud_ne": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "floor_mud_w": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "floor_mud_mid_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "floor_mud_mid_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "floor_mud_e": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "floor_mud_sw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 0,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "floor_mud_s_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 16,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "floor_mud_s_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 32,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "floor_mud_se": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 48,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "torch_no_flame": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 113,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "torch_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 129,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "torch_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 145,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "torch_3": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 161,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "torch_4": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 177,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "torch_5": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 193,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "torch_6": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 209,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "torch_7": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 225,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "torch_8": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 241,
       "y": 152,
       "w": 14,
       "h": 23
     },
     "wall_flag_red": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 192,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_flag_green": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 208,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_flag_blue": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_flag_yellow": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "gargoyle_mid_top_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "gargoyle_mid_top_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 176,
       "y": 64,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_mid_green_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_mid_green_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 176,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_mid_green_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 160,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_mid_green_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 176,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_mid_blue_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 192,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_mid_blue_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 208,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_mid_red_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "wall_gargoyle_mid_red_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_mid_blue_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 192,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_mid_blue_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 208,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_mid_red_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 240,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "floor_gargoyle_mid_red_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 224,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Wall_outer_nw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 256,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "Wall_outer_n": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 272,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "Wall_outer_ne": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 288,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "Wall_inner_nw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 304,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "Wall_inner_ne": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 320,
       "y": 0,
       "w": 16,
       "h": 16
     },
     "Wall_outer_w": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 256,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "Wall_outer_e": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 288,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "Wall_front": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 272,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "Wall_outer_w2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 256,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "Wall_outer_e2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 288,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "Wall_outer_sw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 256,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "Wall_outer_se": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 288,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "Wall_inner_w": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 304,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "Wall_inner_e": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 320,
       "y": 16,
       "w": 16,
       "h": 16
     },
     "Wall_inner_sw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 304,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "Wall_inner_se": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 320,
       "y": 32,
       "w": 16,
       "h": 16
     },
     "Wall_front_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 304,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "Wall_front_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 320,
       "y": 48,
       "w": 16,
       "h": 16
     },
     "Wall_outline_left": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 256,
       "y": 64,
       "w": 16,
       "h": 32
     },
     "Wall_outline_right": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 320,
       "y": 64,
       "w": 16,
       "h": 32
     },
     "Wall_outline_1": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 272,
       "y": 64,
       "w": 16,
       "h": 32
     },
     "Wall_outline_2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 288,
       "y": 64,
       "w": 16,
       "h": 32
     },
     "Wall_outline_2_alt2": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 304,
       "y": 64,
       "w": 16,
       "h": 32
     },
     "Floor_stain_nw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 272,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Floor_stain_n": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 288,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Floor_stain_ne": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 304,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Floor_stain_w": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 272,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Floor_stain_e": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 304,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Floor_ladder": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 288,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Pit_nw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 336,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Pit_n": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 352,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Pit_ne": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 368,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Pit_w": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 336,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Pit_e": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 368,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Pit_se": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 368,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "Pit_s": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 352,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "Pit_sw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 336,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "Edge_bricks": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 400,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "Edge_nw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 400,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "Edge_n": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 416,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "Edge_ne": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 432,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "Edge_e": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 432,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Edge_w": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 400,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Edge_sw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 400,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Edge_s": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 416,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Edge_se": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 432,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Edge_single_crack": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 448,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "Edge_single": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 448,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Edge_nwe": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 464,
       "y": 80,
       "w": 16,
       "h": 16
     },
     "Edge_swe": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 464,
       "y": 96,
       "w": 16,
       "h": 16
     },
     "Edge_nsw": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 448,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Edge_nse": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 464,
       "y": 112,
       "w": 16,
       "h": 16
     },
     "Edge_ns": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 432,
       "y": 128,
       "w": 16,
       "h": 16
     },
     "Edge_we": {
+      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
       "x": 448,
       "y": 128,
       "w": 16,

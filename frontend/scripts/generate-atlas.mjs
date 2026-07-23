@@ -67,13 +67,12 @@ for (const slice of slices) {
         console.warn(`Duplicate slice name "${slice.name}" - second occurrence renamed to "${key}"`);
     }
 
-    buckets[category][key] = { x, y, w, h };
+    buckets[category][key] = { sheet: SHEET_PATH, x, y, w, h };
 }
 
 for (const [category, sprites] of Object.entries(buckets)) {
-    const out = { sheet: SHEET_PATH, sprites };
     const outPath = path.join(publicDir, "atlas", `${category}.json`);
-    writeFileSync(outPath, JSON.stringify(out, null, 2) + "\n");
+    writeFileSync(outPath, JSON.stringify({ sprites }, null, 2) + "\n");
     console.log(`${category}.json: ${Object.keys(sprites).length} sprites -> ${outPath}`);
 }
 

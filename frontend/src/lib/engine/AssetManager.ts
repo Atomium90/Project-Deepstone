@@ -1,9 +1,7 @@
-import type { ClassId } from "./protocol";
 import {
     COLOR_TILE_FLOOR,
     COLOR_TILE_WALL,
     COLOR_TILE_FLOOR_BORDER,
-    PLAYER_CLASS_COLORS,
 } from "./constants";
 
 /** A sub-rectangle within a sheet image, in source pixels. */
@@ -41,11 +39,12 @@ const ATLAS_URLS = ["/atlas/tiles.json", "/atlas/entities.json", "/atlas/items.j
 /**
  * Centralizes all asset access for the renderer.
  *
- * Two sprite sources coexist: whole-image sprites loaded ad hoc via load() (e.g. per-class
- * player sprites), and atlas sprites - named sub-rects within a shared sheet, described by
- * the JSON files in public/atlas/ and resolved through getSprite(). Both return the same
- * DrawableAsset shape; a null `image` (nothing loaded yet, or a typeId absent from the atlas)
- * always falls back to fallbackColor, so callers don't need to branch on which source it was.
+ * Sprites are resolved through getSprite(), which looks up a named sub-rect within one of the
+ * sheets described by the JSON files in public/atlas/. A null `image` (nothing loaded yet, or a
+ * typeId absent from every atlas) always falls back to fallbackColor, so callers don't need to
+ * branch on why a sprite didn't resolve. load() is the lower-level primitive that actually
+ * fetches an image - used internally by the atlas loader, but also available directly for any
+ * future whole-image sprite that doesn't come from an atlas.
  */
 export class AssetManager {
     private readonly sprites: Map<string, HTMLImageElement> = new Map();
@@ -96,14 +95,6 @@ export class AssetManager {
         } catch {
             // Atlas not reachable -> callers keep getting fallbacks, nothing to recover.
         }
-    }
-
-    /** Returns the asset for a given player class. */
-    getPlayer(classId: ClassId): DrawableAsset {
-        return {
-            image: this.sprites.get(`player_${classId}`) ?? null,
-            fallbackColor: PLAYER_CLASS_COLORS[classId],
-        };
     }
 
     /**

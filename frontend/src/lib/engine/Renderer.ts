@@ -15,6 +15,7 @@ import {
     COLOR_ENTITY_NPC,
     COLOR_ENTITY_LABEL,
     COLOR_ENTITY_FALLBACK,
+    PLAYER_CLASS_COLORS,
     COLOR_PLAYER_OUTLINE,
     COLOR_PLAYER_OUTLINE_WIDTH,
     COLOR_PLAYER_INITIAL,
@@ -37,6 +38,25 @@ const ENTITY_COLORS: Record<string, string> = {
     locked_door: COLOR_ENTITY_LOCKED_DOOR,
     npc: COLOR_ENTITY_NPC,
 };
+
+/** Atlas sprite per tile type. One fixed sprite per type, no autotiling in this pass. */
+const TILE_SPRITES: Record<string, string> = {
+    floor: "floor_plain",
+    wall: "wall_center",
+};
+
+/** Atlas sprite per entity kind, for the kinds that don't vary by instance (everything except
+ * "enemy", which uses EntityView.spriteId - server-resolved per typeId, see AssetManager.getSprite). */
+const ENTITY_SPRITES: Record<string, string> = {
+    chest: "chest_closed",
+    door: "door_closed",
+    locked_door: "door_closed",
+    npc: "npc_sage",
+};
+
+/** Single static player sprite for all 3 classes - Pixel Crawler only has one usable body in
+ * this pass, so class distinction stays in the stats panel rather than the sprite for now. */
+const PLAYER_SPRITE_ID = "hero_idle";
 
 /** Distance in tiles within which an entity is considered reachable (E key). */
 const INTERACT_RANGE = 1;
@@ -180,6 +200,10 @@ export class Renderer {
         this.canvas.width  = Math.round(rect.width  * dpr);
         this.canvas.height = Math.round(rect.height * dpr);
         this.ctx.scale(dpr, dpr);
+
+        // Resizing canvas.width/height resets all 2D context state, including this flag - must
+        // be re-set every time, not just once at startup, or pixel art sprites come out blurred.
+        this.ctx.imageSmoothingEnabled = false;
     }
 
     private loop = (timesStamp: number): void => {
@@ -244,15 +268,24 @@ export class Renderer {
                 const x = col * TILE_SIZE;
                 const y = row * TILE_SIZE;
 
-                // Tile background
-                ctx.fillStyle = this.assets.getTileColor(tileType);
-                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                const spriteKey = TILE_SPRITES[tileType];
+                const sprite = spriteKey
+                    ? this.assets.getSprite(spriteKey, this.assets.getTileColor(tileType))
+                    : { image: null, fallbackColor: this.assets.getTileColor(tileType) };
 
-                // Subtle grid line on floor tiles only
-                if (tileType === "floor") {
-                    ctx.strokeStyle = this.assets.getTileFloorBorderColor();
-                    ctx.lineWidth = COLOR_TILE_GRID_WIDTH;
-                    ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+                if (sprite.image && sprite.sourceRect) {
+                    const { x: sx, y: sy, w: sw, h: sh } = sprite.sourceRect;
+                    ctx.drawImage(sprite.image, sx, sy, sw, sh, x, y, TILE_SIZE, TILE_SIZE);
+                } else {
+                    ctx.fillStyle = sprite.fallbackColor;
+                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                    // Grid line only on the flat-color fallback - pixel art tiles don't need it
+                    if (tileType === "floor") {
+                        ctx.strokeStyle = this.assets.getTileFloorBorderColor();
+                        ctx.lineWidth = COLOR_TILE_GRID_WIDTH;
+                        ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+                    }
                 }
             }
         }
@@ -284,11 +317,22 @@ export class Renderer {
                 ctx.stroke();
             }
 
-            // Entity circle
-            ctx.beginPath();
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-            ctx.fillStyle = ENTITY_COLORS[entity.kind] ?? COLOR_ENTITY_FALLBACK;
-            ctx.fill();
+            // Entity body: real sprite when one resolves, geometric circle otherwise
+            const fallbackColor = ENTITY_COLORS[entity.kind] ?? COLOR_ENTITY_FALLBACK;
+            const spriteKey = entity.kind === "enemy" ? entity.spriteId : ENTITY_SPRITES[entity.kind];
+            const sprite = spriteKey ? this.assets.getSprite(spriteKey, fallbackColor) : null;
+
+            if (sprite?.image && sprite.sourceRect) {
+                const { x: sx, y: sy, w: sw, h: sh } = sprite.sourceRect;
+                ctx.drawImage(sprite.image, sx, sy, sw, sh,
+                    cx - TILE_SIZE / 2, cy - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE
+                );
+            } else {
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fillStyle = fallbackColor;
+                ctx.fill();
+            }
 
             // Label below
             ctx.fillStyle = COLOR_ENTITY_LABEL;
@@ -308,13 +352,16 @@ export class Renderer {
 
     private drawPlayer(player: PlayerView): void {
         const { ctx } = this;
-        const asset = this.assets.getPlayer(player.classId);
+        const asset = this.assets.getSprite(PLAYER_SPRITE_ID, PLAYER_CLASS_COLORS[player.classId]);
         const radius = TILE_SIZE * PLAYER_RADIUS_RATIO;
         const { x, y } = this.visualPos;
 
-        if (asset.image) {
+        if (asset.image && asset.sourceRect) {
             // Draw sprite centered on visual position
-            ctx.drawImage(asset.image, x - TILE_SIZE / 2, y - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
+            const { x: sx, y: sy, w: sw, h: sh } = asset.sourceRect;
+            ctx.drawImage(asset.image, sx, sy, sw, sh,
+                x - TILE_SIZE / 2, y - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE
+            );
         } else {
             // Geometric fallback: filled circle + white outline
             ctx.beginPath();

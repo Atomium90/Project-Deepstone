@@ -97,6 +97,7 @@ export class Renderer {
         this.canvas = canvas;
         this.ctx = ctx;
         this.assets = new AssetManager();
+        this.assets.preloadAtlases();
 
         // Keep the canvas pixel dimensions in sync with its CSS layout size
         this.resizeObserver = new ResizeObserver(() => this.fitToContainer());

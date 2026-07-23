@@ -24,23 +24,19 @@ export interface DrawableAsset {
     fallbackColor: string;
 }
 
-/** Shape of the atlas JSON files under public/atlas/, produced by scripts/generate-atlas.mjs. */
-interface AtlasFile {
+/** Where an atlas sprite lives: which sheet URL, and which sub-rect of it. */
+interface AtlasSprite extends SourceRect {
     sheet: string;
-    sprites: Record<string, SourceRect>;
 }
 
-/** Where an atlas sprite lives: which loaded sheet, and which sub-rect of it. */
-interface AtlasEntry extends SourceRect {
-    sheetKey: string;
+/** Shape of the atlas JSON files under public/atlas/, produced by scripts/generate-atlas*.mjs. */
+interface AtlasFile {
+    sprites: Record<string, AtlasSprite>;
 }
 
-/** The atlas JSON files to preload at startup, keyed by the sheet key their sprites resolve to. */
-const ATLAS_FILES: Record<string, string> = {
-    tiles: "/atlas/tiles.json",
-    entities: "/atlas/entities.json",
-    items: "/atlas/items.json",
-};
+/** The atlas JSON files to preload at startup. Each sprite carries its own sheet path, since
+ * some packs (0x72) share one big sheet while others (Pixel Crawler) are one small PNG per sprite. */
+const ATLAS_URLS = ["/atlas/tiles.json", "/atlas/entities.json", "/atlas/items.json"];
 
 /**
  * Centralizes all asset access for the renderer.
@@ -52,12 +48,16 @@ const ATLAS_FILES: Record<string, string> = {
  * always falls back to fallbackColor, so callers don't need to branch on which source it was.
  */
 export class AssetManager {
-    private sprites: Map<string, HTMLImageElement> = new Map();
-    private atlas: Map<string, AtlasEntry> = new Map();
+    private readonly sprites: Map<string, HTMLImageElement> = new Map();
+    private readonly requestedSheets: Set<string> = new Set();
+    private readonly atlas: Map<string, AtlasSprite> = new Map();
 
-    constructor() {
-        for (const [sheetKey, atlasUrl] of Object.entries(ATLAS_FILES)) {
-            this.loadAtlas(sheetKey, atlasUrl);
+    /** Kicks off loading every atlas file. Fire-and-forget by design (see load()'s doc comment)
+     * - called explicitly by the owner (Renderer) rather than from the constructor, since
+     * constructors shouldn't launch unawaited async work. */
+    preloadAtlases(): void {
+        for (const atlasUrl of ATLAS_URLS) {
+            this.loadAtlas(atlasUrl);
         }
     }
 
@@ -75,25 +75,23 @@ export class AssetManager {
         img.src = src;
     }
 
-    /** Loads one image and registers it as a sheet under `sheetKey` (alias of load()). */
-    loadSheet(sheetKey: string, src: string): void {
-        this.load(sheetKey, src);
-    }
-
     /**
-     * Fetches an atlas JSON file (see scripts/generate-atlas.mjs) and registers every sprite
-     * it defines under `sheetKey`, loading the sheet image itself as a side effect. Safe to
-     * call before the file exists -> sprites under `sheetKey` simply stay unresolved.
+     * Fetches an atlas JSON file (see scripts/generate-atlas*.mjs) and registers every sprite
+     * it defines, loading each distinct sheet URL it references exactly once. Safe to call
+     * before the file exists -> its sprites simply stay unresolved.
      */
-    private async loadAtlas(sheetKey: string, atlasUrl: string): Promise<void> {
+    private async loadAtlas(atlasUrl: string): Promise<void> {
         try {
             const res = await fetch(atlasUrl);
             if (!res.ok) return;
             const data: AtlasFile = await res.json();
 
-            this.loadSheet(sheetKey, data.sheet);
-            for (const [name, rect] of Object.entries(data.sprites)) {
-                this.atlas.set(name, { sheetKey, ...rect });
+            for (const [name, sprite] of Object.entries(data.sprites)) {
+                if (!this.requestedSheets.has(sprite.sheet)) {
+                    this.requestedSheets.add(sprite.sheet);
+                    this.load(sprite.sheet, sprite.sheet);
+                }
+                this.atlas.set(name, sprite);
             }
         } catch {
             // Atlas not reachable -> callers keep getting fallbacks, nothing to recover.
@@ -118,7 +116,7 @@ export class AssetManager {
         if (!entry) return { image: null, fallbackColor };
 
         return {
-            image: this.sprites.get(entry.sheetKey) ?? null,
+            image: this.sprites.get(entry.sheet) ?? null,
             sourceRect: { x: entry.x, y: entry.y, w: entry.w, h: entry.h },
             fallbackColor,
         };

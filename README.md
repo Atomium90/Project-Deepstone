@@ -1,24 +1,24 @@
-# Roguelite Dungeon Crawler
+# Deepstone
 
 A roguelite dungeon crawler built without a game engine.
 Inspired by Children of Morta (dungeon + meta-progression) and Moonlighter (hub between runs).
 
 ## Tech stack
 
-| Layer    | Technology                            |
-|----------|---------------------------------------|
-| Backend  | Scala 3, http4s, Circe                |
-| Frontend | Svelte, TypeScript, Vite, HTML Canvas |
-| Protocol | JSON over WebSocket                   |
-| Database | SQLite (to be added later)            |
-| Testing  | MUnit + munit-cats-effect             |
+| Layer    | Technology                                                    |
+|----------|-----------------------------------------------------------------|
+| Backend  | Scala 3, http4s, Circe, Cats Effect 3                          |
+| Frontend | Svelte, TypeScript, Vite, HTML Canvas                          |
+| Protocol | JSON over WebSocket                                            |
+| Database | SQLite (Doobie + HikariCP)                                     |
+| Testing  | MUnit + munit-cats-effect (backend); svelte-check (frontend)   |
 
 ## Project structure
 
 ```
-roguelite/
-  backend/    # Scala http4s server — authoritative game state
-  frontend/   # Svelte + Canvas client — rendering and input only
+deepstone/
+  deepstone-backend/  # Scala http4s server, authoritative game state
+  frontend/           # Svelte + Canvas client, rendering and input only
 ```
 
 ## Getting started
@@ -37,7 +37,7 @@ steps below if you only need one of the two, or if you're not on Windows.
 Requires: Java 17+, sbt 1.9+
 
 ```bash
-cd backend
+cd deepstone-backend
 sbt run          # starts the server on ws://localhost:8080/ws
 sbt test         # run all tests
 ```
@@ -65,7 +65,8 @@ User input
   → GameClient.send()
   → JSON PlayerAction   ──────→  WebSocketRouter
                                    → MessageProtocol.decodeAction()
-                                   → StateMachine.transition()
+                                   → GameSession.handle()
+                                       → StateMachine.applyActionPure()
                                        → new GameState
   ← JSON StateUpdate    ←──────  → MessageProtocol.encodeUpdate()
   → gameState (store)

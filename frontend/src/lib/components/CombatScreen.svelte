@@ -269,22 +269,27 @@
 
     .floater {
         position: absolute;
-        top: 40%;
+        top: 0.25rem;
         left: 50%;
         transform: translateX(-50%);
-        font-size: 1.1rem;
+        font-size: 1.2rem;
         font-weight: bold;
-        color: #e05c5c;
-        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        color: #ff6b6b;
+        /* Hard black outline (not just a soft drop shadow) so the number reads clearly over the
+         * portrait sprite and the hit-flash overlay alike, whatever's behind it. */
+        text-shadow:
+            -1px -1px 0 #000, 1px -1px 0 #000,
+            -1px  1px 0 #000, 1px  1px 0 #000;
         pointer-events: none;
+        z-index: 1;
         animation: float-up 0.9s ease-out forwards;
     }
 
-    .floater.heal { color: #5ce07a; }
+    .floater.heal { color: #6bff9e; }
 
     @keyframes float-up {
         0%   { opacity: 1; transform: translate(-50%, 0); }
-        100% { opacity: 0; transform: translate(-50%, -2.2rem); }
+        100% { opacity: 0; transform: translate(-50%, -2.6rem); }
     }
 
     .combatant-name {

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { gameState, gamePhase, connectToServer } from "./lib/engine/StateStore";
+    import { assets } from "./lib/engine/AssetManager";
     import ExplorationHUD  from "./lib/components/ExplorationHUD.svelte";
     import CombatScreen    from "./lib/components/CombatScreen.svelte";
     import HubScreen       from "./lib/components/HubScreen.svelte";
@@ -9,6 +10,7 @@
 
     onMount(() => {
         connectToServer();
+        assets.preloadAtlases();
     });
 </script>
 

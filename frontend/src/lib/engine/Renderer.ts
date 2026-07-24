@@ -1,4 +1,4 @@
-import { AssetManager } from "./AssetManager";
+import { assets, type AssetManager } from "./AssetManager";
 import type { RoomView, PlayerView, EntityView } from "./protocol";
 import {
     TILE_SIZE,
@@ -116,8 +116,7 @@ export class Renderer {
 
         this.canvas = canvas;
         this.ctx = ctx;
-        this.assets = new AssetManager();
-        this.assets.preloadAtlases();
+        this.assets = assets;
 
         // Keep the canvas pixel dimensions in sync with its CSS layout size
         this.resizeObserver = new ResizeObserver(() => this.fitToContainer());

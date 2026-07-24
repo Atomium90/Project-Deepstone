@@ -122,3 +122,9 @@ export class AssetManager {
         return COLOR_TILE_FLOOR_BORDER;
     }
 }
+
+/** The singleton AssetManager used throughout the app - one atlas cache shared by the canvas
+ * renderer and any Svelte component that needs a sprite (e.g. Sprite.svelte). Call
+ * `assets.preloadAtlases()` once from the root App component on mount, same convention as
+ * `client`/`connectToServer()` in StateStore.ts. */
+export const assets = new AssetManager();

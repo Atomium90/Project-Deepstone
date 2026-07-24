@@ -1,5 +1,5 @@
 import { writable, derived } from "svelte/store";
-import type { StateUpdate, GamePhase } from "./protocol";
+import type { StateUpdate } from "./protocol";
 import { GameClient } from "./GameClient";
 
 // ---------------------------------------------
@@ -22,6 +22,11 @@ export const npcDialogue = derived(gameState, ($s) => $s?.dialogue ?? null);
 /** Derived convenience: achievements newly earned by the most recent action, if any - cleared back
  * to [] on the next update that doesn't earn a new one. Drives AchievementToast.svelte. */
 export const achievementToast = derived(gameState, ($s) => $s?.newlyUnlocked ?? []);
+
+/** Derived convenience: damage/heal events produced by the most recent action, if any - same
+ * transient convention as `achievementToast`. Drives the floating numbers/hit flash/screen shake
+ * in CombatScreen.svelte. */
+export const combatDamageEvents = derived(gameState, ($s) => $s?.damageEvents ?? []);
 
 // ---------------------------------------------
 // Client singleton

@@ -1,10 +1,49 @@
 <script lang="ts">
-    import { gameState, client, combatLog } from "../engine/StateStore";
+    import { gameState, client, combatLog, combatDamageEvents } from "../engine/StateStore";
     import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
     import StatBar from "./StatBar.svelte";
     import Sprite from "./Sprite.svelte";
+
+    interface Floater {
+        id: number;
+        targetIsPlayer: boolean;
+        amount: number;
+        kind: "damage" | "heal";
+    }
+
+    let floaters: Floater[] = [];
+    let nextFloaterId = 0;
+
+    /** null = no flash active. Re-set via triggerFlash's remove-then-re-add so a CSS animation
+     * restarts even when the same kind fires twice in a row (e.g. two hits back to back). */
+    let playerFlashKind: "damage" | "heal" | null = null;
+    let enemyFlashKind: "damage" | "heal" | null = null;
+
+    function triggerFlash(targetIsPlayer: boolean, kind: "damage" | "heal"): void {
+        const apply = (v: "damage" | "heal" | null) =>
+            targetIsPlayer ? (playerFlashKind = v) : (enemyFlashKind = v);
+        apply(null);
+        requestAnimationFrame(() => {
+            apply(kind);
+            setTimeout(() => apply(null), 400);
+        });
+    }
+
+    /** Spawns a floating number + triggers the hit flash/shake for every damage/heal event on the
+     * action that just resolved. Reacts to the store rather than $gameState directly so it only
+     * fires when there's actually something to react to (mirrors AchievementToast's pattern). */
+    $: if ($combatDamageEvents.length > 0) {
+        for (const evt of $combatDamageEvents) {
+            const id = nextFloaterId++;
+            floaters = [...floaters, { id, targetIsPlayer: evt.targetIsPlayer, amount: evt.amount, kind: evt.kind }];
+            setTimeout(() => {
+                floaters = floaters.filter((f) => f.id !== id);
+            }, 900);
+            triggerFlash(evt.targetIsPlayer, evt.kind);
+        }
+    }
 
     $: player         = $gameState?.player;
     $: combat         = $gameState?.combat;
@@ -46,11 +85,21 @@
     <div class="combatants">
 
         <!-- Player side -->
-        <div class="combatant player-side">
+        <div
+                class="combatant player-side"
+                class:flash-damage={playerFlashKind === "damage"}
+                class:flash-heal={playerFlashKind === "heal"}
+        >
             <p class="combatant-name">{player?.classId.toUpperCase() ?? "—"}</p>
 
             <StatBar label="HP" current={player?.hp ?? 0} max={player?.maxHp ?? 0} color={HP_BAR_COLOR} />
             <StatBar label={resourceLabel} current={player?.resourceCurrent ?? 0} max={player?.resourceMax ?? 0} color={resourceColor} />
+
+            {#each floaters.filter((f) => f.targetIsPlayer) as f (f.id)}
+                <span class="floater" class:heal={f.kind === "heal"}>
+                    {f.kind === "heal" ? "+" : "-"}{f.amount}
+                </span>
+            {/each}
         </div>
 
         <!-- VS divider -->
@@ -64,7 +113,11 @@
         </div>
 
         <!-- Enemy side -->
-        <div class="combatant enemy-side">
+        <div
+                class="combatant enemy-side"
+                class:flash-damage={enemyFlashKind === "damage"}
+                class:flash-heal={enemyFlashKind === "heal"}
+        >
             {#if combat?.spriteId}
                 <div class="portrait">
                     <Sprite spriteId={combat.spriteId} fallbackColor={COLOR_ENTITY_ENEMY} size={112} />
@@ -73,6 +126,12 @@
             <p class="combatant-name">{combat?.enemyLabel ?? "—"}</p>
 
             <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0} color={HP_BAR_COLOR} />
+
+            {#each floaters.filter((f) => !f.targetIsPlayer) as f (f.id)}
+                <span class="floater" class:heal={f.kind === "heal"}>
+                    {f.kind === "heal" ? "+" : "-"}{f.amount}
+                </span>
+            {/each}
         </div>
 
     </div>
@@ -173,6 +232,7 @@
     }
 
     .combatant {
+        position: relative;
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -180,6 +240,51 @@
         padding: 1rem;
         background: #1a1a1a;
         border: 1px solid #2a2a2a;
+    }
+
+    .combatant.flash-damage { animation: hit-shake 0.4s ease; }
+    .combatant.flash-damage::after,
+    .combatant.flash-heal::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        animation: hit-flash 0.4s ease-out;
+    }
+    .combatant.flash-damage::after { background: rgba(224, 92, 92, 0.35); }
+    .combatant.flash-heal::after   { background: rgba(92, 224, 122, 0.3); }
+
+    @keyframes hit-shake {
+        0%, 100% { transform: translateX(0); }
+        20%      { transform: translateX(-5px); }
+        40%      { transform: translateX(4px); }
+        60%      { transform: translateX(-3px); }
+        80%      { transform: translateX(2px); }
+    }
+
+    @keyframes hit-flash {
+        0%   { opacity: 1; }
+        100% { opacity: 0; }
+    }
+
+    .floater {
+        position: absolute;
+        top: 40%;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #e05c5c;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+        pointer-events: none;
+        animation: float-up 0.9s ease-out forwards;
+    }
+
+    .floater.heal { color: #5ce07a; }
+
+    @keyframes float-up {
+        0%   { opacity: 1; transform: translate(-50%, 0); }
+        100% { opacity: 0; transform: translate(-50%, -2.2rem); }
     }
 
     .combatant-name {

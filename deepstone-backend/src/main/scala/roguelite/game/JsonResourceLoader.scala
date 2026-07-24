@@ -9,7 +9,7 @@ import scala.io.Source
   *
   * All game reference data (classes, enemies, items, rooms) is loaded once from a bundled
   * classpath resource and held immutable for the lifetime of the server. Concrete loaders only
-  * need to provide the resource path, the JSON parsing, and the map key — this trait handles
+  * need to provide the resource path, the JSON parsing, and the map key; this trait handles
   * reading the resource, wrapping parse failures, and building the final map.
   *
   * A malformed resource is a programming error: [[loadAll]] raises an IO failure rather than

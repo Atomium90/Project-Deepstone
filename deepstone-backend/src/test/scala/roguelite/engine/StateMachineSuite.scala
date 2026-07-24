@@ -38,7 +38,7 @@ class StateMachineSuite extends FunSuite:
 
   val enemyStatsMap: Map[String, EnemyStats] = Map("goblin" -> goblinStats)
 
-  /** Minimal class definitions mirroring classes.json — avoids file I/O in unit tests. */
+  /** Minimal class definitions mirroring classes.json, avoids file I/O in unit tests. */
   val testClassDefs: Map[ClassId, ClassDef] = Map(
     ClassId.Warrior -> ClassDef(ClassId.Warrior,
                                 hp = 120,
@@ -63,7 +63,7 @@ class StateMachineSuite extends FunSuite:
     )
   )
 
-  /** Minimal upgrade catalog mirroring upgrades.json — avoids file I/O in unit tests. */
+  /** Minimal upgrade catalog mirroring upgrades.json, avoids file I/O in unit tests. */
   val testUpgradeDefs: Map[String, UpgradeDef] = Map(
     "archer_unlock" -> UpgradeDef("archer_unlock",
                                   "Ranger's Path",
@@ -87,7 +87,7 @@ class StateMachineSuite extends FunSuite:
     Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
 
   /** Minimal pool for DungeonBuilder: one entrance (Combat) and one boss room. Used only by
-    * StartRun — every other test builds its own state directly via `explorationAt`/`simpleDungeon`
+    * StartRun; every other test builds its own state directly via `explorationAt`/`simpleDungeon`
     * and never touches this pool.
     */
   def defaultRoomPool: Map[String, Room] =
@@ -148,7 +148,7 @@ class StateMachineSuite extends FunSuite:
       sm().applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = None))
     assert(next.isInstanceOf[HubState])
 
-  // --- Hub — class unlock gating --------------------------------------------
+  // --- Hub: class unlock gating --------------------------------------------
 
   test("StartRun with a locked class is rejected and stays in Hub"):
     val hub = HubState(hubPlayer, testUpgradeDefs, MetaProgression.empty)
@@ -170,7 +170,7 @@ class StateMachineSuite extends FunSuite:
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[ExplorationState])
 
-  // --- Hub — difficulty -----------------------------------------------------
+  // --- Hub: difficulty -----------------------------------------------------
 
   /** Pool with enough middle rooms for Easy/Normal/Hard's totalRooms to actually differ. */
   def richRoomPool: Map[String, Room] =
@@ -208,7 +208,7 @@ class StateMachineSuite extends FunSuite:
     assert(next.isInstanceOf[HubState])
     assert(log.nonEmpty)
 
-  // --- Exploration — movement -----------------------------------------------
+  // --- Exploration: movement -----------------------------------------------
 
   test("Move Up decreases playerY"):
     val TransitionResult(next, _, _, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Up))
@@ -233,7 +233,7 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(_, _, _, events) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(events, List(GameEvent.SecretDoorRevealed))
 
-  // --- Exploration — interaction --------------------------------------------
+  // --- Exploration: interaction --------------------------------------------
 
   /** Thorough Door/Enemy/Chest/LockedDoor/trap/secret-door/Npc interaction behavior now lives in
     * InteractionResolverSuite, testing InteractionResolver directly (mirrors how CombatResolverSuite

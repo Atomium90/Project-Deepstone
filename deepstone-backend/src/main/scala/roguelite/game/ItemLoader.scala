@@ -6,7 +6,7 @@ import io.circe.parser.decode
 
 /** Loads item definitions from `data/items.json` on the classpath.
  *
- * Item data is immutable reference data — read once at startup and held for the lifetime of the
+ * Item data is immutable reference data: read once at startup and held for the lifetime of the
  * server. Each entry is decoded into a ''prototype'' [[Item]] with `id = ""`; call
  * [[Item.withNewId]] (via [[LootTable]]) at drop time to produce distinct inventory instances.
  * Resource reading and error wrapping are handled by [[JsonResourceLoader]].

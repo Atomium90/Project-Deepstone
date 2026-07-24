@@ -7,7 +7,7 @@ import roguelite.engine.Direction
 
 /** Loads and parses room definitions from the JSON data file at startup.
   *
-  * Room data lives in `resources/data/rooms.json` and is treated as immutable reference data — it
+  * Room data lives in `resources/data/rooms.json` and is treated as immutable reference data: it
   * is read once and held in memory for the lifetime of the server. Resource reading and error
   * wrapping are handled by [[JsonResourceLoader]].
   */

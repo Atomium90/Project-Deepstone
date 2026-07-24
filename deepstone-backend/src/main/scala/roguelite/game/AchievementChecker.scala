@@ -9,7 +9,7 @@ package roguelite.game
   *   - [[checkPurchase]]: called from [[roguelite.engine.GameSession]]'s BuyUpgrade handling,
   *     since BuyUpgrade never flows through the pure resolvers that emit [[GameEvent]]s.
   *
-  * No DB access, no GameState — every fact needed is already embedded in the GameEvent or passed
+  * No DB access, no GameState: every fact needed is already embedded in the GameEvent or passed
   * explicitly, which keeps this fully unit-testable without any session/state fixtures.
   */
 object AchievementChecker:

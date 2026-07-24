@@ -133,7 +133,7 @@ class StateMachine(roomPool: Map[String, Room],
 
       // Return to hub after death: GameSession enriches the HubState with real meta
       case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _)) =>
-        // Placeholder — class is re-chosen on next StartRun
+        // Placeholder: class is re-chosen on next StartRun
         val hubPlayer = Player(
           classId = ClassId.Warrior,
           hp = 100,

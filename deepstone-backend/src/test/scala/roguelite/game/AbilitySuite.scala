@@ -26,7 +26,7 @@ class AbilitySuite extends FunSuite:
   // Fixtures
   // -----------------------------------------------------------------------
 
-  /** Minimal ability catalog mirroring abilities.json — avoids file I/O in unit tests. */
+  /** Minimal ability catalog mirroring abilities.json, avoids file I/O in unit tests. */
   private val testAbilityDefs: Map[ClassId, AbilityDef] = Map(
     ClassId.Warrior -> AbilityDef(
       classId = ClassId.Warrior,
@@ -75,7 +75,7 @@ class AbilitySuite extends FunSuite:
     lootTable = Nil
   )
 
-  /** Enemy with exactly 1 HP — guaranteed to die on any hit. */
+  /** Enemy with exactly 1 HP, guaranteed to die on any hit. */
   private val dyingGoblin: EnemyInstance =
     tankGoblin.copy(hp = 1)
 
@@ -174,7 +174,7 @@ class AbilitySuite extends FunSuite:
         assertEquals(cs.combat.pendingAbility, None)
         assert(log.exists(_.contains("Berserker Slash activates")), s"missing activation log: $log")
       case es: ExplorationState =>
-        // Enemy died from doubled damage — also valid
+        // Enemy died from doubled damage, also valid
         assert(log.exists(_.contains("Berserker Slash activates")), s"missing activation log: $log")
       case other =>
         fail(s"unexpected state after doubled attack: ${other.getClass.getSimpleName}")
@@ -231,7 +231,7 @@ class AbilitySuite extends FunSuite:
         assertEquals(cs.combat.pendingAbility, None)
         assert(log.exists(_.contains("Precise Shot activates")), s"missing activation log: $log")
       case _: ExplorationState =>
-        // Enemy may have died — that's fine too
+        // Enemy may have died, that's fine too
         assert(log.exists(_.contains("Precise Shot activates")), s"missing activation log: $log")
       case other =>
         fail(s"unexpected state: ${other.getClass.getSimpleName}")
@@ -391,7 +391,7 @@ class AbilitySuite extends FunSuite:
         // We assert damage >= 5 to be lenient about jitter while still catching the regression.
         assert(damageTaken >= 5, s"expected damage >= 5 (player defense applied), got $damageTaken")
       case _: GameOverState =>
-        () // also valid — player survived long enough for the bug-fix to be exercised
+        () // also valid, player survived long enough for the bug-fix to be exercised
       case other =>
         fail(s"unexpected state: ${other.getClass.getSimpleName}")
     }

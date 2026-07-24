@@ -46,7 +46,7 @@ enum Difficulty:
     case Difficulty.Hard   => 6
 
   /** Relative weight multiplier applied to a loot candidate based on its rarity. Only Hard biases
-    * toward Uncommon for now — Easy/Normal keep today's unweighted behavior.
+    * toward Uncommon for now; Easy/Normal keep today's unweighted behavior.
     */
   def rarityWeightMultiplier(rarity: Rarity): Double = (this, rarity) match
     case (Difficulty.Hard, Rarity.Uncommon) => 2.0
@@ -145,8 +145,8 @@ case class CombatView(
     spriteId: Option[String] = None
 )
 
-/** One damage or heal event produced by the action that generated this [[StateUpdate]]. Transient
-  * — only present on the single update the event happened on, same convention as [[DialogueView]].
+/** One damage or heal event produced by the action that generated this [[StateUpdate]]. Transient:
+  * only present on the single update the event happened on, same convention as [[DialogueView]].
   *
   * @param targetIsPlayer
   *   True if the player took the hit/heal, false if the enemy did.
@@ -171,19 +171,19 @@ case class ItemView(
 
 /** Static description of one class's combat ability. Sent as a small catalog on every
   * [[StateUpdate]] (not just during combat) so the client never needs to hardcode ability names,
-  * costs, or resource labels — see [[roguelite.engine.GameSession]].
+  * costs, or resource labels. See [[roguelite.engine.GameSession]].
   */
 case class AbilityView(
     classId: ClassId,
     id: String,
     name: String,
     cost: Int,
-    resourceName: String, // e.g. "Rage" — the resource pool this ability spends
+    resourceName: String, // e.g. "Rage": the resource pool this ability spends
     description: String
 )
 
 /** One achievement's display state. Sent as a full catalog on every [[StateUpdate]] (same
-  * rationale as [[AbilityView]] — the client never hardcodes the list), independent of phase.
+  * rationale as [[AbilityView]]: the client never hardcodes the list), independent of phase.
   */
 case class AchievementView(id: String, label: String, description: String, unlocked: Boolean)
 
@@ -203,7 +203,7 @@ case class StateUpdate(
     victory: Boolean = false,
     log: List[String] = Nil,
     dialogue: Option[DialogueView] = None,
-    /** Achievements newly earned by the action that produced this update. Transient — only
+    /** Achievements newly earned by the action that produced this update. Transient: only
       * non-empty on the single update where one or more achievements were just unlocked, same
       * convention as [[dialogue]]. A list, not an Option, since a single action can plausibly earn
       * more than one at once (e.g. a kill that is simultaneously a first kill and a level-up).

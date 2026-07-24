@@ -4,7 +4,7 @@ package roguelite.game
   *
   * Checked by AchievementChecker against either a [[GameEvent]] (most conditions) or, for
   * `TotalShardsSpent` and `AllUpgradesUnlocked`, directly from
-  * [[roguelite.engine.GameSession.handleBuyUpgrade]] — BuyUpgrade never flows through the pure
+  * [[roguelite.engine.GameSession.handleBuyUpgrade]]: BuyUpgrade never flows through the pure
   * resolvers that emit [[GameEvent]]s (see CLAUDE.md "BuyUpgrade routing").
   */
 enum AchievementCondition:
@@ -25,7 +25,7 @@ enum AchievementCondition:
   *
   * @param displayOrder
   *   Position in the hub achievement panel (ascending). JSON array order is not preserved once
-  *   loaded into a `Map`, so this field is the explicit source of truth for display order — same
+  *   loaded into a `Map`, so this field is the explicit source of truth for display order, same
   *   rationale as [[UpgradeDef.displayOrder]].
   */
 case class AchievementDef(

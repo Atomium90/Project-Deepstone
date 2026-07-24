@@ -142,7 +142,7 @@ class AffinitySuite extends FunSuite:
         assert(damageDone >= 27,
                s"expected at least 27 damage with warrior affinity, got $damageDone"
         )
-      case _ => () // enemy died — that's fine too, affinity clearly worked
+      case _ => () // enemy died, that's fine too, affinity clearly worked
   }
 
   test("Archer with ranged weapon gets 2× attack bonus") {
@@ -234,7 +234,7 @@ class AffinitySuite extends FunSuite:
   }
 
   test("Archer with heavy armor gets no affinity bonus") {
-    // Archer has ranged affinity, not heavy — Chain Mail should give base +6 only.
+    // Archer has ranged affinity, not heavy: Chain Mail should give base +6 only.
     val resolver = freshResolver
     val archer   = withArmor(makePlayer(ClassId.Archer, Set("ranged")), chainMail)
     val warrior  = withArmor(makePlayer(ClassId.Warrior, Set("heavy")), chainMail)

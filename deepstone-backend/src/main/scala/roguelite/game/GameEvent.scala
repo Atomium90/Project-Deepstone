@@ -6,7 +6,7 @@ package roguelite.game
   * [[roguelite.engine.StateMachine.applyActionPure]] via [[roguelite.engine.TransitionResult]], and
   * consumed by AchievementChecker in [[roguelite.engine.GameSession]] (added later).
   *
-  * Deliberately achievement-agnostic — this layer only reports facts, it doesn't know which
+  * Deliberately achievement-agnostic: this layer only reports facts, it doesn't know which
   * achievement (if any) cares about them. Matches this codebase's preference for typed domain
   * modeling over implicit (prev, next) state diffing or stringly-typed inference.
   */
@@ -14,7 +14,7 @@ enum GameEvent:
   /** An enemy was defeated in combat (win). */
   case EnemyDefeated(isBoss: Boolean, tookNoDamage: Boolean)
 
-  /** The player reached a new level. Emitted once per level gained — a single kill can emit
+  /** The player reached a new level. Emitted once per level gained: a single kill can emit
     * several if it crosses more than one XP threshold at once.
     */
   case LeveledUp(newLevel: Int)

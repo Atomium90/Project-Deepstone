@@ -98,7 +98,7 @@ class LevelUpSuite extends FunSuite:
   }
 
   test("applyLevelUps: multi level-up when XP crosses two thresholds") {
-    // Level 1→2 at 100, level 2→3 at 375 total — give 400 XP
+    // Level 1→2 at 100, level 2→3 at 375 total: give 400 XP
     val player        = makePlayer(level = 1, xp = 400)
     val (result, log) = LevelUpSystem.applyLevelUps(player, Random(42))
     assertEquals(result.level, 3)
@@ -169,7 +169,7 @@ class LevelUpSuite extends FunSuite:
 
   test("applyPerk: AttackBoost stacks correctly across multiple levels") {
     val player = makePlayer(level = 1, xp = 400, bonusAtk = 0)
-    // Force two AttackBoosts by picking a seed — verify stack, not the specific perk
+    // Force two AttackBoosts by picking a seed, verify stack, not the specific perk
     val (result, log) = LevelUpSystem.applyLevelUps(player, Random(42))
     // Whatever perks were given, bonusAttack must be a multiple of 2 if any were AttackBoost
     assertEquals(result.bonusAttack % 2, 0)

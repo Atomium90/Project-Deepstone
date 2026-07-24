@@ -33,11 +33,11 @@ import boundary.break
   *
   * Ability cost checks: insufficient resource does NOT consume the player's turn. The state is
   * returned unchanged so the player can choose a different action. Ability data (cost, resource
-  * name, and effect) comes from [[abilityDefs]] — see [[AbilityDef]] — so adding or tuning a class
+  * name, and effect) comes from [[abilityDefs]] (see [[AbilityDef]]), so adding or tuning a class
   * ability never requires touching this class.
   *
   * @param rng
-  *   Random instance — inject a seeded one for deterministic tests.
+  *   Random instance: inject a seeded one for deterministic tests.
   * @param abilityDefs
   *   Loaded ability catalog, keyed by class. See [[AbilityLoader]].
   */
@@ -62,7 +62,7 @@ class CombatResolver(rng: Random = Random(),
   private def handleAttack(state: CombatState): (GameState, List[String], List[GameEvent]) =
     val pending = state.combat.pendingAbility
 
-    // Ability activation banner — the pending effect was armed by this player's own class
+    // Ability activation banner: the pending effect was armed by this player's own class
     // ability, so the ability name is always resolvable from their classId.
     val abilityLog: List[String] = pending match {
       case Some(_) => abilityDefs.get(state.player.classId).map(a => s"${a.name} activates!").toList
@@ -201,8 +201,8 @@ class CombatResolver(rng: Random = Random(),
     * (e.g. onHit + onRound at the end of an enemy attack turn).
     *
     * Class rules:
-    *   - Warrior: +5 on attack, +10 on hit — no per-round or defend gain
-    *   - Archer: +8 on defend, +5 per round — no attack or hit gain
+    *   - Warrior: +5 on attack, +10 on hit, no per-round or defend gain
+    *   - Archer: +8 on defend, +5 per round, no attack or hit gain
     *   - Mage: 0 in all cases
     */
   private[game] def gainResource(player: Player,
@@ -281,7 +281,7 @@ class CombatResolver(rng: Random = Random(),
           val (finalState, finalLog, downstreamEvents) = defeat(state, state.player.copy(hp = 0), attackLog)
           (finalState, finalLog, damageEvent :: downstreamEvents)
         else
-          // Warrior +10 Rage when hit; Archer +5 Focus per round — both fire here
+          // Warrior +10 Rage when hit; Archer +5 Focus per round: both fire here
           val playerAfterHit = gainResource(
             state.player.copy(hp = newHp),
             onHit = true,

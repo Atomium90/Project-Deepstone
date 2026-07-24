@@ -3,7 +3,7 @@ package roguelite.game
 /** A dungeon is a set of rooms connected by doors.
   *
   * The dungeon tracks which room the player is currently in. Navigation happens by interacting with
-  * a [[Door]] entity — the door's `targetRoomId` is looked up in `rooms` to produce a new `Dungeon`
+  * a [[Door]] entity: the door's `targetRoomId` is looked up in `rooms` to produce a new `Dungeon`
   * with a different `currentRoomId`.
   *
   * @param rooms
@@ -16,7 +16,7 @@ case class Dungeon(
     currentRoomId: String
 ):
   /** The room the player is currently in. Throws if the dungeon is malformed (currentRoomId not
-    * present in rooms — should never happen at runtime).
+    * present in rooms, should never happen at runtime).
     */
   def currentRoom: Room =
     rooms.getOrElse(

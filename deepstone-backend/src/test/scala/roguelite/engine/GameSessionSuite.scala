@@ -49,7 +49,7 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
-  /** Minimal upgrade catalog mirroring upgrades.json — avoids file I/O in unit tests. */
+  /** Minimal upgrade catalog mirroring upgrades.json, avoids file I/O in unit tests. */
   val testUpgradeDefs: Map[String, UpgradeDef] = Map(
     "hp_boost_1" -> UpgradeDef("hp_boost_1",
                                "Iron Constitution I",
@@ -95,7 +95,7 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
-  /** Minimal achievement catalog mirroring achievements.json — avoids file I/O in unit tests.
+  /** Minimal achievement catalog mirroring achievements.json, avoids file I/O in unit tests.
     * Only a small representative subset is needed here (thorough per-condition coverage lives in
     * AchievementCheckerSuite); this just exercises the GameSession wiring end-to-end.
     */
@@ -120,7 +120,7 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
-  /** Room pool for DungeonBuilder — needs at least one Combat (entrance) and one Boss room. */
+  /** Room pool for DungeonBuilder, needs at least one Combat (entrance) and one Boss room. */
   def testRoomPool: Map[String, Room] =
     val tiles = makeTiles()
     val r1    = Room("r1", RoomType.Combat, 8, 6, tiles, Nil)

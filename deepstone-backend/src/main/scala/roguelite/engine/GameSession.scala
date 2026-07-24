@@ -14,7 +14,7 @@ import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress,
 
 /** Represents one active player connection.
   *
-  * Each WebSocket connection gets its own GameSession. The session owns a `Ref[IO, GameState]` — an
+  * Each WebSocket connection gets its own GameSession. The session owns a `Ref[IO, GameState]`, an
   * atomically-updatable reference that keeps the authoritative game state for that player.
   *
   * Usage: call `handle` for every incoming player action; it transitions the state and returns the
@@ -56,13 +56,13 @@ class GameSession private (
     yield withAchievements(withCatalog(state.toStateUpdate()), progress)
 
   /** Attach the static per-class ability catalog to every outgoing update, so the client never
-    * has to hardcode ability names, costs, or resource labels — see [[AbilityView]].
+    * has to hardcode ability names, costs, or resource labels. See [[AbilityView]].
     */
   private def withCatalog(update: StateUpdate): StateUpdate =
     update.copy(abilities = abilityCatalog)
 
   /** Attach the full achievement catalog (locked and unlocked) to every outgoing update, so the
-    * client never has to hardcode achievement labels or descriptions — see [[AchievementView]].
+    * client never has to hardcode achievement labels or descriptions. See [[AchievementView]].
     */
   private def withAchievements(update: StateUpdate, progress: AchievementProgress): StateUpdate =
     update.copy(achievements = achievementCatalog(progress))
@@ -76,7 +76,7 @@ class GameSession private (
     AchievementView(id = d.id, label = d.label, description = d.description, unlocked = unlocked)
 
   // -----------------------------------------------------------------------
-  // Internal — transition handling
+  // Internal: transition handling
   // -----------------------------------------------------------------------
 
   private def handleTransition(action: PlayerAction): IO[StateUpdate] =
@@ -217,7 +217,7 @@ class GameSession private (
     *
     * Generic over the effect kind: adding a new upgrade only means adding an entry to
     * `upgrades.json` (and, if it's a genuinely new *kind* of effect, one case here and in
-    * [[UpgradeEffect]]) — never a change keyed by upgrade id.
+    * [[UpgradeEffect]]), never a change keyed by upgrade id.
     */
   private def applyMetaBonuses(state: ExplorationState, meta: MetaProgression): ExplorationState =
     val effects       = meta.unlockedUpgrades.toList.flatMap(upgradeDefs.get).map(_.effect)
@@ -242,7 +242,7 @@ class GameSession private (
             case Left(_)  => player // inventory full => silently skip
 
     case UpgradeEffect.UnlockClass(_) =>
-      // Gates class selection at StartRun (see StateMachine) — no player-state effect to apply.
+      // Gates class selection at StartRun (see StateMachine); no player-state effect to apply.
       player
 
 object GameSession:

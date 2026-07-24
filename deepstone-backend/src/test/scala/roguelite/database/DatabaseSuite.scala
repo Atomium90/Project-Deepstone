@@ -190,10 +190,10 @@ class DatabaseSuite extends CatsEffectSuite:
   }
 
   // -----------------------------------------------------------------------
-  // MetaProgression domain logic (pure — no DB needed)
+  // MetaProgression domain logic (pure, no DB needed)
   // -----------------------------------------------------------------------
 
-  /** Minimal upgrade catalog mirroring upgrades.json — avoids file I/O in unit tests. */
+  /** Minimal upgrade catalog mirroring upgrades.json, avoids file I/O in unit tests. */
   private val testUpgradeDefs: Map[String, UpgradeDef] = Map(
     "hp_boost_1" -> UpgradeDef("hp_boost_1",
                                "Iron Constitution I",

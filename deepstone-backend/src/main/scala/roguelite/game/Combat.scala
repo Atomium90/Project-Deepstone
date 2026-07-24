@@ -11,10 +11,10 @@ package roguelite.game
   * the combat log messages are sufficient feedback.
   */
 enum PendingAbilityEffect:
-  /** Warrior — Berserker Slash: raw damage (post-jitter) is doubled. */
+  /** Warrior, Berserker Slash: raw damage (post-jitter) is doubled. */
   case DoubleNextAttack
 
-  /** Archer — Precise Shot: attack rolls against 0 enemy defense instead of the actual value. */
+  /** Archer, Precise Shot: attack rolls against 0 enemy defense instead of the actual value. */
   case IgnoreDefenseNextAttack
 
 /** The runtime state of an active combat encounter.

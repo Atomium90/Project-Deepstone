@@ -9,11 +9,11 @@ import scala.util.Random
  * The builder picks rooms randomly while enforcing a minimal structure:
  * one combat room as the entrance, a mix of combat and loot rooms in the
  * middle, and one boss room as the exit. Door connectivity between rooms
- * is wired automatically — the builder pairs the exit door of one room
+ * is wired automatically: the builder pairs the exit door of one room
  * with the entrance door of the next.
  *
  * @param pool   All available rooms keyed by id.
- * @param rng    Random instance — inject a seeded one for reproducible dungeons.
+ * @param rng    Random instance: inject a seeded one for reproducible dungeons.
  */
 class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
 

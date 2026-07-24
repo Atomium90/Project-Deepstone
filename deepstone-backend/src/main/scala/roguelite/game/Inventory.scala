@@ -3,7 +3,7 @@ package roguelite.game
 /** A fixed-size item inventory backed by a slot vector.
  *
  * Slots are indexed 0 to [[MaxSlots]]−1. An empty slot is `None`. All mutation methods return a
- * new `Inventory` instance — this type is fully immutable.
+ * new `Inventory` instance: this type is fully immutable.
  *
  * Weapon, armor, and accessory bonuses are always active (no explicit equip step). Consumables
  * must be used explicitly via a combat or hub action.

@@ -6,7 +6,7 @@ import io.circe.parser.decode
 
 /** Loads enemy definitions from `data/enemies.json` on the classpath.
   *
-  * Enemy data is immutable reference data — read once at startup and held for the lifetime of the
+  * Enemy data is immutable reference data: read once at startup and held for the lifetime of the
   * server. Only the JSON shape and the map key are specific to this loader; resource reading and
   * error wrapping are handled by [[JsonResourceLoader]].
   */

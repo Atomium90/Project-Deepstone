@@ -135,7 +135,7 @@ class CombatResolverSuite extends FunSuite:
           b.player.hp >= a.player.hp,
           s"Defending should take <= damage (defend: ${b.player.hp}, no-defend: ${a.player.hp})"
         )
-      case _ => () // one side may have won — inconclusive
+      case _ => () // one side may have won, inconclusive
 
   // --- Defeat --------------------------------------------------------------
 
@@ -161,7 +161,7 @@ class CombatResolverSuite extends FunSuite:
     )
     next match
       case gameOver: GameOverState => assertEquals(gameOver.victory, false)
-      case _                       => () // player may not have died this turn — inconclusive
+      case _                       => () // player may not have died this turn, inconclusive
 
   // --- GameEvent emission ----------------------------------------------------
 
@@ -194,7 +194,7 @@ class CombatResolverSuite extends FunSuite:
                                             CombatAction(CombatActionType.Attack)
     )
     events match
-      case Nil => () // player may not have died this turn — inconclusive
+      case Nil => () // player may not have died this turn, inconclusive
       case _ =>
         assert(events.contains(GameEvent.RunEnded(victory = false)), s"expected RunEnded(false): $events")
 
@@ -394,7 +394,7 @@ class CombatResolverSuite extends FunSuite:
                                             CombatAction(CombatActionType.Attack)
     )
     events match
-      case Nil => () // player may not have died this turn — inconclusive
+      case Nil => () // player may not have died this turn, inconclusive
       case _ =>
         assert(events.exists {
           case GameEvent.DamageDealt(true, _) => true

@@ -10,7 +10,7 @@ import scala.util.Random
   */
 object LootTable:
 
-  /** Items that can drop from any chest (typeId → relative weight). Weights are relative — only
+  /** Items that can drop from any chest (typeId → relative weight). Weights are relative: only
     * their ratio matters.
     */
   private val ChestPool: List[(String, Int)] = List(

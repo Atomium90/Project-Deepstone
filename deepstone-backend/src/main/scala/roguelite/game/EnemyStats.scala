@@ -40,7 +40,7 @@ case class EnemyStats(
   * stays self-contained in [[Combat]].
   *
   * @param entityId
-  *   The id of the [[Enemy]] entity in the room — used to remove it from the room after a
+  *   The id of the [[Enemy]] entity in the room, used to remove it from the room after a
   *   victorious combat.
   * @param dropChance
   *   Copied from [[EnemyStats]] so [[LootTable]] can read it without a second lookup.

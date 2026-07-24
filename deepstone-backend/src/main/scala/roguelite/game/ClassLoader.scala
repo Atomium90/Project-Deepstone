@@ -7,7 +7,7 @@ import roguelite.engine.ClassId
 
 /** Loads class definitions from `data/classes.json` on the classpath.
   *
-  * Class data is immutable reference data — read once at startup and held for the lifetime of the
+  * Class data is immutable reference data: read once at startup and held for the lifetime of the
   * server. Only the JSON shape and the map key are specific to this loader; resource reading and
   * error wrapping are handled by [[JsonResourceLoader]].
   */

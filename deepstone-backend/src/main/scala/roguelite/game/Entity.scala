@@ -4,8 +4,8 @@ import roguelite.engine.{ Direction, EntityView }
 
 /** An interactive object placed on a tile in a room.
   *
-  * All entities are static during exploration — they do not move. The player interacts with them by
-  * clicking (INTERACT action).
+  * All entities are static during exploration: they do not move. The player interacts with them by
+  * pressing E (INTERACT action).
   */
 sealed trait Entity:
   def id: String
@@ -15,10 +15,10 @@ sealed trait Entity:
   /** Project to the lightweight view sent to the client. */
   def toView: EntityView
 
-/** A hostile creature. Clicking it starts a combat.
+/** A hostile creature. Interacting with it starts a combat.
   *
   * @param typeId
-  *   Matches a key in enemies.json — used to look up combat stats.
+  *   Matches a key in enemies.json, used to look up combat stats.
   * @param label
   *   Display name shown in the UI and combat log.
   */
@@ -31,7 +31,7 @@ case class Enemy(
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label)
 
-/** A loot container. Clicking it grants items - unless it's trapped, in which case it spawns
+/** A loot container. Interacting with it grants items - unless it's trapped, in which case it spawns
   * enemies instead.
   *
   * @param trapped
@@ -52,7 +52,7 @@ case class Chest(
 enum DoorKind:
   case Normal, Trapped, Secret
 
-/** A passage to an adjacent room. Clicking it navigates to that room. */
+/** A passage to an adjacent room. Interacting with it navigates to that room. */
 case class Door(
     id: String,
     x: Int,
@@ -83,8 +83,8 @@ case class LockedDoor(
   def toView: EntityView =
     EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString)
 
-/** A static, friendly character. Clicking it shows one line of dialogue and advances to the next
-  * on later interactions - see [[InteractionResolver]] for the cooldown/rotation rules.
+/** A static, friendly character. Interacting with it shows one line of dialogue and advances to the
+  * next on later interactions - see [[InteractionResolver]] for the cooldown/rotation rules.
   *
   * @param name
   *   Duplicated from the matching entry in npcs.json (same pattern as [[Enemy.label]] duplicating

@@ -82,7 +82,7 @@ class Database private (xa: Transactor[IO]):
 
   /** Atomically deduct currency and record an upgrade as purchased.
     *
-    * The two writes run in a single SQLite transaction — either both succeed or
+    * The two writes run in a single SQLite transaction: either both succeed or
     * neither does, preventing a state where currency is deducted but the unlock
     * is not recorded (or vice versa).
     *

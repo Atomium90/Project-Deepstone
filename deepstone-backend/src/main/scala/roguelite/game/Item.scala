@@ -39,7 +39,7 @@ sealed trait Item:
   /** Category string used by the client protocol. */
   def kind: String
 
-  /** One-line stat summary for the UI — e.g. "+3 ATK", "Heal 30 HP". */
+  /** One-line stat summary for the UI, e.g. "+3 ATK", "Heal 30 HP". */
   def statLine: String
 
   /** Return a copy of this item with a freshly generated instance id. */

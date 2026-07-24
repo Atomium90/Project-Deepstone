@@ -1,9 +1,10 @@
 <script lang="ts">
     import { gameState, client, combatLog } from "../engine/StateStore";
-    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS } from "../engine/constants";
+    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
     import StatBar from "./StatBar.svelte";
+    import Sprite from "./Sprite.svelte";
 
     $: player         = $gameState?.player;
     $: combat         = $gameState?.combat;
@@ -64,6 +65,11 @@
 
         <!-- Enemy side -->
         <div class="combatant enemy-side">
+            {#if combat?.spriteId}
+                <div class="portrait">
+                    <Sprite spriteId={combat.spriteId} fallbackColor={COLOR_ENTITY_ENEMY} size={112} />
+                </div>
+            {/if}
             <p class="combatant-name">{combat?.enemyLabel ?? "—"}</p>
 
             <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0} color={HP_BAR_COLOR} />
@@ -186,6 +192,12 @@
     .player-side { border-color: #2a4a2a; }
     .enemy-side  { border-color: #4a2a2a; }
 
+    .portrait {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 0.25rem;
+    }
+
     /* -- VS divider ------------------------------------------------------- */
 
     .vs-divider {
@@ -227,14 +239,16 @@
 
     .action-btn {
         padding: 0.75rem 0.5rem;
-        background: #1e1e1e;
+        background-image: url(/sprites/ui/Grey/Default/button_rectangle_border.png);
+        background-size: 100% 100%;
+        image-rendering: pixelated;
         color: #ccc;
         border: 1px solid #333;
         cursor: pointer;
         font-family: monospace;
         font-size: 0.85rem;
         letter-spacing: 0.05em;
-        transition: background 0.12s, border-color 0.12s, color 0.12s;
+        transition: filter 0.12s, border-color 0.12s, color 0.12s;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -242,7 +256,7 @@
     }
 
     .action-btn:hover:not(:disabled) {
-        background: #2a2a2a;
+        filter: brightness(1.25);
         border-color: #666;
         color: #eee;
     }
@@ -259,7 +273,7 @@
     .action-btn.ability:hover:not(:disabled) { border-color: #8e44ad; }
     .action-btn.item:hover:not(:disabled)    { border-color: #27ae60; }
 
-    .action-btn.item.active { background: #1a2a1a; border-color: #27ae60; color: #5ce07a; }
+    .action-btn.item.active { filter: brightness(1.3); border-color: #27ae60; color: #5ce07a; }
 
     .ability-cost {
         font-size: 0.6rem;

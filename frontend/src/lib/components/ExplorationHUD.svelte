@@ -77,7 +77,7 @@
     /** Pad the inventory array to always show 6 slots (some may be null). */
     $: slots = Array.from({ length: 6 }, (_, i) => inventory[i] ?? null) as (ItemView | null)[];
 
-    /** First letter of each word, max 2 chars — used as the slot icon. */
+    /** First letter of each word, max 2 chars, used as the slot icon. */
     function abbrev(name: string): string {
         return name
             .split(" ")

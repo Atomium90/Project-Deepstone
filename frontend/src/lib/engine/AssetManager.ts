@@ -37,7 +37,8 @@ interface AtlasFile {
 const ATLAS_URLS = ["/atlas/tiles.json", "/atlas/entities.json", "/atlas/items.json"];
 
 /**
- * Centralizes all asset access for the renderer.
+ * Centralizes all asset access for the app. Used as a shared singleton (see `assets` below) by
+ * both the canvas renderer and any Svelte component that needs a sprite (e.g. Sprite.svelte).
  *
  * Sprites are resolved through getSprite(), which looks up a named sub-rect within one of the
  * sheets described by the JSON files in public/atlas/. A null `image` (nothing loaded yet, or a
@@ -52,8 +53,8 @@ export class AssetManager {
     private readonly atlas: Map<string, AtlasSprite> = new Map();
 
     /** Kicks off loading every atlas file. Fire-and-forget by design (see load()'s doc comment)
-     * - called explicitly by the owner (Renderer) rather than from the constructor, since
-     * constructors shouldn't launch unawaited async work. */
+     * - called explicitly by the root App component on mount rather than from the constructor,
+     * since constructors shouldn't launch unawaited async work. */
     preloadAtlases(): void {
         for (const atlasUrl of ATLAS_URLS) {
             this.loadAtlas(atlasUrl);

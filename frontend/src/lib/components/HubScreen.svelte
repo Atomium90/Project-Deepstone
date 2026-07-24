@@ -56,7 +56,7 @@
     }
 
     /**
-     * The last log line from the server — shown as feedback after a buy attempt.
+     * The last log line from the server, shown as feedback after a buy attempt.
      * Fragile: if another log entry arrives before the player reads it, the
      * displayed message no longer corresponds to their action. Fine for now,
      * would need a dedicated feedback field in the protocol to fix properly.

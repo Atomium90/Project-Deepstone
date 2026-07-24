@@ -405,7 +405,7 @@ function tileToPixelCenter(tileX: number, tileY: number): Vec2 {
 }
 
 /**
- * Chebyshev distance — the natural "within N tiles" metric on a grid,
+ * Chebyshev distance: the natural "within N tiles" metric on a grid,
  * since diagonal and orthogonal steps both cost 1.
  */
 function chebyshevDist(x1: number, y1: number, x2: number, y2: number): number {

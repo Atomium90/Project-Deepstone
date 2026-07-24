@@ -23,7 +23,7 @@ export const ENTITY_RADIUS_RATIO = 0.3;
 export const ENTITY_LABEL_OFFSET = 12;
 
 // ---------------------------------------------
-// Colors — tile
+// Colors - tile
 // ---------------------------------------------
 
 export const COLOR_TILE_FLOOR = "#2a2a2a";
@@ -32,7 +32,7 @@ export const COLOR_TILE_FLOOR_BORDER = "#333333";
 export const COLOR_TILE_GRID_WIDTH = 0.5;
 
 // ---------------------------------------------
-// Colors — entities
+// Colors - entities
 // ---------------------------------------------
 
 export const COLOR_ENTITY_ENEMY = "#c0392b";
@@ -46,7 +46,7 @@ export const COLOR_ENTITY_LABEL = "#ccc";
 export const COLOR_ENTITY_FALLBACK = "#888";
 
 // ---------------------------------------------
-// Colors — player
+// Colors - player
 // ---------------------------------------------
 
 export const PLAYER_CLASS_COLORS = {
@@ -60,7 +60,7 @@ export const COLOR_PLAYER_OUTLINE_WIDTH = 2;
 export const COLOR_PLAYER_INITIAL = "#fff";
 
 // ---------------------------------------------
-// Colors — loading state
+// Colors - loading state
 // ---------------------------------------------
 
 export const COLOR_LOADING_BG = "#1a1a1a";
@@ -75,9 +75,9 @@ export const STATS_PANEL_WIDTH = 160;
 
 /** Resource bar color per class. */
 export const RESOURCE_BAR_COLORS = {
-  warrior: "#c0392b", // Rage — red
-  archer: "#27ae60", // Focus — green
-  mage: "#2980b9", // Mana — blue
+  warrior: "#c0392b", // Rage: red
+  archer: "#27ae60", // Focus: green
+  mage: "#2980b9", // Mana: blue
 } as const;
 
 export const HP_BAR_COLOR = "#c0392b";

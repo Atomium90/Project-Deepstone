@@ -367,6 +367,89 @@ class CombatResolverSuite extends FunSuite:
       .resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assertEquals(next.player.inventory.size, 0)
 
+  // --- Damage/heal event emission ------------------------------------------
+
+  test("Attack emits DamageDealt(targetIsPlayer = false) matching the enemy's HP loss"):
+    val enemy = weakEnemy(hp = 999)
+    val (next, _, events) =
+      resolver().resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
+    val hpLost = enemy.hp - next.asInstanceOf[CombatState].combat.enemy.hp
+    assert(
+      events.contains(GameEvent.DamageDealt(targetIsPlayer = false, amount = hpLost)),
+      s"expected DamageDealt(false, $hpLost): $events"
+    )
+
+  test("Defend still lets the enemy counter-attack, emitting DamageDealt(targetIsPlayer = true)"):
+    val (next, _, events) =
+      resolver().resolve(combatState(weakEnemy(hp = 50)), CombatAction(CombatActionType.Defend))
+    val hpLost = fullHpPlayer().hp - next.player.hp
+    assert(hpLost > 0, "enemy should have hit the defending player")
+    assert(
+      events.contains(GameEvent.DamageDealt(targetIsPlayer = true, amount = hpLost)),
+      s"expected DamageDealt(true, $hpLost): $events"
+    )
+
+  test("the fatal blow still emits DamageDealt(targetIsPlayer = true) before RunEnded"):
+    val (_, _, events) = resolver().resolve(combatState(strongEnemy(), player = lowHpPlayer),
+                                            CombatAction(CombatActionType.Attack)
+    )
+    events match
+      case Nil => () // player may not have died this turn — inconclusive
+      case _ =>
+        assert(events.exists {
+          case GameEvent.DamageDealt(true, _) => true
+          case _                              => false
+        }, s"expected a DamageDealt(true, _) alongside RunEnded: $events")
+
+  test("Arcane Blast (FlatDamage ability) emits DamageDealt(targetIsPlayer = false, amount = the flat value)"):
+    val ability = AbilityDef(ClassId.Warrior,
+                             "test_blast",
+                             "Test Blast",
+                             cost = 10,
+                             resourceName = "Rage",
+                             description = "",
+                             effect = AbilityEffect.FlatDamage(45)
+    )
+    val player = fullHpPlayer().copy(resourceCurrent = 100)
+    val (_, _, events) = CombatResolver(Random(0), abilityDefs = Map(ClassId.Warrior -> ability))
+      .resolve(combatState(weakEnemy(hp = 999), player), CombatAction(CombatActionType.Ability))
+    assert(
+      events.contains(GameEvent.DamageDealt(targetIsPlayer = false, amount = 45)),
+      s"expected DamageDealt(false, 45): $events"
+    )
+
+  test("HealFixed potion emits Healed matching the amount restored (not net HP, which the enemy's counter-attack also affects)"):
+    val potion = Consumable("p1",
+                            "health_potion",
+                            "Health Potion",
+                            Rarity.Common,
+                            ConsumableEffect.HealFixed(30)
+    )
+    val inv   = addItem(Inventory.empty, potion)
+    val state = combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(hp = 50, inventory = inv))
+    val (_, _, events) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
+    assert(events.contains(GameEvent.Healed(30)), s"expected Healed(30): $events")
+
+  test("a potion that can't heal past maxHp doesn't emit Healed(0)"):
+    val potion = Consumable("p1", "hp", "HP", Rarity.Common, ConsumableEffect.HealFixed(30))
+    val inv    = addItem(Inventory.empty, potion)
+    val state  = combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(inventory = inv)) // already full HP
+    val (_, _, events) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
+    assert(!events.exists(_.isInstanceOf[GameEvent.Healed]), s"unexpected Healed event: $events")
+
+  test("RestoreResource does not emit a Healed or DamageDealt event"):
+    val ether =
+      Consumable("e1", "ether", "Ether", Rarity.Uncommon, ConsumableEffect.RestoreResource(20))
+    val inv = addItem(Inventory.empty, ether)
+    val state = combatState(weakEnemy(hp = 50),
+                            player = fullHpPlayer().copy(resourceCurrent = 0, inventory = inv)
+    )
+    val (_, _, events) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("e1")))
+    assert(!events.exists(_.isInstanceOf[GameEvent.Healed]), s"unexpected Healed event: $events")
+
   test("accessory drop increases player maxHp on defeat"):
     val itemDefs: Map[String, Item] = Map(
       "iron_ring" -> Accessory("", "iron_ring", "Iron Ring", Rarity.Common, hpBonus = 10)

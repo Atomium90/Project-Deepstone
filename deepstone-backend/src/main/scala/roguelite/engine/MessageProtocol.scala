@@ -128,14 +128,32 @@ case class RoomView(
     playerY: Int
 )
 
-/** Snapshot of the ongoing combat. Null-equivalent: wrapped in Option at the top level. */
+/** Snapshot of the ongoing combat. Null-equivalent: wrapped in Option at the top level.
+  *
+  * @param spriteId
+  *   Atlas sprite key for the enemy portrait (see frontend/public/atlas/entities.json), resolved
+  *   from enemies.json's spriteId - same pattern as [[EntityView.spriteId]] in the exploration
+  *   view, resolved at the [[CombatState.toStateUpdate]] boundary rather than carried on the
+  *   entity itself.
+  */
 case class CombatView(
     enemyId: String,
     enemyLabel: String,
     enemyHp: Int,
     enemyMaxHp: Int,
-    isPlayerTurn: Boolean
+    isPlayerTurn: Boolean,
+    spriteId: Option[String] = None
 )
+
+/** One damage or heal event produced by the action that generated this [[StateUpdate]]. Transient
+  * — only present on the single update the event happened on, same convention as [[DialogueView]].
+  *
+  * @param targetIsPlayer
+  *   True if the player took the hit/heal, false if the enemy did.
+  * @param kind
+  *   `"damage"` or `"heal"` - drives which color/direction the client's floating number uses.
+  */
+case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String)
 
 /** Hub data: available upgrades and their unlock status. */
 case class UpgradeView(id: String, label: String, description: String, cost: Int, unlocked: Boolean)
@@ -190,7 +208,12 @@ case class StateUpdate(
       * convention as [[dialogue]]. A list, not an Option, since a single action can plausibly earn
       * more than one at once (e.g. a kill that is simultaneously a first kill and a level-up).
       */
-    newlyUnlocked: List[AchievementView] = Nil
+    newlyUnlocked: List[AchievementView] = Nil,
+    /** Damage/heal events produced by the action that generated this update. Transient, same
+      * convention as [[newlyUnlocked]] - a list since a single action can produce more than one
+      * (e.g. the player attacks and the enemy counter-attacks in the same response).
+      */
+    damageEvents: List[DamageEventView] = Nil
 )
 
 // ---------------------------------------------
@@ -275,6 +298,7 @@ object MessageProtocol:
   given Encoder[EntityView]  = deriveEncoder
   given Encoder[RoomView]    = deriveEncoder
   given Encoder[CombatView]  = deriveEncoder
+  given Encoder[DamageEventView] = deriveEncoder
   given Encoder[UpgradeView]  = deriveEncoder
   given Encoder[HubView]      = deriveEncoder
   given Encoder[ItemView]     = deriveEncoder

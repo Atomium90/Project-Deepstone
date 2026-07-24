@@ -30,3 +30,13 @@ enum GameEvent:
 
   /** A run ended, win or lose. */
   case RunEnded(victory: Boolean)
+
+  /** Damage was dealt to a combatant. `targetIsPlayer` distinguishes the player taking a hit from
+    * the player's attack landing on the enemy - `amount` is always positive.
+    */
+  case DamageDealt(targetIsPlayer: Boolean, amount: Int)
+
+  /** The player was healed (HP only - resource restoration isn't reported here). Always the
+    * player: no enemy-heal effect exists in this game's combat model.
+    */
+  case Healed(amount: Int)

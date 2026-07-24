@@ -95,9 +95,12 @@ class CombatResolver(rng: Random = Random(),
       playerIsDefending = false
     )
 
-    if !damagedEnemy.isAlive then
-      victory(state.copy(player = playerAfterResource, combat = updatedCombat), damagedEnemy, log)
-    else enemyTurn(state.copy(player = playerAfterResource, combat = updatedCombat), log)
+    val damageEvent = GameEvent.DamageDealt(targetIsPlayer = false, amount = damage)
+    val (finalState, finalLog, downstreamEvents) =
+      if !damagedEnemy.isAlive then
+        victory(state.copy(player = playerAfterResource, combat = updatedCombat), damagedEnemy, log)
+      else enemyTurn(state.copy(player = playerAfterResource, combat = updatedCombat), log)
+    (finalState, finalLog, damageEvent :: downstreamEvents)
 
   private def handleDefend(state: CombatState): (GameState, List[String], List[GameEvent]) =
     val log = List("You brace for impact. Incoming damage is halved this round.")
@@ -117,11 +120,14 @@ class CombatResolver(rng: Random = Random(),
           case None =>
             (state, List("Item not found in inventory."), Nil)
           case Some((idx, consumable: Consumable)) =>
-            val (_, newInventory)          = state.player.inventory.removeAt(idx)
-            val playerWithoutItem          = state.player.copy(inventory = newInventory)
-            val (updatedPlayer, effectLog) = applyConsumableEffect(playerWithoutItem, consumable)
-            val updatedCombat              = state.combat.copy(playerIsDefending = false)
-            enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), effectLog)
+            val (_, newInventory) = state.player.inventory.removeAt(idx)
+            val playerWithoutItem = state.player.copy(inventory = newInventory)
+            val (updatedPlayer, effectLog, healEvents) =
+              applyConsumableEffect(playerWithoutItem, consumable)
+            val updatedCombat = state.combat.copy(playerIsDefending = false)
+            val (finalState, finalLog, downstreamEvents) =
+              enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), effectLog)
+            (finalState, finalLog, healEvents ++ downstreamEvents)
           case Some((_, item)) =>
             (state, List(s"${item.name} cannot be used in combat."), Nil)
         }
@@ -177,10 +183,12 @@ class CombatResolver(rng: Random = Random(),
         val damagedEnemy  = state.combat.enemy.takeDamage(amount)
         val log           = List(s"${ability.name}! You unleash arcane energy for $amount damage.")
         val updatedCombat = state.combat.copy(enemy = damagedEnemy, playerIsDefending = false)
+        val damageEvent   = GameEvent.DamageDealt(targetIsPlayer = false, amount = amount)
 
-        if !damagedEnemy.isAlive then
-          victory(state.copy(combat = updatedCombat), damagedEnemy, log)
-        else enemyTurn(state.copy(combat = updatedCombat), log)
+        val (finalState, finalLog, downstreamEvents) =
+          if !damagedEnemy.isAlive then victory(state.copy(combat = updatedCombat), damagedEnemy, log)
+          else enemyTurn(state.copy(combat = updatedCombat), log)
+        (finalState, finalLog, damageEvent :: downstreamEvents)
     }
 
   // -----------------------------------------------------------------------
@@ -217,27 +225,36 @@ class CombatResolver(rng: Random = Random(),
   // Consumable effect application
   // ---------------------------------------------
 
-  private def applyConsumableEffect(player: Player, item: Consumable): (Player, List[String]) =
+  private def applyConsumableEffect(player: Player,
+                                    item: Consumable
+  ): (Player, List[String], List[GameEvent]) =
     item.effect match
       case ConsumableEffect.HealFixed(amount) =>
         val before = player.hp
         val after  = (player.hp + amount).min(player.maxHp)
         val healed = after - before
-        (player.copy(hp = after), List(s"You use ${item.name}. Restored $healed HP."))
+        (player.copy(hp = after),
+         List(s"You use ${item.name}. Restored $healed HP."),
+         if healed > 0 then List(GameEvent.Healed(healed)) else Nil
+        )
 
       case ConsumableEffect.HealPercent(pct) =>
         val amount = (player.maxHp * pct / 100).max(1)
         val before = player.hp
         val after  = (player.hp + amount).min(player.maxHp)
         val healed = after - before
-        (player.copy(hp = after), List(s"You use ${item.name}. Restored $healed HP."))
+        (player.copy(hp = after),
+         List(s"You use ${item.name}. Restored $healed HP."),
+         if healed > 0 then List(GameEvent.Healed(healed)) else Nil
+        )
 
       case ConsumableEffect.RestoreResource(amount) =>
         val before   = player.resourceCurrent
         val after    = (player.resourceCurrent + amount).min(player.resourceMax)
         val restored = after - before
         (player.copy(resourceCurrent = after),
-         List(s"You use ${item.name}. Restored $restored resource.")
+         List(s"You use ${item.name}. Restored $restored resource."),
+         Nil
         )
 
   // ---------------------------------------------
@@ -258,8 +275,11 @@ class CombatResolver(rng: Random = Random(),
         val defendNote = if state.combat.playerIsDefending then " (halved)" else ""
         val attackLog =
           priorLog :+ s"${state.combat.enemy.label} attacks you for $finalDamage damage$defendNote."
+        val damageEvent = GameEvent.DamageDealt(targetIsPlayer = true, amount = finalDamage)
 
-        if newHp <= 0 then defeat(state, state.player.copy(hp = 0), attackLog)
+        if newHp <= 0 then
+          val (finalState, finalLog, downstreamEvents) = defeat(state, state.player.copy(hp = 0), attackLog)
+          (finalState, finalLog, damageEvent :: downstreamEvents)
         else
           // Warrior +10 Rage when hit; Archer +5 Focus per round — both fire here
           val playerAfterHit = gainResource(
@@ -273,7 +293,7 @@ class CombatResolver(rng: Random = Random(),
             playerIsDefending = false,
             tookDamage = true
           )
-          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog, Nil)
+          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog, List(damageEvent))
 
       case "DEFEND" =>
         val roundLog = priorLog :+ s"${state.combat.enemy.label} takes a defensive stance."

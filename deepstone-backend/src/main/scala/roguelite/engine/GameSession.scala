@@ -90,7 +90,18 @@ class GameSession private (
       newlyUnlocked <- processAchievementEvents(transitionResult.events)
     yield finalNext
       .toStateUpdate(transitionResult.log, transitionResult.dialogue)
-      .copy(newlyUnlocked = newlyUnlocked)
+      .copy(newlyUnlocked = newlyUnlocked, damageEvents = toDamageEventViews(transitionResult.events))
+
+  /** Pure projection of the damage/heal facts in a transition's events - no DB/IO needed, unlike
+    * achievements, since nothing here is persisted.
+    */
+  private def toDamageEventViews(events: List[GameEvent]): List[DamageEventView] =
+    events.collect {
+      case GameEvent.DamageDealt(targetIsPlayer, amount) =>
+        DamageEventView(targetIsPlayer = targetIsPlayer, amount = amount, kind = "damage")
+      case GameEvent.Healed(amount) =>
+        DamageEventView(targetIsPlayer = true, amount = amount, kind = "heal")
+    }
 
   /** Side-effects and state enrichment triggered by specific state transitions.
     *

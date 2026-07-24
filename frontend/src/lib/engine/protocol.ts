@@ -95,6 +95,17 @@ export interface CombatView {
   enemyHp: number;
   enemyMaxHp: number;
   isPlayerTurn: boolean;
+  /** Atlas sprite key for the enemy portrait, same resolution convention as EntityView.spriteId. */
+  spriteId?: string;
+}
+
+/** One damage or heal event produced by the action that generated this StateUpdate. Transient -
+ * only present on the single update the event happened on, same convention as DialogueView. */
+export interface DamageEventView {
+  /** True if the player took the hit/heal, false if the enemy did. */
+  targetIsPlayer: boolean;
+  amount: number;
+  kind: "damage" | "heal";
 }
 
 export interface UpgradeView {
@@ -162,4 +173,8 @@ export interface StateUpdate {
    * `dialogue`. A list, not a single value, since one action can plausibly earn more than one at
    * once. */
   newlyUnlocked: AchievementView[];
+  /** Damage/heal events produced by the action that generated this update. Transient, same
+   * convention as `newlyUnlocked` - a list since a single action can produce more than one (e.g.
+   * the player attacks and the enemy counter-attacks in the same response). */
+  damageEvents: DamageEventView[];
 }

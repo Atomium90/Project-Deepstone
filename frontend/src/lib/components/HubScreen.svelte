@@ -3,13 +3,16 @@
     import { characterTab } from "../engine/CharacterStore";
     import {
         PLAYER_CLASS_COLORS,
-        CURRENCY_SYMBOL,
         CURRENCY_NAME,
         CLASS_INFO,
         CLASS_UNLOCK_UPGRADE_ID,
         DIFFICULTY_INFO,
         DIFFICULTY_COLORS,
     } from "../engine/constants";
+
+    const ICON_LOCK = "/sprites/ui/icons/icon_lock.png";
+    const ICON_GEAR = "/sprites/ui/icons/icon_gear.png";
+    const ICON_SHARD = "/sprites/ui/icons/icon_shard.png";
     import type { ClassId, Difficulty, UpgradeView } from "../engine/protocol";
 
     // Selected class (Warrior by default)
@@ -70,7 +73,7 @@
     <header class="hub-header">
         <h1 class="title">DEEPSTONE</h1>
         <div class="shards">
-            <span class="shards-symbol">{CURRENCY_SYMBOL}</span>
+            <img class="shards-symbol" src={ICON_SHARD} alt="" />
             <span class="shards-amount">{shards}</span>
             <span class="shards-label">{CURRENCY_NAME}</span>
         </div>
@@ -98,9 +101,9 @@
                         {#if selectedClass === c}
                             <span class="selected-badge">Selected</span>
                         {:else if !unlocked}
-                            <span class="lock-badge">🔒</span>
+                            <img class="lock-badge" src={ICON_LOCK} alt="" />
                         {/if}
-                        <span class="class-icon">{info.icon}</span>
+                        <img class="class-icon" src={info.icon} alt="" />
                         <span class="class-name">{info.label}</span>
                         <span class="class-desc">{info.description}</span>
                         <span class="class-affinity">Affinity: {info.affinity}</span>
@@ -163,7 +166,8 @@
                                         class="upgrade-cost"
                                         class:unaffordable={shards < u.cost}
                                     >
-                                        {CURRENCY_SYMBOL} {u.cost}
+                                        <img class="cost-icon" src={ICON_SHARD} alt="" />
+                                        {u.cost}
                                     </span>
                                     <button
                                         class="buy-btn"
@@ -189,7 +193,7 @@
     <!-- No Inventory nav here: the Hub has no inventory context. -->
     <footer class="hub-footer">
         <button class="footer-nav-btn" on:click={() => characterTab.set("settings")}>
-            <span class="footer-nav-icon">⚙</span>
+            <img class="footer-nav-icon" src={ICON_GEAR} alt="" />
             <span class="footer-nav-label">Settings</span>
         </button>
         <button class="footer-nav-btn" on:click={() => characterTab.set("achievements")}>
@@ -237,7 +241,7 @@
 
     .footer-nav-btn:hover { color: #ccc; }
 
-    .footer-nav-icon { font-size: 1.1rem; }
+    .footer-nav-icon { font-size: 1.1rem; width: 1.1rem; height: 1.1rem; object-fit: contain; }
     .footer-nav-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; }
 
     /* ── Header ── */
@@ -259,11 +263,11 @@
 
     .shards {
         display: flex;
-        align-items: baseline;
+        align-items: center;
         gap: 0.4rem;
     }
 
-    .shards-symbol { font-size: 1.1rem; color: #c8a84b; }
+    .shards-symbol { width: 1.1rem; height: 1.1rem; image-rendering: pixelated; }
     .shards-amount { font-size: 1.4rem; color: #d4ac0d; font-weight: bold; }
     .shards-label  { font-size: 0.7rem; color: #666; text-transform: uppercase; letter-spacing: 0.1em; }
 
@@ -334,7 +338,14 @@
         color: #ddd;
     }
 
-    .class-icon    { grid-area: icon; font-size: 1.3rem; align-self: center; }
+    .class-icon {
+        grid-area: icon;
+        align-self: center;
+        width: 1.75rem;
+        height: 1.75rem;
+        object-fit: contain;
+        image-rendering: pixelated;
+    }
     .class-name    { grid-area: name; font-size: 0.9rem; color: #ccc; }
     .class-desc    { grid-area: desc; font-size: 0.72rem; color: #666; }
     .class-affinity { grid-area: affinity; font-size: 0.65rem; color: #555; margin-top: 0.15rem; }
@@ -369,8 +380,8 @@
     }
 
     .lock-badge {
-        font-size: 0.85rem;
-        color: #666;
+        width: 0.85rem;
+        height: 0.85rem;
     }
 
     .difficulty-list {
@@ -504,12 +515,23 @@
     }
 
     .upgrade-cost {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
         font-size: 0.8rem;
         color: #c8a84b;
         white-space: nowrap;
     }
 
+    .cost-icon {
+        width: 0.85rem;
+        height: 0.85rem;
+        image-rendering: pixelated;
+        flex-shrink: 0;
+    }
+
     .upgrade-cost.unaffordable { color: #444; }
+    .upgrade-cost.unaffordable .cost-icon { opacity: 0.4; }
 
     .buy-btn {
         padding: 0.3rem 0.7rem;

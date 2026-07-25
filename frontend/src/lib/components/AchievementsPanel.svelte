@@ -25,7 +25,8 @@
                 <div class="achievement-row" class:owned={a.unlocked}>
                     <div class="achievement-info">
                         <span class="achievement-label">
-                            {a.unlocked ? "🏆" : "🔒"} {a.label}
+                            {#if a.unlocked}🏆{:else}<img class="lock-icon" src="/sprites/ui/icons/icon_lock.png" alt="" />{/if}
+                            {a.label}
                         </span>
                         <span class="achievement-desc">{a.description}</span>
                     </div>
@@ -90,6 +91,12 @@
     .achievement-label {
         font-size: 0.85rem;
         color: #ccc;
+    }
+
+    .lock-icon {
+        width: 0.8rem;
+        height: 0.8rem;
+        vertical-align: -0.1rem;
     }
 
     .achievement-desc {

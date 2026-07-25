@@ -94,22 +94,23 @@ export const HP_BAR_COLOR = "#c0392b";
 export const CURRENCY_SYMBOL = "◈";
 export const CURRENCY_NAME = "Shards";
 
-/** Display metadata for each class shown in the hub selection. */
+/** Display metadata for each class shown in the hub selection. `icon` is a sprite path (see
+ * frontend/public/sprites/ui/icons/), not a glyph - rendered as an <img>, not text. */
 export const CLASS_INFO = {
   warrior: {
-    icon: "⚔",
+    icon: "/sprites/ui/icons/icon_sword.png",
     label: "Warrior",
     description: "120 HP · Rage builds on hit",
     affinity: "Heavy weapons & armor",
   },
   archer: {
-    icon: "🏹",
+    icon: "/sprites/ui/icons/icon_bow.png",
     label: "Archer",
     description: "90 HP · Focus regens each round",
     affinity: "Ranged weapons",
   },
   mage: {
-    icon: "✦",
+    icon: "/sprites/ui/icons/icon_staff.png",
     label: "Mage",
     description: "70 HP · Fixed Mana pool",
     affinity: "Magic weapons & staves",

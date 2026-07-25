@@ -1,6 +1,6 @@
 <script lang="ts">
     import { gameState, client, combatLog, combatDamageEvents } from "../engine/StateStore";
-    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY } from "../engine/constants";
+    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, PLAYER_SPRITE_ID, PLAYER_CLASS_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
     import StatBar from "./StatBar.svelte";
@@ -31,10 +31,17 @@
         });
     }
 
+    /** Tracks which $combatDamageEvents array has already been processed. Without this, the
+     * block below would re-trigger every time `floaters` itself changes (including from its own
+     * delayed cleanup), re-spawning duplicate floaters for the same stale events forever - since
+     * $combatDamageEvents stays pinned at its last non-empty value until the next server update. */
+    let lastProcessedEvents: typeof $combatDamageEvents | undefined;
+
     /** Spawns a floating number + triggers the hit flash/shake for every damage/heal event on the
      * action that just resolved. Reacts to the store rather than $gameState directly so it only
      * fires when there's actually something to react to (mirrors AchievementToast's pattern). */
-    $: if ($combatDamageEvents.length > 0) {
+    $: if ($combatDamageEvents !== lastProcessedEvents) {
+        lastProcessedEvents = $combatDamageEvents;
         for (const evt of $combatDamageEvents) {
             const id = nextFloaterId++;
             floaters = [...floaters, { id, targetIsPlayer: evt.targetIsPlayer, amount: evt.amount, kind: evt.kind }];
@@ -90,6 +97,11 @@
                 class:flash-damage={playerFlashKind === "damage"}
                 class:flash-heal={playerFlashKind === "heal"}
         >
+            {#if player}
+                <div class="portrait">
+                    <Sprite spriteId={PLAYER_SPRITE_ID} fallbackColor={PLAYER_CLASS_COLORS[player.classId]} size={112} />
+                </div>
+            {/if}
             <p class="combatant-name">{player?.classId.toUpperCase() ?? "—"}</p>
 
             <StatBar label="HP" current={player?.hp ?? 0} max={player?.maxHp ?? 0} color={HP_BAR_COLOR} />
@@ -347,52 +359,64 @@
         gap: 0.75rem;
     }
 
+    /* Flat (not gradient/gloss) Kenney button variant: a solid color fill with minimal baked-in
+     * shading, so it tolerates the non-uniform background-size:100% 100% stretch (button cells
+     * aren't the sprite's native 192x64 aspect) far better than the bevel/gradient variants would.
+     * Text uses a black outline (text-shadow, same trick as .floater below) instead of a fixed
+     * color, so it stays readable across all 4 background colors without per-button tuning. */
     .action-btn {
-        padding: 0.75rem 0.5rem;
-        background-image: url(/sprites/ui/Grey/Default/button_rectangle_border.png);
+        padding: 0.65rem 0.5rem;
         background-size: 100% 100%;
+        background-repeat: no-repeat;
         image-rendering: pixelated;
-        color: #ccc;
-        border: 1px solid #333;
+        border: none;
+        color: #fff;
+        text-shadow:
+            -1px -1px 0 #000, 1px -1px 0 #000,
+            -1px  1px 0 #000, 1px  1px 0 #000;
         cursor: pointer;
         font-family: monospace;
         font-size: 0.85rem;
         letter-spacing: 0.05em;
-        transition: filter 0.12s, border-color 0.12s, color 0.12s;
+        transition: filter 0.12s, transform 0.08s;
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         gap: 0.2rem;
     }
 
     .action-btn:hover:not(:disabled) {
-        filter: brightness(1.25);
-        border-color: #666;
-        color: #eee;
+        filter: brightness(1.2);
     }
 
-    .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .action-btn:active:not(:disabled) {
+        filter: brightness(0.9);
+        transform: translateY(1px);
+    }
 
-    .action-btn.attack  { border-color: #4a2222; }
-    .action-btn.defend  { border-color: #22354a; }
-    .action-btn.ability { border-color: #3a2a4a; }
-    .action-btn.item    { border-color: #2a4a2a; }
+    .action-btn:disabled { opacity: 0.4; filter: grayscale(0.6); cursor: not-allowed; }
 
-    .action-btn.attack:hover:not(:disabled)  { border-color: #c0392b; }
-    .action-btn.defend:hover:not(:disabled)  { border-color: #2980b9; }
-    .action-btn.ability:hover:not(:disabled) { border-color: #8e44ad; }
-    .action-btn.item:hover:not(:disabled)    { border-color: #27ae60; }
+    .action-btn.attack  { background-image: url(/sprites/ui/Red/Default/button_rectangle_flat.png); }
+    .action-btn.defend  { background-image: url(/sprites/ui/Blue/Default/button_rectangle_flat.png); }
+    .action-btn.ability { background-image: url(/sprites/ui/Yellow/Default/button_rectangle_flat.png); }
+    .action-btn.item    { background-image: url(/sprites/ui/Green/Default/button_rectangle_flat.png); }
 
-    .action-btn.item.active { filter: brightness(1.3); border-color: #27ae60; color: #5ce07a; }
+    .action-btn.item.active {
+        filter: brightness(1.25) saturate(1.3);
+        outline: 2px solid rgba(255, 255, 255, 0.85);
+        outline-offset: 2px;
+    }
 
     .ability-cost {
         font-size: 0.6rem;
-        color: #666;
+        color: rgba(255, 255, 255, 0.75);
+        text-shadow:
+            -1px -1px 0 #000, 1px -1px 0 #000,
+            -1px  1px 0 #000, 1px  1px 0 #000;
         letter-spacing: 0.08em;
         text-transform: uppercase;
     }
-
-    .action-btn.ability:not(:disabled) .ability-cost { color: #7a5a9a; }
 
     /* -- Item picker ------------------------------------------------------ */
 

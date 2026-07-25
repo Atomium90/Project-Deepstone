@@ -38,6 +38,16 @@ function pngDimensions(absPath) {
     return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }
 
+/** Per-sprite crop override for sheets where the square-frame-side-length-equals-sheet-height
+ * rule technically holds but leaves the character much smaller than the mob sprites within its
+ * frame (lots of transparent padding). hero_idle's actual character art only occupies a
+ * 16x30px region within the frame - this crops to a tight 32x32 window centered on that art
+ * (measured via a one-off alpha-channel bounding box scan), matching how much of their own
+ * 32x32 frame the mob sprites fill, so hero and mobs render at the same on-screen size. */
+const CROP_OVERRIDES = {
+    hero_idle: { x: 16, y: 16, w: 32, h: 32 },
+};
+
 const existing = JSON.parse(readFileSync(entitiesAtlasPath, "utf-8"));
 const sprites = existing.sprites ?? {};
 
@@ -52,7 +62,8 @@ for (const { name, file } of MANIFEST) {
         );
     }
 
-    sprites[name] = { sheet: `/sprites/entities/${file}`, x: 0, y: 0, w: height, h: height };
+    const crop = CROP_OVERRIDES[name] ?? { x: 0, y: 0, w: height, h: height };
+    sprites[name] = { sheet: `/sprites/entities/${file}`, ...crop };
 }
 
 writeFileSync(entitiesAtlasPath, JSON.stringify({ sprites }, null, 2) + "\n");

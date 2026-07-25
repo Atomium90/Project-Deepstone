@@ -63,7 +63,7 @@
     ],
     "entities": [
       { "kind": "enemy", "id": "skeleton_a", "x": 4, "y": 4, "label": "Skeleton", "typeId": "skeleton" },
-      { "kind": "enemy", "id": "skeleton_b", "x": 7, "y": 6, "label": "Skeleton", "typeId": "skeleton" },
+      { "kind": "enemy", "id": "skeleton_b", "x": 8, "y": 6, "label": "Skeleton", "typeId": "skeleton" },
       { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
       { "kind": "door",  "id": "door_exit",     "x": 5, "y": 9, "direction": "DOWN", "targetRoomId": "NEXT" }
     ]

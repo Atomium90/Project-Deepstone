@@ -16,6 +16,7 @@ import {
     COLOR_ENTITY_LABEL,
     COLOR_ENTITY_FALLBACK,
     PLAYER_CLASS_COLORS,
+    PLAYER_SPRITE_ID,
     COLOR_PLAYER_OUTLINE,
     COLOR_PLAYER_OUTLINE_WIDTH,
     COLOR_PLAYER_INITIAL,
@@ -53,10 +54,6 @@ const ENTITY_SPRITES: Record<string, string> = {
     locked_door: "door_closed",
     npc: "npc_sage",
 };
-
-/** Single static player sprite for all 3 classes - Pixel Crawler only has one usable body in
- * this pass, so class distinction stays in the stats panel rather than the sprite for now. */
-const PLAYER_SPRITE_ID = "hero_idle";
 
 /** Distance in tiles within which an entity is considered reachable (E key). */
 const INTERACT_RANGE = 1;

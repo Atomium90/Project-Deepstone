@@ -187,6 +187,19 @@
         </section>
 
     </div>
+
+    <!-- No Inventory nav here: the Hub has no inventory context. Settings/Achievements are
+         placeholders for the future "Personnage" tabbed screen and are intentionally unwired. -->
+    <footer class="hub-footer">
+        <button class="footer-nav-btn" title="Coming soon">
+            <span class="footer-nav-icon">⚙</span>
+            <span class="footer-nav-label">Settings</span>
+        </button>
+        <button class="footer-nav-btn" title="Coming soon">
+            <span class="footer-nav-icon">🏆</span>
+            <span class="footer-nav-label">Achievements</span>
+        </button>
+    </footer>
 </div>
 
 <style>
@@ -199,6 +212,36 @@
         font-family: monospace;
         overflow: hidden;
     }
+
+    /* ── Footer nav ── */
+
+    .hub-footer {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        padding: 0.85rem 2rem;
+        border-top: 1px solid #1e1e1e;
+        flex-shrink: 0;
+    }
+
+    .footer-nav-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        background: none;
+        border: none;
+        color: #777;
+        font-family: monospace;
+        cursor: pointer;
+        padding: 0.2rem 0.6rem;
+        transition: color 0.12s;
+    }
+
+    .footer-nav-btn:hover { color: #ccc; }
+
+    .footer-nav-icon { font-size: 1.1rem; }
+    .footer-nav-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; }
 
     /* ── Header ── */
 

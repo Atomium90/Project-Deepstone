@@ -1,5 +1,6 @@
 <script lang="ts">
     import { gameState, client } from "../engine/StateStore";
+    import { characterTab } from "../engine/CharacterStore";
     import {
         PLAYER_CLASS_COLORS,
         CURRENCY_SYMBOL,
@@ -10,7 +11,6 @@
         DIFFICULTY_COLORS,
     } from "../engine/constants";
     import type { ClassId, Difficulty, UpgradeView } from "../engine/protocol";
-    import AchievementsPanel from "./AchievementsPanel.svelte";
 
     // Selected class (Warrior by default)
     let selectedClass: ClassId = "warrior";
@@ -182,20 +182,17 @@
             {#if feedback}
                 <p class="feedback">{feedback}</p>
             {/if}
-
-            <AchievementsPanel />
         </section>
 
     </div>
 
-    <!-- No Inventory nav here: the Hub has no inventory context. Settings/Achievements are
-         placeholders for the future "Personnage" tabbed screen and are intentionally unwired. -->
+    <!-- No Inventory nav here: the Hub has no inventory context. -->
     <footer class="hub-footer">
-        <button class="footer-nav-btn" title="Coming soon">
+        <button class="footer-nav-btn" on:click={() => characterTab.set("settings")}>
             <span class="footer-nav-icon">⚙</span>
             <span class="footer-nav-label">Settings</span>
         </button>
-        <button class="footer-nav-btn" title="Coming soon">
+        <button class="footer-nav-btn" on:click={() => characterTab.set("achievements")}>
             <span class="footer-nav-icon">🏆</span>
             <span class="footer-nav-label">Achievements</span>
         </button>

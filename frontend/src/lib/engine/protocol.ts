@@ -113,6 +113,7 @@ export interface UpgradeView {
   label: string;
   description: string;
   cost: number;
+  icon: string;
   unlocked: boolean;
 }
 

@@ -20,7 +20,10 @@
                         <span class="achievement-desc">{a.description}</span>
                     </div>
                     {#if a.unlocked}
-                        <span class="owned-badge">✓ Unlocked</span>
+                        <span class="owned-badge">
+                            <img class="badge-check" src="/sprites/ui/Green/Default/icon_outline_checkmark.png" alt="" />
+                            Unlocked
+                        </span>
                     {/if}
                 </div>
             {/each}
@@ -81,9 +84,20 @@
     }
 
     .owned-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
         font-size: 0.72rem;
         color: #3a7a4a;
         letter-spacing: 0.05em;
+        flex-shrink: 0;
+    }
+
+    .badge-check {
+        display: block;
+        width: 0.75rem;
+        height: auto;
+        image-rendering: pixelated;
         flex-shrink: 0;
     }
 

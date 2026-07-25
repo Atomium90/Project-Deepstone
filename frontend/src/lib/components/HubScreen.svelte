@@ -143,13 +143,19 @@
                 <div class="upgrade-list">
                     {#each upgrades as u}
                         <div class="upgrade-row" class:owned={u.unlocked}>
-                            <div class="upgrade-info">
-                                <span class="upgrade-label">{u.label}</span>
-                                <span class="upgrade-desc">{u.description}</span>
+                            <div class="upgrade-main">
+                                <span class="upgrade-icon">{u.icon}</span>
+                                <div class="upgrade-info">
+                                    <span class="upgrade-label">{u.label}</span>
+                                    <span class="upgrade-desc">{u.description}</span>
+                                </div>
                             </div>
                             <div class="upgrade-action">
                                 {#if u.unlocked}
-                                    <span class="owned-badge">✓ Owned</span>
+                                    <span class="owned-badge">
+                                        <img class="badge-check" src="/sprites/ui/Green/Default/icon_outline_checkmark.png" alt="" />
+                                        Owned
+                                    </span>
                                 {:else}
                                     <span
                                         class="upgrade-cost"
@@ -399,6 +405,20 @@
     .upgrade-row:hover:not(.owned) { border-color: #333; }
     .upgrade-row.owned { opacity: 0.5; }
 
+    .upgrade-main {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        min-width: 0;
+    }
+
+    .upgrade-icon {
+        font-size: 1.15rem;
+        flex-shrink: 0;
+        width: 1.4rem;
+        text-align: center;
+    }
+
     .upgrade-info {
         display: flex;
         flex-direction: column;
@@ -454,9 +474,21 @@
     }
 
     .owned-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
         font-size: 0.72rem;
         color: #3a7a4a;
         letter-spacing: 0.05em;
+        flex-shrink: 0;
+    }
+
+    .badge-check {
+        display: block;
+        width: 0.75rem;
+        height: auto;
+        image-rendering: pixelated;
+        flex-shrink: 0;
     }
 
     .feedback {

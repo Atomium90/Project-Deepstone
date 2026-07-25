@@ -2,6 +2,7 @@
     import { onMount } from "svelte";
     import { gameState, gamePhase, connectToServer } from "./lib/engine/StateStore";
     import { assets } from "./lib/engine/AssetManager";
+    import { audio } from "./lib/engine/AudioManager";
     import ExplorationHUD  from "./lib/components/ExplorationHUD.svelte";
     import CombatScreen    from "./lib/components/CombatScreen.svelte";
     import HubScreen       from "./lib/components/HubScreen.svelte";
@@ -12,6 +13,7 @@
     onMount(() => {
         connectToServer();
         assets.preloadAtlases();
+        audio.init();
     });
 </script>
 

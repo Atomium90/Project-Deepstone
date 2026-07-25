@@ -97,6 +97,8 @@ export interface CombatView {
   isPlayerTurn: boolean;
   /** Atlas sprite key for the enemy portrait, same resolution convention as EntityView.spriteId. */
   spriteId?: string;
+  /** True if the current room is a boss room - drives boss music. */
+  isBoss: boolean;
 }
 
 /** One damage or heal event produced by the action that generated this StateUpdate. Transient -
@@ -178,4 +180,7 @@ export interface StateUpdate {
    * convention as `newlyUnlocked` - a list since a single action can produce more than one (e.g.
    * the player attacks and the enemy counter-attacks in the same response). */
   damageEvents: DamageEventView[];
+  /** Sound cue tags (e.g. "pickup", "door_open") produced by the action that generated this
+   * update. Transient, same convention as `damageEvents`. */
+  soundEvents: string[];
 }

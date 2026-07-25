@@ -28,6 +28,10 @@ export const achievementToast = derived(gameState, ($s) => $s?.newlyUnlocked ?? 
  * in CombatScreen.svelte. */
 export const combatDamageEvents = derived(gameState, ($s) => $s?.damageEvents ?? []);
 
+/** Derived convenience: sound cue tags produced by the most recent action, if any - same
+ * transient convention as `combatDamageEvents`. Consumed by AudioManager.ts. */
+export const soundEvents = derived(gameState, ($s) => $s?.soundEvents ?? []);
+
 // ---------------------------------------------
 // Client singleton
 // ---------------------------------------------

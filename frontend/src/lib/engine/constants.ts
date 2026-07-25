@@ -199,3 +199,12 @@ export const COLOR_INTERACT_PROMPT = "#eee";
 
 /** Vertical offset above the entity circle for the "[E]" prompt. */
 export const INTERACT_PROMPT_OFFSET = 4;
+
+// ---------------------------------------------
+// Colors - Character screen
+// ---------------------------------------------
+
+/** Same hex as COLOR_ENTITY_CHEST - the established "gold/achievement" accent already used
+ * inline in HubScreen.svelte (shards) and AchievementToast.svelte (border/title). Other files
+ * still hardcode this hex inline - a full dedup pass is out of scope here. */
+export const COLOR_ACHIEVEMENT_GOLD = "#d4ac0d";

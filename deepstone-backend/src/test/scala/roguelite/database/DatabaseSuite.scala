@@ -200,6 +200,7 @@ class DatabaseSuite extends CatsEffectSuite:
                                "+20 max HP for the next run",
                                cost = 30,
                                displayOrder = 0,
+                               icon = "❤",
                                effect = UpgradeEffect.MaxHpBoost(20)
     )
   )

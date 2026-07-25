@@ -40,5 +40,6 @@ case class UpgradeDef(
     description: String,
     cost: Int,
     displayOrder: Int,
+    icon: String,
     effect: UpgradeEffect
 )

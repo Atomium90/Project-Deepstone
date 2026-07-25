@@ -56,6 +56,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                "+20 max HP for the next run",
                                cost = 30,
                                displayOrder = 0,
+                               icon = "❤",
                                effect = UpgradeEffect.MaxHpBoost(20)
     ),
     "hp_boost_2" -> UpgradeDef("hp_boost_2",
@@ -63,6 +64,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                "+40 max HP for the next run",
                                cost = 75,
                                displayOrder = 1,
+                               icon = "❤",
                                effect = UpgradeEffect.MaxHpBoost(40)
     ),
     "potion_start" -> UpgradeDef("potion_start",
@@ -70,6 +72,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                  "Start each run with a Health Potion",
                                  cost = 40,
                                  displayOrder = 2,
+                                 icon = "🧪",
                                  effect = UpgradeEffect.StartingItem("health_potion")
     ),
     "archer_unlock" -> UpgradeDef("archer_unlock",
@@ -77,6 +80,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                   "Unlock the Archer class",
                                   cost = 50,
                                   displayOrder = 3,
+                                  icon = "🏹",
                                   effect = UpgradeEffect.UnlockClass(ClassId.Archer)
     ),
     "mage_unlock" -> UpgradeDef("mage_unlock",
@@ -84,6 +88,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                 "Unlock the Mage class",
                                 cost = 80,
                                 displayOrder = 4,
+                                icon = "✦",
                                 effect = UpgradeEffect.UnlockClass(ClassId.Mage)
     ),
     "extra_slot" -> UpgradeDef("extra_slot",
@@ -91,6 +96,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                "Expand your inventory to 7 item slots",
                                cost = 60,
                                displayOrder = 5,
+                               icon = "🎒",
                                effect = UpgradeEffect.ExtraInventorySlot
     )
   )

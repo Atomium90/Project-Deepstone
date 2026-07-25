@@ -71,3 +71,12 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
           defs.values.foreach:
             u => assert(u.cost > 0, s"${u.id} has non-positive cost ${u.cost}")
   }
+
+  test("every upgrade has a non-empty icon") {
+    UpgradeLoader
+      .loadAll()
+      .map:
+        defs =>
+          defs.values.foreach:
+            u => assert(u.icon.nonEmpty, s"${u.id} has no icon")
+  }

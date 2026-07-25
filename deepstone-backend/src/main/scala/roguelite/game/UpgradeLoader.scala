@@ -30,6 +30,7 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
           description = j.description,
           cost = j.cost,
           displayOrder = j.displayOrder,
+          icon = j.icon,
           effect = effect
         )
 
@@ -71,6 +72,7 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
       description: String,
       cost: Int,
       displayOrder: Int,
+      icon: String,
       effect: UpgradeEffectJson
   )
 
@@ -91,5 +93,6 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
         description  <- c.get[String]("description")
         cost         <- c.get[Int]("cost")
         displayOrder <- c.get[Int]("displayOrder")
+        icon         <- c.get[String]("icon")
         effect       <- c.get[UpgradeEffectJson]("effect")
-      yield UpgradeDefJson(id, label, description, cost, displayOrder, effect)
+      yield UpgradeDefJson(id, label, description, cost, displayOrder, icon, effect)

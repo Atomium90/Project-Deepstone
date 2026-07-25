@@ -156,7 +156,7 @@ case class CombatView(
 case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String)
 
 /** Hub data: available upgrades and their unlock status. */
-case class UpgradeView(id: String, label: String, description: String, cost: Int, unlocked: Boolean)
+case class UpgradeView(id: String, label: String, description: String, cost: Int, icon: String, unlocked: Boolean)
 
 case class HubView(upgrades: List[UpgradeView])
 

@@ -100,6 +100,10 @@ export class Renderer {
     /** Tracks whether visualPos has been seeded (skip lerp on first frame). */
     private posInitialized = false;
 
+    /** Id of the room last passed to update(), used to detect a room change so the lerp doesn't
+     * slide the player sprite across an unrelated room. */
+    private currentRoomId: string | null = null;
+
     /** Elapsed time in ms, used for the pulsing interact indicator. */
     private elapsed = 0;
     private lastTimestamp = 0;
@@ -125,12 +129,17 @@ export class Renderer {
      * Called every time a StateUpdate arrives from the server.
      */
     update(room: RoomView, player: PlayerView): void {
+        const roomChanged = this.currentRoomId !== null && this.currentRoomId !== room.roomId;
+        this.currentRoomId = room.roomId;
+
         this.room = room;
         this.player = player;
         this.targetPos = tileToPixelCenter(room.playerX, room.playerY);
 
-        // On the very first update, snap directly to the position (no lerp)
-        if (!this.posInitialized) {
+        // On the very first update, or when the room itself just changed, snap directly to the
+        // position instead of lerping - otherwise the sprite visibly slides in from wherever it
+        // was in the previous (now irrelevant) room.
+        if (!this.posInitialized || roomChanged) {
             this.visualPos = { ...this.targetPos };
             this.posInitialized = true;
         }

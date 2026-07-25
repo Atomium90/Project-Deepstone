@@ -81,6 +81,7 @@ export interface DialogueView {
 }
 
 export interface RoomView {
+  roomId: string;
   width: number;
   height: number;
   tiles: string[][]; // "floor" | "wall"

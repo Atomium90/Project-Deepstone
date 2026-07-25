@@ -1,11 +1,21 @@
 <script lang="ts">
     import { gameState } from "../engine/StateStore";
+    import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
+    import StatBar from "./StatBar.svelte";
 
     $: achievements = $gameState?.achievements ?? [];
+    $: unlockedCount = achievements.filter((a) => a.unlocked).length;
 </script>
 
 <div class="achievements-panel">
     <p class="section-label">Achievements</p>
+
+    {#if achievements.length > 0}
+        <div class="progress-wrap">
+            <StatBar layout="column" label="Progress" current={unlockedCount}
+                     max={achievements.length} color={COLOR_ACHIEVEMENT_GOLD} />
+        </div>
+    {/if}
 
     {#if achievements.length === 0}
         <p class="muted">No achievements loaded.</p>
@@ -44,6 +54,10 @@
         letter-spacing: 0.15em;
         color: #444;
         margin-bottom: 1rem;
+    }
+
+    .progress-wrap {
+        margin-bottom: 1.25rem;
     }
 
     .achievement-list {

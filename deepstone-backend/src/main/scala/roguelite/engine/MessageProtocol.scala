@@ -142,7 +142,8 @@ case class CombatView(
     enemyHp: Int,
     enemyMaxHp: Int,
     isPlayerTurn: Boolean,
-    spriteId: Option[String] = None
+    spriteId: Option[String] = None,
+    isBoss: Boolean = false
 )
 
 /** One damage or heal event produced by the action that generated this [[StateUpdate]]. Transient:
@@ -213,7 +214,12 @@ case class StateUpdate(
       * convention as [[newlyUnlocked]] - a list since a single action can produce more than one
       * (e.g. the player attacks and the enemy counter-attacks in the same response).
       */
-    damageEvents: List[DamageEventView] = Nil
+    damageEvents: List[DamageEventView] = Nil,
+    /** Sound cue tags (e.g. "pickup", "door_open") produced by the action that generated this
+      * update. Transient, same convention as [[damageEvents]]. Plain strings rather than a
+      * wrapper view: there's no extra structure to carry, just a client-side sound lookup key.
+      */
+    soundEvents: List[String] = Nil
 )
 
 // ---------------------------------------------

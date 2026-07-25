@@ -90,7 +90,10 @@ class GameSession private (
       newlyUnlocked <- processAchievementEvents(transitionResult.events)
     yield finalNext
       .toStateUpdate(transitionResult.log, transitionResult.dialogue)
-      .copy(newlyUnlocked = newlyUnlocked, damageEvents = toDamageEventViews(transitionResult.events))
+      .copy(newlyUnlocked = newlyUnlocked,
+            damageEvents = toDamageEventViews(transitionResult.events),
+            soundEvents = toSoundEventTags(transitionResult.events)
+      )
 
   /** Pure projection of the damage/heal facts in a transition's events - no DB/IO needed, unlike
     * achievements, since nothing here is persisted.
@@ -101,6 +104,17 @@ class GameSession private (
         DamageEventView(targetIsPlayer = targetIsPlayer, amount = amount, kind = "damage")
       case GameEvent.Healed(amount) =>
         DamageEventView(targetIsPlayer = true, amount = amount, kind = "heal")
+    }
+
+  /** Pure projection of the facts worth a client-side sound cue - same rationale as
+    * [[toDamageEventViews]]. Plain string tags: the client owns the tag-to-file mapping.
+    */
+  private def toSoundEventTags(events: List[GameEvent]): List[String] =
+    events.collect {
+      case GameEvent.ItemPickedUp(_)     => "pickup"
+      case GameEvent.LeveledUp(_)        => "level_up"
+      case GameEvent.DoorUnlockedWithKey => "door_unlock"
+      case GameEvent.DoorOpened          => "door_open"
     }
 
   /** Side-effects and state enrichment triggered by specific state transitions.

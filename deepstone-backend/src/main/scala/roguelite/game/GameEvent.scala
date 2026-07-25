@@ -25,6 +25,9 @@ enum GameEvent:
   /** A locked door was opened by consuming a matching key. */
   case DoorUnlockedWithKey
 
+  /** The player walked through a normal door, or a locked door that was already unlocked. */
+  case DoorOpened
+
   /** A hidden secret door was revealed by proximity. */
   case SecretDoorRevealed
 

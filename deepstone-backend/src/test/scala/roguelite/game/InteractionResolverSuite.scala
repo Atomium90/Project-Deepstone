@@ -82,6 +82,12 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(next, _, _, _) = resolver().interact(state, d.id)
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
 
+  test("Interact with a normal Door emits DoorOpened"):
+    val d        = door("r1", "r2")
+    val state    = explorationAt(3, 3, entities = List(d))
+    val TransitionResult(_, _, _, events) = resolver().interact(state, d.id)
+    assertEquals(events, List(GameEvent.DoorOpened))
+
   test("Interact with unknown entity id returns error log"):
     val TransitionResult(next, log, _, _) = resolver().interact(explorationAt(3, 3), "ghost")
     assert(next.isInstanceOf[ExplorationState])
@@ -249,14 +255,14 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(_, _, _, events) = resolver().interact(state, "ld1")
     assertEquals(events, Nil)
 
-  test("An already-unlocked LockedDoor emits no events"):
+  test("An already-unlocked LockedDoor emits DoorOpened"):
     val lockedDoor =
       LockedDoor("ld1", x = 3, y = 3, direction = Direction.Down, targetRoomId = "r2", unlocked = true)
     val key    = testKey()
     val player = playerWithItems(List(key))
     val state  = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
     val TransitionResult(_, _, _, events) = resolver().interact(state, "ld1")
-    assertEquals(events, Nil)
+    assertEquals(events, List(GameEvent.DoorOpened))
 
   // --- Trapped door --------------------------------------------------------------
 
@@ -275,6 +281,19 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(nextExp.dungeon.currentRoomId, "r2")
     assertEquals((nextExp.playerX, nextExp.playerY), (4, 4)) // Up-facing spawn point in an 8x6 room
     assert(log.exists(_.toLowerCase.contains("trap")), s"expected trap message: $log")
+
+  test("Interact with a trapped door emits no events"):
+    val entranceDoor = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, targetRoomId = "r2")
+    val trapDoor = Door("door_trap",
+                        x = 2,
+                        y = 3,
+                        direction = Direction.Down,
+                        targetRoomId = "unused",
+                        doorKind = DoorKind.Trapped
+    )
+    val state    = explorationAt(3, 3, entities = List(entranceDoor, trapDoor))
+    val TransitionResult(_, _, _, events) = resolver().interact(state, "door_trap")
+    assertEquals(events, Nil)
 
   test("Interact with a trapped door in a room with no entrance logs a fallback message"):
     val trapDoor = Door("door_trap",

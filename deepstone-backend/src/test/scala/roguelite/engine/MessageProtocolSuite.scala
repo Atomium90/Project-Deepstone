@@ -115,3 +115,46 @@ class MessageProtocolSuite extends FunSuite:
     val json = MessageProtocol.encodeUpdate(update)
     // room, combat should be null when absent (Circe default for Option)
     assert(json.contains("\"room\":null") || !json.contains("\"room\""))
+
+  test("encodeUpdate includes soundEvents tags"):
+    val update = StateUpdate(
+      phase = GamePhase.Exploration,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      soundEvents = List("door_open", "pickup")
+    )
+    val json = MessageProtocol.encodeUpdate(update)
+    assert(json.contains("\"soundEvents\""), s"Expected soundEvents field in JSON: $json")
+    assert(json.contains("door_open"), s"Expected door_open tag in JSON: $json")
+
+  test("encodeUpdate includes isBoss on CombatView"):
+    val update = StateUpdate(
+      phase = GamePhase.Combat,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      combat = Some(
+        CombatView(enemyId = "e1",
+                   enemyLabel = "Dungeon Boss",
+                   enemyHp = 50,
+                   enemyMaxHp = 50,
+                   isPlayerTurn = true,
+                   isBoss = true
+        )
+      )
+    )
+    val json = MessageProtocol.encodeUpdate(update)
+    assert(json.contains("\"isBoss\":true"), s"Expected isBoss:true in JSON: $json")

@@ -41,7 +41,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         lift(handleTrappedDoor(exp, door))
 
       case Some(door: Door) =>
-        lift(handleDoor(exp, door))
+        liftEvents(handleDoor(exp, door))
 
       case Some(door: LockedDoor) =>
         liftEvents(handleLockedDoor(exp, door))
@@ -70,17 +70,19 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   private def navigateThroughDoor(exp: ExplorationState,
                                   targetRoomId: String,
                                   direction: Direction
-  ): (GameState, List[String]) =
+  ): (GameState, List[String], List[GameEvent]) =
     exp.dungeon.navigateTo(targetRoomId) match {
-      case Left(err) => (exp, List(err))
+      case Left(err) => (exp, List(err), Nil)
       case Right(newDungeon) =>
         val spawnPoint = findSpawnPoint(newDungeon.currentRoom, direction)
         val nextState =
           exp.copy(dungeon = newDungeon, playerX = spawnPoint._1, playerY = spawnPoint._2)
-        (nextState, List(s"You pass through the door heading ${direction}."))
+        (nextState, List(s"You pass through the door heading ${direction}."), List(GameEvent.DoorOpened))
     }
 
-  private def handleDoor(exp: ExplorationState, door: Door): (GameState, List[String]) =
+  private def handleDoor(exp: ExplorationState,
+                         door: Door
+  ): (GameState, List[String], List[GameEvent]) =
     navigateThroughDoor(exp, door.targetRoomId, door.direction)
 
   /** Reuses the exact PREV-transition logic: find this room's entrance (Up) door and go there,
@@ -90,7 +92,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       case None =>
         (exp, List("The trap triggers, but there's nowhere to be thrown back to."))
       case Some(entranceDoor) =>
-        val (state, _) = navigateThroughDoor(exp, entranceDoor.targetRoomId, entranceDoor.direction)
+        val (state, _, _) = navigateThroughDoor(exp, entranceDoor.targetRoomId, entranceDoor.direction)
         (state, List("A trap triggers! You are thrown back."))
     }
 
@@ -98,8 +100,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                                door: LockedDoor
   ): (GameState, List[String], List[GameEvent]) =
     if door.unlocked then
-      val (state, log) = navigateThroughDoor(exp, door.targetRoomId, door.direction)
-      (state, log, Nil)
+      navigateThroughDoor(exp, door.targetRoomId, door.direction)
     else
       exp.player.inventory.keys.find { case (_, key) => KeyKind.canUnlock(key.keyKind, door) } match {
         case None =>
@@ -112,7 +113,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
             case o             => o
           val updatedDungeon =
             exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(unlockedRoom.id, unlockedRoom))
-          val (state, navLog) = navigateThroughDoor(
+          val (state, navLog, _) = navigateThroughDoor(
             exp.copy(dungeon = updatedDungeon, player = updatedPlayer),
             door.targetRoomId,
             door.direction

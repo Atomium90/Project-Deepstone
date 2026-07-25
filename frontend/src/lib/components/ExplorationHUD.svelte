@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
+    import { fly } from "svelte/transition";
     import { gameState, client, combatLog, npcDialogue } from "../engine/StateStore";
     import { Renderer } from "../engine/Renderer";
     import {
@@ -15,7 +16,37 @@
     import NpcDialogue from "./NpcDialogue.svelte";
 
     let canvasEl: HTMLCanvasElement;
+    let hudMainEl: HTMLDivElement;
     let renderer: Renderer | null = null;
+
+    type WipeDirection = "up" | "down" | "left" | "right";
+
+    let previousRoomId: string | undefined;
+    let wipeDirection: WipeDirection | null = null;
+    let wipeKey = 0;
+
+    /** InteractionResolver.findSpawnPoint always places the player on the wall opposite their
+     * direction of travel, so the new room's spawn position alone tells us which edge to wipe
+     * in from - no extra signal beyond the room id changing is needed. */
+    function travelDirection(room: { playerX: number; playerY: number; height: number }): WipeDirection {
+        if (room.playerY <= 1) return "down";
+        if (room.playerY >= room.height - 2) return "up";
+        if (room.playerX <= 1) return "right";
+        return "left";
+    }
+
+    /** The wipe panel enters from one edge and continues sweeping straight through to the
+     * opposite edge, matching the direction of travel. */
+    function wipeParams(direction: WipeDirection): { inX: number; inY: number; outX: number; outY: number } {
+        const w = hudMainEl?.clientWidth ?? 800;
+        const h = hudMainEl?.clientHeight ?? 600;
+        switch (direction) {
+            case "down":  return { inX: 0, inY: h, outX: 0, outY: -h };
+            case "up":    return { inX: 0, inY: -h, outX: 0, outY: h };
+            case "right": return { inX: w, inY: 0, outX: -w, outY: 0 };
+            case "left":  return { inX: -w, inY: 0, outX: w, outY: 0 };
+        }
+    }
 
     // Map keyboard keys to game directions
     const KEY_MAP: Record<string, Direction> = {
@@ -68,6 +99,23 @@
         renderer.update($gameState.room, $gameState.player);
     }
 
+    // Trigger the room-transition wipe when the room id changes. previousRoomId starts
+    // undefined and gets set on the first room seen, so no wipe plays on initial spawn - and
+    // since it resets on every remount (e.g. returning from combat), no wipe plays when the
+    // room hasn't actually changed either.
+    $: if ($gameState?.room) {
+        const room = $gameState.room;
+        if (previousRoomId !== undefined && room.roomId !== previousRoomId) {
+            wipeDirection = travelDirection(room);
+            wipeKey++;
+            // Remove the overlay after the "in" leg finishes - this is what makes Svelte play
+            // its out:fly transition (which only fires on removal from the DOM), sliding it the
+            // rest of the way out instead of leaving it parked fully opaque forever.
+            setTimeout(() => { wipeDirection = null; }, 200);
+        }
+        previousRoomId = room.roomId;
+    }
+
     $: player          = $gameState?.player;
     $: inventory       = $gameState?.inventory ?? [];
     $: abilities       = $gameState?.abilities ?? [];
@@ -94,8 +142,19 @@
   occupies the full viewport.
 -->
 <div class="hud-root">
-    <div class="hud-main">
+    <div class="hud-main" bind:this={hudMainEl}>
         <canvas class="game-canvas" bind:this={canvasEl} />
+
+        {#key wipeKey}
+            {#if wipeDirection}
+                {@const p = wipeParams(wipeDirection)}
+                <div
+                        class="room-wipe"
+                        in:fly={{ x: p.inX, y: p.inY, duration: 200 }}
+                        out:fly={{ x: p.outX, y: p.outY, duration: 200 }}
+                ></div>
+            {/if}
+        {/key}
 
         <NpcDialogue dialogue={$npcDialogue} />
 
@@ -169,6 +228,16 @@
         display: flex;
         flex: 1 1 0;
         min-height: 0;
+    }
+
+    /* Covers .hud-main entirely while sliding through, masking the instant tile-swap the
+     * renderer already does underneath rather than animating the canvas content itself. */
+    .room-wipe {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        background: #0d0d0d;
+        pointer-events: none;
     }
 
     .exploration-log {

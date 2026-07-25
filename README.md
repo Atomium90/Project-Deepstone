@@ -74,3 +74,7 @@ User input
   → gameState (store)
   → UI re-renders
 ```
+
+## Credits
+
+Third-party art assets and their licenses are listed in [CREDITS.md](CREDITS.md).

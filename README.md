@@ -29,8 +29,10 @@ deepstone/
 ./run-dev.ps1
 ```
 
-Opens the backend and frontend dev servers in their own windows. Use the manual
-steps below if you only need one of the two, or if you're not on Windows.
+Opens the backend and frontend dev servers as tabs in one Windows Terminal window,
+then opens the game in your browser once both are ready. Run `./stop-dev.ps1` to
+stop both at once. Use the manual steps below if you only need one of the two, or
+if you're not on Windows.
 
 ### Backend
 

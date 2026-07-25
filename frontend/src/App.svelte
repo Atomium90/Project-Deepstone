@@ -1,5 +1,6 @@
 <script lang="ts">
     import { onMount } from "svelte";
+    import { fade } from "svelte/transition";
     import { gameState, gamePhase, connectToServer } from "./lib/engine/StateStore";
     import { assets } from "./lib/engine/AssetManager";
     import { audio } from "./lib/engine/AudioManager";
@@ -18,24 +19,28 @@
 </script>
 
 <main>
-    {#if $gameState === null}
-        <div class="connecting">
-            <p>Connecting to server…</p>
+    {#key $gamePhase ?? "connecting"}
+        <div class="phase-transition" transition:fade={{ duration: 220 }}>
+            {#if $gameState === null}
+                <div class="connecting">
+                    <p>Connecting to server…</p>
+                </div>
+
+            {:else if $gamePhase === "HUB"}
+                <HubScreen />
+
+            {:else if $gamePhase === "EXPLORATION"}
+                <ExplorationHUD />
+
+            {:else if $gamePhase === "COMBAT"}
+                <CombatScreen />
+
+            {:else if $gamePhase === "GAMEOVER"}
+                <GameOverScreen />
+
+            {/if}
         </div>
-
-    {:else if $gamePhase === "HUB"}
-        <HubScreen />
-
-    {:else if $gamePhase === "EXPLORATION"}
-        <ExplorationHUD />
-
-    {:else if $gamePhase === "COMBAT"}
-        <CombatScreen />
-
-    {:else if $gamePhase === "GAMEOVER"}
-        <GameOverScreen />
-
-    {/if}
+    {/key}
 
     <AchievementToast />
     <CharacterScreen />
@@ -57,6 +62,16 @@
     main {
         width: 100vw;
         height: 100vh;
+        position: relative;
+    }
+
+    /* Absolutely positioned so the outgoing and incoming phase overlap in place during the
+     * fade crossfade, instead of briefly stacking one after another in normal flow. */
+    .phase-transition {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
     }
 
     .connecting {

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { gameState, client, combatLog, combatDamageEvents } from "../engine/StateStore";
+    import { settings } from "../engine/SettingsStore";
     import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, PLAYER_SPRITE_ID, PLAYER_CLASS_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
@@ -86,7 +87,7 @@
     }
 </script>
 
-<div class="combat-root">
+<div class="combat-root" class:reduce-shake={$settings.reduceScreenShake}>
 
     <!-- -- Top: combatants ------------------------------------------------ -->
     <div class="combatants">
@@ -255,6 +256,7 @@
     }
 
     .combatant.flash-damage { animation: hit-shake 0.4s ease; }
+    .combat-root.reduce-shake .combatant.flash-damage { animation: none; }
     .combatant.flash-damage::after,
     .combatant.flash-heal::after {
         content: "";

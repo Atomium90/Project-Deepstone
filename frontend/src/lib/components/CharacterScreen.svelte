@@ -41,6 +41,26 @@
                             style="accent-color: {COLOR_ACHIEVEMENT_GOLD}"
                     />
                 </label>
+                <label class="setting-row">
+                    <span>SFX volume</span>
+                    <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            bind:value={$settings.sfxVolume}
+                            style="accent-color: {COLOR_ACHIEVEMENT_GOLD}"
+                    />
+                </label>
+                <label class="setting-row">
+                    <span>Music volume</span>
+                    <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            bind:value={$settings.musicVolume}
+                            style="accent-color: {COLOR_ACHIEVEMENT_GOLD}"
+                    />
+                </label>
             {:else if $characterTab === "achievements"}
                 <AchievementsPanel />
             {/if}
@@ -115,6 +135,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 1rem;
         max-width: 24rem;
         padding: 0.65rem 0.85rem;
         background: #161616;
@@ -124,9 +145,18 @@
         cursor: pointer;
     }
 
+    .setting-row + .setting-row {
+        margin-top: 0.5rem;
+    }
+
     .setting-row input[type="checkbox"] {
         width: 1rem;
         height: 1rem;
+        cursor: pointer;
+    }
+
+    .setting-row input[type="range"] {
+        width: 10rem;
         cursor: pointer;
     }
 </style>

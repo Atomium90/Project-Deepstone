@@ -120,6 +120,7 @@ case class DialogueView(npcName: String, line: String)
 
 /** The current room's layout and its entities. */
 case class RoomView(
+    roomId: String,
     width: Int,
     height: Int,
     tiles: Vector[Vector[String]], // "floor" | "wall"

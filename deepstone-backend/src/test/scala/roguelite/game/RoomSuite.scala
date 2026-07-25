@@ -71,6 +71,10 @@ class RoomSuite extends FunSuite:
 
   // -- toView ----------------------------------------------------------------
 
+  test("toView includes the room's id"):
+    val view = testRoom().toView(playerX = 1, playerY = 1, enemyStats = Map.empty)
+    assertEquals(view.roomId, "test_room")
+
   test("toView sets correct player position"):
     val view = testRoom().toView(playerX = 2, playerY = 1, enemyStats = Map.empty)
     assertEquals(view.playerX, 2)

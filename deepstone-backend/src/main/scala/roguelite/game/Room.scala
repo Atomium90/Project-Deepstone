@@ -150,6 +150,7 @@ case class Room(
     */
   def toView(playerX: Int, playerY: Int, enemyStats: Map[String, EnemyStats]): RoomView =
     RoomView(
+      roomId = id,
       width = width,
       height = height,
       tiles = tiles.map(

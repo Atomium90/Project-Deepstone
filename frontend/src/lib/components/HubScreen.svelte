@@ -95,11 +95,13 @@
                         style="--accent: {color}"
                         on:click={() => selectClass(c)}
                     >
+                        {#if selectedClass === c}
+                            <span class="selected-badge">Selected</span>
+                        {:else if !unlocked}
+                            <span class="lock-badge">🔒</span>
+                        {/if}
                         <span class="class-icon">{info.icon}</span>
-                        <span class="class-name">
-                            {info.label}
-                            {#if !unlocked}<span class="lock-badge">🔒</span>{/if}
-                        </span>
+                        <span class="class-name">{info.label}</span>
                         <span class="class-desc">{info.description}</span>
                         <span class="class-affinity">Affinity: {info.affinity}</span>
                     </button>
@@ -261,6 +263,7 @@
     }
 
     .class-card {
+        position: relative;
         display: grid;
         grid-template-columns: 2rem 1fr;
         grid-template-rows: auto auto;
@@ -308,9 +311,26 @@
         border-color: #252525;
     }
 
+    .selected-badge,
     .lock-badge {
-        margin-left: 0.4rem;
-        font-size: 0.8rem;
+        position: absolute;
+        top: 0.4rem;
+        right: 0.4rem;
+    }
+
+    .selected-badge {
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 0.15rem 0.4rem;
+        background: #1a1a1a;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+    }
+
+    .lock-badge {
+        font-size: 0.85rem;
+        color: #666;
     }
 
     .difficulty-list {

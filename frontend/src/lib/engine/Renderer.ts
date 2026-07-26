@@ -341,13 +341,24 @@ export class Renderer {
             // Entity body: real sprite when one resolves, geometric circle otherwise
             const fallbackColor = ENTITY_COLORS[entity.kind] ?? COLOR_ENTITY_FALLBACK;
             const spriteKey = entity.kind === "enemy" ? entity.spriteId : ENTITY_SPRITES[entity.kind];
-            const sprite = spriteKey ? this.assets.getSprite(spriteKey, fallbackColor) : null;
+            const sprite = spriteKey ? this.assets.getSprite(spriteKey, fallbackColor, this.elapsed) : null;
 
             if (sprite?.image && sprite.sourceRect) {
                 const { x: sx, y: sy, w: sw, h: sh } = sprite.sourceRect;
-                ctx.drawImage(sprite.image, sx, sy, sw, sh,
-                    cx - TILE_SIZE / 2, cy - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE
-                );
+                if (entity.kind === "enemy" && shouldFlip(entity.id)) {
+                    // Stable per-entity mirror (not random per frame) so enemies vary in
+                    // orientation without ever flickering - purely cosmetic, no server/protocol
+                    // involvement, unlike the player's separately pre-mirrored sheets.
+                    ctx.save();
+                    ctx.translate(cx, cy);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(sprite.image, sx, sy, sw, sh, -TILE_SIZE / 2, -TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
+                    ctx.restore();
+                } else {
+                    ctx.drawImage(sprite.image, sx, sy, sw, sh,
+                        cx - TILE_SIZE / 2, cy - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE
+                    );
+                }
             } else {
                 ctx.beginPath();
                 ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -434,4 +445,15 @@ function tileToPixelCenter(tileX: number, tileY: number): Vec2 {
  */
 function chebyshevDist(x1: number, y1: number, x2: number, y2: number): number {
     return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+}
+
+/** Deterministic hash of an entity id, used to decide a stable left/right mirror per enemy.
+ * entity.id is a fixed backend model field (never regenerated per view), so the same enemy
+ * always flips the same way across re-renders instead of flickering. */
+function shouldFlip(id: string): boolean {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = (hash * 31 + id.charCodeAt(i)) | 0;
+    }
+    return (hash & 1) === 1;
 }

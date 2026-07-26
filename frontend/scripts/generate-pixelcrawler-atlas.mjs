@@ -59,6 +59,14 @@ for (const { name, file } of MANIFEST) {
 
     const crop = CROP_OVERRIDES[name] ?? { x: 0, y: 0, w: height, h: height };
     sprites[name] = { sheet: `/sprites/entities/${file}`, ...crop };
+
+    // Every frame in the strip is already `height` px wide (the square-frame rule above), so a
+    // sheet with width/height > 1 is itself a ready-made multi-frame animation - animate it for
+    // free. A crop override implies a tight, non-standard single-frame crop instead (its w/h
+    // don't match the strip's per-frame stride), so it's excluded here.
+    if (!(name in CROP_OVERRIDES) && width / height > 1) {
+        sprites[name].frameCount = width / height;
+    }
 }
 
 writeFileSync(entitiesAtlasPath, JSON.stringify({ sprites }, null, 2) + "\n");

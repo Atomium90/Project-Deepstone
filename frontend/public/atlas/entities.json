@@ -460,56 +460,64 @@
       "x": 0,
       "y": 0,
       "w": 32,
-      "h": 32
+      "h": 32,
+      "frameCount": 4
     },
     "mob_orc_rogue_idle": {
       "sheet": "/sprites/entities/mob_orc_rogue/Idle-Sheet.png",
       "x": 0,
       "y": 0,
       "w": 32,
-      "h": 32
+      "h": 32,
+      "frameCount": 4
     },
     "mob_orc_shaman_idle": {
       "sheet": "/sprites/entities/mob_orc_shaman/Idle-Sheet.png",
       "x": 0,
       "y": 0,
       "w": 32,
-      "h": 32
+      "h": 32,
+      "frameCount": 4
     },
     "mob_orc_warrior_idle": {
       "sheet": "/sprites/entities/mob_orc_warrior/Idle-Sheet.png",
       "x": 0,
       "y": 0,
       "w": 32,
-      "h": 32
+      "h": 32,
+      "frameCount": 4
     },
     "mob_skeleton_idle": {
       "sheet": "/sprites/entities/mob_skeleton/Idle-Sheet.png",
       "x": 0,
       "y": 0,
       "w": 32,
-      "h": 32
+      "h": 32,
+      "frameCount": 4
     },
     "mob_skeleton_mage_idle": {
       "sheet": "/sprites/entities/mob_skeleton_mage/Idle-Sheet.png",
       "x": 0,
       "y": 0,
       "w": 32,
-      "h": 32
+      "h": 32,
+      "frameCount": 4
     },
     "mob_skeleton_rogue_idle": {
       "sheet": "/sprites/entities/mob_skeleton_rogue/Idle-Sheet.png",
       "x": 0,
       "y": 0,
       "w": 32,
-      "h": 32
+      "h": 32,
+      "frameCount": 4
     },
     "mob_skeleton_warrior_idle": {
       "sheet": "/sprites/entities/mob_skeleton_warrior/Idle-Sheet.png",
       "x": 0,
       "y": 0,
       "w": 32,
-      "h": 32
+      "h": 32,
+      "frameCount": 4
     },
     "player_warrior_idle_left": {
       "sheet": "/sprites/entities/hero_classes/sprite_left.png",

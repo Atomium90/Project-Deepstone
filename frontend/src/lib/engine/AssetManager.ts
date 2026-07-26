@@ -2,6 +2,7 @@ import {
     COLOR_TILE_FLOOR,
     COLOR_TILE_WALL,
     COLOR_TILE_FLOOR_BORDER,
+    DEFAULT_FRAME_DURATION_MS,
 } from "./constants";
 
 /** A sub-rectangle within a sheet image, in source pixels. */
@@ -23,8 +24,27 @@ export interface DrawableAsset {
 }
 
 /** Where an atlas sprite lives: which sheet URL, and which sub-rect of it. */
-interface AtlasSprite extends SourceRect {
+export interface AtlasSprite extends SourceRect {
     sheet: string;
+    /** Frame count for a horizontal frame-strip animation: frames are `w` px wide each, laid
+     * out left-to-right starting at (x,y), same sheet, same y. Omitted or 1 = static single-frame
+     * sprite - existing atlas entries need no changes to stay static. */
+    frameCount?: number;
+    /** Ms per frame. Only meaningful when frameCount > 1. Omitted -> DEFAULT_FRAME_DURATION_MS. */
+    frameDuration?: number;
+}
+
+/** Current frame index (0-based) for an animated atlas entry at a given elapsed time. Returns 0
+ * for static entries (frameCount absent or 1), regardless of elapsedMs. The single place frame-
+ * index math lives, so canvas (Renderer) and DOM (Sprite.svelte) rendering stay consistent. */
+export function frameIndexFor(
+    entry: Pick<AtlasSprite, "frameCount" | "frameDuration">,
+    elapsedMs: number
+): number {
+    const frameCount = entry.frameCount ?? 1;
+    if (frameCount <= 1) return 0;
+    const frameDuration = entry.frameDuration ?? DEFAULT_FRAME_DURATION_MS;
+    return Math.floor(elapsedMs / frameDuration) % frameCount;
 }
 
 /** Shape of the atlas JSON files under public/atlas/, produced by scripts/generate-atlas*.mjs. */
@@ -101,15 +121,17 @@ export class AssetManager {
     /**
      * Looks up `typeId` (e.g. an enemy typeId, item typeId, or tile name) across every
      * loaded atlas. Falls back to `fallbackColor` if the atlas isn't loaded yet or has no
-     * sprite under that name.
+     * sprite under that name. `elapsedMs` selects the current frame for animated entries
+     * (see frameIndexFor) - callers that never animate can omit it.
      */
-    getSprite(typeId: string, fallbackColor: string): DrawableAsset {
+    getSprite(typeId: string, fallbackColor: string, elapsedMs = 0): DrawableAsset {
         const entry = this.atlas.get(typeId);
         if (!entry) return { image: null, fallbackColor };
 
+        const frameIndex = frameIndexFor(entry, elapsedMs);
         return {
             image: this.sprites.get(entry.sheet) ?? null,
-            sourceRect: { x: entry.x, y: entry.y, w: entry.w, h: entry.h },
+            sourceRect: { x: entry.x + frameIndex * entry.w, y: entry.y, w: entry.w, h: entry.h },
             fallbackColor,
         };
     }

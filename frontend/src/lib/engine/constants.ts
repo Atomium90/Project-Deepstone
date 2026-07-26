@@ -19,6 +19,9 @@ export const PLAYER_RADIUS_RATIO = 0.32;
 /** Fraction of TILE_SIZE used as the entity circle radius. */
 export const ENTITY_RADIUS_RATIO = 0.3;
 
+/** Default ms/frame for an animated atlas sprite when its entry omits frameDuration. */
+export const DEFAULT_FRAME_DURATION_MS = 150;
+
 /** Offset in pixels below an entity circle where its label is drawn. */
 export const ENTITY_LABEL_OFFSET = 12;
 

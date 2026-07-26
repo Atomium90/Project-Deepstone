@@ -1,7 +1,7 @@
 <script lang="ts">
     import { gameState, client, combatLog, combatDamageEvents } from "../engine/StateStore";
     import { settings } from "../engine/SettingsStore";
-    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, PLAYER_SPRITE_ID, PLAYER_CLASS_COLORS } from "../engine/constants";
+    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, PLAYER_CLASS_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
     import StatBar from "./StatBar.svelte";
@@ -32,6 +32,20 @@
         });
     }
 
+    /** Transient player-portrait animation, same remove-then-re-add convention as triggerFlash so
+     * it restarts even if the same kind fires twice in a row. null = idle portrait. */
+    let playerCombatAnim: "attack" | "damaged" | null = null;
+
+    function triggerPlayerAnim(kind: "attack" | "damaged", durationMs: number): void {
+        playerCombatAnim = null;
+        requestAnimationFrame(() => {
+            playerCombatAnim = kind;
+            setTimeout(() => {
+                playerCombatAnim = null;
+            }, durationMs);
+        });
+    }
+
     /** Tracks which $combatDamageEvents array has already been processed. Without this, the
      * block below would re-trigger every time `floaters` itself changes (including from its own
      * delayed cleanup), re-spawning duplicate floaters for the same stale events forever - since
@@ -43,6 +57,15 @@
      * fires when there's actually something to react to (mirrors AchievementToast's pattern). */
     $: if ($combatDamageEvents !== lastProcessedEvents) {
         lastProcessedEvents = $combatDamageEvents;
+
+        // A single StateUpdate can carry both the player's own hit on the enemy AND the
+        // enemy's counter-attack on the player at once (see CombatResolver - one transition
+        // resolves both). Only one animation can play on the portrait at a time, so attack
+        // (the player's own action) takes priority over damaged for that batch - damaged only
+        // plays when the player took a hit without landing one themselves (e.g. Defend).
+        let sawAttack = false;
+        let sawPlayerDamage = false;
+
         for (const evt of $combatDamageEvents) {
             const id = nextFloaterId++;
             floaters = [...floaters, { id, targetIsPlayer: evt.targetIsPlayer, amount: evt.amount, kind: evt.kind }];
@@ -50,10 +73,23 @@
                 floaters = floaters.filter((f) => f.id !== id);
             }, 900);
             triggerFlash(evt.targetIsPlayer, evt.kind);
+
+            if (evt.kind === "damage") {
+                if (evt.targetIsPlayer) sawPlayerDamage = true;
+                else sawAttack = true;
+            }
         }
+
+        if (sawAttack) triggerPlayerAnim("attack", 1200);
+        else if (sawPlayerDamage) triggerPlayerAnim("damaged", 500);
     }
 
     $: player         = $gameState?.player;
+    // HP-zero wins over a still-in-flight transient anim - a stale attack/damaged timeout must
+    // never flip the portrait back off the KO pose after the player is defeated.
+    $: playerSpriteId = player
+        ? `player_${player.classId}_${player.hp <= 0 ? "ko" : (playerCombatAnim ?? "idle_right")}`
+        : null;
     $: combat         = $gameState?.combat;
     $: inventory      = $gameState?.inventory ?? [];
     $: abilities      = $gameState?.abilities ?? [];
@@ -98,9 +134,9 @@
                 class:flash-damage={playerFlashKind === "damage"}
                 class:flash-heal={playerFlashKind === "heal"}
         >
-            {#if player}
+            {#if player && playerSpriteId}
                 <div class="portrait">
-                    <Sprite spriteId={PLAYER_SPRITE_ID} fallbackColor={PLAYER_CLASS_COLORS[player.classId]} size={112} />
+                    <Sprite spriteId={playerSpriteId} fallbackColor={PLAYER_CLASS_COLORS[player.classId]} size={112} animated />
                 </div>
             {/if}
             <p class="combatant-name">{player?.classId.toUpperCase() ?? "—"}</p>

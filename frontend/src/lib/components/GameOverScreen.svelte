@@ -1,5 +1,7 @@
 <script lang="ts">
     import { gameState, client } from "../engine/StateStore";
+    import { PLAYER_CLASS_COLORS } from "../engine/constants";
+    import Sprite from "./Sprite.svelte";
 
     $: player  = $gameState?.player;
     $: victory = $gameState?.victory ?? false;
@@ -11,6 +13,12 @@
 
 <div class="over-root" class:victory>
     <div class="over-content">
+
+        {#if player && !victory}
+            <div class="ko-portrait">
+                <Sprite spriteId={`player_${player.classId}_ko`} fallbackColor={PLAYER_CLASS_COLORS[player.classId]} size={96} />
+            </div>
+        {/if}
 
         <div class="skull">{victory ? "★" : "†"}</div>
         <h1 class="title">{victory ? "VICTORY" : "DEFEATED"}</h1>
@@ -61,6 +69,10 @@
         gap: 1.25rem;
         max-width: 320px;
         text-align: center;
+    }
+
+    .ko-portrait {
+        opacity: 0.85;
     }
 
     .skull {

@@ -168,36 +168,36 @@ export const ITEM_RARITY_COLORS = {
 } as const;
 
 // ---------------------------------------------
-// Interact highlight (entities)
+// Interact prompt ("[E]" keycap badge)
 // ---------------------------------------------
 
-/** Extra radius added to the highlight ring around interactable entities. */
-export const ENTITY_INTERACT_HALO_BASE = 6;
+/** Side length of the square keycap badge, in pixels. */
+export const INTERACT_BADGE_SIZE = 16;
 
-/** Additional pulsing amplitude added to the halo radius. */
-export const ENTITY_INTERACT_HALO_PULSE = 3;
+/** Corner radius of the keycap badge. */
+export const INTERACT_BADGE_RADIUS = 3;
 
-/** Stroke width of the interact halo ring. */
-export const ENTITY_INTERACT_HALO_WIDTH = 1.5;
+/** Fill color of the keycap badge. */
+export const INTERACT_BADGE_BG = "rgba(20, 20, 20, 0.92)";
 
-/** Base RGB for interact halo (white). */
-export const ENTITY_INTERACT_HALO_RGB = "255,255,255";
+/** Border color of the keycap badge. */
+export const INTERACT_BADGE_BORDER = "rgba(255, 255, 255, 0.7)";
 
-/** Base alpha of the interact halo color. */
-export const ENTITY_INTERACT_HALO_ALPHA = 0.3;
+/** Border stroke width of the keycap badge. */
+export const INTERACT_BADGE_BORDER_WIDTH = 1.5;
 
-/** Additional alpha added by the pulse. */
-export const ENTITY_INTERACT_HALO_PULSE_ALPHA = 0.25;
+/** Text color of the "E" glyph on the keycap badge. */
+export const INTERACT_BADGE_TEXT = "#fff";
 
-// ---------------------------------------------
-// Interact prompt ("[E]")
-// ---------------------------------------------
+/** Vertical offset above the entity circle for the keycap badge's resting position. */
+export const INTERACT_BADGE_OFFSET = 10;
 
-/** Color of the "[E]" interact prompt. */
-export const COLOR_INTERACT_PROMPT = "#eee";
+/** Amplitude, in pixels, of the badge's idle bounce (replaces the old halo pulse as the
+ * "this is alive/interactable" cue). */
+export const INTERACT_BADGE_BOUNCE_AMPLITUDE = 2;
 
-/** Vertical offset above the entity circle for the "[E]" prompt. */
-export const INTERACT_PROMPT_OFFSET = 4;
+/** Period, in ms, of the badge's idle bounce - same divisor the old halo pulse used. */
+export const INTERACT_BADGE_BOUNCE_PERIOD = 300;
 
 // ---------------------------------------------
 // Colors - Character screen

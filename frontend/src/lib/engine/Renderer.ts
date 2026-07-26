@@ -21,14 +21,15 @@ import {
     COLOR_PLAYER_INITIAL,
     COLOR_LOADING_BG,
     COLOR_LOADING_TEXT,
-    ENTITY_INTERACT_HALO_BASE,
-    ENTITY_INTERACT_HALO_PULSE,
-    ENTITY_INTERACT_HALO_WIDTH,
-    ENTITY_INTERACT_HALO_ALPHA,
-    ENTITY_INTERACT_HALO_PULSE_ALPHA,
-    COLOR_INTERACT_PROMPT,
-    INTERACT_PROMPT_OFFSET,
-    ENTITY_INTERACT_HALO_RGB
+    INTERACT_BADGE_SIZE,
+    INTERACT_BADGE_RADIUS,
+    INTERACT_BADGE_BG,
+    INTERACT_BADGE_BORDER,
+    INTERACT_BADGE_BORDER_WIDTH,
+    INTERACT_BADGE_TEXT,
+    INTERACT_BADGE_OFFSET,
+    INTERACT_BADGE_BOUNCE_AMPLITUDE,
+    INTERACT_BADGE_BOUNCE_PERIOD
 } from "./constants";
 
 const ENTITY_COLORS: Record<string, string> = {
@@ -323,21 +324,6 @@ export class Renderer {
             const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
             const isNearby = chebyshevDist(px, py, entity.x, entity.y) <= INTERACT_RANGE;
 
-            // Pulsing highlight ring when entity is within interact range
-            if (isNearby) {
-                const pulse = 0.5 + 0.5 * Math.sin(this.elapsed / 300);
-                ctx.beginPath();
-                ctx.arc(cx, cy,
-                    radius + ENTITY_INTERACT_HALO_BASE + pulse * ENTITY_INTERACT_HALO_PULSE,
-                    0, Math.PI * 2
-                );
-                ctx.strokeStyle = `rgba(${ENTITY_INTERACT_HALO_RGB}, ${
-                    ENTITY_INTERACT_HALO_ALPHA + pulse * ENTITY_INTERACT_HALO_PULSE_ALPHA
-                })`;
-                ctx.lineWidth = ENTITY_INTERACT_HALO_WIDTH;
-                ctx.stroke();
-            }
-
             // Entity body: real sprite when one resolves, geometric circle otherwise
             const fallbackColor = ENTITY_COLORS[entity.kind] ?? COLOR_ENTITY_FALLBACK;
             const spriteKey = entity.kind === "enemy" ? entity.spriteId : ENTITY_SPRITES[entity.kind];
@@ -372,14 +358,42 @@ export class Renderer {
             ctx.textAlign = "center";
             ctx.fillText(entity.label, cx, cy + radius + ENTITY_LABEL_OFFSET);
 
-            // "E" prompt above when nearby
+            // Keycap badge above when nearby
             if (isNearby) {
-                ctx.fillStyle = COLOR_INTERACT_PROMPT;
-                ctx.font = "bold 11px monospace";
-                ctx.textAlign = "center";
-                ctx.fillText("[E]", cx, cy - radius - INTERACT_PROMPT_OFFSET);
+                this.drawInteractBadge(cx, cy - radius - INTERACT_BADGE_OFFSET);
             }
         }
+    }
+
+    /** Draws a small dark keycap-style badge (like a keyboard key) with "E" centered in it, its
+     * bottom edge resting at `anchorY` and floating up periodically for a subtle "this is alive"
+     * cue - replaces the old pulsing ring halo around the entity itself. */
+    private drawInteractBadge(cx: number, anchorY: number): void {
+        const { ctx } = this;
+        const bounce = Math.sin(this.elapsed / INTERACT_BADGE_BOUNCE_PERIOD) * INTERACT_BADGE_BOUNCE_AMPLITUDE;
+        const half = INTERACT_BADGE_SIZE / 2;
+        const badgeBottom = anchorY + bounce;
+        const badgeTop = badgeBottom - INTERACT_BADGE_SIZE;
+        const badgeCenterY = badgeTop + half;
+
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(cx - half, badgeTop, INTERACT_BADGE_SIZE, INTERACT_BADGE_SIZE, INTERACT_BADGE_RADIUS);
+        } else {
+            ctx.rect(cx - half, badgeTop, INTERACT_BADGE_SIZE, INTERACT_BADGE_SIZE);
+        }
+        ctx.fillStyle = INTERACT_BADGE_BG;
+        ctx.fill();
+        ctx.strokeStyle = INTERACT_BADGE_BORDER;
+        ctx.lineWidth = INTERACT_BADGE_BORDER_WIDTH;
+        ctx.stroke();
+
+        ctx.fillStyle = INTERACT_BADGE_TEXT;
+        ctx.font = "bold 10px monospace";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("E", cx, badgeCenterY);
+        ctx.textBaseline = "alphabetic";
     }
 
     private drawPlayer(player: PlayerView): void {

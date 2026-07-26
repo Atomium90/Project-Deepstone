@@ -34,3 +34,9 @@ dist/
 frontend/public/audio/music/boss_soulrend_sovereign.ogg
 frontend/public/audio/music/boss_ruinlord_ascendant.ogg
 frontend/public/audio/music/boss_bloodbound_fight.ogg
+
+# Player sprite sheets (MoDsama license requires credit and forbids redistributing the raw
+# files - no permission path, unlike the boss tracks above. Kept locally for dev only; being
+# purged from git history too. See CREDITS.md.)
+frontend/public/sprites/entities/hero_classes/sprite_left.png
+frontend/public/sprites/entities/hero_classes/sprite_right.png

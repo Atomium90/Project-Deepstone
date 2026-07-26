@@ -17,12 +17,9 @@ Third-party art and audio assets used by Deepstone, and their licenses.
 - **UI Pack**, **UI Pack (RPG Expansion)**, **Game Icons**, **Game Icons (Expansion)** by Kenney (https://kenney.nl)
   Used for: buttons, bars, panels, checkmarks, settings/lock icons.
 - **High Quality 16-bit RPG Music** by HydroGene (https://hydrogene.itch.io/high-quality-16-bit-music)
-  Used for: hub, combat, and exploration background music. Pack's own terms: "credits are not
-  mandatory... feel free to use it in any way you want."
+  Used for: hub, combat, and exploration background music.
 
-## Pending permission (not yet committed)
+## Credited, kept out of the public repo
 
-- **Boss Battle Music Pack Vol. 2** by AlkaKrab (itch.io) - used for boss music. AlkaKrab's
-  license permits commercial use with no required credit, but explicitly asks for direct
-  permission before use in an open-source project. Tracks are kept locally (gitignored) until
-  that permission is confirmed - see the `.gitignore` comment next to the affected files.
+- **Fantasy Boss Battle Music Pack Vol. 2** by AlkaKrab (https://alkakrab.itch.io/fantasy-boss-battle-music-pack-vol-2) - boss music.
+- **4SS Platform** by MoDsama (https://modsama.itch.io/4ssplatform) - warrior/archer/mage sprites.

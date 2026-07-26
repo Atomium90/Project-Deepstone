@@ -58,11 +58,6 @@ export const PLAYER_CLASS_COLORS = {
   mage: "#5c9be0",
 } as const;
 
-/** Single static player sprite for all 3 classes - Pixel Crawler only has one usable body in
- * this pass, so class distinction stays in the stats panel/portrait fallback color rather than
- * the sprite itself for now. Shared between Renderer.ts (exploration) and CombatScreen (portrait). */
-export const PLAYER_SPRITE_ID = "hero_idle";
-
 export const COLOR_PLAYER_OUTLINE = "rgba(255,255,255,0.4)";
 export const COLOR_PLAYER_OUTLINE_WIDTH = 2;
 export const COLOR_PLAYER_INITIAL = "#fff";

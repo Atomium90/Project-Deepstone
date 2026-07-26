@@ -21,7 +21,6 @@ const publicDir = path.join(__dirname, "..", "public");
 const entitiesAtlasPath = path.join(publicDir, "atlas", "entities.json");
 
 const MANIFEST = [
-    { name: "hero_idle", file: "hero/Idle_Down-Sheet.png" },
     { name: "mob_orc_idle", file: "mob_orc/Idle-Sheet.png" },
     { name: "mob_orc_rogue_idle", file: "mob_orc_rogue/Idle-Sheet.png" },
     { name: "mob_orc_shaman_idle", file: "mob_orc_shaman/Idle-Sheet.png" },
@@ -40,13 +39,9 @@ function pngDimensions(absPath) {
 
 /** Per-sprite crop override for sheets where the square-frame-side-length-equals-sheet-height
  * rule technically holds but leaves the character much smaller than the mob sprites within its
- * frame (lots of transparent padding). hero_idle's actual character art only occupies a
- * 16x30px region within the frame - this crops to a tight 32x32 window centered on that art
- * (measured via a one-off alpha-channel bounding box scan), matching how much of their own
- * 32x32 frame the mob sprites fill, so hero and mobs render at the same on-screen size. */
-const CROP_OVERRIDES = {
-    hero_idle: { x: 16, y: 16, w: 32, h: 32 },
-};
+ * frame (lots of transparent padding) - crops to a tight window centered on the actual art
+ * instead. Empty for now; kept as a documented escape hatch for a future sprite that needs it. */
+const CROP_OVERRIDES = {};
 
 const existing = JSON.parse(readFileSync(entitiesAtlasPath, "utf-8"));
 const sprites = existing.sprites ?? {};

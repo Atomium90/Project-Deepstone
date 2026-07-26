@@ -455,13 +455,6 @@
       "w": 32,
       "h": 32
     },
-    "hero_idle": {
-      "sheet": "/sprites/entities/hero/Idle_Down-Sheet.png",
-      "x": 16,
-      "y": 16,
-      "w": 32,
-      "h": 32
-    },
     "mob_orc_idle": {
       "sheet": "/sprites/entities/mob_orc/Idle-Sheet.png",
       "x": 0,

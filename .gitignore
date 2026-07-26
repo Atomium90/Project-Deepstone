@@ -28,3 +28,9 @@ dist/
 
 # Local SQLite dev database
 *.db
+
+# Boss music tracks (AlkaKrab license requires permission for use in an open-source repo -
+# pending an email reply; kept locally, remove this block once permission is granted).
+frontend/public/audio/music/boss_soulrend_sovereign.ogg
+frontend/public/audio/music/boss_ruinlord_ascendant.ogg
+frontend/public/audio/music/boss_bloodbound_fight.ogg

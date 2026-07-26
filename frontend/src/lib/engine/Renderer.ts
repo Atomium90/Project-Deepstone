@@ -16,7 +16,6 @@ import {
     COLOR_ENTITY_LABEL,
     COLOR_ENTITY_FALLBACK,
     PLAYER_CLASS_COLORS,
-    PLAYER_SPRITE_ID,
     COLOR_PLAYER_OUTLINE,
     COLOR_PLAYER_OUTLINE_WIDTH,
     COLOR_PLAYER_INITIAL,
@@ -104,6 +103,13 @@ export class Renderer {
      * slide the player sprite across an unrelated room. */
     private currentRoomId: string | null = null;
 
+    /** Which way the player sprite is currently facing - only updated by a horizontal move, so
+     * a vertical-only move keeps whatever facing was already set. */
+    private playerFacing: "left" | "right" = "right";
+
+    /** True while visualPos hasn't caught up to targetPos yet - drives idle vs. walk. */
+    private isPlayerMoving = false;
+
     /** Elapsed time in ms, used for the pulsing interact indicator. */
     private elapsed = 0;
     private lastTimestamp = 0;
@@ -130,7 +136,15 @@ export class Renderer {
      */
     update(room: RoomView, player: PlayerView): void {
         const roomChanged = this.currentRoomId !== null && this.currentRoomId !== room.roomId;
+        const prevTileX = this.room?.playerX;
         this.currentRoomId = room.roomId;
+
+        // Only a horizontal move updates facing - skip across a room transition so entering a
+        // new room's entrance never causes a spurious flip, and skip a vertical-only move so it
+        // keeps whatever facing was already set.
+        if (!roomChanged && prevTileX !== undefined && room.playerX !== prevTileX) {
+            this.playerFacing = room.playerX > prevTileX ? "right" : "left";
+        }
 
         this.room = room;
         this.player = player;
@@ -224,7 +238,9 @@ export class Renderer {
         const dx = this.targetPos.x - this.visualPos.x;
         const dy = this.targetPos.y - this.visualPos.y;
 
-        if (Math.abs(dx) < LERP_SNAP_THRESHOLD && Math.abs(dy) < LERP_SNAP_THRESHOLD) {
+        this.isPlayerMoving = Math.abs(dx) >= LERP_SNAP_THRESHOLD || Math.abs(dy) >= LERP_SNAP_THRESHOLD;
+
+        if (!this.isPlayerMoving) {
             this.visualPos = { ...this.targetPos };
         } else {
             this.visualPos = {
@@ -357,7 +373,9 @@ export class Renderer {
 
     private drawPlayer(player: PlayerView): void {
         const { ctx } = this;
-        const asset = this.assets.getSprite(PLAYER_SPRITE_ID, PLAYER_CLASS_COLORS[player.classId]);
+        const state = this.isPlayerMoving ? "walk" : "idle";
+        const typeId = `player_${player.classId}_${state}_${this.playerFacing}`;
+        const asset = this.assets.getSprite(typeId, PLAYER_CLASS_COLORS[player.classId], this.elapsed);
         const radius = TILE_SIZE * PLAYER_RADIUS_RATIO;
         const { x, y } = this.visualPos;
 

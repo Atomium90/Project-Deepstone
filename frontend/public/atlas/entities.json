@@ -517,6 +517,189 @@
       "y": 0,
       "w": 32,
       "h": 32
+    },
+    "player_warrior_idle_left": {
+      "sheet": "/sprites/entities/hero_classes/sprite_left.png",
+      "x": 0,
+      "y": 32,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 220
+    },
+    "player_warrior_walk_left": {
+      "sheet": "/sprites/entities/hero_classes/sprite_left.png",
+      "x": 64,
+      "y": 32,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 120
+    },
+    "player_warrior_idle_right": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 0,
+      "y": 32,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 220
+    },
+    "player_warrior_walk_right": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 64,
+      "y": 32,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 120
+    },
+    "player_warrior_attack": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 64,
+      "y": 48,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 300
+    },
+    "player_warrior_damaged": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 128,
+      "y": 32,
+      "w": 16,
+      "h": 16,
+      "frameCount": 2,
+      "frameDuration": 250
+    },
+    "player_warrior_ko": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 128,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "player_archer_idle_left": {
+      "sheet": "/sprites/entities/hero_classes/sprite_left.png",
+      "x": 0,
+      "y": 64,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 220
+    },
+    "player_archer_walk_left": {
+      "sheet": "/sprites/entities/hero_classes/sprite_left.png",
+      "x": 64,
+      "y": 64,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 120
+    },
+    "player_archer_idle_right": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 0,
+      "y": 64,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 220
+    },
+    "player_archer_walk_right": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 64,
+      "y": 64,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 120
+    },
+    "player_archer_attack": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 64,
+      "y": 80,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 300
+    },
+    "player_archer_damaged": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 128,
+      "y": 64,
+      "w": 16,
+      "h": 16,
+      "frameCount": 2,
+      "frameDuration": 250
+    },
+    "player_archer_ko": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 128,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "player_mage_idle_left": {
+      "sheet": "/sprites/entities/hero_classes/sprite_left.png",
+      "x": 0,
+      "y": 96,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 220
+    },
+    "player_mage_walk_left": {
+      "sheet": "/sprites/entities/hero_classes/sprite_left.png",
+      "x": 64,
+      "y": 96,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 120
+    },
+    "player_mage_idle_right": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 0,
+      "y": 96,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 220
+    },
+    "player_mage_walk_right": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 64,
+      "y": 96,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 120
+    },
+    "player_mage_attack": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 64,
+      "y": 112,
+      "w": 16,
+      "h": 16,
+      "frameCount": 4,
+      "frameDuration": 300
+    },
+    "player_mage_damaged": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 128,
+      "y": 96,
+      "w": 16,
+      "h": 16,
+      "frameCount": 2,
+      "frameDuration": 250
+    },
+    "player_mage_ko": {
+      "sheet": "/sprites/entities/hero_classes/sprite_right.png",
+      "x": 128,
+      "y": 112,
+      "w": 16,
+      "h": 16
     }
   }
 }

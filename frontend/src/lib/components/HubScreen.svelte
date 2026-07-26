@@ -1,6 +1,7 @@
 <script lang="ts">
     import { gameState, client } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
+    import { lastStartedDifficulty } from "../engine/RunStore";
     import {
         PLAYER_CLASS_COLORS,
         CURRENCY_NAME,
@@ -45,6 +46,7 @@
     }
 
     function startRun(): void {
+        lastStartedDifficulty.set(selectedDifficulty);
         client.send({
             type: "HUB_ACTION",
             action: "STARTRUN",

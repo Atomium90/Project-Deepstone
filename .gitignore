@@ -29,14 +29,13 @@ dist/
 # Local SQLite dev database
 *.db
 
-# Boss music tracks (AlkaKrab license requires permission for use in an open-source repo -
-# pending an email reply; kept locally, remove this block once permission is granted).
+# Frontend static build, staged into backend resources by build-release.ps1 before packaging -
+# regenerated every build, never hand-edited.
+deepstone-backend/src/main/resources/static/
+
+# Licensed files ignored for licensing reasons - see CREDITS.md
 frontend/public/audio/music/boss_soulrend_sovereign.ogg
 frontend/public/audio/music/boss_ruinlord_ascendant.ogg
 frontend/public/audio/music/boss_bloodbound_fight.ogg
-
-# Player sprite sheets (MoDsama license requires credit and forbids redistributing the raw
-# files - no permission path, unlike the boss tracks above. Kept locally for dev only; being
-# purged from git history too. See CREDITS.md.)
 frontend/public/sprites/entities/hero_classes/sprite_left.png
 frontend/public/sprites/entities/hero_classes/sprite_right.png

@@ -1,8 +1,13 @@
 package roguelite
 
 import cats.effect.{ IO, IOApp }
+import cats.syntax.semigroupk.*
 import com.comcast.ip4s.{ host, port }
+import org.http4s.HttpRoutes
+import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.server.staticcontent.resourceServiceBuilder
+import org.http4s.StaticFile
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import roguelite.engine.{ StateMachine, WebSocketRouter }
 import roguelite.game.{
@@ -59,12 +64,21 @@ object Main extends IOApp.Simple:
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs, achievementDefs)
 
+            // Serves the frontend's built static files (copied into resources/static/ by
+            // build-release.ps1 before packaging - see that script). Root serves index.html
+            // explicitly since resourceServiceBuilder maps request paths directly onto
+            // classpath resources and doesn't infer a directory index on its own.
+            staticRoutes: HttpRoutes[IO] = HttpRoutes.of[IO] {
+              case req @ GET -> Root =>
+                StaticFile.fromResource("/static/index.html", Some(req)).getOrElseF(NotFound())
+            } <+> resourceServiceBuilder[IO]("/static").toRoutes
+
             _ <- EmberServerBuilder
               .default[IO]
-              .withHost(host"0.0.0.0")
+              .withHost(host"127.0.0.1")
               .withPort(port"8080")
               .withHttpWebSocketApp(
-                wsb => router.routes(wsb).orNotFound
+                wsb => (router.routes(wsb) <+> staticRoutes).orNotFound
               )
               .build
               .useForever

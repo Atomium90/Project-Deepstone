@@ -9,6 +9,7 @@ ThisBuild / organization := "roguelite"
 ThisBuild / version      := "0.1.2"
 
 lazy val root = (project in file("."))
+  .enablePlugins(JavaAppPackaging)
   .settings(
     name := "deepstone-backend",
     libraryDependencies ++= Seq(

@@ -291,8 +291,7 @@ class StateMachineSuite extends FunSuite:
                             Rarity.Common,
                             ConsumableEffect.HealFixed(30)
     )
-    val inv    = Inventory.empty.addItem(potion).getOrElse(fail("expected Right"))
-    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(inventory = inv)
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(potionBelt = Vector(Some(potion), None))
     val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
     assertEquals(update.inventory.length, 1)
     assertEquals(update.inventory.head.typeId, "health_potion")

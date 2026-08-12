@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.{ Accessory, Inventory, Item }
+import roguelite.game.{ Accessory, Armor, Consumable, KeyKind, Weapon }
 
 /** Full player data as stored on the server. */
 case class Player(
@@ -15,7 +15,11 @@ case class Player(
     bonusAttack: Int = 0,
     bonusDefense: Int = 0,
     affinityTags: Set[String] = Set.empty,
-    inventory: Inventory = Inventory.empty
+    equippedWeapon: Option[Weapon] = None,
+    equippedArmor: Option[Armor] = None,
+    equippedAccessories: Vector[Option[Accessory]] = Player.emptyAccessorySlots,
+    potionBelt: Vector[Option[Consumable]] = Player.emptyPotionBelt,
+    keyCounts: Map[KeyKind, Int] = Map.empty
 ):
   def toView: PlayerView = PlayerView(
     classId = classId,
@@ -30,23 +34,30 @@ case class Player(
 
   def isAlive: Boolean = hp > 0
 
-  /** Add an item to the inventory.
-    *
-    * Accessories immediately increase `maxHp` (and top up current HP by the same amount) so the
-    * client always sees the correct HP cap without needing to sum inventory bonuses client-side.
-    *
-    * @return
-    *   Right(updatedPlayer) on success, Left(error) if the inventory is full.
+  /** True once every equipment slot and every potion-belt slot is occupied. Drives the `packrat`
+    * achievement (see [[roguelite.game.AchievementChecker]]). Deliberately ignores `keyCounts`: a
+    * counter has no notion of "full".
     */
-  def withItemPickup(item: Item): Either[String, Player] =
-    inventory
-      .addItem(item)
-      .map:
-        newInventory =>
-          item match {
-            case acc: Accessory =>
-              val newMax = maxHp + acc.hpBonus
-              copy(inventory = newInventory, maxHp = newMax, hp = (hp + acc.hpBonus).min(newMax))
-            case _ =>
-              copy(inventory = newInventory)
-          }
+  def isFullyEquipped: Boolean =
+    equippedWeapon.isDefined && equippedArmor.isDefined &&
+      equippedAccessories.forall(_.isDefined) && potionBelt.forall(_.isDefined)
+
+  /** Equip an accessory into `index`, bumping `maxHp` (and current HP by the same amount)
+    * immediately, so the client always sees the correct HP cap without summing bonuses itself.
+    */
+  def equipAccessory(index: Int, acc: Accessory): Player =
+    val newMax = maxHp + acc.hpBonus
+    copy(equippedAccessories = equippedAccessories.updated(index, Some(acc)),
+         maxHp = newMax,
+         hp = (hp + acc.hpBonus).min(newMax)
+    )
+
+object Player:
+  /** Number of accessory slots. Fixed: unlike the potion belt, no upgrade currently grows this. */
+  val AccessorySlotCount: Int = 2
+
+  /** Potion belt size before the `extra_slot` hub upgrade (which grants a 3rd). */
+  val BasePotionBeltSlots: Int = 2
+
+  def emptyAccessorySlots: Vector[Option[Accessory]] = Vector.fill(AccessorySlotCount)(None)
+  def emptyPotionBelt: Vector[Option[Consumable]]     = Vector.fill(BasePotionBeltSlots)(None)

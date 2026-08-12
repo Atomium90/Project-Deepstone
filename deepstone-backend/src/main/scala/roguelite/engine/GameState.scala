@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.{ Combat, Dungeon, EnemyStats, Inventory, Item, MetaProgression, UpgradeDef }
+import roguelite.game.{ Combat, Dungeon, EnemyStats, Item, MetaProgression, UpgradeDef }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -15,8 +15,14 @@ private def itemToView(item: Item): ItemView =
     statLine = item.statLine
   )
 
-private def inventoryToViews(inventory: Inventory): List[ItemView] =
-  inventory.items.map(itemToView)
+/** Temporary: flattens the typed equipment fields back into the pre-existing flat-list wire shape
+  * (no slot distinction, keys omitted since they are no longer Items). Keeps this commit scoped to
+  * the domain model - a real EquipmentView replaces this in the very next commit, at which point
+  * this function goes away entirely.
+  */
+private def equipmentToFlatViews(player: Player): List[ItemView] =
+  (player.equippedWeapon.toList ++ player.equippedArmor.toList ++
+    player.equippedAccessories.flatten ++ player.potionBelt.flatten).map(itemToView)
 
 // ---------------------------------------------
 // Game states (one per game phase)
@@ -56,7 +62,7 @@ case class HubState(player: Player,
             unlocked = meta.isUnlocked(u.id)
           )
       })),
-      inventory = inventoryToViews(player.inventory),
+      inventory = equipmentToFlatViews(player),
       log = log
     )
 
@@ -77,7 +83,7 @@ case class ExplorationState(player: Player,
       phase = GamePhase.Exploration,
       player = player.toView,
       room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
-      inventory = inventoryToViews(player.inventory),
+      inventory = equipmentToFlatViews(player),
       log = log,
       dialogue = dialogue
     )
@@ -115,7 +121,7 @@ case class CombatState(player: Player,
                    isBoss = dungeon.isAtBoss
         )
       ),
-      inventory = inventoryToViews(player.inventory),
+      inventory = equipmentToFlatViews(player),
       log = log
     )
 
@@ -126,7 +132,7 @@ case class GameOverState(player: Player, victory: Boolean = false) extends GameS
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(phase = GamePhase.GameOver,
                 player = player.toView,
-                inventory = inventoryToViews(player.inventory),
+                inventory = equipmentToFlatViews(player),
                 victory = victory,
                 log = log
     )

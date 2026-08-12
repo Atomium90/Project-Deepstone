@@ -9,7 +9,7 @@ import doobie.util.update
 import roguelite.game.UpgradeDef
 import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
-import roguelite.game.Inventory
+import roguelite.game.{ EquipmentResolver, PickupOutcome }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 
 /** Represents one active player connection.
@@ -242,18 +242,19 @@ class GameSession private (
     case UpgradeEffect.MaxHpBoost(amount) =>
       player.copy(maxHp = player.maxHp + amount, hp = player.hp + amount)
 
-    case UpgradeEffect.ExtraInventorySlot =>
-      if player.inventory.slots.length <= Inventory.MaxSlots
-      then player.copy(inventory = Inventory(player.inventory.slots :+ None))
+    case UpgradeEffect.ExtraPotionSlot =>
+      if player.potionBelt.length <= Player.BasePotionBeltSlots
+      then player.copy(potionBelt = player.potionBelt :+ None)
       else player
 
     case UpgradeEffect.StartingItem(typeId) =>
       itemDefs.get(typeId) match
         case None => player
         case Some(proto) =>
-          player.withItemPickup(proto.withNewId) match
-            case Right(p) => p
-            case Left(_)  => player // inventory full => silently skip
+          EquipmentResolver.resolvePickup(player, proto.withNewId) match
+            case PickupOutcome.Equipped(p)     => p
+            case PickupOutcome.KeyCollected(p) => p
+            case PickupOutcome.Discarded       => player // no room => silently skip
 
     case UpgradeEffect.UnlockClass(_) =>
       // Gates class selection at StartRun (see StateMachine); no player-state effect to apply.

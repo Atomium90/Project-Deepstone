@@ -6,9 +6,11 @@ import roguelite.game.{
   CombatResolver,
   DungeonBuilder,
   EnemyStats,
+  EquipmentResolver,
   InteractionResolver,
   Item,
   NpcDialogueDef,
+  PickupOutcome,
   Room
 }
 
@@ -102,15 +104,16 @@ class StateMachine(roomPool: Map[String, Room],
                     affinityTags = classDef.affinityTags
                   )
 
-                  // Resolve starting kit: unknown typeIds are skipped, full inventory is not expected
+                  // Resolve starting kit: unknown typeIds are skipped, slot collisions are not expected
                   val playerWithKit = classDef.startingKit.foldLeft(basePlayer):
                     (p, typeId) =>
                       itemDefs.get(typeId) match {
                         case None => p
                         case Some(proto) =>
-                          p.withItemPickup(proto.withNewId) match {
-                            case Right(updated) => updated
-                            case Left(_)        => p
+                          EquipmentResolver.resolvePickup(p, proto.withNewId) match {
+                            case PickupOutcome.Equipped(updated)     => updated
+                            case PickupOutcome.KeyCollected(updated) => updated
+                            case PickupOutcome.Discarded             => p
                           }
                       }
 

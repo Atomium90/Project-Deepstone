@@ -92,12 +92,12 @@ class GameSessionSuite extends CatsEffectSuite:
                                 effect = UpgradeEffect.UnlockClass(ClassId.Mage)
     ),
     "extra_slot" -> UpgradeDef("extra_slot",
-                               "Packrat",
-                               "Expand your inventory to 7 item slots",
+                               "Alchemist's Pouch",
+                               "Expand your potion belt to 3 slots",
                                cost = 60,
                                displayOrder = 5,
-                               icon = "🎒",
-                               effect = UpgradeEffect.ExtraInventorySlot
+                               icon = "⚗",
+                               effect = UpgradeEffect.ExtraPotionSlot
     )
   )
 

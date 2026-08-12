@@ -5,7 +5,7 @@ import roguelite.engine.ClassId
 /** Effect applied when an upgrade is unlocked.
   *
   * Interpreted in two places:
-  *   - Player-state effects (`MaxHpBoost`, `ExtraInventorySlot`, `StartingItem`) are applied once
+  *   - Player-state effects (`MaxHpBoost`, `ExtraPotionSlot`, `StartingItem`) are applied once
   *     per run, at Hub → Exploration transition, by
   *     [[roguelite.engine.GameSession.applyMetaBonuses]].
   *   - `UnlockClass` is a gate, not a player-state change: [[roguelite.engine.StateMachine]]
@@ -15,8 +15,8 @@ enum UpgradeEffect:
   /** Increase max HP (and current HP by the same amount) at the start of each run. */
   case MaxHpBoost(amount: Int)
 
-  /** Grow the starting inventory by one slot. */
-  case ExtraInventorySlot
+  /** Grow the potion belt from [[roguelite.engine.Player.BasePotionBeltSlots]] to 3 slots. */
+  case ExtraPotionSlot
 
   /** Add one instance of the given item typeId to the starting inventory. Silently skipped if the
     * typeId is unknown or the inventory is full.

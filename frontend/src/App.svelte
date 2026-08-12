@@ -10,6 +10,7 @@
     import GameOverScreen  from "./lib/components/GameOverScreen.svelte";
     import AchievementToast from "./lib/components/AchievementToast.svelte";
     import CharacterScreen  from "./lib/components/CharacterScreen.svelte";
+    import EquipChoiceModal from "./lib/components/EquipChoiceModal.svelte";
 
     onMount(() => {
         connectToServer();
@@ -44,6 +45,7 @@
 
     <AchievementToast />
     <CharacterScreen />
+    <EquipChoiceModal />
 </main>
 
 <style>

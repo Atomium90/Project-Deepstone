@@ -117,13 +117,19 @@
     }
 
     $: player          = $gameState?.player;
-    $: inventory       = $gameState?.inventory ?? [];
+    $: equipment       = $gameState?.equipment;
     $: abilities       = $gameState?.abilities ?? [];
     $: resourceLabel   = player ? abilities.find((a) => a.classId === player.classId)?.resourceName ?? "Resource" : "Resource";
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : COLOR_ENTITY_FALLBACK;
 
-    /** Pad the inventory array to always show 6 slots (some may be null). */
-    $: slots = Array.from({ length: 6 }, (_, i) => inventory[i] ?? null) as (ItemView | null)[];
+    /** Weapon + armor + 2 accessory slots + the potion belt, in one flat display grid. No
+     * per-slot labels or icons yet - this is the simplest compiling swap from the old flat
+     * inventory list; a proper per-slot Equipment tab lands in a follow-up. */
+    $: slots = equipment
+        ? ([equipment.weapon, equipment.armor, ...equipment.accessories, ...equipment.potionBelt] as (ItemView | null)[])
+        : [];
+
+    $: keyCount = equipment?.keys.reduce((sum, k) => sum + k.count, 0) ?? 0;
 
     /** First letter of each word, max 2 chars, used as the slot icon. */
     function abbrev(name: string): string {
@@ -179,9 +185,9 @@
                     <span class="stat-value">{player.xp}</span>
                 </div>
 
-                <!-- Inventory -->
+                <!-- Equipment -->
                 <div class="inv-section">
-                    <span class="stat-label">Inventory</span>
+                    <span class="stat-label">Equipment</span>
                     <div class="inv-grid">
                         {#each slots as item}
                             <div
@@ -202,6 +208,9 @@
                             </div>
                         {/each}
                     </div>
+                    {#if keyCount > 0}
+                        <p class="key-count">🔑 {keyCount}</p>
+                    {/if}
                 </div>
 
                 <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E</p>
@@ -358,6 +367,12 @@
         text-overflow: ellipsis;
         white-space: nowrap;
         padding: 0 2px;
+    }
+
+    .key-count {
+        font-size: 0.65rem;
+        color: #999;
+        margin: 0;
     }
 
     .controls-hint {

@@ -355,25 +355,39 @@ class CombatResolver(rng: Random = Random(),
       s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
     )
 
-    val (playerAfterLoot, lootLog, lootEvents) =
+    // Known before resolving loot: a boss kill ends the run into GameOverState, which has no
+    // room to hold a pending equip choice - see the ChoicePending branch below.
+    val isBossKill = updatedDungeon.isAtBoss
+
+    val (playerAfterLoot, lootLog, lootEvents, pendingChoice) =
       LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty) match {
-        case None => (playerWithXp, Nil, Nil)
+        case None => (playerWithXp, Nil, Nil, None)
         case Some(item) =>
           EquipmentResolver.resolvePickup(playerWithXp, item) match {
             case PickupOutcome.Equipped(p) =>
               (p,
                List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
-               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
+               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped)),
+               None
               )
             case PickupOutcome.KeyCollected(p) =>
               (p,
                List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
-               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
+               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped)),
+               None
               )
-            case PickupOutcome.Discarded =>
+            case PickupOutcome.ChoicePending(pending) if isBossKill =>
+              // No ExplorationState survives this kill to hold a pending choice - lost, not offered.
               (playerWithXp,
-               List(s"${deadEnemy.label} dropped ${item.name}, but you have nowhere to put it!"),
-               Nil
+               List(s"${deadEnemy.label} dropped ${item.name}, but there's no time to decide - it's lost."),
+               Nil,
+               None
+              )
+            case PickupOutcome.ChoicePending(pending) =>
+              (playerWithXp,
+               List(s"${deadEnemy.label} dropped ${item.name}. Choose what to do with it."),
+               Nil,
+               Some(pending)
               )
           }
       }
@@ -384,9 +398,9 @@ class CombatResolver(rng: Random = Random(),
     val levelUpEvents = (startLevel + 1 to finalPlayer.level).map(GameEvent.LeveledUp.apply).toList
 
     val enemyDefeatedEvent =
-      GameEvent.EnemyDefeated(isBoss = updatedDungeon.isAtBoss, tookNoDamage = !state.combat.tookDamage)
+      GameEvent.EnemyDefeated(isBoss = isBossKill, tookNoDamage = !state.combat.tookDamage)
 
-    if updatedDungeon.isAtBoss then
+    if isBossKill then
       val runCompleteLog = List("You have vanquished the dungeon's guardian! Victory is yours.")
       val events =
         enemyDefeatedEvent :: lootEvents ::: levelUpEvents ::: List(GameEvent.RunEnded(victory = true))
@@ -401,7 +415,8 @@ class CombatResolver(rng: Random = Random(),
         playerX = state.playerX,
         playerY = state.playerY,
         difficulty = state.difficulty,
-        enemyStats = state.enemyStats
+        enemyStats = state.enemyStats,
+        pendingEquipChoice = pendingChoice
       )
       val events = enemyDefeatedEvent :: lootEvents ::: levelUpEvents
       (nextState, victoryLog ++ lootLog ++ levelUpLog, events)

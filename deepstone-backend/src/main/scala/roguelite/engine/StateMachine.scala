@@ -113,7 +113,7 @@ class StateMachine(roomPool: Map[String, Room],
                           EquipmentResolver.resolvePickup(p, proto.withNewId) match {
                             case PickupOutcome.Equipped(updated)     => updated
                             case PickupOutcome.KeyCollected(updated) => updated
-                            case PickupOutcome.Discarded             => p
+                            case PickupOutcome.ChoicePending(_)      => p
                           }
                       }
 

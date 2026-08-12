@@ -1,6 +1,15 @@
 package roguelite.engine
 
-import roguelite.game.{ Combat, Dungeon, EnemyStats, Item, KeyKind, MetaProgression, UpgradeDef }
+import roguelite.game.{
+  Combat,
+  Dungeon,
+  EnemyStats,
+  Item,
+  KeyKind,
+  MetaProgression,
+  PendingEquipChoice,
+  UpgradeDef
+}
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -82,13 +91,19 @@ case class HubState(player: Player,
   *   The loaded enemy catalog (see [[roguelite.game.EnemyLoader]]), forwarded to
   *   [[roguelite.game.Room.toView]] to resolve each enemy's `spriteId`. Defaults to empty so
   *   tests that don't care about sprites can keep using the shorter constructor.
+  * @param pendingEquipChoice
+  *   A pickup awaiting a keep/replace decision (see [[PendingEquipChoice]]). Durable server
+  *   state, not a transient per-action signal - it survives until resolved by an `EquipChoice`
+  *   action, so it is resolved into a view here on every call, not projected from `events` like
+  *   `damageEvents`/`soundEvents`.
   */
 case class ExplorationState(player: Player,
                             dungeon: Dungeon,
                             playerX: Int,
                             playerY: Int,
                             difficulty: Difficulty = Difficulty.Normal,
-                            enemyStats: Map[String, EnemyStats] = Map.empty
+                            enemyStats: Map[String, EnemyStats] = Map.empty,
+                            pendingEquipChoice: Option[PendingEquipChoice] = None
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(

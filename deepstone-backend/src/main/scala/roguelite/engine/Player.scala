@@ -52,6 +52,21 @@ case class Player(
          hp = (hp + acc.hpBonus).min(newMax)
     )
 
+  /** Reverse of [[equipAccessory]]: clears the slot and rolls back the maxHp bonus (current HP
+    * clamped down if it was above the new cap). A no-op if the slot was already empty.
+    */
+  def unequipAccessory(index: Int): (Option[Accessory], Player) =
+    equippedAccessories(index) match
+      case None => (None, this)
+      case Some(acc) =>
+        val newMax = (maxHp - acc.hpBonus).max(1)
+        (Some(acc),
+         copy(equippedAccessories = equippedAccessories.updated(index, None),
+              maxHp = newMax,
+              hp = hp.min(newMax)
+         )
+        )
+
 object Player:
   /** Number of accessory slots. Fixed: unlike the potion belt, no upgrade currently grows this. */
   val AccessorySlotCount: Int = 2

@@ -172,9 +172,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
               )
 
-            case PickupOutcome.Discarded =>
-              (exp.copy(dungeon = updatedDungeon),
-               List(s"You open the chest but you have nowhere to put ${item.name} — it's lost!"),
+            case PickupOutcome.ChoicePending(pending) =>
+              (exp.copy(dungeon = updatedDungeon, pendingEquipChoice = Some(pending)),
+               List(s"You open the chest and find ${item.name}. Choose what to do with it."),
                Nil
               )
           }

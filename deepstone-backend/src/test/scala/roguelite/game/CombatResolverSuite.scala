@@ -370,6 +370,37 @@ class CombatResolverSuite extends FunSuite:
       .resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assertEquals(next.player.potionBelt.flatten.toList, Nil)
 
+  // --- Loot collision (equip choice) on victory -----------------------------
+
+  test("victory loot collision offers a choice on the resulting ExplorationState, no ItemPickedUp yet"):
+    val existingWeapon = Weapon("existing", "hunters_bow", "Hunter's Bow", Rarity.Common, attackBonus = 5)
+    val itemDefs: Map[String, Item] = Map(
+      "iron_sword" -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+    )
+    val enemy = weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))
+    val playerWithWeapon = fullHpPlayer().copy(equippedWeapon = Some(existingWeapon))
+    val (next, _, events) = CombatResolver(Random(0), itemDefs)
+      .resolve(combatState(enemy, playerWithWeapon), CombatAction(CombatActionType.Attack))
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.player.equippedWeapon, Some(existingWeapon))
+    assertEquals(nextExp.pendingEquipChoice.map(_.currentItems.keySet), Some(Set(EquipSlot.WeaponSlot)))
+    assert(!events.exists(_.isInstanceOf[GameEvent.ItemPickedUp]),
+           s"no ItemPickedUp should fire until the choice is resolved: $events"
+    )
+
+  test("a boss-kill loot collision is lost silently, never offered as a choice"):
+    val existingWeapon = Weapon("existing", "hunters_bow", "Hunter's Bow", Rarity.Common, attackBonus = 5)
+    val itemDefs: Map[String, Item] = Map(
+      "iron_sword" -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+    )
+    val enemy = weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))
+    val playerWithWeapon = fullHpPlayer().copy(equippedWeapon = Some(existingWeapon))
+    val (next, log, _) = CombatResolver(Random(0), itemDefs)
+      .resolve(combatStateInBossRoom(enemy, playerWithWeapon), CombatAction(CombatActionType.Attack))
+    assert(next.isInstanceOf[GameOverState], s"expected GameOverState, got $next")
+    assertEquals(next.player.equippedWeapon, Some(existingWeapon))
+    assert(log.exists(_.toLowerCase.contains("no time to decide")), s"expected the boss-kill-loss message: $log")
+
   // --- Damage/heal event emission ------------------------------------------
 
   test("Attack emits DamageDealt(targetIsPlayer = false) matching the enemy's HP loss"):

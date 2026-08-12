@@ -12,6 +12,14 @@ export type Difficulty = "easy" | "normal" | "hard";
 export type ItemKind = "weapon" | "armor" | "accessory" | "consumable" | "key";
 export type ItemRarity = "common" | "uncommon";
 
+/** Identifies one equipment or potion-belt slot. `ACCESSORY_i`/`POTION_i` carry the slot index
+ * (0-based) since both families are fixed-size arrays, not one enum case per physical slot. */
+export type EquipSlot =
+  | "WEAPON"
+  | "ARMOR"
+  | `ACCESSORY_${number}`
+  | `POTION_${number}`;
+
 // ---------------------------------------------
 // Client → Server actions
 // ---------------------------------------------
@@ -41,11 +49,19 @@ export interface HubAction {
   difficulty?: Difficulty;
 }
 
+/** Resolve a pending equip choice. `targetSlot` omitted means "keep what's currently equipped,
+ * discard the new item"; otherwise it must be one of the slots the choice actually offered. */
+export interface EquipChoiceAction {
+  type: "EQUIP_CHOICE";
+  targetSlot?: EquipSlot;
+}
+
 export type PlayerAction =
   | MoveAction
   | InteractAction
   | CombatAction
-  | HubAction;
+  | HubAction
+  | EquipChoiceAction;
 
 // ---------------------------------------------
 // Server → Client views
@@ -159,6 +175,23 @@ export interface EquipmentView {
   keys: KeyCountView[];
 }
 
+/** One occupied slot the player could replace with the incoming item. `slot` is what an
+ * EquipChoiceAction targeting this option must send back as `targetSlot`. */
+export interface EquipChoiceOptionView {
+  slot: EquipSlot;
+  current: ItemView;
+}
+
+/** A pickup offered to the player because every slot matching `newItem`'s kind was already
+ * occupied: weapon/armor degenerate to a single `options` entry, accessories/potions can offer up
+ * to 2-3. Durable, not transient like `dialogue` or the other optional/list fields on StateUpdate
+ * below - it must still be present after a reconnect, or if the player sends an unrelated action
+ * before resolving it with an EquipChoiceAction. */
+export interface PendingEquipChoiceView {
+  newItem: ItemView;
+  options: EquipChoiceOptionView[];
+}
+
 /** Static description of one class's combat ability, sent by the server so the client never
  * hardcodes ability names, costs, or resource labels. */
 export interface AbilityView {
@@ -188,6 +221,9 @@ export interface StateUpdate {
   hub?: HubView;
   /** The player's current equipment loadout. */
   equipment: EquipmentView;
+  /** A pickup awaiting a keep/replace decision. Durable, not transient - see
+   * PendingEquipChoiceView. Resolved with an EquipChoiceAction. */
+  pendingEquipChoice?: PendingEquipChoiceView;
   /** Per-class ability catalog, always present, independent of game phase. */
   abilities: AbilityView[];
   /** Full achievement catalog (locked and unlocked), always present, independent of phase. */

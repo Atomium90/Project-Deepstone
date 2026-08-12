@@ -178,6 +178,22 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(_, _, _, events) = resolver(itemDefs = itemDefs).interact(state, "c1")
     assertEquals(events, List(GameEvent.ItemPickedUp(inventoryFull = false)))
 
+  test("A chest pickup that collides with an equipped weapon offers a choice instead of equipping"):
+    val existingWeapon = Weapon("existing", "hunters_bow", "Hunter's Bow", Rarity.Common, attackBonus = 5)
+    val playerWithWeapon =
+      PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(existingWeapon))
+    val itemDefs: Map[String, Item] = Map(
+      "iron_sword" -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+    )
+    val chest = Chest("c1", x = 3, y = 3)
+    val state = ExplorationState(playerWithWeapon, dungeonWith(entities = List(chest)), 3, 3)
+    val TransitionResult(next, log, _, events) = resolver(itemDefs = itemDefs).interact(state, "c1")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.player.equippedWeapon, Some(existingWeapon))
+    assertEquals(nextExp.pendingEquipChoice.map(_.currentItems.keySet), Some(Set(EquipSlot.WeaponSlot)))
+    assertEquals(events, Nil)
+    assert(log.exists(_.toLowerCase.contains("choose")), s"expected a choice-prompt message: $log")
+
   test("An empty chest emits no events"):
     val chest    = Chest("c1", x = 3, y = 3)
     val state    = explorationAt(3, 3, entities = List(chest))

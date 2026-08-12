@@ -113,7 +113,7 @@ class StateMachine(roomPool: Map[String, Room],
                           EquipmentResolver.resolvePickup(p, proto.withNewId) match {
                             case PickupOutcome.Equipped(updated)     => updated
                             case PickupOutcome.KeyCollected(updated) => updated
-                            case PickupOutcome.Discarded             => p
+                            case PickupOutcome.ChoicePending(_)      => p
                           }
                       }
 
@@ -181,6 +181,10 @@ class StateMachine(roomPool: Map[String, Room],
 
       case (exp: ExplorationState, Interact(targetId)) =>
         interactionResolver.interact(exp, targetId)
+
+      case (exp: ExplorationState, EquipChoice(targetSlot)) =>
+        val (next, log, events) = EquipmentResolver.resolveChoice(exp, targetSlot)
+        TransitionResult(next, log, events = events)
 
       // -- Combat -----------------------------------------------------------
 

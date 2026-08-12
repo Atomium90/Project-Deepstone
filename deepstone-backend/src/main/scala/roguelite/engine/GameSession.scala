@@ -252,9 +252,9 @@ class GameSession private (
         case None => player
         case Some(proto) =>
           EquipmentResolver.resolvePickup(player, proto.withNewId) match
-            case PickupOutcome.Equipped(p)     => p
-            case PickupOutcome.KeyCollected(p) => p
-            case PickupOutcome.Discarded       => player // no room => silently skip
+            case PickupOutcome.Equipped(p)      => p
+            case PickupOutcome.KeyCollected(p)  => p
+            case PickupOutcome.ChoicePending(_) => player // no room => silently skip
 
     case UpgradeEffect.UnlockClass(_) =>
       // Gates class selection at StartRun (see StateMachine); no player-state effect to apply.

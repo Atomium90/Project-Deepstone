@@ -1,6 +1,15 @@
 package roguelite.engine
 
-import roguelite.game.{ Combat, Dungeon, EnemyStats, Item, KeyKind, MetaProgression, UpgradeDef }
+import roguelite.game.{
+  Combat,
+  Dungeon,
+  EnemyStats,
+  Item,
+  KeyKind,
+  MetaProgression,
+  PendingEquipChoice,
+  UpgradeDef
+}
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -23,6 +32,13 @@ private def keyKindLabel(kind: KeyKind): String = kind match
   case KeyKind.Specific(_) => "specific"
   case KeyKind.Typed(_)    => "typed"
   case KeyKind.Universal   => "universal"
+
+/** Project a [[PendingEquipChoice]] into the client-facing [[PendingEquipChoiceView]]. */
+private def pendingChoiceToView(pending: PendingEquipChoice): PendingEquipChoiceView =
+  PendingEquipChoiceView(
+    newItem = itemToView(pending.newItem),
+    options = pending.currentItems.toList.map { case (slot, item) => EquipChoiceOptionView(slot, itemToView(item)) }
+  )
 
 /** Project a player's equipment into the client-facing [[EquipmentView]]. */
 private def equipmentToView(player: Player): EquipmentView =
@@ -82,13 +98,19 @@ case class HubState(player: Player,
   *   The loaded enemy catalog (see [[roguelite.game.EnemyLoader]]), forwarded to
   *   [[roguelite.game.Room.toView]] to resolve each enemy's `spriteId`. Defaults to empty so
   *   tests that don't care about sprites can keep using the shorter constructor.
+  * @param pendingEquipChoice
+  *   A pickup awaiting a keep/replace decision (see [[PendingEquipChoice]]). Durable server
+  *   state, not a transient per-action signal - it survives until resolved by an `EquipChoice`
+  *   action, so it is resolved into a view here on every call, not projected from `events` like
+  *   `damageEvents`/`soundEvents`.
   */
 case class ExplorationState(player: Player,
                             dungeon: Dungeon,
                             playerX: Int,
                             playerY: Int,
                             difficulty: Difficulty = Difficulty.Normal,
-                            enemyStats: Map[String, EnemyStats] = Map.empty
+                            enemyStats: Map[String, EnemyStats] = Map.empty,
+                            pendingEquipChoice: Option[PendingEquipChoice] = None
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
@@ -96,6 +118,7 @@ case class ExplorationState(player: Player,
       player = player.toView,
       room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
       equipment = equipmentToView(player),
+      pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView),
       log = log,
       dialogue = dialogue
     )

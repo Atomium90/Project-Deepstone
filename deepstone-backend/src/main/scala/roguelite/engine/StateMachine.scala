@@ -182,6 +182,10 @@ class StateMachine(roomPool: Map[String, Room],
       case (exp: ExplorationState, Interact(targetId)) =>
         interactionResolver.interact(exp, targetId)
 
+      case (exp: ExplorationState, EquipChoice(targetSlot)) =>
+        val (next, log, events) = EquipmentResolver.resolveChoice(exp, targetSlot)
+        TransitionResult(next, log, events = events)
+
       // -- Combat -----------------------------------------------------------
 
       case (combat: CombatState, action: CombatAction) =>

@@ -33,6 +33,13 @@ private def keyKindLabel(kind: KeyKind): String = kind match
   case KeyKind.Typed(_)    => "typed"
   case KeyKind.Universal   => "universal"
 
+/** Project a [[PendingEquipChoice]] into the client-facing [[PendingEquipChoiceView]]. */
+private def pendingChoiceToView(pending: PendingEquipChoice): PendingEquipChoiceView =
+  PendingEquipChoiceView(
+    newItem = itemToView(pending.newItem),
+    options = pending.currentItems.toList.map { case (slot, item) => EquipChoiceOptionView(slot, itemToView(item)) }
+  )
+
 /** Project a player's equipment into the client-facing [[EquipmentView]]. */
 private def equipmentToView(player: Player): EquipmentView =
   EquipmentView(
@@ -111,6 +118,7 @@ case class ExplorationState(player: Player,
       player = player.toView,
       room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
       equipment = equipmentToView(player),
+      pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView),
       log = log,
       dialogue = dialogue
     )

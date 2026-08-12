@@ -3,7 +3,7 @@ package roguelite.engine
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
 import io.circe.{ Decoder, Encoder }
-import roguelite.game.Rarity
+import roguelite.game.{ EquipSlot, Rarity }
 
 // -------------------
 // Shared enumerations
@@ -79,6 +79,12 @@ case class HubAction(
     upgradeId: Option[String] = None,
     difficulty: Option[Difficulty] = None
 ) extends PlayerAction
+
+/** Resolve a pending equip choice (see [[PendingEquipChoiceView]]). `targetSlot = None` means
+  * "keep what's currently equipped, discard the new item"; `Some(slot)` equips the new item into
+  * that slot, which must be one of the slots the pending choice actually offered.
+  */
+case class EquipChoice(targetSlot: Option[EquipSlot] = None) extends PlayerAction
 
 // ---------------------------------------------
 // Server → Client: state views (read-only snapshots)
@@ -200,6 +206,20 @@ case class EquipmentView(
     keys: List[KeyCountView]
 )
 
+/** One occupied slot the player could replace with the incoming item - see
+  * [[PendingEquipChoiceView]]. `slot` is what an [[EquipChoice]] targeting this option must send
+  * back.
+  */
+case class EquipChoiceOptionView(slot: EquipSlot, current: ItemView)
+
+/** A pickup offered to the player because every slot matching `newItem`'s kind was already
+  * occupied: weapon/armor degenerate to a single `options` entry, accessories/potions can offer
+  * up to 2-3. Durable, not transient like [[DialogueView]] or the other `Option`/`List` fields on
+  * [[StateUpdate]] below - it must still be present after a reconnect, or if the player sends an
+  * unrelated action before resolving it with an [[EquipChoice]].
+  */
+case class PendingEquipChoiceView(newItem: ItemView, options: List[EquipChoiceOptionView])
+
 /** Static description of one class's combat ability. Sent as a small catalog on every
   * [[StateUpdate]] (not just during combat) so the client never needs to hardcode ability names,
   * costs, or resource labels. See [[roguelite.engine.GameSession]].
@@ -236,6 +256,10 @@ case class StateUpdate(
       potionBelt = List.fill(Player.BasePotionBeltSlots)(None),
       keys = Nil
     ),
+    /** A pickup awaiting a keep/replace decision. Durable, not transient - see
+      * [[PendingEquipChoiceView]]. Resolved with an [[EquipChoice]] action.
+      */
+    pendingEquipChoice: Option[PendingEquipChoiceView] = None,
     abilities: List[AbilityView] = Nil,
     achievements: List[AchievementView] = Nil,
     /** Only meaningful when phase is GameOver: true if the dungeon's boss was defeated, false if
@@ -312,6 +336,30 @@ object MessageProtocol:
         .toRight(s"Unknown difficulty: $s")
   )
 
+  // EquipSlot: hand-written (not the toString.toUpperCase pattern above) since two cases carry
+  // an index - WEAPON / ARMOR / ACCESSORY_0 / ACCESSORY_1 / POTION_0 / POTION_1 / POTION_2.
+  given Encoder[EquipSlot] = Encoder[String].contramap {
+    case EquipSlot.WeaponSlot       => "WEAPON"
+    case EquipSlot.ArmorSlot        => "ARMOR"
+    case EquipSlot.AccessorySlot(i) => s"ACCESSORY_$i"
+    case EquipSlot.PotionSlot(i)    => s"POTION_$i"
+  }
+  given Decoder[EquipSlot] = Decoder[String].emap { s =>
+    s.toUpperCase match {
+      case "WEAPON" => Right(EquipSlot.WeaponSlot)
+      case "ARMOR"  => Right(EquipSlot.ArmorSlot)
+      case other if other.startsWith("ACCESSORY_") =>
+        other.stripPrefix("ACCESSORY_").toIntOption
+          .map(EquipSlot.AccessorySlot.apply)
+          .toRight(s"Unknown equip slot: $s")
+      case other if other.startsWith("POTION_") =>
+        other.stripPrefix("POTION_").toIntOption
+          .map(EquipSlot.PotionSlot.apply)
+          .toRight(s"Unknown equip slot: $s")
+      case _ => Left(s"Unknown equip slot: $s")
+    }
+  }
+
   // Actions (client → server)
   given Encoder[Move]         = deriveEncoder
   given Decoder[Move]         = deriveDecoder
@@ -321,6 +369,8 @@ object MessageProtocol:
   given Decoder[CombatAction] = deriveDecoder
   given Encoder[HubAction]    = deriveEncoder
   given Decoder[HubAction]    = deriveDecoder
+  given Encoder[EquipChoice]  = deriveEncoder
+  given Decoder[EquipChoice]  = deriveDecoder
 
   /** Decode a raw JSON string into a PlayerAction. The JSON must include a "type" discriminator
     * field: { "type": "MOVE", "direction": "UP" }
@@ -335,6 +385,7 @@ object MessageProtocol:
         case "INTERACT"      => cursor.as[Interact].left.map(_.message)
         case "COMBAT_ACTION" => cursor.as[CombatAction].left.map(_.message)
         case "HUB_ACTION"    => cursor.as[HubAction].left.map(_.message)
+        case "EQUIP_CHOICE"  => cursor.as[EquipChoice].left.map(_.message)
         case other           => Left(s"Unknown action type: $other")
       }
     yield action
@@ -350,6 +401,8 @@ object MessageProtocol:
   given Encoder[ItemView]     = deriveEncoder
   given Encoder[KeyCountView] = deriveEncoder
   given Encoder[EquipmentView] = deriveEncoder
+  given Encoder[EquipChoiceOptionView]   = deriveEncoder
+  given Encoder[PendingEquipChoiceView]  = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[DialogueView]    = deriveEncoder

@@ -124,7 +124,8 @@ export interface HubView {
   upgrades: UpgradeView[];
 }
 
-/** A single item in the player's inventory as seen by the client. */
+/** A single item as seen by the client, whether equipped, in the potion belt, or shown in a
+ * pickup choice. */
 export interface ItemView {
   id: string;
   typeId: string;
@@ -133,6 +134,29 @@ export interface ItemView {
   rarity: ItemRarity;
   /** One-line stat summary, e.g. "+3 ATK" or "Heal 30 HP". */
   statLine: string;
+  /** Atlas sprite key hint for the item's icon. Undefined until an icon pack is chosen and
+   * items.json gains real values - falls back to a plain color box client-side. */
+  iconId?: string;
+}
+
+/** One key kind the player is holding, with how many. Coarse: collapses Specific/Typed's target
+ * payload away since only Generic has real content today and the client only needs a count. */
+export interface KeyCountView {
+  keyKind: string;
+  count: number;
+}
+
+/** The player's full equipment loadout: weapon/armor/accessory slots (auto-equip on pickup, no
+ * generic bag) and the potion belt. Array elements use `| null`, not `?`, since a JSON array
+ * can't have a "missing" slot, only an empty one. */
+export interface EquipmentView {
+  weapon: ItemView | null;
+  armor: ItemView | null;
+  /** Always length 2. */
+  accessories: (ItemView | null)[];
+  /** Length 2, or 3 once the extra_slot hub upgrade is unlocked. */
+  potionBelt: (ItemView | null)[];
+  keys: KeyCountView[];
 }
 
 /** Static description of one class's combat ability, sent by the server so the client never
@@ -162,8 +186,8 @@ export interface StateUpdate {
   room?: RoomView;
   combat?: CombatView;
   hub?: HubView;
-  /** Current contents of the player's inventory (up to 6 items). */
-  inventory: ItemView[];
+  /** The player's current equipment loadout. */
+  equipment: EquipmentView;
   /** Per-class ability catalog, always present, independent of game phase. */
   abilities: AbilityView[];
   /** Full achievement catalog (locked and unlocked), always present, independent of phase. */

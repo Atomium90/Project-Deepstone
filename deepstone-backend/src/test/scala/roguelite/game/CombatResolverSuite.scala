@@ -73,10 +73,12 @@ class CombatResolverSuite extends FunSuite:
       enemyEntityId = enemy.entityId
     )
 
-  // --- Helper to unwrap Either safely in tests -----------------------------
+  // --- Equipment helpers -----------------------------------------------------
 
-  private def addItem(inv: Inventory, item: Item): Inventory =
-    inv.addItem(item).getOrElse(fail(s"Inventory full — could not add ${item.name}"))
+  private def equipWeapon(player: Player, weapon: Weapon): Player = player.copy(equippedWeapon = Some(weapon))
+  private def equipArmor(player: Player, armor: Armor): Player   = player.copy(equippedArmor = Some(armor))
+  private def equipPotion(player: Player, potion: Consumable, slot: Int = 0): Player =
+    player.copy(potionBelt = player.potionBelt.updated(slot, Some(potion)))
 
   // --- calcDamage ----------------------------------------------------------
 
@@ -205,9 +207,18 @@ class CombatResolverSuite extends FunSuite:
     assert(next.player.level > 1, s"expected a level up, player is still level ${next.player.level}")
     assert(events.contains(GameEvent.LeveledUp(next.player.level)), s"expected LeveledUp: $events")
 
-  test("a kill that fills the last inventory slot emits ItemPickedUp(inventoryFull = true)"):
-    val filler        = Weapon("filler", "sword", "Sword", Rarity.Common, 1)
-    val almostFullInv = Inventory(Vector.fill(Inventory.MaxSlots - 1)(Some(filler)) :+ None)
+  test("a kill that fills the last equipment slot emits ItemPickedUp(inventoryFull = true)"):
+    val weapon = Weapon("w0", "sword", "Sword", Rarity.Common, 1)
+    val armor  = Armor("a0", "leather", "Leather", Rarity.Common, 1)
+    val acc0   = Accessory("acc0", "ring", "Ring", Rarity.Common, 1)
+    val acc1   = Accessory("acc1", "ring2", "Ring 2", Rarity.Common, 1)
+    val ether  = Consumable("p0", "ether", "Ether", Rarity.Common, ConsumableEffect.RestoreResource(1))
+    val nearlyFull = fullHpPlayer().copy(
+      equippedWeapon = Some(weapon),
+      equippedArmor = Some(armor),
+      equippedAccessories = Vector(Some(acc0), Some(acc1)),
+      potionBelt = Vector(Some(ether), None)
+    )
     val itemDefs: Map[String, Item] = Map(
       "health_potion" -> Consumable("",
                                     "health_potion",
@@ -218,7 +229,7 @@ class CombatResolverSuite extends FunSuite:
     )
     val enemy =
       weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
-    val state = combatState(enemy, player = fullHpPlayer().copy(inventory = almostFullInv))
+    val state = combatState(enemy, player = nearlyFull)
     val (_, _, events) =
       CombatResolver(Random(0), itemDefs).resolve(state, CombatAction(CombatActionType.Attack))
     assert(events.contains(GameEvent.ItemPickedUp(inventoryFull = true)),
@@ -241,36 +252,33 @@ class CombatResolverSuite extends FunSuite:
     assert(next.isInstanceOf[CombatState])
     assert(log.exists(_.toLowerCase.contains("not found")))
 
-  test("Item with non-consumable returns 'cannot be used'"):
+  test("Item action with an equipped weapon's id (not in the potion belt) returns 'not found'"):
     val sword = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, 3)
-    val inv   = addItem(Inventory.empty, sword)
-    val state = combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(inventory = inv))
+    val state = combatState(weakEnemy(hp = 50), player = equipWeapon(fullHpPlayer(), sword))
     val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("w1")))
     assert(next.isInstanceOf[CombatState])
-    assert(log.exists(_.toLowerCase.contains("cannot be used")))
+    assert(log.exists(_.toLowerCase.contains("not found")))
 
-  test("HealFixed potion heals player and removes it from inventory"):
+  test("HealFixed potion heals player and removes it from the potion belt"):
     val potion = Consumable("p1",
                             "health_potion",
                             "Health Potion",
                             Rarity.Common,
                             ConsumableEffect.HealFixed(30)
     )
-    val inv = addItem(Inventory.empty, potion)
     val state =
-      combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(hp = 50, inventory = inv))
+      combatState(weakEnemy(hp = 50), player = equipPotion(fullHpPlayer().copy(hp = 50), potion))
     val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(next.player.hp > 50)
-    assertEquals(next.player.inventory.findById("p1"), None)
+    assertEquals(next.player.potionBelt.flatten.find(_.id == "p1"), None)
     assert(log.exists(_.contains("Health Potion")))
 
   test("HealFixed does not overheal past maxHp"):
     val potion = Consumable("p1", "hp", "HP", Rarity.Common, ConsumableEffect.HealFixed(9999))
-    val inv    = addItem(Inventory.empty, potion)
     val state =
-      combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(hp = 10, inventory = inv))
+      combatState(weakEnemy(hp = 50), player = equipPotion(fullHpPlayer().copy(hp = 10), potion))
     val (next, _, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(next.player.hp <= next.player.maxHp)
@@ -278,8 +286,7 @@ class CombatResolverSuite extends FunSuite:
   test("HealPercent heals a fraction of maxHp"):
     val potion =
       Consumable("p1", "pct", "Pct Potion", Rarity.Common, ConsumableEffect.HealPercent(50))
-    val inv    = addItem(Inventory.empty, potion)
-    val player = fullHpPlayer().copy(hp = 10, inventory = inv) // maxHp = 120, heal = 60
+    val player = equipPotion(fullHpPlayer().copy(hp = 10), potion) // maxHp = 120, heal = 60
     val (next, _, _) = resolver().resolve(combatState(weakEnemy(hp = 50), player),
                                        CombatAction(CombatActionType.Item, itemId = Some("p1"))
     )
@@ -288,9 +295,8 @@ class CombatResolverSuite extends FunSuite:
   test("RestoreResource ether increases resourceCurrent"):
     val ether =
       Consumable("e1", "ether", "Ether", Rarity.Uncommon, ConsumableEffect.RestoreResource(20))
-    val inv = addItem(Inventory.empty, ether)
     val state = combatState(weakEnemy(hp = 50),
-                            player = fullHpPlayer().copy(resourceCurrent = 0, inventory = inv)
+                            player = equipPotion(fullHpPlayer().copy(resourceCurrent = 0), ether)
     )
     val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("e1")))
@@ -299,8 +305,7 @@ class CombatResolverSuite extends FunSuite:
 
   test("using an item triggers enemy counter-turn"):
     val potion = Consumable("p1", "hp", "HP Potion", Rarity.Common, ConsumableEffect.HealFixed(5))
-    val inv    = addItem(Inventory.empty, potion)
-    val state  = combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(inventory = inv))
+    val state  = combatState(weakEnemy(hp = 50), player = equipPotion(fullHpPlayer(), potion))
     val (_, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(log.size >= 2, s"Expected item use + enemy action in log: $log")
@@ -309,10 +314,9 @@ class CombatResolverSuite extends FunSuite:
 
   test("weapon bonus increases damage dealt to enemy"):
     val sword = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, 3)
-    val inv   = addItem(Inventory.empty, sword)
     val heavy = weakEnemy(hp = 999)
     val (withSword, _, _) =
-      CombatResolver(Random(0)).resolve(combatState(heavy, fullHpPlayer().copy(inventory = inv)),
+      CombatResolver(Random(0)).resolve(combatState(heavy, equipWeapon(fullHpPlayer(), sword)),
                                         CombatAction(CombatActionType.Attack)
       )
     val (noSword, _, _) =
@@ -323,9 +327,8 @@ class CombatResolverSuite extends FunSuite:
 
   test("armor bonus reduces damage taken from enemy"):
     val armorItem = Armor("a1", "chain_mail", "Chain Mail", Rarity.Uncommon, defenseBonus = 5)
-    val inv       = addItem(Inventory.empty, armorItem)
     val (withArmor, _, _) = CombatResolver(Random(0)).resolve(
-      combatState(weakEnemy(hp = 50), fullHpPlayer().copy(inventory = inv)),
+      combatState(weakEnemy(hp = 50), equipArmor(fullHpPlayer(), armorItem)),
       CombatAction(CombatActionType.Defend)
     )
     val (noArmor, _, _) = CombatResolver(Random(0)).resolve(combatState(weakEnemy(hp = 50)),
@@ -337,7 +340,7 @@ class CombatResolverSuite extends FunSuite:
 
   // --- Loot drop on victory ------------------------------------------------
 
-  test("enemy with 100% drop adds item to inventory on defeat"):
+  test("enemy with 100% drop adds item to the potion belt on defeat"):
     val itemDefs: Map[String, Item] = Map(
       "health_potion" -> Consumable("",
                                     "health_potion",
@@ -351,10 +354,10 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) = CombatResolver(Random(0), itemDefs)
       .resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState])
-    assertEquals(next.player.inventory.size, 1)
+    assertEquals(next.player.potionBelt.flatten.toList.map(_.typeId), List("health_potion"))
     assert(log.exists(_.contains("dropped")))
 
-  test("enemy with 0% drop leaves inventory empty on defeat"):
+  test("enemy with 0% drop leaves the potion belt empty on defeat"):
     val itemDefs: Map[String, Item] = Map(
       "health_potion" -> Consumable("",
                                     "health_potion",
@@ -365,7 +368,7 @@ class CombatResolverSuite extends FunSuite:
     )
     val (next, _, _) = CombatResolver(Random(0), itemDefs)
       .resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
-    assertEquals(next.player.inventory.size, 0)
+    assertEquals(next.player.potionBelt.flatten.toList, Nil)
 
   // --- Damage/heal event emission ------------------------------------------
 
@@ -425,16 +428,14 @@ class CombatResolverSuite extends FunSuite:
                             Rarity.Common,
                             ConsumableEffect.HealFixed(30)
     )
-    val inv   = addItem(Inventory.empty, potion)
-    val state = combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(hp = 50, inventory = inv))
+    val state = combatState(weakEnemy(hp = 50), player = equipPotion(fullHpPlayer().copy(hp = 50), potion))
     val (_, _, events) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(events.contains(GameEvent.Healed(30)), s"expected Healed(30): $events")
 
   test("a potion that can't heal past maxHp doesn't emit Healed(0)"):
     val potion = Consumable("p1", "hp", "HP", Rarity.Common, ConsumableEffect.HealFixed(30))
-    val inv    = addItem(Inventory.empty, potion)
-    val state  = combatState(weakEnemy(hp = 50), player = fullHpPlayer().copy(inventory = inv)) // already full HP
+    val state  = combatState(weakEnemy(hp = 50), player = equipPotion(fullHpPlayer(), potion)) // already full HP
     val (_, _, events) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(!events.exists(_.isInstanceOf[GameEvent.Healed]), s"unexpected Healed event: $events")
@@ -442,9 +443,8 @@ class CombatResolverSuite extends FunSuite:
   test("RestoreResource does not emit a Healed or DamageDealt event"):
     val ether =
       Consumable("e1", "ether", "Ether", Rarity.Uncommon, ConsumableEffect.RestoreResource(20))
-    val inv = addItem(Inventory.empty, ether)
     val state = combatState(weakEnemy(hp = 50),
-                            player = fullHpPlayer().copy(resourceCurrent = 0, inventory = inv)
+                            player = equipPotion(fullHpPlayer().copy(resourceCurrent = 0), ether)
     )
     val (_, _, events) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("e1")))

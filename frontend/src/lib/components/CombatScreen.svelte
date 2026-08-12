@@ -91,7 +91,7 @@
         ? `player_${player.classId}_${player.hp <= 0 ? "ko" : (playerCombatAnim ?? "idle_right")}`
         : null;
     $: combat         = $gameState?.combat;
-    $: inventory      = $gameState?.inventory ?? [];
+    $: equipment      = $gameState?.equipment;
     $: abilities      = $gameState?.abilities ?? [];
 
     $: abilityInfo     = player ? abilities.find((a) => a.classId === player.classId) ?? null : null;
@@ -101,8 +101,8 @@
 
     $: abilityDisabled = !isPlayerTurn || !player || player.resourceCurrent < (abilityInfo?.cost ?? Infinity);
 
-    /** Only consumables can be used in combat. */
-    $: consumables = inventory.filter((i): i is ItemView => i.kind === "consumable");
+    /** Only the potion belt can be used in combat. */
+    $: consumables = (equipment?.potionBelt ?? []).filter((i): i is ItemView => i !== null);
     $: hasConsumables = consumables.length > 0;
 
     /** Whether the item picker panel is open. */

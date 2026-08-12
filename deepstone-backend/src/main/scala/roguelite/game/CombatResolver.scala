@@ -116,20 +116,19 @@ class CombatResolver(rng: Random = Random(),
       case None =>
         (state, List("No item selected."), Nil)
       case Some(id) =>
-        state.player.inventory.findById(id) match {
+        state.player.potionBelt.zipWithIndex.collectFirst {
+          case (Some(c), idx) if c.id == id => (idx, c)
+        } match {
           case None =>
             (state, List("Item not found in inventory."), Nil)
-          case Some((idx, consumable: Consumable)) =>
-            val (_, newInventory) = state.player.inventory.removeAt(idx)
-            val playerWithoutItem = state.player.copy(inventory = newInventory)
+          case Some((idx, consumable)) =>
+            val playerWithoutItem = state.player.copy(potionBelt = state.player.potionBelt.updated(idx, None))
             val (updatedPlayer, effectLog, healEvents) =
               applyConsumableEffect(playerWithoutItem, consumable)
             val updatedCombat = state.combat.copy(playerIsDefending = false)
             val (finalState, finalLog, downstreamEvents) =
               enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), effectLog)
             (finalState, finalLog, healEvents ++ downstreamEvents)
-          case Some((_, item)) =>
-            (state, List(s"${item.name} cannot be used in combat."), Nil)
         }
     }
 
@@ -360,15 +359,20 @@ class CombatResolver(rng: Random = Random(),
       LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty) match {
         case None => (playerWithXp, Nil, Nil)
         case Some(item) =>
-          playerWithXp.withItemPickup(item) match {
-            case Right(p) =>
+          EquipmentResolver.resolvePickup(playerWithXp, item) match {
+            case PickupOutcome.Equipped(p) =>
               (p,
                List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
-               List(GameEvent.ItemPickedUp(inventoryFull = p.inventory.isFull))
+               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
               )
-            case Left(_) =>
+            case PickupOutcome.KeyCollected(p) =>
+              (p,
+               List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
+               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
+              )
+            case PickupOutcome.Discarded =>
               (playerWithXp,
-               List(s"${deadEnemy.label} dropped ${item.name}, but your inventory is full!"),
+               List(s"${deadEnemy.label} dropped ${item.name}, but you have nowhere to put it!"),
                Nil
               )
           }
@@ -425,34 +429,32 @@ class CombatResolver(rng: Random = Random(),
     (attack - defense + jitter).max(1)
 
   // ---------------------------------------------
-  // Player stat accessors (include inventory bonuses)
+  // Player stat accessors (include equipped-item bonuses)
   // ---------------------------------------------
 
   /** Will be tuned later. */
   extension (player: Player)
     /** Effective attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon
-      * sum.
+      * bonus.
       *
-      * Weapons whose typeTag is in the player's affinityTags contribute double their attackBonus.
+      * The equipped weapon's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Hunter's Bow (+5 ATK, "ranged") held by an Archer (affinity: "ranged") → +10 ATK.
       */
     private def attack: Int =
-      val weaponBonus = player.inventory.slots.collect {
-        case Some(w: Weapon) =>
-          val multiplier = if w.typeTag.exists(player.affinityTags.contains) then 2 else 1
-          w.attackBonus * multiplier
-      }.sum
+      val weaponBonus = player.equippedWeapon match {
+        case Some(w) => w.attackBonus * (if w.typeTag.exists(player.affinityTags.contains) then 2 else 1)
+        case None    => 0
+      }
       player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus
 
-    /** Effective defense: level scaling + permanent bonus + affinity-aware armor sum.
+    /** Effective defense: level scaling + permanent bonus + affinity-aware armor bonus.
       *
-      * Armors whose typeTag is in the player's affinityTags contribute double their defenseBonus.
+      * The equipped armor's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Chain Mail (+6 DEF, "heavy") held by a Warrior (affinity: "heavy") → +12 DEF.
       */
     private def defense: Int =
-      val armorBonus = player.inventory.slots.collect {
-        case Some(a: Armor) =>
-          val multiplier = if a.typeTag.exists(player.affinityTags.contains) then 2 else 1
-          a.defenseBonus * multiplier
-      }.sum
+      val armorBonus = player.equippedArmor match {
+        case Some(a) => a.defenseBonus * (if a.typeTag.exists(player.affinityTags.contains) then 2 else 1)
+        case None    => 0
+      }
       player.level * 2 + player.bonusDefense + armorBonus

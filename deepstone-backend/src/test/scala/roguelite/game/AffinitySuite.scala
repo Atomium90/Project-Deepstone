@@ -40,17 +40,13 @@ class AffinitySuite extends FunSuite:
       affinityTags = affinityTags
     )
 
-  /** Add a single weapon to an otherwise empty inventory. */
+  /** Equip a weapon on an otherwise unequipped player. */
   private def withWeapon(player: Player, weapon: Weapon): Player =
-    player.withItemPickup(weapon.copy(id = Item.newId())) match
-      case Right(p) => p
-      case Left(e)  => fail(s"could not add weapon to inventory: $e")
+    player.copy(equippedWeapon = Some(weapon.copy(id = Item.newId())))
 
-  /** Add a single armor to an otherwise empty inventory. */
+  /** Equip an armor on an otherwise unequipped player. */
   private def withArmor(player: Player, armor: Armor): Player =
-    player.withItemPickup(armor.copy(id = Item.newId())) match
-      case Right(p) => p
-      case Left(e)  => fail(s"could not add armor to inventory: $e")
+    player.copy(equippedArmor = Some(armor.copy(id = Item.newId())))
 
   // Prototype items (id = "" is fine; withWeapon/withArmor copy a new id)
   private val heavySword = Weapon(id = "",

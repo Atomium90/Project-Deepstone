@@ -168,7 +168,36 @@ case class ItemView(
     name: String,
     kind: String,    // "weapon" | "armor" | "accessory" | "consumable"
     rarity: String,  // "common" | "uncommon"
-    statLine: String // e.g. "+3 ATK", "Heal 30 HP"
+    statLine: String, // e.g. "+3 ATK", "Heal 30 HP"
+    /** Atlas sprite key hint for the item's icon. `None` until an icon pack is chosen and
+      * items.json gains real values - the client falls back to a plain colored box, same
+      * "missing asset renders as a graceful no-op" convention used elsewhere (see
+      * [[roguelite.game.AudioManager]]-equivalent client-side handling for sound/music).
+      */
+    iconId: Option[String] = None
+)
+
+/** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses
+  * [[roguelite.game.KeyKind.Specific]]/[[roguelite.game.KeyKind.Typed]]'s payload away (e.g.
+  * `"specific"`, not the door id it targets) since only [[roguelite.game.KeyKind.Generic]] has
+  * real content today and the client only ever needs a coarse count badge.
+  */
+case class KeyCountView(keyKind: String, count: Int)
+
+/** The player's full equipment loadout: weapon/armor/accessory slots (auto-equip on pickup, no
+  * generic bag - see [[roguelite.game.EquipmentResolver]]), the potion belt, and key counts.
+  * Replaces the old flat `inventory: List[ItemView]` field.
+  *
+  * @param accessories always length [[roguelite.engine.Player.AccessorySlotCount]] (2).
+  * @param potionBelt  length [[roguelite.engine.Player.BasePotionBeltSlots]] (2), or 3 once the
+  *                    `extra_slot` hub upgrade is unlocked.
+  */
+case class EquipmentView(
+    weapon: Option[ItemView],
+    armor: Option[ItemView],
+    accessories: List[Option[ItemView]],
+    potionBelt: List[Option[ItemView]],
+    keys: List[KeyCountView]
 )
 
 /** Static description of one class's combat ability. Sent as a small catalog on every
@@ -196,7 +225,17 @@ case class StateUpdate(
     room: Option[RoomView] = None,
     combat: Option[CombatView] = None,
     hub: Option[HubView] = None,
-    inventory: List[ItemView] = Nil,
+    /** Defaults to fully empty so tests/fixtures that don't care about equipment can keep using
+      * the shorter constructor, same convention as [[roguelite.game.EnemyStats]]-carrying fields
+      * elsewhere in this codebase.
+      */
+    equipment: EquipmentView = EquipmentView(
+      weapon = None,
+      armor = None,
+      accessories = List.fill(Player.AccessorySlotCount)(None),
+      potionBelt = List.fill(Player.BasePotionBeltSlots)(None),
+      keys = Nil
+    ),
     abilities: List[AbilityView] = Nil,
     achievements: List[AchievementView] = Nil,
     /** Only meaningful when phase is GameOver: true if the dungeon's boss was defeated, false if
@@ -309,6 +348,8 @@ object MessageProtocol:
   given Encoder[UpgradeView]  = deriveEncoder
   given Encoder[HubView]      = deriveEncoder
   given Encoder[ItemView]     = deriveEncoder
+  given Encoder[KeyCountView] = deriveEncoder
+  given Encoder[EquipmentView] = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[DialogueView]    = deriveEncoder

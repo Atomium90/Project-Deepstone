@@ -47,11 +47,11 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
         defs => assertEquals(defs("potion_start").effect, UpgradeEffect.StartingItem("health_potion"))
   }
 
-  test("extra_slot decodes to ExtraInventorySlot") {
+  test("extra_slot decodes to ExtraPotionSlot") {
     UpgradeLoader
       .loadAll()
       .map:
-        defs => assertEquals(defs("extra_slot").effect, UpgradeEffect.ExtraInventorySlot)
+        defs => assertEquals(defs("extra_slot").effect, UpgradeEffect.ExtraPotionSlot)
   }
 
   test("archer_unlock and mage_unlock decode to UnlockClass") {

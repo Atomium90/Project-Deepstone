@@ -67,12 +67,8 @@ class InteractionResolverSuite extends FunSuite:
                      y
     )
 
-  def testKey(id: String = "k1", keyKind: KeyKind = KeyKind.Generic): Key =
-    Key(id = id, typeId = "rusty_key", name = "Rusty Key", rarity = Rarity.Common, keyKind = keyKind)
-
-  def playerWithItems(items: List[Item]): Player =
-    val inv = items.foldLeft(Inventory.empty)((acc, item) => acc.addItem(item).getOrElse(fail("expected Right")))
-    PlayerFixtures.startingPlayer(ClassId.Warrior).copy(inventory = inv)
+  def playerWithKey(keyKind: KeyKind = KeyKind.Generic, count: Int = 1): Player =
+    PlayerFixtures.startingPlayer(ClassId.Warrior).copy(keyCounts = Map(keyKind -> count))
 
   // --- Door ------------------------------------------------------------------
 
@@ -146,7 +142,7 @@ class InteractionResolverSuite extends FunSuite:
     val spawned = nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
     assert(spawned.nonEmpty, "expected at least one enemy to spawn from the trap")
     assert(spawned.forall(_.typeId == "goblin"), s"expected only goblin typeIds: $spawned")
-    assertEquals(nextExp.player.inventory.items, Nil)
+    assertEquals(nextExp.player, state.player)
     assert(log.exists(_.toLowerCase.contains("trap")), s"expected trap message in log: $log")
 
   test("Trapped chest enemies spawn on free tiles, not on the player"):
@@ -202,18 +198,17 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(next, log, _, _)  = resolver().interact(state, "ld1")
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r1")
-    assertEquals(nextExp.player.inventory.items, Nil)
+    assertEquals(nextExp.player.keyCounts, Map.empty)
     assert(log.exists(_.toLowerCase.contains("locked")), s"expected locked message: $log")
 
   test("Interact with LockedDoor with a matching key unlocks it, consumes the key, and navigates"):
     val lockedDoor      = LockedDoor("ld1", x = 3, y = 3, direction = Direction.Down, targetRoomId = "r2")
-    val key             = testKey()
-    val player          = playerWithItems(List(key))
+    val player          = playerWithKey()
     val state           = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
     val TransitionResult(next, log, _, _)  = resolver().interact(state, "ld1")
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r2")
-    assertEquals(nextExp.player.inventory.items, Nil)
+    assertEquals(nextExp.player.keyCounts.getOrElse(KeyKind.Generic, 0), 0)
     assert(log.exists(_.toLowerCase.contains("unlock")), s"expected unlock message: $log")
     val persistedDoor =
       nextExp.dungeon.rooms("r1").entityById("ld1").collect { case d: LockedDoor => d }
@@ -221,30 +216,27 @@ class InteractionResolverSuite extends FunSuite:
 
   test("A key that can't unlock a Specific-tagged door is not consumed"):
     val lockedDoor      = LockedDoor("ld1", x = 3, y = 3, direction = Direction.Down, targetRoomId = "r2")
-    val key             = testKey(keyKind = KeyKind.Specific("other_door"))
-    val player          = playerWithItems(List(key))
+    val player          = playerWithKey(KeyKind.Specific("other_door"))
     val state           = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
     val TransitionResult(next, log, _, _)  = resolver().interact(state, "ld1")
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r1")
-    assertEquals(nextExp.player.inventory.items, List(key))
+    assertEquals(nextExp.player.keyCounts.getOrElse(KeyKind.Specific("other_door"), 0), 1)
     assert(log.exists(_.toLowerCase.contains("locked")), s"expected locked message: $log")
 
   test("Interact with an already-unlocked LockedDoor navigates without touching the inventory"):
     val lockedDoor =
       LockedDoor("ld1", x = 3, y = 3, direction = Direction.Down, targetRoomId = "r2", unlocked = true)
-    val key           = testKey()
-    val player        = playerWithItems(List(key))
+    val player        = playerWithKey()
     val state         = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
     val TransitionResult(next, _, _, _)  = resolver().interact(state, "ld1")
     val nextExp       = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r2")
-    assertEquals(nextExp.player.inventory.items, List(key))
+    assertEquals(nextExp.player.keyCounts.getOrElse(KeyKind.Generic, 0), 1)
 
   test("Unlocking a LockedDoor with a matching key emits DoorUnlockedWithKey"):
     val lockedDoor = LockedDoor("ld1", x = 3, y = 3, direction = Direction.Down, targetRoomId = "r2")
-    val key        = testKey()
-    val player     = playerWithItems(List(key))
+    val player     = playerWithKey()
     val state      = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
     val TransitionResult(_, _, _, events) = resolver().interact(state, "ld1")
     assertEquals(events, List(GameEvent.DoorUnlockedWithKey))
@@ -258,8 +250,7 @@ class InteractionResolverSuite extends FunSuite:
   test("An already-unlocked LockedDoor emits DoorOpened"):
     val lockedDoor =
       LockedDoor("ld1", x = 3, y = 3, direction = Direction.Down, targetRoomId = "r2", unlocked = true)
-    val key    = testKey()
-    val player = playerWithItems(List(key))
+    val player = playerWithKey()
     val state  = ExplorationState(player, dungeonWith(entities = List(lockedDoor)), 3, 3)
     val TransitionResult(_, _, _, events) = resolver().interact(state, "ld1")
     assertEquals(events, List(GameEvent.DoorOpened))

@@ -46,11 +46,11 @@
   },
   {
     "id": "extra_slot",
-    "label": "Packrat",
-    "description": "Expand your inventory to 7 item slots",
+    "label": "Alchemist's Pouch",
+    "description": "Expand your potion belt to 3 slots",
     "cost": 60,
     "displayOrder": 5,
-    "icon": "🎒",
-    "effect": { "type": "ExtraInventorySlot" }
+    "icon": "⚗",
+    "effect": { "type": "ExtraPotionSlot" }
   }
 ]

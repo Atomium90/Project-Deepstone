@@ -92,12 +92,12 @@ class GameSessionSuite extends CatsEffectSuite:
                                 effect = UpgradeEffect.UnlockClass(ClassId.Mage)
     ),
     "extra_slot" -> UpgradeDef("extra_slot",
-                               "Packrat",
-                               "Expand your inventory to 7 item slots",
+                               "Alchemist's Pouch",
+                               "Expand your potion belt to 3 slots",
                                cost = 60,
                                displayOrder = 5,
-                               icon = "🎒",
-                               effect = UpgradeEffect.ExtraInventorySlot
+                               icon = "⚗",
+                               effect = UpgradeEffect.ExtraPotionSlot
     )
   )
 
@@ -233,12 +233,16 @@ class GameSessionSuite extends CatsEffectSuite:
         assert(update.log.nonEmpty)
   }
 
-  db.test("StateUpdate always contains inventory list") {
+  db.test("StateUpdate equipment is empty for a starting kit-less run") {
     database =>
       for
         session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
-      yield assertEquals(update.inventory, Nil)
+      yield
+        assertEquals(update.equipment.weapon, None)
+        assertEquals(update.equipment.armor, None)
+        assert(update.equipment.accessories.forall(_.isEmpty))
+        assert(update.equipment.potionBelt.forall(_.isEmpty))
   }
 
   db.test("handle is concurrency-safe") {

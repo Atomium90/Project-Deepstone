@@ -102,12 +102,11 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     if door.unlocked then
       navigateThroughDoor(exp, door.targetRoomId, door.direction)
     else
-      exp.player.inventory.keys.find { case (_, key) => KeyKind.canUnlock(key.keyKind, door) } match {
+      exp.player.keyCounts.find { case (kind, count) => count > 0 && KeyKind.canUnlock(kind, door) } match {
         case None =>
           (exp, List("This door is locked. You need a key."), Nil)
-        case Some((idx, key)) =>
-          val (_, invAfterRemoval) = exp.player.inventory.removeAt(idx)
-          val updatedPlayer        = exp.player.copy(inventory = invAfterRemoval)
+        case Some((kind, count)) =>
+          val updatedPlayer = exp.player.copy(keyCounts = exp.player.keyCounts.updated(kind, count - 1))
           val unlockedRoom = exp.dungeon.currentRoom.updateEntity(door.id):
             case d: LockedDoor => d.copy(unlocked = true)
             case o             => o
@@ -118,7 +117,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
             door.targetRoomId,
             door.direction
           )
-          (state, s"You use ${key.name} to unlock the door." :: navLog, List(GameEvent.DoorUnlockedWithKey))
+          (state, "You use a key to unlock the door." :: navLog, List(GameEvent.DoorUnlockedWithKey))
       }
 
   private def handleEnemy(exp: ExplorationState, enemy: Enemy): (GameState, List[String]) =
@@ -160,17 +159,23 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         case None =>
           (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."), Nil)
         case Some(item) =>
-          exp.player.withItemPickup(item) match {
-            case Left(_) =>
-              (exp.copy(dungeon = updatedDungeon),
-               List(s"You open the chest but your inventory is full — ${item.name} is lost!"),
-               Nil
+          EquipmentResolver.resolvePickup(exp.player, item) match {
+            case PickupOutcome.Equipped(p) =>
+              (exp.copy(dungeon = updatedDungeon, player = p),
+               List(s"You open the chest and find ${item.name}! (${item.statLine})"),
+               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
               )
 
-            case Right(updatedPlayer) =>
-              (exp.copy(dungeon = updatedDungeon, player = updatedPlayer),
+            case PickupOutcome.KeyCollected(p) =>
+              (exp.copy(dungeon = updatedDungeon, player = p),
                List(s"You open the chest and find ${item.name}! (${item.statLine})"),
-               List(GameEvent.ItemPickedUp(inventoryFull = updatedPlayer.inventory.isFull))
+               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
+              )
+
+            case PickupOutcome.Discarded =>
+              (exp.copy(dungeon = updatedDungeon),
+               List(s"You open the chest but you have nowhere to put ${item.name} — it's lost!"),
+               Nil
               )
           }
       }

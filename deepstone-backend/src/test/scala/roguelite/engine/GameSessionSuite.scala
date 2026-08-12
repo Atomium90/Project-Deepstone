@@ -233,12 +233,16 @@ class GameSessionSuite extends CatsEffectSuite:
         assert(update.log.nonEmpty)
   }
 
-  db.test("StateUpdate always contains inventory list") {
+  db.test("StateUpdate equipment is empty for a starting kit-less run") {
     database =>
       for
         session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
-      yield assertEquals(update.inventory, Nil)
+      yield
+        assertEquals(update.equipment.weapon, None)
+        assertEquals(update.equipment.armor, None)
+        assert(update.equipment.accessories.forall(_.isEmpty))
+        assert(update.equipment.potionBelt.forall(_.isEmpty))
   }
 
   db.test("handle is concurrency-safe") {

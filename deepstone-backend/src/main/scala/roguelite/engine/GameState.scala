@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.{ Combat, Dungeon, EnemyStats, Item, MetaProgression, UpgradeDef }
+import roguelite.game.{ Combat, Dungeon, EnemyStats, Item, KeyKind, MetaProgression, UpgradeDef }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -15,14 +15,26 @@ private def itemToView(item: Item): ItemView =
     statLine = item.statLine
   )
 
-/** Temporary: flattens the typed equipment fields back into the pre-existing flat-list wire shape
-  * (no slot distinction, keys omitted since they are no longer Items). Keeps this commit scoped to
-  * the domain model - a real EquipmentView replaces this in the very next commit, at which point
-  * this function goes away entirely.
+/** Coarse display label for a key kind - collapses `Specific`/`Typed`'s payload away, see
+  * [[KeyCountView]].
   */
-private def equipmentToFlatViews(player: Player): List[ItemView] =
-  (player.equippedWeapon.toList ++ player.equippedArmor.toList ++
-    player.equippedAccessories.flatten ++ player.potionBelt.flatten).map(itemToView)
+private def keyKindLabel(kind: KeyKind): String = kind match
+  case KeyKind.Generic     => "generic"
+  case KeyKind.Specific(_) => "specific"
+  case KeyKind.Typed(_)    => "typed"
+  case KeyKind.Universal   => "universal"
+
+/** Project a player's equipment into the client-facing [[EquipmentView]]. */
+private def equipmentToView(player: Player): EquipmentView =
+  EquipmentView(
+    weapon = player.equippedWeapon.map(itemToView),
+    armor = player.equippedArmor.map(itemToView),
+    accessories = player.equippedAccessories.map(_.map(itemToView)).toList,
+    potionBelt = player.potionBelt.map(_.map(itemToView)).toList,
+    keys = player.keyCounts.collect {
+      case (kind, count) if count > 0 => KeyCountView(keyKindLabel(kind), count)
+    }.toList
+  )
 
 // ---------------------------------------------
 // Game states (one per game phase)
@@ -62,7 +74,7 @@ case class HubState(player: Player,
             unlocked = meta.isUnlocked(u.id)
           )
       })),
-      inventory = equipmentToFlatViews(player),
+      equipment = equipmentToView(player),
       log = log
     )
 
@@ -83,7 +95,7 @@ case class ExplorationState(player: Player,
       phase = GamePhase.Exploration,
       player = player.toView,
       room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
-      inventory = equipmentToFlatViews(player),
+      equipment = equipmentToView(player),
       log = log,
       dialogue = dialogue
     )
@@ -121,7 +133,7 @@ case class CombatState(player: Player,
                    isBoss = dungeon.isAtBoss
         )
       ),
-      inventory = equipmentToFlatViews(player),
+      equipment = equipmentToView(player),
       log = log
     )
 
@@ -132,7 +144,7 @@ case class GameOverState(player: Player, victory: Boolean = false) extends GameS
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(phase = GamePhase.GameOver,
                 player = player.toView,
-                inventory = equipmentToFlatViews(player),
+                equipment = equipmentToView(player),
                 victory = victory,
                 log = log
     )

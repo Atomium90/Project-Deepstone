@@ -277,14 +277,19 @@ class StateMachineSuite extends FunSuite:
   test("GameOverState.toStateUpdate reflects victory = true"):
     assertEquals(GameOverState(hubPlayer, victory = true).toStateUpdate().victory, true)
 
-  test("StateUpdate always contains inventory list (empty at run start with empty startingKit)"):
+  test("StateUpdate equipment is empty at run start with an empty startingKit"):
     val TransitionResult(next, _, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))
       )
-    assertEquals(next.toStateUpdate().inventory, Nil)
+    val equipment = next.toStateUpdate().equipment
+    assertEquals(equipment.weapon, None)
+    assertEquals(equipment.armor, None)
+    assert(equipment.accessories.forall(_.isEmpty))
+    assert(equipment.potionBelt.forall(_.isEmpty))
+    assertEquals(equipment.keys, Nil)
 
-  test("StateUpdate inventory reflects items in player inventory"):
+  test("StateUpdate equipment reflects items equipped on the player"):
     val potion = Consumable("p1",
                             "health_potion",
                             "Health Potion",
@@ -293,5 +298,5 @@ class StateMachineSuite extends FunSuite:
     )
     val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(potionBelt = Vector(Some(potion), None))
     val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
-    assertEquals(update.inventory.length, 1)
-    assertEquals(update.inventory.head.typeId, "health_potion")
+    assertEquals(update.equipment.potionBelt.flatten.length, 1)
+    assertEquals(update.equipment.potionBelt.flatten.head.typeId, "health_potion")

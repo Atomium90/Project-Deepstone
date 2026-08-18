@@ -167,6 +167,18 @@ export const ITEM_RARITY_COLORS = {
   uncommon: "#8e44ad",
 } as const;
 
+/** Display name for each equipment set, mirrored from sets.csv's setName column. Not sent by the
+ * server - set 2pc/4pc bonuses aren't computed yet, this is purely tooltip flavor text
+ * ("Part of: X Set"). Update this if sets.csv ever changes until a real backend catalog exists. */
+export const SET_NAMES: Record<string, string> = {
+  light_soldier: "Light Soldier",
+  enraged_berserker: "Enraged Berserker",
+  silent_archer: "Silent Archer",
+  iron_bolter: "Iron Bolter",
+  pyromancer: "Fire Mage",
+  necromancer: "Necromancer",
+};
+
 // ---------------------------------------------
 // Interact prompt ("[E]" keycap badge)
 // ---------------------------------------------

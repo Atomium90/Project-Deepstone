@@ -10,6 +10,27 @@
     export let size = 48;
 
     let hovered = false;
+    let tooltipTop = 0;
+    let tooltipLeft = 0;
+
+    /** Approximate tooltip width used only to keep it from going off the left edge of the
+     * viewport - matches ItemTooltip's CSS min-width. The real rendered width can grow up to
+     * max-width depending on content, but this is enough slack for the common case. */
+    const TOOLTIP_MIN_WIDTH = 170;
+
+    /** Slot's own bounding rect determines where the (portaled) tooltip renders: right edge of
+     * the tooltip aligned to the right edge of the slot, bottom edge just above the slot's top.
+     * Computed on hover/focus rather than continuously, since the slot doesn't move while open. */
+    function showTooltip(e: MouseEvent | FocusEvent): void {
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        tooltipTop = rect.top - 6;
+        tooltipLeft = Math.max(rect.right, TOOLTIP_MIN_WIDTH);
+        hovered = true;
+    }
+
+    function hideTooltip(): void {
+        hovered = false;
+    }
 
     /** First letter of each word, max 2 chars - shown over the flat-color fallback box when the
      * item has no iconId (or the atlas hasn't resolved it yet), same convention the old flat
@@ -22,16 +43,26 @@
             .slice(0, 2)
             .toUpperCase();
     }
+
+    /** Moves the tooltip node to <body> so its position:fixed coordinates aren't clipped by an
+     * ancestor's overflow:auto/hidden - ExplorationHUD's sidebar scrolls, which otherwise clips
+     * any popup positioned relative to a slot inside it, in every direction, not just the one
+     * that happens to overflow. Svelte 4 has no first-class portal primitive, this is the
+     * standard action-based workaround. */
+    function portal(node: HTMLElement): { destroy(): void } {
+        document.body.appendChild(node);
+        return { destroy: () => node.remove() };
+    }
 </script>
 
 {#if item}
     <div
         class="equip-slot occupied"
         style="width:{size}px; height:{size}px; border-color:{ITEM_RARITY_COLORS[item.rarity]}"
-        on:mouseenter={() => (hovered = true)}
-        on:mouseleave={() => (hovered = false)}
-        on:focus={() => (hovered = true)}
-        on:blur={() => (hovered = false)}
+        on:mouseenter={showTooltip}
+        on:mouseleave={hideTooltip}
+        on:focus={showTooltip}
+        on:blur={hideTooltip}
         tabindex="0"
         role="button"
         aria-label={item.name}
@@ -39,13 +70,13 @@
         <Sprite spriteId={item.iconId ?? item.typeId} fallbackColor={ITEM_KIND_COLORS[item.kind]} size={size - 8}>
             <span slot="fallback" class="abbrev">{abbrev(item.name)}</span>
         </Sprite>
-
-        {#if hovered}
-            <div class="tooltip-anchor">
-                <ItemTooltip {item} />
-            </div>
-        {/if}
     </div>
+
+    {#if hovered}
+        <div class="tooltip-portal" use:portal style="top:{tooltipTop}px; left:{tooltipLeft}px;">
+            <ItemTooltip {item} />
+        </div>
+    {/if}
 {:else}
     <div class="equip-slot" style="width:{size}px; height:{size}px;"></div>
 {/if}
@@ -76,12 +107,13 @@
         letter-spacing: 0.02em;
     }
 
-    .tooltip-anchor {
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        margin-bottom: 6px;
-        z-index: 20;
+    /* position:fixed + a portal to <body> (see the `portal` action) - the coordinates are the
+     * tooltip's own bottom-right corner, translate(-100%, -100%) grows it up and to the left from
+     * there. Escapes any scrolling/clipping ancestor the trigger slot happens to sit inside. */
+    .tooltip-portal {
+        position: fixed;
+        transform: translate(-100%, -100%);
+        z-index: 1000;
+        pointer-events: none;
     }
 </style>

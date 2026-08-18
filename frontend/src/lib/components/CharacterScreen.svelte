@@ -3,6 +3,7 @@
     import { settings } from "../engine/SettingsStore";
     import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
     import AchievementsPanel from "./AchievementsPanel.svelte";
+    import EquipmentPanel from "./EquipmentPanel.svelte";
 
     function close(): void {
         characterTab.set(null);
@@ -13,6 +14,13 @@
     <div class="character-overlay">
         <header class="character-header">
             <nav class="tab-bar">
+                <button
+                        class="tab-btn"
+                        class:active={$characterTab === "equipment"}
+                        on:click={() => characterTab.set("equipment")}
+                >
+                    Equipment
+                </button>
                 <button
                         class="tab-btn"
                         class:active={$characterTab === "settings"}
@@ -32,7 +40,9 @@
         </header>
 
         <div class="character-body">
-            {#if $characterTab === "settings"}
+            {#if $characterTab === "equipment"}
+                <EquipmentPanel />
+            {:else if $characterTab === "settings"}
                 <label class="setting-row">
                     <span>Reduce screen shake</span>
                     <input

@@ -161,7 +161,7 @@ case class CombatView(
   * @param kind
   *   `"damage"` or `"heal"` - drives which color/direction the client's floating number uses.
   */
-case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String)
+case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String, crit: Boolean = false)
 
 /** Hub data: available upgrades and their unlock status. */
 case class UpgradeView(id: String, label: String, description: String, cost: Int, icon: String, unlocked: Boolean)

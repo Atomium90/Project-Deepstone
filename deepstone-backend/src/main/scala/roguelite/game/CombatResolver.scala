@@ -70,7 +70,7 @@ class CombatResolver(rng: Random = Random(),
     }
 
     // Damage modified by pending ability effect
-    val damage = pending match {
+    val baseDamage = pending match {
       case Some(PendingAbilityEffect.DoubleNextAttack) =>
         // Double the full post-jitter value
         calcDamage(state.player.attack, state.combat.enemy.defense) * 2
@@ -81,8 +81,14 @@ class CombatResolver(rng: Random = Random(),
         calcDamage(state.player.attack, state.combat.enemy.defense)
     }
 
+    // Crit chance is an Attack-specific weapon-strike stat: it never applies to Ability's
+    // FlatDamage (Arcane Blast), which bypasses calcDamage entirely.
+    val isCrit = rollCrit(state.player.critChance)
+    val damage = if isCrit then math.round(baseDamage * CritMultiplier).toInt else baseDamage
+
     val damagedEnemy = state.combat.enemy.takeDamage(damage)
-    val strikeLog    = List(s"You strike the ${damagedEnemy.label} for $damage damage.")
+    val critSuffix   = if isCrit then " Critical hit!" else ""
+    val strikeLog    = List(s"You strike the ${damagedEnemy.label} for $damage damage.$critSuffix")
     val log          = abilityLog ++ strikeLog
 
     // Warrior: +5 Rage on every action
@@ -95,7 +101,7 @@ class CombatResolver(rng: Random = Random(),
       playerIsDefending = false
     )
 
-    val damageEvent = GameEvent.DamageDealt(targetIsPlayer = false, amount = damage)
+    val damageEvent = GameEvent.DamageDealt(targetIsPlayer = false, amount = damage, crit = isCrit)
     val (finalState, finalLog, downstreamEvents) =
       if !damagedEnemy.isAlive then
         victory(state.copy(player = playerAfterResource, combat = updatedCombat), damagedEnemy, log)
@@ -443,6 +449,13 @@ class CombatResolver(rng: Random = Random(),
     val jitter = rng.nextInt(5) - 2 // range: -2 to +2
     (attack - defense + jitter).max(1)
 
+  /** Damage multiplier applied on a critical hit. */
+  private[game] val CritMultiplier = 1.5
+
+  /** Roll for a critical hit against a percent chance (0-100). Never crits at 0 or below. */
+  private[game] def rollCrit(chancePercent: Int): Boolean =
+    chancePercent > 0 && rng.nextInt(100) < chancePercent
+
   // ---------------------------------------------
   // Player stat accessors (include equipped-item bonuses)
   // ---------------------------------------------
@@ -488,3 +501,10 @@ class CombatResolver(rng: Random = Random(),
       }
       val accessoryBonus = accessoryBonusSum(player, _.defenseBonus)
       player.level * 2 + player.bonusDefense + armorBonus + accessoryBonus
+
+    /** Percent chance (0-100) of a critical hit on the player's next Attack action, summed across
+      * both equipped accessories' critChanceBonus with the same affinity-doubling rule as
+      * attack/defense. Weapon/armor never contribute - crit chance is accessory-only in the
+      * current data.
+      */
+    private[game] def critChance: Int = accessoryBonusSum(player, _.critChanceBonus)

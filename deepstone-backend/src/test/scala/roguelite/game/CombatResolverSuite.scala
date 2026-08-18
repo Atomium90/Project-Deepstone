@@ -79,6 +79,8 @@ class CombatResolverSuite extends FunSuite:
   private def equipArmor(player: Player, armor: Armor): Player   = player.copy(equippedArmor = Some(armor))
   private def equipPotion(player: Player, potion: Consumable, slot: Int = 0): Player =
     player.copy(potionBelt = player.potionBelt.updated(slot, Some(potion)))
+  private def equipAccessory(player: Player, accessory: Accessory, slot: Int = 0): Player =
+    player.copy(equippedAccessories = player.equippedAccessories.updated(slot, Some(accessory)))
 
   // --- calcDamage ----------------------------------------------------------
 
@@ -94,6 +96,58 @@ class CombatResolverSuite extends FunSuite:
     assert(
       CombatResolver(Random(42L)).calcDamage(20, 0) > CombatResolver(Random(42L)).calcDamage(20, 10)
     )
+
+  // --- Crit chance -----------------------------------------------------------
+
+  test("rollCrit never crits at 0% chance"):
+    val r = resolver()
+    for _ <- 1 to 100 do assert(!r.rollCrit(0))
+
+  test("rollCrit never crits at negative chance"):
+    val r = resolver()
+    for _ <- 1 to 100 do assert(!r.rollCrit(-5))
+
+  test("rollCrit always crits at 100% chance"):
+    val r = resolver()
+    for _ <- 1 to 100 do assert(r.rollCrit(100))
+
+  test("player critChance sums equipped accessories' critChanceBonus"):
+    val critRing = Accessory("", "luck_trifle", "Luck Trifle", Rarity.Common, critChanceBonus = Some(5))
+    val critGem  = Accessory("", "mask_of_terror", "Mask of Terror", Rarity.Uncommon, critChanceBonus = Some(8))
+    val player   = equipAccessory(equipAccessory(fullHpPlayer(), critRing, slot = 0), critGem, slot = 1)
+    assertEquals(resolver().critChance(player), 13)
+
+  test("a guaranteed crit multiplies attack damage by 1.5 and is reported on the DamageDealt event"):
+    val guaranteedCrit =
+      Accessory("", "mask_of_terror", "Mask of Terror", Rarity.Uncommon, critChanceBonus = Some(100))
+    val player = equipAccessory(fullHpPlayer(), guaranteedCrit)
+    val (next, log, events) =
+      resolver().resolve(combatState(weakEnemy(hp = 999), player = player), CombatAction(CombatActionType.Attack))
+    val damageDealt = events.collectFirst { case d: GameEvent.DamageDealt if !d.targetIsPlayer => d }
+    damageDealt match
+      case Some(d) =>
+        assert(d.crit, s"expected a crit-flagged DamageDealt: $events")
+      case None => fail(s"expected a DamageDealt event: $events")
+    assert(log.exists(_.contains("Critical hit")), s"expected a crit callout in the log: $log")
+
+  test("Arcane Blast (FlatDamage) never crits even with guaranteed crit chance equipped"):
+    val guaranteedCrit =
+      Accessory("", "mask_of_terror", "Mask of Terror", Rarity.Uncommon, critChanceBonus = Some(100))
+    val ability = AbilityDef(ClassId.Warrior,
+                             "arcane_blast",
+                             "Arcane Blast",
+                             cost = 0,
+                             resourceName = "Mana",
+                             effect = AbilityEffect.FlatDamage(45),
+                             description = ""
+    )
+    val player = equipAccessory(fullHpPlayer(), guaranteedCrit)
+    val (_, _, events) = CombatResolver(Random(0), abilityDefs = Map(ClassId.Warrior -> ability))
+      .resolve(combatState(weakEnemy(hp = 999), player = player), CombatAction(CombatActionType.Ability))
+    val damageDealt = events.collectFirst { case d: GameEvent.DamageDealt if !d.targetIsPlayer => d }
+    damageDealt match
+      case Some(d) => assertEquals(d.crit, false, s"Arcane Blast should never crit: $events")
+      case None    => fail(s"expected a DamageDealt event: $events")
 
   // --- Attack --------------------------------------------------------------
 
@@ -431,8 +485,8 @@ class CombatResolverSuite extends FunSuite:
       case Nil => () // player may not have died this turn, inconclusive
       case _ =>
         assert(events.exists {
-          case GameEvent.DamageDealt(true, _) => true
-          case _                              => false
+          case GameEvent.DamageDealt(true, _, _) => true
+          case _                                 => false
         }, s"expected a DamageDealt(true, _) alongside RunEnded: $events")
 
   test("Arcane Blast (FlatDamage ability) emits DamageDealt(targetIsPlayer = false, amount = the flat value)"):

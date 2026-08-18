@@ -52,6 +52,7 @@ case class Weapon(
     rarity: Rarity,
     attackBonus: Int,
     typeTag: Option[String] = None,
+    setId: Option[String] = None
 ) extends Item:
   val kind             = "weapon"
   def statLine: String = typeTag match {
@@ -66,7 +67,8 @@ case class Armor(
     name: String,
     rarity: Rarity,
     defenseBonus: Int,
-    typeTag: Option[String] = None
+    typeTag: Option[String] = None,
+    setId: Option[String] = None
 ) extends Item:
   val kind: String     = "armor"
   def statLine: String = typeTag match {
@@ -75,16 +77,34 @@ case class Armor(
   }
   def withNewId: Item  = copy(id = Item.newId())
 
-/** Accessories increase the player's max HP when picked up. No affinity tag. */
+/** Accessories may carry any combination of hpBonus/attackBonus/defenseBonus/critChanceBonus -
+  * today's data always sets exactly one, but all four stay independently optional so a future
+  * item can combine them. hpBonus (if present) is applied immediately/permanently on equip
+  * ([[roguelite.engine.Player.equipAccessory]]); attackBonus/defenseBonus/critChanceBonus are
+  * read live by CombatResolver every combat action instead, same as weapon/armor bonuses.
+  */
 case class Accessory(
     id: String,
     typeId: String,
     name: String,
     rarity: Rarity,
-    hpBonus: Int
+    hpBonus: Option[Int] = None,
+    typeTag: Option[String] = None,
+    attackBonus: Option[Int] = None,
+    defenseBonus: Option[Int] = None,
+    critChanceBonus: Option[Int] = None,
+    setId: Option[String] = None
 ) extends Item:
   val kind             = "accessory"
-  def statLine: String = s"+$hpBonus MAX HP"
+  def statLine: String =
+    val parts = List(
+      hpBonus.map(n => s"+$n MAX HP"),
+      attackBonus.map(n => s"+$n ATK"),
+      defenseBonus.map(n => s"+$n DEF"),
+      critChanceBonus.map(n => s"+$n% CRIT")
+    ).flatten
+    val tagSuffix = typeTag.map(tag => s" [$tag]").getOrElse("")
+    parts.mkString(", ") + tagSuffix
   def withNewId: Item  = copy(id = Item.newId())
 
 case class Consumable(

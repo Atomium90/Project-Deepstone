@@ -31,15 +31,23 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
       ij.kind.toLowerCase match
         case "weapon" =>
           ij.attackBonus.toRight("Weapon is missing 'attackBonus' field").map:
-            bonus => Weapon(id = "", ij.typeId, ij.name, rarity, bonus)
+            bonus => Weapon(id = "", ij.typeId, ij.name, rarity, bonus, ij.typeTag, ij.setId)
 
         case "armor" =>
           ij.defenseBonus.toRight("Armor is missing 'defenseBonus' field").map:
-            bonus => Armor(id = "", ij.typeId, ij.name, rarity, bonus)
+            bonus => Armor(id = "", ij.typeId, ij.name, rarity, bonus, ij.typeTag, ij.setId)
 
         case "accessory" =>
-          ij.hpBonus.toRight("Accessory is missing 'hpBonus' field").map:
-            bonus => Accessory(id = "", ij.typeId, ij.name, rarity, bonus)
+          Right(
+            Accessory(id = "", ij.typeId, ij.name, rarity,
+                      hpBonus = ij.hpBonus,
+                      typeTag = ij.typeTag,
+                      attackBonus = ij.attackBonus,
+                      defenseBonus = ij.defenseBonus,
+                      critChanceBonus = ij.critChanceBonus,
+                      setId = ij.setId
+            )
+          )
 
         case "consumable" =>
           ij.effect.toRight("Consumable is missing 'effect' field").flatMap:
@@ -97,6 +105,8 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
                                attackBonus: Option[Int] = None,
                                defenseBonus: Option[Int] = None,
                                hpBonus: Option[Int] = None,
+                               critChanceBonus: Option[Int] = None,
+                               setId: Option[String] = None,
                                effect: Option[ConsumableEffectJson] = None,
                                keyKind: Option[String] = None,
                                doorId: Option[String] = None,
@@ -113,17 +123,19 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
 
   private given Decoder[ItemJson] = Decoder.instance: (c: HCursor) =>
     for
-      typeId       <- c.get[String]("typeId")
-      kind         <- c.get[String]("kind")
-      name         <- c.get[String]("name")
-      rarity       <- c.get[String]("rarity")
-      typeTag      <- c.get[Option[String]]("typeTag")
-      attackBonus  <- c.get[Option[Int]]("attackBonus")
-      defenseBonus <- c.get[Option[Int]]("defenseBonus")
-      hpBonus      <- c.get[Option[Int]]("hpBonus")
-      effect       <- c.get[Option[ConsumableEffectJson]]("effect")
-      keyKind      <- c.get[Option[String]]("keyKind")
-      doorId       <- c.get[Option[String]]("doorId")
-      doorTag      <- c.get[Option[String]]("doorTag")
-    yield ItemJson(typeId, kind, name, rarity, typeTag, attackBonus, defenseBonus, hpBonus, effect,
-                    keyKind, doorId, doorTag)
+      typeId          <- c.get[String]("typeId")
+      kind            <- c.get[String]("kind")
+      name            <- c.get[String]("name")
+      rarity          <- c.get[String]("rarity")
+      typeTag         <- c.get[Option[String]]("typeTag")
+      attackBonus     <- c.get[Option[Int]]("attackBonus")
+      defenseBonus    <- c.get[Option[Int]]("defenseBonus")
+      hpBonus         <- c.get[Option[Int]]("hpBonus")
+      critChanceBonus <- c.get[Option[Int]]("critChanceBonus")
+      setId           <- c.get[Option[String]]("setId")
+      effect          <- c.get[Option[ConsumableEffectJson]]("effect")
+      keyKind         <- c.get[Option[String]]("keyKind")
+      doorId          <- c.get[Option[String]]("doorId")
+      doorTag         <- c.get[Option[String]]("doorTag")
+    yield ItemJson(typeId, kind, name, rarity, typeTag, attackBonus, defenseBonus, hpBonus,
+                    critChanceBonus, setId, effect, keyKind, doorId, doorTag)

@@ -210,8 +210,8 @@ class CombatResolverSuite extends FunSuite:
   test("a kill that fills the last equipment slot emits ItemPickedUp(inventoryFull = true)"):
     val weapon = Weapon("w0", "sword", "Sword", Rarity.Common, 1)
     val armor  = Armor("a0", "leather", "Leather", Rarity.Common, 1)
-    val acc0   = Accessory("acc0", "ring", "Ring", Rarity.Common, 1)
-    val acc1   = Accessory("acc1", "ring2", "Ring 2", Rarity.Common, 1)
+    val acc0   = Accessory("acc0", "ring", "Ring", Rarity.Common, Some(1))
+    val acc1   = Accessory("acc1", "ring2", "Ring 2", Rarity.Common, Some(1))
     val ether  = Consumable("p0", "ether", "Ether", Rarity.Common, ConsumableEffect.RestoreResource(1))
     val nearlyFull = fullHpPlayer().copy(
       equippedWeapon = Some(weapon),
@@ -483,7 +483,7 @@ class CombatResolverSuite extends FunSuite:
 
   test("accessory drop increases player maxHp on defeat"):
     val itemDefs: Map[String, Item] = Map(
-      "iron_ring" -> Accessory("", "iron_ring", "Iron Ring", Rarity.Common, hpBonus = 10)
+      "iron_ring" -> Accessory("", "iron_ring", "Iron Ring", Rarity.Common, hpBonus = Some(10))
     )
     val enemy =
       weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("iron_ring", 100)))

@@ -56,14 +56,17 @@ class ItemLoaderSuite extends CatsEffectSuite:
       .foreach:
         a => assert(a.defenseBonus > 0, s"${a.typeId} defenseBonus must be positive")
 
-  test("accessories have positive hpBonus"):
+  test("accessories have at least one positive bonus"):
     for items <- ItemLoader.loadAll()
     yield items.values
       .collect {
         case a: Accessory => a
       }
       .foreach:
-        a => assert(a.hpBonus > 0, s"${a.typeId} hpBonus must be positive")
+        a =>
+          val bonuses = List(a.hpBonus, a.attackBonus, a.defenseBonus, a.critChanceBonus).flatten
+          assert(bonuses.nonEmpty, s"${a.typeId} must have at least one bonus")
+          assert(bonuses.forall(_ > 0), s"${a.typeId} every present bonus must be positive")
 
   test("consumables have a valid effect"):
     for items <- ItemLoader.loadAll()
@@ -125,3 +128,19 @@ class ItemLoaderSuite extends CatsEffectSuite:
       items.get("rusty_key") match
         case Some(k: Key) => assertEquals(k.keyKind, KeyKind.Generic)
         case other        => fail(s"expected rusty_key to be a Key, got: $other")
+
+  // ---------------------------------------------
+  // Accessory.statLine (pure, no loading required - covers the new optional bonus fields)
+  // ---------------------------------------------
+
+  test("Accessory.statLine composes only the bonuses that are present"):
+    val hpOnly  = Accessory("", "t", "HP Only", Rarity.Common, hpBonus = Some(8))
+    val atkOnly = Accessory("", "t", "ATK Only", Rarity.Common, attackBonus = Some(2), typeTag = Some("heavy"))
+    val critOnly = Accessory("", "t", "Crit Only", Rarity.Common, critChanceBonus = Some(6))
+    assertEquals(hpOnly.statLine, "+8 MAX HP")
+    assertEquals(atkOnly.statLine, "+2 ATK [heavy]")
+    assertEquals(critOnly.statLine, "+6% CRIT")
+
+  test("Accessory.statLine combines multiple present bonuses"):
+    val combo = Accessory("", "t", "Combo", Rarity.Common, hpBonus = Some(5), attackBonus = Some(3))
+    assertEquals(combo.statLine, "+5 MAX HP, +3 ATK")

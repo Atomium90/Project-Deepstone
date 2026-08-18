@@ -27,9 +27,9 @@ class EquipmentResolverSuite extends FunSuite:
   private val sword2 = Weapon("w2", "steel_sword", "Steel Sword", Rarity.Uncommon, attackBonus = 7)
   private val armor  = Armor("a1", "leather_armor", "Leather Armor", Rarity.Common, defenseBonus = 2)
   private val armor2 = Armor("a2", "chain_mail", "Chain Mail", Rarity.Uncommon, defenseBonus = 6)
-  private val ring   = Accessory("r1", "iron_ring", "Iron Ring", Rarity.Common, hpBonus = 10)
-  private val ring2  = Accessory("r2", "gold_ring", "Gold Ring", Rarity.Uncommon, hpBonus = 15)
-  private val ring3  = Accessory("r3", "ruby_ring", "Ruby Ring", Rarity.Uncommon, hpBonus = 20)
+  private val ring   = Accessory("r1", "iron_ring", "Iron Ring", Rarity.Common, hpBonus = Some(10))
+  private val ring2  = Accessory("r2", "gold_ring", "Gold Ring", Rarity.Uncommon, hpBonus = Some(15))
+  private val ring3  = Accessory("r3", "ruby_ring", "Ruby Ring", Rarity.Uncommon, hpBonus = Some(20))
   private val potion =
     Consumable("p1", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
   private val ether =
@@ -73,7 +73,7 @@ class EquipmentResolverSuite extends FunSuite:
     EquipmentResolver.resolvePickup(player, ring) match
       case PickupOutcome.Equipped(p) =>
         assertEquals(p.equippedAccessories(0), Some(ring))
-        assertEquals(p.maxHp, baseMaxHp + ring.hpBonus)
+        assertEquals(p.maxHp, baseMaxHp + ring.hpBonus.getOrElse(0))
       case other => fail(s"expected Equipped, got $other")
 
   test("Accessory fills the first empty accessory slot"):
@@ -177,7 +177,7 @@ class EquipmentResolverSuite extends FunSuite:
     val (next, _, _) = EquipmentResolver.resolveChoice(exp, Some(EquipSlot.AccessorySlot(1)))
     val nextExp       = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.player.equippedAccessories, Vector(Some(ring), Some(ring3)))
-    assertEquals(nextExp.player.maxHp, baseMaxHp - ring2.hpBonus + ring3.hpBonus)
+    assertEquals(nextExp.player.maxHp, baseMaxHp - ring2.hpBonus.getOrElse(0) + ring3.hpBonus.getOrElse(0))
 
   test("resolveChoice targeting the offered armor slot equips the new armor"):
     val pending = PendingEquipChoice(armor2, Map(EquipSlot.ArmorSlot -> armor))

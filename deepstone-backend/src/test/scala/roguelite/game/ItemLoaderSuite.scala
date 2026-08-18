@@ -12,16 +12,16 @@ class ItemLoaderSuite extends CatsEffectSuite:
     for items <- ItemLoader.loadAll()
     yield
       val expected = List(
-        "iron_sword",
         "steel_sword",
-        "hunters_bow",
-        "leather_armor",
-        "chain_mail",
-        "iron_ring",
-        "amulet_of_vigor",
+        "wooden_emerald_bow",
+        "steel_plate",
+        "leather_cape",
+        "ring_of_strength",
+        "skull_talisman",
         "health_potion",
         "greater_potion",
-        "ether"
+        "ether",
+        "rusty_key"
       )
       expected.foreach:
         typeId => assert(items.contains(typeId), s"Missing item type: $typeId")
@@ -94,24 +94,21 @@ class ItemLoaderSuite extends CatsEffectSuite:
               assert(amount > 0, s"${c.typeId} restore amount must be positive")
 
   test("uncommon items have higher stat bonuses than their common counterparts"):
+    // Armor has no generic (non-set) common tier in the current catalog (all 6 armor rows are
+    // set pieces, all uncommon - a known, accepted content gap), so only weapons are comparable
+    // here.
     for items <- ItemLoader.loadAll()
     yield
-      val ironSword  = items("iron_sword").asInstanceOf[Weapon]
-      val steelSword = items("steel_sword").asInstanceOf[Weapon]
-      assert(steelSword.attackBonus > ironSword.attackBonus,
-             "Steel Sword (uncommon) should have higher attack than Iron Sword (common)"
-      )
-
-      val leather = items("leather_armor").asInstanceOf[Armor]
-      val chain   = items("chain_mail").asInstanceOf[Armor]
-      assert(chain.defenseBonus > leather.defenseBonus,
-             "Chain Mail (uncommon) should have higher defense than Leather Armor (common)"
+      val practiceSword = items("practice_sword").asInstanceOf[Weapon]
+      val steelSword     = items("steel_sword").asInstanceOf[Weapon]
+      assert(steelSword.attackBonus > practiceSword.attackBonus,
+             "Steel Sword (uncommon) should have higher attack than Practice Sword (common)"
       )
 
   test("withNewId creates a distinct non-empty instance id"):
     for items <- ItemLoader.loadAll()
     yield
-      val proto    = items("iron_sword")
+      val proto    = items("steel_sword")
       val instance = proto.withNewId
       assert(instance.id.nonEmpty, "Instance id must not be empty")
       assertNotEquals(proto.id, instance.id)

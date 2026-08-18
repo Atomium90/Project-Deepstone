@@ -42,6 +42,11 @@ sealed trait Item:
   /** One-line stat summary for the UI, e.g. "+3 ATK", "Heal 30 HP". */
   def statLine: String
 
+  /** Flavor text, e.g. "Warm to the touch, humming with barely-checked fury." Absent for every
+    * item authored before the item-pool rework; not yet surfaced to the client (see ItemView).
+    */
+  def description: Option[String]
+
   /** Return a copy of this item with a freshly generated instance id. */
   def withNewId: Item
 
@@ -52,7 +57,8 @@ case class Weapon(
     rarity: Rarity,
     attackBonus: Int,
     typeTag: Option[String] = None,
-    setId: Option[String] = None
+    setId: Option[String] = None,
+    description: Option[String] = None
 ) extends Item:
   val kind             = "weapon"
   def statLine: String = typeTag match {
@@ -68,7 +74,8 @@ case class Armor(
     rarity: Rarity,
     defenseBonus: Int,
     typeTag: Option[String] = None,
-    setId: Option[String] = None
+    setId: Option[String] = None,
+    description: Option[String] = None
 ) extends Item:
   val kind: String     = "armor"
   def statLine: String = typeTag match {
@@ -93,7 +100,8 @@ case class Accessory(
     attackBonus: Option[Int] = None,
     defenseBonus: Option[Int] = None,
     critChanceBonus: Option[Int] = None,
-    setId: Option[String] = None
+    setId: Option[String] = None,
+    description: Option[String] = None
 ) extends Item:
   val kind             = "accessory"
   def statLine: String =
@@ -112,7 +120,8 @@ case class Consumable(
     typeId: String,
     name: String,
     rarity: Rarity,
-    effect: ConsumableEffect
+    effect: ConsumableEffect,
+    description: Option[String] = None
 ) extends Item:
   val kind = "consumable"
   def statLine: String = effect match {
@@ -146,7 +155,8 @@ case class Key(
     typeId: String,
     name: String,
     rarity: Rarity,
-    keyKind: KeyKind
+    keyKind: KeyKind,
+    description: Option[String] = None
 ) extends Item:
   val kind = "key"
   def statLine: String = "Opens a locked door"

@@ -183,7 +183,7 @@ class InteractionResolverSuite extends FunSuite:
     val playerWithWeapon =
       PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(existingWeapon))
     val itemDefs: Map[String, Item] = Map(
-      "iron_sword" -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+      "practice_sword" -> Weapon("", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)
     )
     val chest = Chest("c1", x = 3, y = 3)
     val state = ExplorationState(playerWithWeapon, dungeonWith(entities = List(chest)), 3, 3)

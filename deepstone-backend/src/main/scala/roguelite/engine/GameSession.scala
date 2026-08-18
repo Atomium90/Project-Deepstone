@@ -100,8 +100,8 @@ class GameSession private (
     */
   private def toDamageEventViews(events: List[GameEvent]): List[DamageEventView] =
     events.collect {
-      case GameEvent.DamageDealt(targetIsPlayer, amount) =>
-        DamageEventView(targetIsPlayer = targetIsPlayer, amount = amount, kind = "damage")
+      case GameEvent.DamageDealt(targetIsPlayer, amount, crit) =>
+        DamageEventView(targetIsPlayer = targetIsPlayer, amount = amount, kind = "damage", crit = crit)
       case GameEvent.Healed(amount) =>
         DamageEventView(targetIsPlayer = true, amount = amount, kind = "heal")
     }

@@ -1,6 +1,8 @@
 package roguelite.engine
 
 import roguelite.game.{
+  Accessory,
+  Armor,
   Combat,
   Dungeon,
   EnemyStats,
@@ -8,7 +10,8 @@ import roguelite.game.{
   KeyKind,
   MetaProgression,
   PendingEquipChoice,
-  UpgradeDef
+  UpgradeDef,
+  Weapon
 }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
@@ -21,7 +24,13 @@ private def itemToView(item: Item): ItemView =
     name = item.name,
     kind = item.kind,
     rarity = item.rarity.label,
-    statLine = item.statLine
+    statLine = item.statLine,
+    setId = item match {
+      case w: Weapon    => w.setId
+      case a: Armor     => a.setId
+      case a: Accessory => a.setId
+      case _            => None
+    }
   )
 
 /** Coarse display label for a key kind - collapses `Specific`/`Typed`'s payload away, see

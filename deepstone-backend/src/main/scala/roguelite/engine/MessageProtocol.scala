@@ -161,7 +161,7 @@ case class CombatView(
   * @param kind
   *   `"damage"` or `"heal"` - drives which color/direction the client's floating number uses.
   */
-case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String)
+case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String, crit: Boolean = false)
 
 /** Hub data: available upgrades and their unlock status. */
 case class UpgradeView(id: String, label: String, description: String, cost: Int, icon: String, unlocked: Boolean)
@@ -180,7 +180,11 @@ case class ItemView(
       * "missing asset renders as a graceful no-op" convention used elsewhere (see
       * [[roguelite.game.AudioManager]]-equivalent client-side handling for sound/music).
       */
-    iconId: Option[String] = None
+    iconId: Option[String] = None,
+    /** Which equipment set this item belongs to, if any. Set bonuses aren't computed yet - this
+      * is only for frontend recognition.
+      */
+    setId: Option[String] = None
 )
 
 /** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses

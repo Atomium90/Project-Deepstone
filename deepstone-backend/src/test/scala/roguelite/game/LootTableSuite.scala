@@ -17,11 +17,11 @@ class LootTableSuite extends FunSuite:
     "iron_sword"      -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, 3),
     "hunters_bow"     -> Weapon("", "hunters_bow", "Hunter's Bow", Rarity.Common, 4),
     "leather_armor"   -> Armor("", "leather_armor", "Leather Armor", Rarity.Common, 2),
-    "iron_ring"       -> Accessory("", "iron_ring", "Iron Ring", Rarity.Common, 10),
+    "iron_ring"       -> Accessory("", "iron_ring", "Iron Ring", Rarity.Common, Some(10)),
     "rusty_key"       -> Key("", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic),
     "steel_sword"     -> Weapon("", "steel_sword", "Steel Sword", Rarity.Uncommon, 7),
     "chain_mail"      -> Armor("", "chain_mail", "Chain Mail", Rarity.Uncommon, 5),
-    "amulet_of_vigor" -> Accessory("", "amulet_of_vigor", "Amulet of Vigor", Rarity.Uncommon, 20)
+    "amulet_of_vigor" -> Accessory("", "amulet_of_vigor", "Amulet of Vigor", Rarity.Uncommon, Some(20))
   )
 
   // --- Chest rolls ---------------------------------------------------------

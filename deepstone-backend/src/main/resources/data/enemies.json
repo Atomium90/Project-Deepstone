@@ -13,12 +13,12 @@
     ],
     "dropChance": 25,
     "lootTable": [
-      { "typeId": "bread",         "weight": 30 },
-      { "typeId": "health_potion", "weight": 25 },
-      { "typeId": "short_sword",   "weight": 15 },
-      { "typeId": "shortbow",      "weight": 15 },
-      { "typeId": "padded_robe",   "weight": 10 },
-      { "typeId": "copper_bracelet","weight": 5 }
+      { "typeId": "bread",          "weight": 30 },
+      { "typeId": "health_potion",  "weight": 25 },
+      { "typeId": "practice_sword", "weight": 15 },
+      { "typeId": "gold_dagger",    "weight": 15 },
+      { "typeId": "soulstone",      "weight": 10 },
+      { "typeId": "luck_trifle",    "weight": 5 }
     ]
   },
   {
@@ -35,13 +35,13 @@
     ],
     "dropChance": 30,
     "lootTable": [
-      { "typeId": "health_potion", "weight": 25 },
-      { "typeId": "iron_sword",    "weight": 20 },
-      { "typeId": "battle_axe",    "weight": 15 },
-      { "typeId": "leather_armor", "weight": 15 },
-      { "typeId": "iron_plate",    "weight": 10 },
-      { "typeId": "rage_draught",  "weight": 10 },
-      { "typeId": "iron_ring",     "weight": 5 }
+      { "typeId": "health_potion",     "weight": 25 },
+      { "typeId": "silver_spear",      "weight": 20 },
+      { "typeId": "bronze_battleaxe",  "weight": 15 },
+      { "typeId": "steel_plate",       "weight": 15 },
+      { "typeId": "red_shield",        "weight": 10 },
+      { "typeId": "rage_draught",      "weight": 10 },
+      { "typeId": "plain_ring",        "weight": 5 }
     ]
   },
   {
@@ -58,13 +58,13 @@
     ],
     "dropChance": 25,
     "lootTable": [
-      { "typeId": "health_potion", "weight": 20 },
-      { "typeId": "oak_staff",     "weight": 20 },
-      { "typeId": "crystal_wand",  "weight": 15 },
-      { "typeId": "padded_robe",   "weight": 15 },
-      { "typeId": "leather_armor", "weight": 15 },
-      { "typeId": "iron_ring",     "weight": 10 },
-      { "typeId": "ether",         "weight": 5 }
+      { "typeId": "health_potion",          "weight": 20 },
+      { "typeId": "leather_bound_grimoire", "weight": 20 },
+      { "typeId": "open_grimoire",          "weight": 15 },
+      { "typeId": "pyromancer_cape",        "weight": 15 },
+      { "typeId": "dark_mantle",            "weight": 15 },
+      { "typeId": "soulstone",              "weight": 10 },
+      { "typeId": "ether",                  "weight": 5 }
     ]
   },
   {
@@ -81,16 +81,16 @@
     ],
     "dropChance": 40,
     "lootTable": [
-      { "typeId": "health_potion",  "weight": 15 },
-      { "typeId": "war_hammer",     "weight": 12 },
-      { "typeId": "steel_sword",    "weight": 12 },
-      { "typeId": "crossbow",       "weight": 12 },
-      { "typeId": "arcane_tome",    "weight": 10 },
-      { "typeId": "chain_mail",     "weight": 10 },
-      { "typeId": "studded_leather","weight": 10 },
-      { "typeId": "silver_ring",    "weight": 8 },
-      { "typeId": "greater_potion", "weight": 6 },
-      { "typeId": "elixir",         "weight": 5 }
+      { "typeId": "health_potion",     "weight": 15 },
+      { "typeId": "obsidian_hammer",   "weight": 12 },
+      { "typeId": "steel_sword",       "weight": 12 },
+      { "typeId": "bronze_crossbow",   "weight": 12 },
+      { "typeId": "occult_grimoire",   "weight": 10 },
+      { "typeId": "berserker_armor",   "weight": 10 },
+      { "typeId": "copper_cape",       "weight": 10 },
+      { "typeId": "luck_trifle",       "weight": 8 },
+      { "typeId": "greater_potion",    "weight": 6 },
+      { "typeId": "elixir",            "weight": 5 }
     ]
   },
   {
@@ -107,15 +107,15 @@
     ],
     "dropChance": 100,
     "lootTable": [
-      { "typeId": "war_hammer",      "weight": 15 },
-      { "typeId": "plate_armor",     "weight": 15 },
-      { "typeId": "longbow",         "weight": 12 },
-      { "typeId": "elder_staff",     "weight": 12 },
-      { "typeId": "amulet_of_vigor", "weight": 12 },
-      { "typeId": "life_crystal",    "weight": 10 },
-      { "typeId": "greater_potion",  "weight": 10 },
-      { "typeId": "elixir",          "weight": 8 },
-      { "typeId": "mana_crystal",    "weight": 6 }
+      { "typeId": "obsidian_hammer",      "weight": 15 },
+      { "typeId": "steel_plate",          "weight": 15 },
+      { "typeId": "wooden_emerald_bow",   "weight": 12 },
+      { "typeId": "occult_grimoire",      "weight": 12 },
+      { "typeId": "skull_talisman",       "weight": 12 },
+      { "typeId": "arcana_scroll",        "weight": 10 },
+      { "typeId": "greater_potion",       "weight": 10 },
+      { "typeId": "elixir",               "weight": 8 },
+      { "typeId": "mana_crystal",         "weight": 6 }
     ]
   },
   {
@@ -131,16 +131,16 @@
     ],
     "dropChance": 100,
     "lootTable": [
-      { "typeId": "longbow",         "weight": 15 },
-      { "typeId": "great_axe",       "weight": 12 },
-      { "typeId": "elder_staff",     "weight": 12 },
-      { "typeId": "plate_armor",     "weight": 10 },
-      { "typeId": "studded_leather", "weight": 10 },
-      { "typeId": "amulet_of_vigor", "weight": 10 },
-      { "typeId": "life_crystal",    "weight": 10 },
-      { "typeId": "greater_potion",  "weight": 8 },
-      { "typeId": "mana_crystal",    "weight": 8 },
-      { "typeId": "elixir",          "weight": 5 }
+      { "typeId": "wooden_emerald_bow",  "weight": 15 },
+      { "typeId": "obsidian_hammer",     "weight": 12 },
+      { "typeId": "pyromancer_staff",    "weight": 12 },
+      { "typeId": "berserker_armor",     "weight": 10 },
+      { "typeId": "copper_cape",         "weight": 10 },
+      { "typeId": "skull_talisman",      "weight": 10 },
+      { "typeId": "accuracy_necklace",   "weight": 10 },
+      { "typeId": "greater_potion",      "weight": 8 },
+      { "typeId": "mana_crystal",        "weight": 8 },
+      { "typeId": "elixir",              "weight": 5 }
     ]
   },
   {
@@ -157,12 +157,12 @@
     ],
     "dropChance": 28,
     "lootTable": [
-      { "typeId": "short_sword",     "weight": 25 },
-      { "typeId": "shortbow",        "weight": 20 },
-      { "typeId": "health_potion",   "weight": 20 },
-      { "typeId": "iron_ring",       "weight": 15 },
-      { "typeId": "leather_armor",   "weight": 15 },
-      { "typeId": "copper_bracelet", "weight": 5 }
+      { "typeId": "practice_sword", "weight": 25 },
+      { "typeId": "gold_dagger",    "weight": 20 },
+      { "typeId": "health_potion",  "weight": 20 },
+      { "typeId": "plain_ring",     "weight": 15 },
+      { "typeId": "worn_boots",     "weight": 15 },
+      { "typeId": "soulstone",      "weight": 5 }
     ]
   },
   {
@@ -178,11 +178,11 @@
     ],
     "dropChance": 30,
     "lootTable": [
-      { "typeId": "health_potion",   "weight": 30 },
-      { "typeId": "leather_armor",   "weight": 20 },
-      { "typeId": "rage_draught",    "weight": 20 },
-      { "typeId": "studded_leather", "weight": 15 },
-      { "typeId": "iron_ring",       "weight": 15 }
+      { "typeId": "health_potion",  "weight": 30 },
+      { "typeId": "red_shield",     "weight": 20 },
+      { "typeId": "rage_draught",   "weight": 20 },
+      { "typeId": "wooden_shield",  "weight": 15 },
+      { "typeId": "plain_ring",     "weight": 15 }
     ]
   },
   {
@@ -199,12 +199,12 @@
     ],
     "dropChance": 32,
     "lootTable": [
-      { "typeId": "oak_staff",     "weight": 25 },
-      { "typeId": "crystal_wand",  "weight": 20 },
-      { "typeId": "padded_robe",   "weight": 20 },
-      { "typeId": "ether",         "weight": 15 },
-      { "typeId": "health_potion", "weight": 15 },
-      { "typeId": "silver_ring",   "weight": 5 }
+      { "typeId": "leather_bound_grimoire", "weight": 25 },
+      { "typeId": "open_grimoire",          "weight": 20 },
+      { "typeId": "pyromancer_cape",        "weight": 20 },
+      { "typeId": "ether",                  "weight": 15 },
+      { "typeId": "health_potion",          "weight": 15 },
+      { "typeId": "storm_potion",           "weight": 5 }
     ]
   },
   {
@@ -221,15 +221,15 @@
     ],
     "dropChance": 100,
     "lootTable": [
-      { "typeId": "war_hammer",      "weight": 15 },
-      { "typeId": "chain_mail",      "weight": 15 },
-      { "typeId": "great_axe",       "weight": 12 },
-      { "typeId": "plate_armor",     "weight": 12 },
-      { "typeId": "amulet_of_vigor", "weight": 12 },
-      { "typeId": "greater_potion",  "weight": 12 },
-      { "typeId": "life_crystal",    "weight": 10 },
-      { "typeId": "elixir",          "weight": 8 },
-      { "typeId": "mana_crystal",    "weight": 4 }
+      { "typeId": "obsidian_hammer",  "weight": 15 },
+      { "typeId": "berserker_armor",  "weight": 15 },
+      { "typeId": "steel_sword",      "weight": 12 },
+      { "typeId": "steel_plate",      "weight": 12 },
+      { "typeId": "mask_of_terror",   "weight": 12 },
+      { "typeId": "greater_potion",   "weight": 12 },
+      { "typeId": "skull_talisman",   "weight": 10 },
+      { "typeId": "elixir",           "weight": 8 },
+      { "typeId": "mana_crystal",     "weight": 4 }
     ]
   },
   {
@@ -245,15 +245,15 @@
     ],
     "dropChance": 100,
     "lootTable": [
-      { "typeId": "elder_staff",     "weight": 15 },
-      { "typeId": "arcane_tome",     "weight": 15 },
-      { "typeId": "crystal_wand",    "weight": 12 },
-      { "typeId": "mana_crystal",    "weight": 12 },
-      { "typeId": "amulet_of_vigor", "weight": 10 },
-      { "typeId": "life_crystal",    "weight": 10 },
-      { "typeId": "silver_ring",     "weight": 10 },
-      { "typeId": "greater_potion",  "weight": 10 },
-      { "typeId": "elixir",          "weight": 6 }
+      { "typeId": "pyromancer_staff",  "weight": 15 },
+      { "typeId": "occult_grimoire",   "weight": 15 },
+      { "typeId": "open_grimoire",     "weight": 12 },
+      { "typeId": "mana_crystal",      "weight": 12 },
+      { "typeId": "skull_talisman",    "weight": 10 },
+      { "typeId": "dark_gem",          "weight": 10 },
+      { "typeId": "arcane_scroll",     "weight": 10 },
+      { "typeId": "greater_potion",    "weight": 10 },
+      { "typeId": "elixir",            "weight": 6 }
     ]
   },
   {
@@ -270,15 +270,15 @@
     ],
     "dropChance": 100,
     "lootTable": [
-      { "typeId": "arcane_tome",     "weight": 15 },
-      { "typeId": "elder_staff",     "weight": 15 },
-      { "typeId": "mana_crystal",    "weight": 13 },
-      { "typeId": "life_crystal",    "weight": 12 },
-      { "typeId": "amulet_of_vigor", "weight": 12 },
-      { "typeId": "elixir",          "weight": 11 },
-      { "typeId": "greater_potion",  "weight": 11 },
-      { "typeId": "silver_ring",     "weight": 6 },
-      { "typeId": "crystal_wand",    "weight": 5 }
+      { "typeId": "occult_grimoire",   "weight": 15 },
+      { "typeId": "pyromancer_staff",  "weight": 15 },
+      { "typeId": "mana_crystal",      "weight": 13 },
+      { "typeId": "skull_talisman",    "weight": 12 },
+      { "typeId": "dark_gem",          "weight": 12 },
+      { "typeId": "elixir",            "weight": 11 },
+      { "typeId": "greater_potion",    "weight": 11 },
+      { "typeId": "arcane_scroll",     "weight": 6 },
+      { "typeId": "storm_potion",      "weight": 5 }
     ]
   },
   {
@@ -295,15 +295,14 @@
     ],
     "dropChance": 100,
     "lootTable": [
-      { "typeId": "war_hammer",      "weight": 15 },
-      { "typeId": "great_axe",       "weight": 15 },
-      { "typeId": "chain_mail",      "weight": 13 },
-      { "typeId": "plate_armor",     "weight": 13 },
-      { "typeId": "steel_sword",     "weight": 10 },
-      { "typeId": "amulet_of_vigor", "weight": 10 },
-      { "typeId": "life_crystal",    "weight": 10 },
-      { "typeId": "greater_potion",  "weight": 9 },
-      { "typeId": "elixir",          "weight": 5 }
+      { "typeId": "obsidian_hammer",  "weight": 15 },
+      { "typeId": "steel_sword",      "weight": 15 },
+      { "typeId": "berserker_armor",  "weight": 13 },
+      { "typeId": "steel_plate",      "weight": 13 },
+      { "typeId": "mask_of_terror",   "weight": 10 },
+      { "typeId": "skull_talisman",   "weight": 10 },
+      { "typeId": "greater_potion",   "weight": 14 },
+      { "typeId": "elixir",           "weight": 10 }
     ]
   }
 ]

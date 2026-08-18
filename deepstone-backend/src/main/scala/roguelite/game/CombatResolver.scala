@@ -70,7 +70,7 @@ class CombatResolver(rng: Random = Random(),
     }
 
     // Damage modified by pending ability effect
-    val damage = pending match {
+    val baseDamage = pending match {
       case Some(PendingAbilityEffect.DoubleNextAttack) =>
         // Double the full post-jitter value
         calcDamage(state.player.attack, state.combat.enemy.defense) * 2
@@ -81,8 +81,14 @@ class CombatResolver(rng: Random = Random(),
         calcDamage(state.player.attack, state.combat.enemy.defense)
     }
 
+    // Crit chance is an Attack-specific weapon-strike stat: it never applies to Ability's
+    // FlatDamage (Arcane Blast), which bypasses calcDamage entirely.
+    val isCrit = rollCrit(state.player.critChance)
+    val damage = if isCrit then math.round(baseDamage * CritMultiplier).toInt else baseDamage
+
     val damagedEnemy = state.combat.enemy.takeDamage(damage)
-    val strikeLog    = List(s"You strike the ${damagedEnemy.label} for $damage damage.")
+    val critSuffix   = if isCrit then " Critical hit!" else ""
+    val strikeLog    = List(s"You strike the ${damagedEnemy.label} for $damage damage.$critSuffix")
     val log          = abilityLog ++ strikeLog
 
     // Warrior: +5 Rage on every action
@@ -95,7 +101,7 @@ class CombatResolver(rng: Random = Random(),
       playerIsDefending = false
     )
 
-    val damageEvent = GameEvent.DamageDealt(targetIsPlayer = false, amount = damage)
+    val damageEvent = GameEvent.DamageDealt(targetIsPlayer = false, amount = damage, crit = isCrit)
     val (finalState, finalLog, downstreamEvents) =
       if !damagedEnemy.isAlive then
         victory(state.copy(player = playerAfterResource, combat = updatedCombat), damagedEnemy, log)
@@ -443,33 +449,62 @@ class CombatResolver(rng: Random = Random(),
     val jitter = rng.nextInt(5) - 2 // range: -2 to +2
     (attack - defense + jitter).max(1)
 
+  /** Damage multiplier applied on a critical hit. */
+  private[game] val CritMultiplier = 1.5
+
+  /** Roll for a critical hit against a percent chance (0-100). Never crits at 0 or below. */
+  private[game] def rollCrit(chancePercent: Int): Boolean =
+    chancePercent > 0 && rng.nextInt(100) < chancePercent
+
   // ---------------------------------------------
   // Player stat accessors (include equipped-item bonuses)
   // ---------------------------------------------
 
+  /** Sum one bonus field across both equipped accessory slots, applying the same affinity-doubling
+    * rule as weapon/armor bonuses to each accessory independently (its own typeTag against the
+    * player's affinityTags, not the accessory kind as a whole).
+    */
+  private def accessoryBonusSum(player: Player, extract: Accessory => Option[Int]): Int =
+    player.equippedAccessories.flatten.map: acc =>
+      val base = extract(acc).getOrElse(0)
+      base * (if acc.typeTag.exists(player.affinityTags.contains) then 2 else 1)
+    .sum
+
   /** Will be tuned later. */
   extension (player: Player)
     /** Effective attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon
-      * bonus.
+      * and accessory bonuses.
       *
       * The equipped weapon's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Hunter's Bow (+5 ATK, "ranged") held by an Archer (affinity: "ranged") → +10 ATK.
+      * Equipped accessories contribute the same way if they carry an attackBonus.
       */
     private def attack: Int =
       val weaponBonus = player.equippedWeapon match {
         case Some(w) => w.attackBonus * (if w.typeTag.exists(player.affinityTags.contains) then 2 else 1)
         case None    => 0
       }
-      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus
+      val accessoryBonus = accessoryBonusSum(player, _.attackBonus)
+      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus
 
-    /** Effective defense: level scaling + permanent bonus + affinity-aware armor bonus.
+    /** Effective defense: level scaling + permanent bonus + affinity-aware armor and accessory
+      * bonuses.
       *
       * The equipped armor's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Chain Mail (+6 DEF, "heavy") held by a Warrior (affinity: "heavy") → +12 DEF.
+      * Equipped accessories contribute the same way if they carry a defenseBonus.
       */
     private def defense: Int =
       val armorBonus = player.equippedArmor match {
         case Some(a) => a.defenseBonus * (if a.typeTag.exists(player.affinityTags.contains) then 2 else 1)
         case None    => 0
       }
-      player.level * 2 + player.bonusDefense + armorBonus
+      val accessoryBonus = accessoryBonusSum(player, _.defenseBonus)
+      player.level * 2 + player.bonusDefense + armorBonus + accessoryBonus
+
+    /** Percent chance (0-100) of a critical hit on the player's next Attack action, summed across
+      * both equipped accessories' critChanceBonus with the same affinity-doubling rule as
+      * attack/defense. Weapon/armor never contribute - crit chance is accessory-only in the
+      * current data.
+      */
+    private[game] def critChance: Int = accessoryBonusSum(player, _.critChanceBonus)

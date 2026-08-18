@@ -35,9 +35,11 @@ enum GameEvent:
   case RunEnded(victory: Boolean)
 
   /** Damage was dealt to a combatant. `targetIsPlayer` distinguishes the player taking a hit from
-    * the player's attack landing on the enemy - `amount` is always positive.
+    * the player's attack landing on the enemy - `amount` is always positive. `crit` is true only
+    * for a player Attack that rolled a critical hit; always false for enemy damage and for other
+    * player actions (Ability's FlatDamage is crit-exempt, see CombatResolver.handleAttack).
     */
-  case DamageDealt(targetIsPlayer: Boolean, amount: Int)
+  case DamageDealt(targetIsPlayer: Boolean, amount: Int, crit: Boolean = false)
 
   /** The player was healed (HP only - resource restoration isn't reported here). Always the
     * player: no enemy-heal effect exists in this game's combat model.

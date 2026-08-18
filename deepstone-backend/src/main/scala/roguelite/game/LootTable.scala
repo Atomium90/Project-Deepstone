@@ -14,15 +14,16 @@ object LootTable:
     * their ratio matters.
     */
   private val ChestPool: List[(String, Int)] = List(
-    "health_potion"   -> 30,
-    "iron_sword"      -> 17,
-    "hunters_bow"     -> 17,
-    "leather_armor"   -> 15,
-    "iron_ring"       -> 11,
-    "rusty_key"       -> 12,
-    "steel_sword"     -> 4,
-    "chain_mail"      -> 4,
-    "amulet_of_vigor" -> 2
+    "health_potion"          -> 25,
+    "practice_sword"         -> 10,
+    "gold_dagger"            -> 10,
+    "leather_bound_grimoire" -> 10,
+    "soulstone"              -> 10,
+    "rusty_key"              -> 12,
+    "steel_sword"            -> 5,
+    "wooden_emerald_bow"     -> 5,
+    "pyromancer_staff"       -> 5,
+    "luck_trifle"            -> 8
   )
 
   /** Roll a chest drop. Chests always yield exactly one item from [[ChestPool]].

@@ -46,10 +46,11 @@ case class Player(
     * immediately, so the client always sees the correct HP cap without summing bonuses itself.
     */
   def equipAccessory(index: Int, acc: Accessory): Player =
-    val newMax = maxHp + acc.hpBonus
+    val hpBonus = acc.hpBonus.getOrElse(0)
+    val newMax  = maxHp + hpBonus
     copy(equippedAccessories = equippedAccessories.updated(index, Some(acc)),
          maxHp = newMax,
-         hp = (hp + acc.hpBonus).min(newMax)
+         hp = (hp + hpBonus).min(newMax)
     )
 
   /** Reverse of [[equipAccessory]]: clears the slot and rolls back the maxHp bonus (current HP
@@ -59,7 +60,7 @@ case class Player(
     equippedAccessories(index) match
       case None => (None, this)
       case Some(acc) =>
-        val newMax = (maxHp - acc.hpBonus).max(1)
+        val newMax = (maxHp - acc.hpBonus.getOrElse(0)).max(1)
         (Some(acc),
          copy(equippedAccessories = equippedAccessories.updated(index, None),
               maxHp = newMax,

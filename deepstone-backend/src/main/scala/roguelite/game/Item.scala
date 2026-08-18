@@ -42,6 +42,11 @@ sealed trait Item:
   /** One-line stat summary for the UI, e.g. "+3 ATK", "Heal 30 HP". */
   def statLine: String
 
+  /** Flavor text, e.g. "Warm to the touch, humming with barely-checked fury." Absent for every
+    * item authored before the item-pool rework; not yet surfaced to the client (see ItemView).
+    */
+  def description: Option[String]
+
   /** Return a copy of this item with a freshly generated instance id. */
   def withNewId: Item
 
@@ -52,6 +57,8 @@ case class Weapon(
     rarity: Rarity,
     attackBonus: Int,
     typeTag: Option[String] = None,
+    setId: Option[String] = None,
+    description: Option[String] = None
 ) extends Item:
   val kind             = "weapon"
   def statLine: String = typeTag match {
@@ -66,7 +73,9 @@ case class Armor(
     name: String,
     rarity: Rarity,
     defenseBonus: Int,
-    typeTag: Option[String] = None
+    typeTag: Option[String] = None,
+    setId: Option[String] = None,
+    description: Option[String] = None
 ) extends Item:
   val kind: String     = "armor"
   def statLine: String = typeTag match {
@@ -75,16 +84,35 @@ case class Armor(
   }
   def withNewId: Item  = copy(id = Item.newId())
 
-/** Accessories increase the player's max HP when picked up. No affinity tag. */
+/** Accessories may carry any combination of hpBonus/attackBonus/defenseBonus/critChanceBonus -
+  * today's data always sets exactly one, but all four stay independently optional so a future
+  * item can combine them. hpBonus (if present) is applied immediately/permanently on equip
+  * ([[roguelite.engine.Player.equipAccessory]]); attackBonus/defenseBonus/critChanceBonus are
+  * read live by CombatResolver every combat action instead, same as weapon/armor bonuses.
+  */
 case class Accessory(
     id: String,
     typeId: String,
     name: String,
     rarity: Rarity,
-    hpBonus: Int
+    hpBonus: Option[Int] = None,
+    typeTag: Option[String] = None,
+    attackBonus: Option[Int] = None,
+    defenseBonus: Option[Int] = None,
+    critChanceBonus: Option[Int] = None,
+    setId: Option[String] = None,
+    description: Option[String] = None
 ) extends Item:
   val kind             = "accessory"
-  def statLine: String = s"+$hpBonus MAX HP"
+  def statLine: String =
+    val parts = List(
+      hpBonus.map(n => s"+$n MAX HP"),
+      attackBonus.map(n => s"+$n ATK"),
+      defenseBonus.map(n => s"+$n DEF"),
+      critChanceBonus.map(n => s"+$n% CRIT")
+    ).flatten
+    val tagSuffix = typeTag.map(tag => s" [$tag]").getOrElse("")
+    parts.mkString(", ") + tagSuffix
   def withNewId: Item  = copy(id = Item.newId())
 
 case class Consumable(
@@ -92,7 +120,8 @@ case class Consumable(
     typeId: String,
     name: String,
     rarity: Rarity,
-    effect: ConsumableEffect
+    effect: ConsumableEffect,
+    description: Option[String] = None
 ) extends Item:
   val kind = "consumable"
   def statLine: String = effect match {
@@ -126,7 +155,8 @@ case class Key(
     typeId: String,
     name: String,
     rarity: Rarity,
-    keyKind: KeyKind
+    keyKind: KeyKind,
+    description: Option[String] = None
 ) extends Item:
   val kind = "key"
   def statLine: String = "Opens a locked door"

@@ -125,6 +125,10 @@ export interface DamageEventView {
   targetIsPlayer: boolean;
   amount: number;
   kind: "damage" | "heal";
+  /** True only for a player Attack that rolled a critical hit. Always false for enemy damage and
+   * for other player actions (Ability's FlatDamage is crit-exempt). Not yet rendered differently
+   * client-side - a later change picks this up for combat-juice feedback. */
+  crit: boolean;
 }
 
 export interface UpgradeView {
@@ -153,6 +157,9 @@ export interface ItemView {
   /** Atlas sprite key hint for the item's icon. Undefined until an icon pack is chosen and
    * items.json gains real values - falls back to a plain color box client-side. */
   iconId?: string;
+  /** Which equipment set this item belongs to, if any. Set bonuses aren't computed yet - this is
+   * only for frontend recognition. */
+  setId?: string;
 }
 
 /** One key kind the player is holding, with how many. Coarse: collapses Specific/Typed's target

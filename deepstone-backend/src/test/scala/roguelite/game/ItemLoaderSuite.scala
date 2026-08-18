@@ -126,6 +126,20 @@ class ItemLoaderSuite extends CatsEffectSuite:
         case Some(k: Key) => assertEquals(k.keyKind, KeyKind.Generic)
         case other        => fail(s"expected rusty_key to be a Key, got: $other")
 
+  test("every weapon/armor/accessory has an iconId matching its own typeId"):
+    for items <- ItemLoader.loadAll()
+    yield items.values.foreach:
+      case item @ (_: Weapon | _: Armor | _: Accessory) =>
+        assertEquals(item.iconId, Some(item.typeId), s"${item.typeId} should have a matching iconId")
+      case _ => () // consumables/keys have no sourced art in this pass
+
+  test("consumables and keys have no iconId in the current catalog"):
+    for items <- ItemLoader.loadAll()
+    yield items.values.foreach:
+      case item @ (_: Consumable | _: Key) =>
+        assertEquals(item.iconId, None, s"${item.typeId} unexpectedly has an iconId")
+      case _ => ()
+
   // ---------------------------------------------
   // Accessory.statLine (pure, no loading required - covers the new optional bonus fields)
   // ---------------------------------------------

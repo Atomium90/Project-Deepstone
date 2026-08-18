@@ -31,11 +31,13 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
       ij.kind.toLowerCase match
         case "weapon" =>
           ij.attackBonus.toRight("Weapon is missing 'attackBonus' field").map:
-            bonus => Weapon(id = "", ij.typeId, ij.name, rarity, bonus, ij.typeTag, ij.setId, ij.description)
+            bonus => Weapon(id = "", ij.typeId, ij.name, rarity, bonus, ij.typeTag, ij.setId,
+                            ij.description, ij.iconId)
 
         case "armor" =>
           ij.defenseBonus.toRight("Armor is missing 'defenseBonus' field").map:
-            bonus => Armor(id = "", ij.typeId, ij.name, rarity, bonus, ij.typeTag, ij.setId, ij.description)
+            bonus => Armor(id = "", ij.typeId, ij.name, rarity, bonus, ij.typeTag, ij.setId,
+                           ij.description, ij.iconId)
 
         case "accessory" =>
           Right(
@@ -46,18 +48,19 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
                       defenseBonus = ij.defenseBonus,
                       critChanceBonus = ij.critChanceBonus,
                       setId = ij.setId,
-                      description = ij.description
+                      description = ij.description,
+                      iconId = ij.iconId
             )
           )
 
         case "consumable" =>
           ij.effect.toRight("Consumable is missing 'effect' field").flatMap:
             e => parseConsumableEffect(e).map:
-              effect => Consumable(id = "", ij.typeId, ij.name, rarity, effect, ij.description)
+              effect => Consumable(id = "", ij.typeId, ij.name, rarity, effect, ij.description, ij.iconId)
 
         case "key" =>
           ij.keyKind.toRight("Key is missing 'keyKind' field").flatMap(parseKeyKind(_, ij)).map:
-            kk => Key(id = "", ij.typeId, ij.name, rarity, kk, ij.description)
+            kk => Key(id = "", ij.typeId, ij.name, rarity, kk, ij.description, ij.iconId)
 
         case other =>
           Left(s"Unknown item kind: '$other'")
@@ -109,6 +112,7 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
                                critChanceBonus: Option[Int] = None,
                                setId: Option[String] = None,
                                description: Option[String] = None,
+                               iconId: Option[String] = None,
                                effect: Option[ConsumableEffectJson] = None,
                                keyKind: Option[String] = None,
                                doorId: Option[String] = None,
@@ -136,9 +140,10 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
       critChanceBonus <- c.get[Option[Int]]("critChanceBonus")
       setId           <- c.get[Option[String]]("setId")
       description     <- c.get[Option[String]]("description")
+      iconId          <- c.get[Option[String]]("iconId")
       effect          <- c.get[Option[ConsumableEffectJson]]("effect")
       keyKind         <- c.get[Option[String]]("keyKind")
       doorId          <- c.get[Option[String]]("doorId")
       doorTag         <- c.get[Option[String]]("doorTag")
     yield ItemJson(typeId, kind, name, rarity, typeTag, attackBonus, defenseBonus, hpBonus,
-                    critChanceBonus, setId, description, effect, keyKind, doorId, doorTag)
+                    critChanceBonus, setId, description, iconId, effect, keyKind, doorId, doorTag)

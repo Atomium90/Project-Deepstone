@@ -12,6 +12,7 @@
         targetIsPlayer: boolean;
         amount: number;
         kind: "damage" | "heal";
+        crit: boolean;
     }
 
     let floaters: Floater[] = [];
@@ -68,7 +69,10 @@
 
         for (const evt of $combatDamageEvents) {
             const id = nextFloaterId++;
-            floaters = [...floaters, { id, targetIsPlayer: evt.targetIsPlayer, amount: evt.amount, kind: evt.kind }];
+            floaters = [
+                ...floaters,
+                { id, targetIsPlayer: evt.targetIsPlayer, amount: evt.amount, kind: evt.kind, crit: evt.crit },
+            ];
             setTimeout(() => {
                 floaters = floaters.filter((f) => f.id !== id);
             }, 900);
@@ -145,8 +149,8 @@
             <StatBar label={resourceLabel} current={player?.resourceCurrent ?? 0} max={player?.resourceMax ?? 0} color={resourceColor} />
 
             {#each floaters.filter((f) => f.targetIsPlayer) as f (f.id)}
-                <span class="floater" class:heal={f.kind === "heal"}>
-                    {f.kind === "heal" ? "+" : "-"}{f.amount}
+                <span class="floater" class:heal={f.kind === "heal"} class:crit={f.crit}>
+                    {f.kind === "heal" ? "+" : "-"}{f.amount}{f.crit ? "!" : ""}
                 </span>
             {/each}
         </div>
@@ -177,8 +181,8 @@
             <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0} color={HP_BAR_COLOR} />
 
             {#each floaters.filter((f) => !f.targetIsPlayer) as f (f.id)}
-                <span class="floater" class:heal={f.kind === "heal"}>
-                    {f.kind === "heal" ? "+" : "-"}{f.amount}
+                <span class="floater" class:heal={f.kind === "heal"} class:crit={f.crit}>
+                    {f.kind === "heal" ? "+" : "-"}{f.amount}{f.crit ? "!" : ""}
                 </span>
             {/each}
         </div>
@@ -336,6 +340,13 @@
     }
 
     .floater.heal { color: #6bff9e; }
+
+    /* Bigger + a distinct gold color, no scale/transform (the float-up animation below already
+     * owns transform via its keyframes - font-size stacks cleanly instead of fighting it). */
+    .floater.crit {
+        font-size: 1.6rem;
+        color: #ffb84d;
+    }
 
     @keyframes float-up {
         0%   { opacity: 1; transform: translate(-50%, 0); }

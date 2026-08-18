@@ -432,13 +432,13 @@
     "iconId": "speed_potion"
   },
   {
-    "typeId": "luck_trifle",
+    "typeId": "luck_clover",
     "kind": "accessory",
-    "name": "Luck Trifle",
+    "name": "Lucky Clover",
     "rarity": "common",
     "critChanceBonus": 5,
-    "description": "Small, sweet, and probably doing nothing at all.",
-    "iconId": "luck_trifle"
+    "description": "A four-leaf clover, kept close for luck. Hasn't run out yet.",
+    "iconId": "luck_clover"
   },
   {
     "typeId": "bread",

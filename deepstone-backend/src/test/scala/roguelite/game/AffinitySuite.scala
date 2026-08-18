@@ -48,6 +48,10 @@ class AffinitySuite extends FunSuite:
   private def withArmor(player: Player, armor: Armor): Player =
     player.copy(equippedArmor = Some(armor.copy(id = Item.newId())))
 
+  /** Equip an accessory into slot 0 of an otherwise unequipped player. */
+  private def withAccessory(player: Player, accessory: Accessory): Player =
+    player.copy(equippedAccessories = player.equippedAccessories.updated(0, Some(accessory.copy(id = Item.newId()))))
+
   // Prototype items (id = "" is fine; withWeapon/withArmor copy a new id)
   private val heavySword = Weapon(id = "",
                                   typeId = "iron_sword",
@@ -90,6 +94,20 @@ class AffinitySuite extends FunSuite:
                                    rarity = Rarity.Common,
                                    attackBonus = 4,
                                    typeTag = None
+  )
+  private val heavyRing = Accessory(id = "",
+                                    typeId = "ring_of_strength",
+                                    name = "Ring of Strength",
+                                    rarity = Rarity.Uncommon,
+                                    attackBonus = Some(4),
+                                    typeTag = Some("heavy")
+  )
+  private val heavyShield = Accessory(id = "",
+                                      typeId = "iron_shield",
+                                      name = "Iron Shield",
+                                      rarity = Rarity.Uncommon,
+                                      defenseBonus = Some(5),
+                                      typeTag = Some("heavy")
   )
 
   // Build a minimal dungeon so CombatState is valid (needed for resolve calls)
@@ -246,5 +264,64 @@ class AffinitySuite extends FunSuite:
     assert(
       dmgWarrior <= dmgArcher,
       s"Warrior should take <= damage with heavy armor affinity, warrior=$dmgWarrior archer=$dmgArcher"
+    )
+  }
+
+  // -----------------------------------------------------------------------
+  // Accessory affinity (attackBonus / defenseBonus, same rule as weapon/armor)
+  // -----------------------------------------------------------------------
+
+  test("Warrior with heavy accessory (attackBonus) gets 2x attack bonus") {
+    val resolver  = freshResolver
+    val warrior   = withAccessory(makePlayer(ClassId.Warrior, Set("heavy")), heavyRing)
+    val noRing    = makePlayer(ClassId.Warrior, Set("heavy"))
+    val stateWith = makeCombatState(warrior)
+    val stateNo   = makeCombatState(noRing)
+
+    val (nextWith, _, _) =
+      CombatResolver(Random(11)).resolve(stateWith, CombatAction(CombatActionType.Attack))
+    val (nextNo, _, _) =
+      CombatResolver(Random(11)).resolve(stateNo, CombatAction(CombatActionType.Attack))
+
+    val dmgWith = nextWith match { case cs: CombatState => 500 - cs.combat.enemy.hp; case _ => 500 }
+    val dmgNo   = nextNo match { case cs: CombatState => 500 - cs.combat.enemy.hp; case _ => 500 }
+    // Ring of Strength: +4 ATK, heavy affinity doubles it to +8 for a Warrior.
+    assert(dmgWith >= dmgNo + 6,
+           s"expected the accessory's doubled attack bonus to show up (with=$dmgWith, no=$dmgNo)"
+    )
+  }
+
+  test("Warrior with heavy accessory (defenseBonus) gets 2x defense bonus") {
+    val warrior   = withAccessory(makePlayer(ClassId.Warrior, Set("heavy")), heavyShield)
+    val noShield  = makePlayer(ClassId.Warrior, Set("heavy"))
+    val stateWith = makeCombatState(warrior)
+    val stateNo   = makeCombatState(noShield)
+
+    val (nextWith, _, _) =
+      CombatResolver(Random(13)).resolve(stateWith, CombatAction(CombatActionType.Defend))
+    val (nextNo, _, _) =
+      CombatResolver(Random(13)).resolve(stateNo, CombatAction(CombatActionType.Defend))
+
+    (nextWith, nextNo) match
+      case (csWith: CombatState, csNo: CombatState) =>
+        val dmgWith = 200 - csWith.player.hp
+        val dmgNo   = 200 - csNo.player.hp
+        assert(dmgWith <= dmgNo, s"accessory defenseBonus should reduce damage (with=$dmgWith, no=$dmgNo)")
+      case _ => fail("expected CombatState after defend for both cases")
+  }
+
+  test("weapon and accessory attack bonuses stack") {
+    val both     = withAccessory(withWeapon(makePlayer(ClassId.Warrior, Set("heavy")), heavySword), heavyRing)
+    val weaponOnly = withWeapon(makePlayer(ClassId.Warrior, Set("heavy")), heavySword)
+
+    val (nextBoth, _, _) =
+      CombatResolver(Random(17)).resolve(makeCombatState(both), CombatAction(CombatActionType.Attack))
+    val (nextWeaponOnly, _, _) =
+      CombatResolver(Random(17)).resolve(makeCombatState(weaponOnly), CombatAction(CombatActionType.Attack))
+
+    val dmgBoth = nextBoth match { case cs: CombatState => 500 - cs.combat.enemy.hp; case _ => 500 }
+    val dmgWeaponOnly = nextWeaponOnly match { case cs: CombatState => 500 - cs.combat.enemy.hp; case _ => 500 }
+    assert(dmgBoth > dmgWeaponOnly,
+           s"accessory bonus should add on top of the weapon bonus (both=$dmgBoth, weaponOnly=$dmgWeaponOnly)"
     )
   }

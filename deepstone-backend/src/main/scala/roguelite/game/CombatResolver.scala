@@ -447,29 +447,44 @@ class CombatResolver(rng: Random = Random(),
   // Player stat accessors (include equipped-item bonuses)
   // ---------------------------------------------
 
+  /** Sum one bonus field across both equipped accessory slots, applying the same affinity-doubling
+    * rule as weapon/armor bonuses to each accessory independently (its own typeTag against the
+    * player's affinityTags, not the accessory kind as a whole).
+    */
+  private def accessoryBonusSum(player: Player, extract: Accessory => Option[Int]): Int =
+    player.equippedAccessories.flatten.map: acc =>
+      val base = extract(acc).getOrElse(0)
+      base * (if acc.typeTag.exists(player.affinityTags.contains) then 2 else 1)
+    .sum
+
   /** Will be tuned later. */
   extension (player: Player)
     /** Effective attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon
-      * bonus.
+      * and accessory bonuses.
       *
       * The equipped weapon's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Hunter's Bow (+5 ATK, "ranged") held by an Archer (affinity: "ranged") → +10 ATK.
+      * Equipped accessories contribute the same way if they carry an attackBonus.
       */
     private def attack: Int =
       val weaponBonus = player.equippedWeapon match {
         case Some(w) => w.attackBonus * (if w.typeTag.exists(player.affinityTags.contains) then 2 else 1)
         case None    => 0
       }
-      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus
+      val accessoryBonus = accessoryBonusSum(player, _.attackBonus)
+      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus
 
-    /** Effective defense: level scaling + permanent bonus + affinity-aware armor bonus.
+    /** Effective defense: level scaling + permanent bonus + affinity-aware armor and accessory
+      * bonuses.
       *
       * The equipped armor's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Chain Mail (+6 DEF, "heavy") held by a Warrior (affinity: "heavy") → +12 DEF.
+      * Equipped accessories contribute the same way if they carry a defenseBonus.
       */
     private def defense: Int =
       val armorBonus = player.equippedArmor match {
         case Some(a) => a.defenseBonus * (if a.typeTag.exists(player.affinityTags.contains) then 2 else 1)
         case None    => 0
       }
-      player.level * 2 + player.bonusDefense + armorBonus
+      val accessoryBonus = accessoryBonusSum(player, _.defenseBonus)
+      player.level * 2 + player.bonusDefense + armorBonus + accessoryBonus

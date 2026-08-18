@@ -314,3 +314,14 @@ class StateMachineSuite extends FunSuite:
     val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
     assertEquals(update.equipment.potionBelt.flatten.length, 1)
     assertEquals(update.equipment.potionBelt.flatten.head.typeId, "health_potion")
+
+  test("StateUpdate equipment carries an equipped item's setId through to ItemView"):
+    val setArmor = Armor("a1", "steel_plate", "Steel Plate", Rarity.Uncommon, defenseBonus = 8,
+                         typeTag = Some("heavy"), setId = Some("light_soldier")
+    )
+    val genericWeapon = Weapon("w1", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior)
+      .copy(equippedArmor = Some(setArmor), equippedWeapon = Some(genericWeapon))
+    val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
+    assertEquals(update.equipment.armor.flatMap(_.setId), Some("light_soldier"))
+    assertEquals(update.equipment.weapon.flatMap(_.setId), None)

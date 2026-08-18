@@ -180,7 +180,11 @@ case class ItemView(
       * "missing asset renders as a graceful no-op" convention used elsewhere (see
       * [[roguelite.game.AudioManager]]-equivalent client-side handling for sound/music).
       */
-    iconId: Option[String] = None
+    iconId: Option[String] = None,
+    /** Which equipment set this item belongs to, if any. Set bonuses aren't computed yet - this
+      * is only for frontend recognition.
+      */
+    setId: Option[String] = None
 )
 
 /** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses

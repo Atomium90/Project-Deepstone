@@ -30,7 +30,8 @@ private def itemToView(item: Item): ItemView =
       case a: Armor     => a.setId
       case a: Accessory => a.setId
       case _            => None
-    }
+    },
+    iconId = item.iconId
   )
 
 /** Coarse display label for a key kind - collapses `Specific`/`Typed`'s payload away, see

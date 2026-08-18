@@ -112,7 +112,7 @@ class CombatResolverSuite extends FunSuite:
     for _ <- 1 to 100 do assert(r.rollCrit(100))
 
   test("player critChance sums equipped accessories' critChanceBonus"):
-    val critRing = Accessory("", "luck_trifle", "Luck Trifle", Rarity.Common, critChanceBonus = Some(5))
+    val critRing = Accessory("", "luck_clover", "Lucky Clover", Rarity.Common, critChanceBonus = Some(5))
     val critGem  = Accessory("", "mask_of_terror", "Mask of Terror", Rarity.Uncommon, critChanceBonus = Some(8))
     val player   = equipAccessory(equipAccessory(fullHpPlayer(), critRing, slot = 0), critGem, slot = 1)
     assertEquals(resolver().critChance(player), 13)

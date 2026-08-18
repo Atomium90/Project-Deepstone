@@ -230,6 +230,300 @@
       "y": 212,
       "w": 9,
       "h": 11
+    },
+    "steel_plate": {
+      "sheet": "/sprites/items/rpg_armour_16.png",
+      "x": 48,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "steel_sword": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 80,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "ring_of_strength": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 144,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "iron_shield": {
+      "sheet": "/sprites/items/rpg_armour_16.png",
+      "x": 64,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "berserker_armor": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 64,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "obsidian_hammer": {
+      "sheet": "/sprites/items/rpg_weapons_16.png",
+      "x": 96,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "mask_of_terror": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 240,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "obsidian_hatchet": {
+      "sheet": "/sprites/items/rpg_weapons_16.png",
+      "x": 96,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "leather_cape": {
+      "sheet": "/sprites/items/rpg_armour_16.png",
+      "x": 0,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "wooden_emerald_bow": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 144,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "accuracy_necklace": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 0,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "piercing_arrow": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 0,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "copper_cape": {
+      "sheet": "/sprites/items/rpg_armour_16.png",
+      "x": 16,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "bronze_crossbow": {
+      "sheet": "/sprites/items/rpg_weapons_16.png",
+      "x": 32,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "iron_bolt": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 240,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "rage_stone": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 128,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "pyromancer_cape": {
+      "sheet": "/sprites/items/rpg_mage_16.png",
+      "x": 48,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "pyromancer_staff": {
+      "sheet": "/sprites/items/rpg_mage_16.png",
+      "x": 48,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "pyromancer_hat": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 64,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "arcana_scroll": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 192,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dark_mantle": {
+      "sheet": "/sprites/items/rpg_mage_16.png",
+      "x": 96,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "occult_grimoire": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 208,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "skull_talisman": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 208,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dark_gem": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 96,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "silver_spear": {
+      "sheet": "/sprites/items/rpg_weapons_16.png",
+      "x": 64,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "bronze_battleaxe": {
+      "sheet": "/sprites/items/rpg_weapons_16.png",
+      "x": 32,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "practice_sword": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 48,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "flame_infused_bow": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 192,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "gold_dagger": {
+      "sheet": "/sprites/items/rpg_weapons_16.png",
+      "x": 80,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "leather_bound_grimoire": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 128,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "red_shield": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 32,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "wooden_shield": {
+      "sheet": "/sprites/items/rpg_armour_16.png",
+      "x": 0,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "plain_ring": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 176,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "worn_boots": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 240,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "hunting_gloves": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 208,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "travelers_necklace": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 112,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "open_grimoire": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 112,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "arcane_scroll": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 16,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "storm_potion": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 192,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "soulstone": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 176,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "speed_potion": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 224,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "luck_clover": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 240,
+      "y": 192,
+      "w": 16,
+      "h": 16
     }
   }
 }

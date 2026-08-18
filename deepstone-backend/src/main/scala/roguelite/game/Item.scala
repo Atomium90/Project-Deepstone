@@ -47,6 +47,11 @@ sealed trait Item:
     */
   def description: Option[String]
 
+  /** Atlas sprite key for this item's icon (see frontend/public/atlas/items.json). Absent for
+    * every item without sourced art - the client falls back to a plain colored box.
+    */
+  def iconId: Option[String]
+
   /** Return a copy of this item with a freshly generated instance id. */
   def withNewId: Item
 
@@ -58,7 +63,8 @@ case class Weapon(
     attackBonus: Int,
     typeTag: Option[String] = None,
     setId: Option[String] = None,
-    description: Option[String] = None
+    description: Option[String] = None,
+    iconId: Option[String] = None
 ) extends Item:
   val kind             = "weapon"
   def statLine: String = typeTag match {
@@ -75,7 +81,8 @@ case class Armor(
     defenseBonus: Int,
     typeTag: Option[String] = None,
     setId: Option[String] = None,
-    description: Option[String] = None
+    description: Option[String] = None,
+    iconId: Option[String] = None
 ) extends Item:
   val kind: String     = "armor"
   def statLine: String = typeTag match {
@@ -101,7 +108,8 @@ case class Accessory(
     defenseBonus: Option[Int] = None,
     critChanceBonus: Option[Int] = None,
     setId: Option[String] = None,
-    description: Option[String] = None
+    description: Option[String] = None,
+    iconId: Option[String] = None
 ) extends Item:
   val kind             = "accessory"
   def statLine: String =
@@ -121,7 +129,8 @@ case class Consumable(
     name: String,
     rarity: Rarity,
     effect: ConsumableEffect,
-    description: Option[String] = None
+    description: Option[String] = None,
+    iconId: Option[String] = None
 ) extends Item:
   val kind = "consumable"
   def statLine: String = effect match {
@@ -156,7 +165,8 @@ case class Key(
     name: String,
     rarity: Rarity,
     keyKind: KeyKind,
-    description: Option[String] = None
+    description: Option[String] = None,
+    iconId: Option[String] = None
 ) extends Item:
   val kind = "key"
   def statLine: String = "Opens a locked door"

@@ -7,7 +7,8 @@
     "typeTag": "heavy",
     "setId": "light_soldier",
     "defenseBonus": 8,
-    "description": "Standard-issue plate, dependable and unremarkable."
+    "description": "Standard-issue plate, dependable and unremarkable.",
+    "iconId": "steel_plate"
   },
   {
     "typeId": "steel_sword",
@@ -17,7 +18,8 @@
     "typeTag": "heavy",
     "setId": "light_soldier",
     "attackBonus": 8,
-    "description": "A well-balanced blade favored by disciplined soldiers."
+    "description": "A well-balanced blade favored by disciplined soldiers.",
+    "iconId": "steel_sword"
   },
   {
     "typeId": "ring_of_strength",
@@ -27,7 +29,8 @@
     "typeTag": "heavy",
     "setId": "light_soldier",
     "attackBonus": 4,
-    "description": "A simple band said to steady the sword arm."
+    "description": "A simple band said to steady the sword arm.",
+    "iconId": "ring_of_strength"
   },
   {
     "typeId": "iron_shield",
@@ -37,7 +40,8 @@
     "typeTag": "heavy",
     "setId": "light_soldier",
     "defenseBonus": 5,
-    "description": "Dented but unbroken after countless battles."
+    "description": "Dented but unbroken after countless battles.",
+    "iconId": "iron_shield"
   },
   {
     "typeId": "berserker_armor",
@@ -47,7 +51,8 @@
     "typeTag": "heavy",
     "setId": "enraged_berserker",
     "defenseBonus": 7,
-    "description": "Scarred plating worn by those who never retreat."
+    "description": "Scarred plating worn by those who never retreat.",
+    "iconId": "berserker_armor"
   },
   {
     "typeId": "obsidian_hammer",
@@ -57,7 +62,8 @@
     "typeTag": "heavy",
     "setId": "enraged_berserker",
     "attackBonus": 10,
-    "description": "Heavier than it looks, and twice as cruel."
+    "description": "Heavier than it looks, and twice as cruel.",
+    "iconId": "obsidian_hammer"
   },
   {
     "typeId": "mask_of_terror",
@@ -67,7 +73,8 @@
     "typeTag": "heavy",
     "setId": "enraged_berserker",
     "critChanceBonus": 8,
-    "description": "Its hollow eyes unsettle even seasoned foes."
+    "description": "Its hollow eyes unsettle even seasoned foes.",
+    "iconId": "mask_of_terror"
   },
   {
     "typeId": "obsidian_hatchet",
@@ -77,7 +84,8 @@
     "typeTag": "heavy",
     "setId": "enraged_berserker",
     "attackBonus": 5,
-    "description": "Carried more as a warning than a weapon."
+    "description": "Carried more as a warning than a weapon.",
+    "iconId": "obsidian_hatchet"
   },
   {
     "typeId": "leather_cape",
@@ -87,7 +95,8 @@
     "typeTag": "ranged",
     "setId": "silent_archer",
     "defenseBonus": 4,
-    "description": "Thin and unassuming, built for silence over protection."
+    "description": "Thin and unassuming, built for silence over protection.",
+    "iconId": "leather_cape"
   },
   {
     "typeId": "wooden_emerald_bow",
@@ -97,7 +106,8 @@
     "typeTag": "ranged",
     "setId": "silent_archer",
     "attackBonus": 7,
-    "description": "A hunter's bow, quiet and precise."
+    "description": "A hunter's bow, quiet and precise.",
+    "iconId": "wooden_emerald_bow"
   },
   {
     "typeId": "accuracy_necklace",
@@ -107,7 +117,8 @@
     "typeTag": "ranged",
     "setId": "silent_archer",
     "critChanceBonus": 6,
-    "description": "Worn by marksmen who never miss twice."
+    "description": "Worn by marksmen who never miss twice.",
+    "iconId": "accuracy_necklace"
   },
   {
     "typeId": "piercing_arrow",
@@ -117,7 +128,8 @@
     "typeTag": "ranged",
     "setId": "silent_archer",
     "attackBonus": 4,
-    "description": "Fletched to punch straight through armor."
+    "description": "Fletched to punch straight through armor.",
+    "iconId": "piercing_arrow"
   },
   {
     "typeId": "copper_cape",
@@ -127,7 +139,8 @@
     "typeTag": "ranged",
     "setId": "iron_bolter",
     "defenseBonus": 6,
-    "description": "Slightly reinforced, still light enough to move fast."
+    "description": "Slightly reinforced, still light enough to move fast.",
+    "iconId": "copper_cape"
   },
   {
     "typeId": "bronze_crossbow",
@@ -137,7 +150,8 @@
     "typeTag": "ranged",
     "setId": "iron_bolter",
     "attackBonus": 9,
-    "description": "Slow to load, impossible to ignore."
+    "description": "Slow to load, impossible to ignore.",
+    "iconId": "bronze_crossbow"
   },
   {
     "typeId": "iron_bolt",
@@ -147,7 +161,8 @@
     "typeTag": "ranged",
     "setId": "iron_bolter",
     "attackBonus": 5,
-    "description": "A single bolt, cold and purposeful."
+    "description": "A single bolt, cold and purposeful.",
+    "iconId": "iron_bolt"
   },
   {
     "typeId": "rage_stone",
@@ -157,7 +172,8 @@
     "typeTag": "ranged",
     "setId": "iron_bolter",
     "critChanceBonus": 6,
-    "description": "Warm to the touch, humming with barely-checked fury."
+    "description": "Warm to the touch, humming with barely-checked fury.",
+    "iconId": "rage_stone"
   },
   {
     "typeId": "pyromancer_cape",
@@ -167,7 +183,8 @@
     "typeTag": "magic",
     "setId": "pyromancer",
     "defenseBonus": 4,
-    "description": "Singed at the hem from one too many spells."
+    "description": "Singed at the hem from one too many spells.",
+    "iconId": "pyromancer_cape"
   },
   {
     "typeId": "pyromancer_staff",
@@ -177,7 +194,8 @@
     "typeTag": "magic",
     "setId": "pyromancer",
     "attackBonus": 7,
-    "description": "Never quite cools between casts."
+    "description": "Never quite cools between casts.",
+    "iconId": "pyromancer_staff"
   },
   {
     "typeId": "pyromancer_hat",
@@ -187,7 +205,8 @@
     "typeTag": "magic",
     "setId": "pyromancer",
     "attackBonus": 4,
-    "description": "Smells faintly of ash and ambition."
+    "description": "Smells faintly of ash and ambition.",
+    "iconId": "pyromancer_hat"
   },
   {
     "typeId": "arcana_scroll",
@@ -197,7 +216,8 @@
     "typeTag": "magic",
     "setId": "pyromancer",
     "hpBonus": 15,
-    "description": "Old parchment that hums when unrolled."
+    "description": "Old parchment that hums when unrolled.",
+    "iconId": "arcana_scroll"
   },
   {
     "typeId": "dark_mantle",
@@ -207,7 +227,8 @@
     "typeTag": "magic",
     "setId": "necromancer",
     "defenseBonus": 5,
-    "description": "Woven from something that was never quite cloth."
+    "description": "Woven from something that was never quite cloth.",
+    "iconId": "dark_mantle"
   },
   {
     "typeId": "occult_grimoire",
@@ -217,7 +238,8 @@
     "typeTag": "magic",
     "setId": "necromancer",
     "attackBonus": 10,
-    "description": "Its pages rearrange themselves when no one's looking."
+    "description": "Its pages rearrange themselves when no one's looking.",
+    "iconId": "occult_grimoire"
   },
   {
     "typeId": "skull_talisman",
@@ -227,7 +249,8 @@
     "typeTag": "magic",
     "setId": "necromancer",
     "hpBonus": 18,
-    "description": "Grinning at nothing, as always."
+    "description": "Grinning at nothing, as always.",
+    "iconId": "skull_talisman"
   },
   {
     "typeId": "dark_gem",
@@ -237,7 +260,8 @@
     "typeTag": "magic",
     "setId": "necromancer",
     "attackBonus": 5,
-    "description": "Cold at the core, no matter how it's held."
+    "description": "Cold at the core, no matter how it's held.",
+    "iconId": "dark_gem"
   },
   {
     "typeId": "silver_spear",
@@ -246,7 +270,8 @@
     "rarity": "common",
     "typeTag": "heavy",
     "attackBonus": 6,
-    "description": "Long reach, honest craftsmanship."
+    "description": "Long reach, honest craftsmanship.",
+    "iconId": "silver_spear"
   },
   {
     "typeId": "bronze_battleaxe",
@@ -255,7 +280,8 @@
     "rarity": "common",
     "typeTag": "heavy",
     "attackBonus": 5,
-    "description": "Blunt where it counts, sharp where it matters."
+    "description": "Blunt where it counts, sharp where it matters.",
+    "iconId": "bronze_battleaxe"
   },
   {
     "typeId": "practice_sword",
@@ -264,7 +290,8 @@
     "rarity": "common",
     "typeTag": "heavy",
     "attackBonus": 3,
-    "description": "Dulled for training, still gets the job done."
+    "description": "Dulled for training, still gets the job done.",
+    "iconId": "practice_sword"
   },
   {
     "typeId": "flame_infused_bow",
@@ -273,7 +300,8 @@
     "rarity": "uncommon",
     "typeTag": "ranged",
     "attackBonus": 8,
-    "description": "Each arrow leaves a faint trail of smoke."
+    "description": "Each arrow leaves a faint trail of smoke.",
+    "iconId": "flame_infused_bow"
   },
   {
     "typeId": "gold_dagger",
@@ -282,7 +310,8 @@
     "rarity": "common",
     "typeTag": "ranged",
     "attackBonus": 4,
-    "description": "More ornament than weapon, until it isn't."
+    "description": "More ornament than weapon, until it isn't.",
+    "iconId": "gold_dagger"
   },
   {
     "typeId": "leather_bound_grimoire",
@@ -291,7 +320,8 @@
     "rarity": "common",
     "typeTag": "magic",
     "attackBonus": 6,
-    "description": "A student's first spellbook, dog-eared and well-used."
+    "description": "A student's first spellbook, dog-eared and well-used.",
+    "iconId": "leather_bound_grimoire"
   },
   {
     "typeId": "red_shield",
@@ -300,7 +330,8 @@
     "rarity": "common",
     "typeTag": "heavy",
     "defenseBonus": 3,
-    "description": "Painted red to hide the stains."
+    "description": "Painted red to hide the stains.",
+    "iconId": "red_shield"
   },
   {
     "typeId": "wooden_shield",
@@ -309,7 +340,8 @@
     "rarity": "common",
     "typeTag": "heavy",
     "defenseBonus": 2,
-    "description": "Splinters more than it should, but it holds."
+    "description": "Splinters more than it should, but it holds.",
+    "iconId": "wooden_shield"
   },
   {
     "typeId": "plain_ring",
@@ -318,7 +350,8 @@
     "rarity": "common",
     "typeTag": "heavy",
     "attackBonus": 3,
-    "description": "No inscriptions, no history, just a ring."
+    "description": "No inscriptions, no history, just a ring.",
+    "iconId": "plain_ring"
   },
   {
     "typeId": "worn_boots",
@@ -327,7 +360,8 @@
     "rarity": "common",
     "typeTag": "ranged",
     "defenseBonus": 2,
-    "description": "Miles of travel worn into the leather."
+    "description": "Miles of travel worn into the leather.",
+    "iconId": "worn_boots"
   },
   {
     "typeId": "hunting_gloves",
@@ -336,7 +370,8 @@
     "rarity": "common",
     "typeTag": "ranged",
     "attackBonus": 3,
-    "description": "Stiff at first, then like a second skin."
+    "description": "Stiff at first, then like a second skin.",
+    "iconId": "hunting_gloves"
   },
   {
     "typeId": "travelers_necklace",
@@ -345,7 +380,8 @@
     "rarity": "common",
     "typeTag": "ranged",
     "hpBonus": 10,
-    "description": "A keepsake from somewhere long left behind."
+    "description": "A keepsake from somewhere long left behind.",
+    "iconId": "travelers_necklace"
   },
   {
     "typeId": "open_grimoire",
@@ -354,7 +390,8 @@
     "rarity": "common",
     "typeTag": "magic",
     "attackBonus": 3,
-    "description": "Left open to a page never quite finished."
+    "description": "Left open to a page never quite finished.",
+    "iconId": "open_grimoire"
   },
   {
     "typeId": "arcane_scroll",
@@ -363,7 +400,8 @@
     "rarity": "common",
     "typeTag": "magic",
     "critChanceBonus": 4,
-    "description": "Ink still faintly glowing along the edges."
+    "description": "Ink still faintly glowing along the edges.",
+    "iconId": "arcane_scroll"
   },
   {
     "typeId": "storm_potion",
@@ -372,7 +410,8 @@
     "rarity": "common",
     "typeTag": "magic",
     "hpBonus": 10,
-    "description": "Crackles faintly when uncorked."
+    "description": "Crackles faintly when uncorked.",
+    "iconId": "storm_potion"
   },
   {
     "typeId": "soulstone",
@@ -380,7 +419,8 @@
     "name": "Soulstone",
     "rarity": "common",
     "hpBonus": 12,
-    "description": "Warm despite the cold room it's kept in."
+    "description": "Warm despite the cold room it's kept in.",
+    "iconId": "soulstone"
   },
   {
     "typeId": "speed_potion",
@@ -388,15 +428,17 @@
     "name": "Speed Potion",
     "rarity": "common",
     "hpBonus": 10,
-    "description": "Goes down fast. So do you, afterward."
+    "description": "Goes down fast. So do you, afterward.",
+    "iconId": "speed_potion"
   },
   {
-    "typeId": "luck_trifle",
+    "typeId": "luck_clover",
     "kind": "accessory",
-    "name": "Luck Trifle",
+    "name": "Lucky Clover",
     "rarity": "common",
     "critChanceBonus": 5,
-    "description": "Small, sweet, and probably doing nothing at all."
+    "description": "A four-leaf clover, kept close for luck. Hasn't run out yet.",
+    "iconId": "luck_clover"
   },
   {
     "typeId": "bread",

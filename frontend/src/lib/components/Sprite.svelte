@@ -76,7 +76,9 @@
         "
     ></div>
 {:else}
-    <div class="sprite" style="width:{size}px; height:{size}px; background-color:{fallbackColor};"></div>
+    <div class="sprite" style="width:{size}px; height:{size}px; background-color:{fallbackColor};">
+        <slot name="fallback" />
+    </div>
 {/if}
 
 <style>

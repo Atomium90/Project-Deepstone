@@ -5,7 +5,7 @@ Third-party art and audio assets used by Deepstone, and their licenses.
 ## Requires attribution
 
 - **Kyrise's 16x16 RPG Icon Pack** by Kyrise (https://kyrise.itch.io/kyrises-free-16x16-rpg-icon-pack)
-  Used for: class icons (sword/bow/staff), currency icon.
+  Used for: class icons (sword/bow/staff), currency icon, item icons (accessories, several weapons).
   License: [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) - attribution required.
 
 ## CC0 (no attribution required, credited here anyway)
@@ -23,3 +23,5 @@ Third-party art and audio assets used by Deepstone, and their licenses.
 
 - **Fantasy Boss Battle Music Pack Vol. 2** by AlkaKrab (https://alkakrab.itch.io/fantasy-boss-battle-music-pack-vol-2) - boss music.
 - **4SS Platform** by MoDsama (https://modsama.itch.io/4ssplatform) - warrior/archer/mage sprites.
+- **RPG Weapons Pack**, **RPG Armour Pack**, **RPG Mage Pack** by CaseIRL (https://caseirl.itch.io/)
+  Paid Edition - item icons (weapons, armor, some accessories). Attribution appreciated, not required.

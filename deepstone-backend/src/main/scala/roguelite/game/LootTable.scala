@@ -23,7 +23,7 @@ object LootTable:
     "steel_sword"            -> 5,
     "wooden_emerald_bow"     -> 5,
     "pyromancer_staff"       -> 5,
-    "luck_trifle"            -> 8
+    "luck_clover"            -> 8
   )
 
   /** Roll a chest drop. Chests always yield exactly one item from [[ChestPool]].

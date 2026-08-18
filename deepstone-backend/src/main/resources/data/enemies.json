@@ -18,7 +18,7 @@
       { "typeId": "practice_sword", "weight": 15 },
       { "typeId": "gold_dagger",    "weight": 15 },
       { "typeId": "soulstone",      "weight": 10 },
-      { "typeId": "luck_trifle",    "weight": 5 }
+      { "typeId": "luck_clover",    "weight": 5 }
     ]
   },
   {
@@ -88,7 +88,7 @@
       { "typeId": "occult_grimoire",   "weight": 10 },
       { "typeId": "berserker_armor",   "weight": 10 },
       { "typeId": "copper_cape",       "weight": 10 },
-      { "typeId": "luck_trifle",       "weight": 8 },
+      { "typeId": "luck_clover",       "weight": 8 },
       { "typeId": "greater_potion",    "weight": 6 },
       { "typeId": "elixir",            "weight": 5 }
     ]

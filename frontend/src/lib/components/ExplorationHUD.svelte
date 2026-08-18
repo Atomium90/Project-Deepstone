@@ -2,18 +2,14 @@
     import { onMount, onDestroy } from "svelte";
     import { fly } from "svelte/transition";
     import { gameState, client, combatLog, npcDialogue } from "../engine/StateStore";
+    import { characterTab } from "../engine/CharacterStore";
     import { Renderer } from "../engine/Renderer";
-    import {
-        RESOURCE_BAR_COLORS,
-        HP_BAR_COLOR,
-        ITEM_KIND_COLORS,
-        ITEM_RARITY_COLORS,
-        COLOR_ENTITY_FALLBACK,
-    } from "../engine/constants";
-    import type { Direction, ItemView } from "../engine/protocol";
+    import { RESOURCE_BAR_COLORS, HP_BAR_COLOR, COLOR_ENTITY_FALLBACK } from "../engine/constants";
+    import type { Direction } from "../engine/protocol";
     import StatBar from "./StatBar.svelte";
     import CombatLog from "./CombatLog.svelte";
     import NpcDialogue from "./NpcDialogue.svelte";
+    import EquipSlotBox from "./EquipSlotBox.svelte";
 
     let canvasEl: HTMLCanvasElement;
     let hudMainEl: HTMLDivElement;
@@ -74,6 +70,15 @@
             heldKeys.add(e.key);
             const entity = renderer?.nearestInteractable();
             if (entity) client.send({ type: "INTERACT", targetId: entity.id });
+            return;
+        }
+
+        // Equipment (I key) - opens the Character screen straight to the Equipment tab, the only
+        // place equipment is ever actually populated (it never carries over to the Hub).
+        if ((e.key === "i" || e.key === "I") && !heldKeys.has(e.key)) {
+            e.preventDefault();
+            heldKeys.add(e.key);
+            characterTab.set("equipment");
         }
     }
 
@@ -122,24 +127,12 @@
     $: resourceLabel   = player ? abilities.find((a) => a.classId === player.classId)?.resourceName ?? "Resource" : "Resource";
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : COLOR_ENTITY_FALLBACK;
 
-    /** Weapon + armor + 2 accessory slots + the potion belt, in one flat display grid. No
-     * per-slot labels or icons yet - this is the simplest compiling swap from the old flat
-     * inventory list; a proper per-slot Equipment tab lands in a follow-up. */
+    /** Weapon + armor + 2 accessory slots + the potion belt, in one flat display grid. */
     $: slots = equipment
-        ? ([equipment.weapon, equipment.armor, ...equipment.accessories, ...equipment.potionBelt] as (ItemView | null)[])
+        ? [equipment.weapon, equipment.armor, ...equipment.accessories, ...equipment.potionBelt]
         : [];
 
     $: keyCount = equipment?.keys.reduce((sum, k) => sum + k.count, 0) ?? 0;
-
-    /** First letter of each word, max 2 chars, used as the slot icon. */
-    function abbrev(name: string): string {
-        return name
-            .split(" ")
-            .map(w => w[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase();
-    }
 </script>
 
 <!--
@@ -190,22 +183,7 @@
                     <span class="stat-label">Equipment</span>
                     <div class="inv-grid">
                         {#each slots as item}
-                            <div
-                                    class="inv-slot"
-                                    class:occupied={!!item}
-                                    style={item ? `border-color:${ITEM_RARITY_COLORS[item.rarity]}` : ""}
-                                    title={item ? `${item.name}\n${item.statLine}` : "Empty"}
-                            >
-                                {#if item}
-                                    <div
-                                            class="slot-icon"
-                                            style="background:{ITEM_KIND_COLORS[item.kind]}"
-                                    >
-                                        {abbrev(item.name)}
-                                    </div>
-                                    <span class="slot-stat">{item.statLine}</span>
-                                {/if}
-                            </div>
+                            <EquipSlotBox {item} size={40} />
                         {/each}
                     </div>
                     {#if keyCount > 0}
@@ -213,7 +191,7 @@
                     {/if}
                 </div>
 
-                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E</p>
+                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E<br />Equipment: I</p>
             </aside>
         {/if}
     </div>
@@ -321,52 +299,9 @@
     }
 
     .inv-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        display: flex;
+        flex-wrap: wrap;
         gap: 4px;
-    }
-
-    .inv-slot {
-        aspect-ratio: 1;
-        background: #111;
-        border: 1px solid #222;
-        border-radius: 2px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-        cursor: default;
-        transition: border-color 0.1s;
-    }
-
-    .inv-slot.occupied:hover {
-        background: #1e1e1e;
-    }
-
-    .slot-icon {
-        width: 22px;
-        height: 22px;
-        border-radius: 2px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.55rem;
-        font-weight: bold;
-        color: #ccc;
-        letter-spacing: 0.02em;
-    }
-
-    .slot-stat {
-        font-size: 0.48rem;
-        color: #888;
-        text-align: center;
-        line-height: 1.1;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        padding: 0 2px;
     }
 
     .key-count {

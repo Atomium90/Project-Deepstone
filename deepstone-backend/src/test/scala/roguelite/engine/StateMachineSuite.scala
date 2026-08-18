@@ -315,12 +315,13 @@ class StateMachineSuite extends FunSuite:
     assertEquals(update.equipment.potionBelt.flatten.length, 1)
     assertEquals(update.equipment.potionBelt.flatten.head.typeId, "health_potion")
 
-  test("StateUpdate equipment carries an equipped item's setId through to ItemView"):
+  test("StateUpdate equipment carries an equipped item's setId and iconId through to ItemView"):
     val setArmor = Armor("a1", "steel_plate", "Steel Plate", Rarity.Uncommon, defenseBonus = 8,
-                         typeTag = Some("heavy"), setId = Some("light_soldier")
+                         typeTag = Some("heavy"), setId = Some("light_soldier"), iconId = Some("steel_plate")
     )
     val setAccessory = Accessory("r1", "ring_of_strength", "Ring of Strength", Rarity.Uncommon,
-                                 attackBonus = Some(4), setId = Some("light_soldier")
+                                 attackBonus = Some(4), setId = Some("light_soldier"),
+                                 iconId = Some("ring_of_strength")
     )
     val genericWeapon = Weapon("w1", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)
     val player = PlayerFixtures.startingPlayer(ClassId.Warrior)
@@ -332,3 +333,6 @@ class StateMachineSuite extends FunSuite:
     assertEquals(update.equipment.armor.flatMap(_.setId), Some("light_soldier"))
     assertEquals(update.equipment.weapon.flatMap(_.setId), None)
     assertEquals(update.equipment.accessories.flatten.head.setId, Some("light_soldier"))
+    assertEquals(update.equipment.armor.flatMap(_.iconId), Some("steel_plate"))
+    assertEquals(update.equipment.accessories.flatten.head.iconId, Some("ring_of_strength"))
+    assertEquals(update.equipment.weapon.flatMap(_.iconId), None)

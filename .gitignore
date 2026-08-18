@@ -39,3 +39,6 @@ frontend/public/audio/music/boss_ruinlord_ascendant.ogg
 frontend/public/audio/music/boss_bloodbound_fight.ogg
 frontend/public/sprites/entities/hero_classes/sprite_left.png
 frontend/public/sprites/entities/hero_classes/sprite_right.png
+frontend/public/sprites/items/rpg_weapons_16.png
+frontend/public/sprites/items/rpg_armour_16.png
+frontend/public/sprites/items/rpg_mage_16.png

@@ -133,9 +133,11 @@ class ItemLoaderSuite extends CatsEffectSuite:
   test("Accessory.statLine composes only the bonuses that are present"):
     val hpOnly  = Accessory("", "t", "HP Only", Rarity.Common, hpBonus = Some(8))
     val atkOnly = Accessory("", "t", "ATK Only", Rarity.Common, attackBonus = Some(2), typeTag = Some("heavy"))
+    val defOnly = Accessory("", "t", "Def Only", Rarity.Common, defenseBonus = Some(5))
     val critOnly = Accessory("", "t", "Crit Only", Rarity.Common, critChanceBonus = Some(6))
     assertEquals(hpOnly.statLine, "+8 MAX HP")
     assertEquals(atkOnly.statLine, "+2 ATK [heavy]")
+    assertEquals(defOnly.statLine, "+5 DEF")
     assertEquals(critOnly.statLine, "+6% CRIT")
 
   test("Accessory.statLine combines multiple present bonuses"):

@@ -309,32 +309,51 @@ class CombatResolver(rng: Random = Random(),
             onHit = true,
             onRound = true
           )
+          val (survivingBuffs, buffExpiryLog) = advanceBuffs(state.combat)
           val nextCombat = state.combat.copy(
             isPlayerTurn = true,
             round = state.combat.round + 1,
             playerIsDefending = false,
-            tookDamage = true
+            tookDamage = true,
+            activeBuffs = survivingBuffs
           )
-          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog, List(damageEvent))
+          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog ++ buffExpiryLog, List(damageEvent))
 
       case "DEFEND" =>
         val roundLog = priorLog :+ s"${state.combat.enemy.label} takes a defensive stance."
         // Archer +5 Focus per round even when the enemy defends
         val playerAfterRound = gainResource(state.player, onRound = true)
+        val (survivingBuffs, buffExpiryLog) = advanceBuffs(state.combat)
         val nextCombat = state.combat.copy(
           isPlayerTurn = true,
           round = state.combat.round + 1,
-          playerIsDefending = false
+          playerIsDefending = false,
+          activeBuffs = survivingBuffs
         )
-        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog, Nil)
+        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog ++ buffExpiryLog, Nil)
 
       case other =>
         // Unknow action -> skip enemy turn
-        val roundLog         = priorLog :+ s"${state.combat.enemy.label} hesitates."
-        val playerAfterRound = gainResource(state.player, onRound = true)
-        val nextCombat       = state.combat.copy(isPlayerTurn = true, playerIsDefending = false)
-        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog, Nil)
+        val roundLog                        = priorLog :+ s"${state.combat.enemy.label} hesitates."
+        val playerAfterRound                = gainResource(state.player, onRound = true)
+        val (survivingBuffs, buffExpiryLog) = advanceBuffs(state.combat)
+        val nextCombat = state.combat.copy(isPlayerTurn = true,
+                                           playerIsDefending = false,
+                                           activeBuffs = survivingBuffs
+        )
+        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog ++ buffExpiryLog, Nil)
     }
+
+  /** Decrement every active buff's remaining duration by one round. Returns the surviving buffs
+    * plus a log line for each one that just expired.
+    */
+  private def advanceBuffs(combat: Combat): (List[TimedBuff], List[String]) =
+    val decremented                = combat.activeBuffs.map(b => b.copy(turnsRemaining = b.turnsRemaining - 1))
+    val (expired, surviving)       = decremented.partition(_.turnsRemaining <= 0)
+    (surviving, expired.map(b => describeBuffExpiry(b.effect)))
+
+  private def describeBuffExpiry(effect: TimedBuffEffect): String = effect match
+    case TimedBuffEffect.AttackBonusPercent(_) => "Your battle fury fades."
 
   /** Pick an enemy action using weighted random selection. */
   private def pickEnemyAction(enemy: EnemyInstance): String =

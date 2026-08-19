@@ -17,6 +17,26 @@ enum PendingAbilityEffect:
   /** Archer, Precise Shot: attack rolls against 0 enemy defense instead of the actual value. */
   case IgnoreDefenseNextAttack
 
+/** Effect carried by a [[TimedBuff]]. A separate enum from [[PendingAbilityEffect]] since timed
+  * buffs (potions) and "next attack" effects (abilities) are different mechanics that happen to
+  * both live on [[Combat]] - kept apart rather than merged into one ADT so neither has to grow
+  * cases or fields it doesn't need.
+  */
+enum TimedBuffEffect:
+  /** Final damage multiplier for the fight's Attack actions, stacking with any set
+    * AttackDamagePercent bonus. See [[CombatResolver.handleAttack]].
+    */
+  case AttackBonusPercent(percent: Int)
+
+/** A consumable-sourced effect active for a limited number of rounds.
+  *
+  * Decremented by one at the end of every full round (see [[CombatResolver.enemyTurn]]) and
+  * dropped once `turnsRemaining` reaches 0. A new buff of the same [[TimedBuffEffect]] kind
+  * refreshes the duration rather than stacking magnitude, to avoid balance surprises from potion
+  * spamming.
+  */
+case class TimedBuff(effect: TimedBuffEffect, turnsRemaining: Int)
+
 /** The runtime state of an active combat encounter.
   *
   * Combat is turn-based and server-authoritative. The server resolves both the player's action and
@@ -46,6 +66,11 @@ enum PendingAbilityEffect:
   *   Backs the Silent Archer set's "first attack each combat always crits" 4pc bonus
   *   ([[SetBonusEffect.FirstAttackAlwaysCrit]]) - tracked independently of `round`, since the
   *   player's first action in a fight isn't necessarily an Attack (e.g. Defend or Ability first).
+  * @param activeBuffs
+  *   Potion-sourced timed effects currently active (see [[TimedBuff]]). A sibling of
+  *   `pendingAbility` rather than merged into it - abilities and potions are different sources
+  *   with different lifetimes (one attack vs. N rounds), and keeping them separate means neither
+  *   mechanism needs to model the other's shape.
   */
 case class Combat(
     enemy: EnemyInstance,
@@ -54,5 +79,6 @@ case class Combat(
     playerIsDefending: Boolean = false,
     pendingAbility: Option[PendingAbilityEffect] = None,
     tookDamage: Boolean = false,
-    hasAttackedThisCombat: Boolean = false
+    hasAttackedThisCombat: Boolean = false,
+    activeBuffs: List[TimedBuff] = Nil
 )

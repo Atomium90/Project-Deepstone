@@ -126,6 +126,16 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
+  /** Minimal set catalog for StateUpdate.sets round-trip tests. */
+  val testSetDefs: Map[String, SetDef] = Map(
+    "light_soldier" -> SetDef("light_soldier",
+                              "Light Soldier",
+                              ClassId.Warrior,
+                              twoPiece = SetBonus(SetBonusEffect.MaxHpPercent(5), "+5% max HP"),
+                              fourPiece = SetBonus(SetBonusEffect.FlatDefense(2), "+2 flat DEF in combat")
+    )
+  )
+
   /** Room pool for DungeonBuilder, needs at least one Combat (entrance) and one Boss room. */
   def testRoomPool: Map[String, Room] =
     val tiles = makeTiles()
@@ -360,6 +370,26 @@ class GameSessionSuite extends CatsEffectSuite:
       yield
         assertEquals(update.achievements.length, testAchievementDefs.size)
         assert(update.achievements.forall(!_.unlocked), "no achievements should be unlocked on a fresh session")
+  }
+
+  db.test("set catalog round-trips onto StateUpdate.sets") {
+    database =>
+      for
+        session <- GameSession.create(sm,
+                                      database,
+                                      Map.empty,
+                                      testUpgradeDefs,
+                                      Map.empty,
+                                      testAchievementDefs,
+                                      testSetDefs
+        )
+        update <- session.currentUpdate
+      yield
+        assertEquals(update.sets.length, testSetDefs.size)
+        val lightSoldier = update.sets.find(_.id == "light_soldier").getOrElse(fail("expected light_soldier"))
+        assertEquals(lightSoldier.classId, ClassId.Warrior)
+        assertEquals(lightSoldier.bonus2pcLabel, "+5% max HP")
+        assertEquals(lightSoldier.bonus4pcLabel, "+2 flat DEF in combat")
   }
 
   db.test("winning the first combat unlocks first_blood and persists it") {

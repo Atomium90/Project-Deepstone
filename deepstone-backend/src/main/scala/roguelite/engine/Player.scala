@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.{ Accessory, Armor, Consumable, KeyKind, Weapon }
+import roguelite.game.{ Accessory, Armor, Consumable, KeyKind, SetBonusEffect, SetDef, Weapon }
 
 /** Full player data as stored on the server. */
 case class Player(
@@ -19,7 +19,8 @@ case class Player(
     equippedArmor: Option[Armor] = None,
     equippedAccessories: Vector[Option[Accessory]] = Player.emptyAccessorySlots,
     potionBelt: Vector[Option[Consumable]] = Player.emptyPotionBelt,
-    keyCounts: Map[KeyKind, Int] = Map.empty
+    keyCounts: Map[KeyKind, Int] = Map.empty,
+    activeSetHpBonusFlat: Int = 0
 ):
   def toView: PlayerView = PlayerView(
     classId = classId,
@@ -67,6 +68,38 @@ case class Player(
               hp = hp.min(newMax)
          )
         )
+
+  /** setId of every equipped weapon/armor/accessory that carries one, duplicates included (one
+    * entry per piece) - the raw input to [[SetDef.activeBonuses]].
+    */
+  def equippedSetIds: List[String] =
+    List(equippedWeapon.flatMap(_.setId), equippedArmor.flatMap(_.setId)).flatten ++
+      equippedAccessories.flatten.flatMap(_.setId)
+
+  /** Recompute the flat maxHp contribution from active `MaxHpPercent` set bonuses, given the
+    * player's current equipment.
+    *
+    * Reverses the previously-applied amount first (tracked in [[activeSetHpBonusFlat]], since
+    * there's no separate "base" maxHp field to recompute a percentage against - level-ups and
+    * accessory pickups mutate `maxHp` directly), then reapplies the new percentage against the
+    * resulting baseline. This makes gear swaps that cross a 2pc/4pc threshold safe to call after
+    * every equip/unequip, regardless of level-ups that happened in between.
+    *
+    * Must be called after every change to `equippedWeapon`/`equippedArmor`/
+    * `equippedAccessories` (see [[roguelite.game.EquipmentResolver]]) - it isn't automatic on
+    * `copy`, since `Player` has no reference to the loaded [[SetDef]] catalog.
+    */
+  def reconcileSetHpBonus(setDefs: Map[String, SetDef]): Player =
+    val baseline = (maxHp - activeSetHpBonusFlat).max(1)
+    val percent  = SetDef.activeBonuses(equippedSetIds, setDefs, classId).collect {
+      case SetBonusEffect.MaxHpPercent(p) => p
+    }.sum
+    val newBonus = baseline * percent / 100
+    val newMax   = baseline + newBonus
+    copy(maxHp = newMax,
+         hp = (hp - activeSetHpBonusFlat + newBonus).max(0).min(newMax),
+         activeSetHpBonusFlat = newBonus
+    )
 
 object Player:
   /** Number of accessory slots. Fixed: unlike the potion belt, no upgrade currently grows this. */

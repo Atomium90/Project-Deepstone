@@ -1,0 +1,55 @@
+[
+  {
+    "id": "light_soldier",
+    "name": "Light Soldier",
+    "classId": "warrior",
+    "twoPiece": { "type": "MaxHpPercent", "value": 5, "label": "+5% max HP" },
+    "fourPiece": { "type": "FlatDefense", "value": 2, "label": "+2 flat DEF in combat" }
+  },
+  {
+    "id": "enraged_berserker",
+    "name": "Enraged Berserker",
+    "classId": "warrior",
+    "twoPiece": { "type": "CritChancePercent", "value": 5, "label": "+5% crit chance" },
+    "fourPiece": { "type": "AttackDamagePercent", "value": 10, "label": "+10% attack damage" }
+  },
+  {
+    "id": "silent_archer",
+    "name": "Silent Archer",
+    "classId": "archer",
+    "twoPiece": { "type": "CritChancePercent", "value": 5, "label": "+5% crit chance" },
+    "fourPiece": {
+      "type": "FirstAttackAlwaysCrit",
+      "label": "First attack each combat always crits"
+    }
+  },
+  {
+    "id": "iron_bolter",
+    "name": "Iron Bolter",
+    "classId": "archer",
+    "twoPiece": { "type": "FlatAttack", "value": 3, "label": "+3 flat ATK" },
+    "fourPiece": { "type": "MaxHpPercent", "value": 8, "label": "+8% max HP" }
+  },
+  {
+    "id": "pyromancer",
+    "name": "Fire Mage",
+    "classId": "mage",
+    "twoPiece": { "type": "AttackDamagePercent", "value": 10, "label": "+10% attack damage" },
+    "fourPiece": {
+      "type": "AbilityCostReductionPercent",
+      "value": 15,
+      "label": "Abilities cost 15% less resource"
+    }
+  },
+  {
+    "id": "necromancer",
+    "name": "Necromancer",
+    "classId": "mage",
+    "twoPiece": { "type": "MaxHpPercent", "value": 10, "label": "+10% max HP" },
+    "fourPiece": {
+      "type": "HealOnKillPercent",
+      "value": 10,
+      "label": "Heal 10% of damage dealt as HP on kill"
+    }
+  }
+]

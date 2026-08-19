@@ -201,3 +201,72 @@ class EquipmentResolverSuite extends FunSuite:
     assertEquals(nextExp.pendingEquipChoice, Some(pending))
     assert(log.exists(_.toLowerCase.contains("invalid")), s"expected an invalid-slot message: $log")
     assertEquals(events, Nil)
+
+  // --- Set HP bonus reconciliation --------------------------------------------------
+
+  private val hpSet = SetDef(
+    id = "hp_set",
+    name = "HP Set",
+    classId = ClassId.Warrior,
+    twoPiece = SetBonus(SetBonusEffect.MaxHpPercent(10), "+10% max HP"),
+    fourPiece = SetBonus(SetBonusEffect.FlatDefense(5), "+5 flat DEF")
+  )
+  private val setDefs = Map(hpSet.id -> hpSet)
+
+  private def hpWeapon: Weapon =
+    Weapon(Item.newId(), "hw", "HP Weapon", Rarity.Common, attackBonus = 0, setId = Some(hpSet.id))
+  private def hpArmor: Armor =
+    Armor(Item.newId(), "ha", "HP Armor", Rarity.Common, defenseBonus = 0, setId = Some(hpSet.id))
+  private def hpAccessory(n: Int): Accessory =
+    Accessory(Item.newId(), s"hac$n", s"HP Accessory $n", Rarity.Common, setId = Some(hpSet.id))
+
+  test("equipping the 2nd piece of a set applies its 2pc MaxHpPercent bonus"):
+    val withWeapon = player.copy(equippedWeapon = Some(hpWeapon)) // 1 piece: below the 2pc threshold
+    val baseMaxHp  = withWeapon.maxHp
+    EquipmentResolver.resolvePickup(withWeapon, hpArmor, setDefs) match
+      case PickupOutcome.Equipped(p) =>
+        val expectedBonus = baseMaxHp * 10 / 100
+        assertEquals(p.maxHp, baseMaxHp + expectedBonus)
+        assertEquals(p.activeSetHpBonusFlat, expectedBonus)
+      case other => fail(s"expected Equipped, got $other")
+
+  test("equipping a full set as the wrong class applies no HP bonus"):
+    val archer = PlayerFixtures.startingPlayer(ClassId.Archer).copy(equippedWeapon = Some(hpWeapon))
+    val baseMaxHp = archer.maxHp
+    EquipmentResolver.resolvePickup(archer, hpArmor, setDefs) match
+      case PickupOutcome.Equipped(p) =>
+        assertEquals(p.maxHp, baseMaxHp, "an Archer wearing a Warrior set should get no MaxHpPercent bonus")
+        assertEquals(p.activeSetHpBonusFlat, 0)
+      case other => fail(s"expected Equipped, got $other")
+
+  test("crossing to 4 pieces doesn't change the HP bonus when the 4pc effect isn't MaxHpPercent"):
+    val threePieces = player
+      .copy(equippedWeapon = Some(hpWeapon),
+            equippedArmor = Some(hpArmor),
+            equippedAccessories = Vector(Some(hpAccessory(0)), None)
+      )
+      .reconcileSetHpBonus(setDefs) // pre-apply the 2pc bonus so the fixture is self-consistent
+    val baseMaxHp = threePieces.maxHp
+    val baseBonus = threePieces.activeSetHpBonusFlat
+    assert(baseBonus > 0, "sanity: 2pc bonus should already be active at 3 pieces")
+
+    EquipmentResolver.resolvePickup(threePieces, hpAccessory(1), setDefs) match
+      case PickupOutcome.Equipped(p) =>
+        assertEquals(p.maxHp, baseMaxHp)
+        assertEquals(p.activeSetHpBonusFlat, baseBonus)
+      case other => fail(s"expected Equipped, got $other")
+
+  test("swapping a set piece out via resolveChoice removes the HP bonus once below 2 pieces"):
+    val basePlayer = player
+      .copy(equippedWeapon = Some(hpWeapon), equippedArmor = Some(hpArmor))
+      .reconcileSetHpBonus(setDefs)
+    assert(basePlayer.activeSetHpBonusFlat > 0, "sanity: 2pc bonus should be active before the swap")
+
+    val plainArmor = Armor(Item.newId(), "plain_armor", "Plain Armor", Rarity.Common, defenseBonus = 1)
+    val pending     = PendingEquipChoice(plainArmor, Map(EquipSlot.ArmorSlot -> hpArmor))
+    val exp         = explorationState(basePlayer, Some(pending))
+
+    val (next, _, _) = EquipmentResolver.resolveChoice(exp, Some(EquipSlot.ArmorSlot), setDefs)
+    val nextPlayer    = next.asInstanceOf[ExplorationState].player
+    assertEquals(nextPlayer.activeSetHpBonusFlat, 0)
+    assertEquals(nextPlayer.maxHp, basePlayer.maxHp - basePlayer.activeSetHpBonusFlat)

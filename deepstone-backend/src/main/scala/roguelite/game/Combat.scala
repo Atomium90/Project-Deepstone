@@ -41,6 +41,11 @@ enum PendingAbilityEffect:
   *   True once the player has taken any damage during this fight. Never reset mid-fight - only a
   *   fresh Combat (new encounter) starts it back at false. Backs the "untouchable" achievement,
   *   read from CombatResolver.victory at the moment the fight ends.
+  * @param hasAttackedThisCombat
+  *   True once the player has taken an Attack action during this fight. Never reset mid-fight.
+  *   Backs the Silent Archer set's "first attack each combat always crits" 4pc bonus
+  *   ([[SetBonusEffect.FirstAttackAlwaysCrit]]) - tracked independently of `round`, since the
+  *   player's first action in a fight isn't necessarily an Attack (e.g. Defend or Ability first).
   */
 case class Combat(
     enemy: EnemyInstance,
@@ -48,5 +53,6 @@ case class Combat(
     round: Int = 1,
     playerIsDefending: Boolean = false,
     pendingAbility: Option[PendingAbilityEffect] = None,
-    tookDamage: Boolean = false
+    tookDamage: Boolean = false,
+    hasAttackedThisCombat: Boolean = false
 )

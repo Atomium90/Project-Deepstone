@@ -58,3 +58,36 @@ class ContentIntegritySuite extends CatsEffectSuite:
         val rng = Random(0)
         val gotADrop = (1 to 50).exists(_ => LootTable.rollEnemy(forcedDrop, items, rng, Difficulty.Normal).isDefined)
         assert(gotADrop, s"${stats.typeId}'s lootTable never produced a drop - likely all typeIds are missing from items.json")
+
+  test("every item's setId, when present, exists in sets.json"):
+    for
+      items <- ItemLoader.loadAll()
+      sets  <- SetLoader.loadAll()
+    yield items.values.foreach:
+      item =>
+        val setId = item match {
+          case w: Weapon    => w.setId
+          case a: Armor     => a.setId
+          case a: Accessory => a.setId
+          case _            => None
+        }
+        setId.foreach(id => assert(sets.contains(id), s"${item.typeId} references unknown setId '$id'"))
+
+  test("every set has exactly 4 pieces: 1 weapon, 1 armor, 2 accessories"):
+    for
+      items <- ItemLoader.loadAll()
+      sets  <- SetLoader.loadAll()
+    yield
+      val bySet = items.values.collect {
+        case w: Weapon if w.setId.isDefined    => w.setId.get -> w.kind
+        case a: Armor if a.setId.isDefined     => a.setId.get -> a.kind
+        case a: Accessory if a.setId.isDefined => a.setId.get -> a.kind
+      }.groupBy(_._1).view.mapValues(_.map(_._2).toList).toMap
+
+      sets.keys.foreach:
+        setId =>
+          val kinds = bySet.getOrElse(setId, Nil)
+          assertEquals(kinds.count(_ == "weapon"), 1, s"$setId should have exactly 1 weapon, found $kinds")
+          assertEquals(kinds.count(_ == "armor"), 1, s"$setId should have exactly 1 armor, found $kinds")
+          assertEquals(kinds.count(_ == "accessory"), 2, s"$setId should have exactly 2 accessories, found $kinds")
+          assertEquals(kinds.size, 4, s"$setId should have exactly 4 pieces total, found $kinds")

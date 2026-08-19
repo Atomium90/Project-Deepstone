@@ -242,6 +242,19 @@ case class AbilityView(
   */
 case class AchievementView(id: String, label: String, description: String, unlocked: Boolean)
 
+/** Static description of one equipment set's 2pc/4pc bonus. Sent as a full catalog on every
+  * [[StateUpdate]] (same rationale as [[AbilityView]]: the client never hardcodes set names or
+  * bonus text), independent of phase. Whether a given set's bonus is currently *active* isn't
+  * carried here - the client already receives `setId` on every equipped [[ItemView]] and can
+  * count matching pieces itself, the same way it already resolves rarity/kind locally.
+  */
+case class SetView(id: String,
+                   name: String,
+                   classId: ClassId,
+                   bonus2pcLabel: String,
+                   bonus4pcLabel: String
+)
+
 /** Full game state snapshot sent by the server after every action. */
 case class StateUpdate(
     phase: GamePhase,
@@ -266,6 +279,7 @@ case class StateUpdate(
     pendingEquipChoice: Option[PendingEquipChoiceView] = None,
     abilities: List[AbilityView] = Nil,
     achievements: List[AchievementView] = Nil,
+    sets: List[SetView] = Nil,
     /** Only meaningful when phase is GameOver: true if the dungeon's boss was defeated, false if
       * the player died.
       */
@@ -409,6 +423,7 @@ object MessageProtocol:
   given Encoder[PendingEquipChoiceView]  = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
+  given Encoder[SetView]         = deriveEncoder
   given Encoder[DialogueView]    = deriveEncoder
   given Encoder[StateUpdate]     = deriveEncoder
 

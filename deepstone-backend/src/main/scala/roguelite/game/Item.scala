@@ -40,6 +40,23 @@ enum ConsumableEffect:
   /** Restore a fixed amount of the player's class resource (Rage / Focus / Mana). */
   case RestoreResource(amount: Int)
 
+  /** Grant a final-damage-multiplier attack buff for the next `turns` rounds, stacking with any
+    * active set AttackDamagePercent bonus. A new AttackBuff refreshes the duration rather than
+    * stacking magnitude with an already-active one. See [[TimedBuffEffect.AttackBonusPercent]].
+    */
+  case AttackBuff(percent: Int, turns: Int)
+
+  /** Deal fixed damage straight to the enemy in combat: no crit roll, no defense mitigation, same
+    * pattern as Mage's Arcane Blast ability ([[AbilityEffect.FlatDamage]]).
+    */
+  case FlatDamage(amount: Int)
+
+  /** Grant a crit chance buff for the next `turns` rounds, stacking with the player's normal
+    * critChance. Same refresh-not-stack rule as AttackBuff. See
+    * [[TimedBuffEffect.CritChanceBonusPercent]].
+    */
+  case CritBuff(percent: Int, turns: Int)
+
 /** A runtime item instance held in a player's [[Inventory]].
   *
   * Items are immutable value objects. The `id` field is a unique instance identifier generated at
@@ -155,6 +172,9 @@ case class Consumable(
     case ConsumableEffect.HealFixed(n)       => s"Heal $n HP"
     case ConsumableEffect.HealPercent(pct)   => s"Heal $pct% HP"
     case ConsumableEffect.RestoreResource(n) => s"Restore $n Resource"
+    case ConsumableEffect.AttackBuff(pct, t) => s"+$pct% ATK for $t turns"
+    case ConsumableEffect.FlatDamage(n)      => s"Deal $n damage"
+    case ConsumableEffect.CritBuff(pct, t)   => s"+$pct% crit chance for $t turns"
   }
   def withNewId: Item = copy(id = Item.newId())
 

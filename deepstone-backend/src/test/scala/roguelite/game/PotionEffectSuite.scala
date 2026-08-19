@@ -85,3 +85,20 @@ class PotionEffectSuite extends FunSuite:
     val nextCombat = next match { case cs: CombatState => cs.combat; case _ => fail("expected CombatState") }
     assertEquals(nextCombat.activeBuffs, List(TimedBuff(TimedBuffEffect.AttackBonusPercent(20), turnsRemaining = 1)))
   }
+
+  // -----------------------------------------------------------------------
+  // AttackBonusPercent's effect on Attack damage
+  // -----------------------------------------------------------------------
+
+  test("an active AttackBonusPercent buff scales the attack's damage by exactly its percentage") {
+    val buff = TimedBuff(TimedBuffEffect.AttackBonusPercent(40), turnsRemaining = 2)
+    val base = CombatState(makePlayer(), makeDungeon, 0, 0, Combat(enemy = defendingEnemy), "dummy")
+    val withBuff = base.copy(combat = base.combat.copy(activeBuffs = List(buff)))
+
+    val (nextBase, _, _)     = CombatResolver(Random(7)).resolve(base, CombatAction(CombatActionType.Attack))
+    val (nextWithBuff, _, _) = CombatResolver(Random(7)).resolve(withBuff, CombatAction(CombatActionType.Attack))
+
+    val dmgBase     = 500 - (nextBase match { case cs: CombatState => cs.combat.enemy.hp; case _ => fail("expected CombatState") })
+    val dmgWithBuff = 500 - (nextWithBuff match { case cs: CombatState => cs.combat.enemy.hp; case _ => fail("expected CombatState") })
+    assertEquals(dmgWithBuff, math.round(dmgBase * 1.4).toInt)
+  }

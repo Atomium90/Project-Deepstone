@@ -89,6 +89,18 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
         e.percent.toRight("HealPercent is missing 'percent' field").map(ConsumableEffect.HealPercent.apply)
       case "RestoreResource" =>
         e.amount.toRight("RestoreResource is missing 'amount' field").map(ConsumableEffect.RestoreResource.apply)
+      case "AttackBuff" =>
+        for
+          percent <- e.percent.toRight("AttackBuff is missing 'percent' field")
+          turns   <- e.turns.toRight("AttackBuff is missing 'turns' field")
+        yield ConsumableEffect.AttackBuff(percent, turns)
+      case "FlatDamage" =>
+        e.amount.toRight("FlatDamage is missing 'amount' field").map(ConsumableEffect.FlatDamage.apply)
+      case "CritBuff" =>
+        for
+          percent <- e.percent.toRight("CritBuff is missing 'percent' field")
+          turns   <- e.turns.toRight("CritBuff is missing 'turns' field")
+        yield ConsumableEffect.CritBuff(percent, turns)
       case other =>
         Left(s"Unknown consumable effect type: '$other'")
 
@@ -99,7 +111,8 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
   private case class ConsumableEffectJson(
                                            `type`: String,
                                            amount: Option[Int] = None,
-                                           percent: Option[Int] = None
+                                           percent: Option[Int] = None,
+                                           turns: Option[Int] = None
                                          )
 
   private case class ItemJson(
@@ -127,7 +140,8 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
       t       <- c.get[String]("type")
       amount  <- c.get[Option[Int]]("amount")
       percent <- c.get[Option[Int]]("percent")
-    yield ConsumableEffectJson(t, amount, percent)
+      turns   <- c.get[Option[Int]]("turns")
+    yield ConsumableEffectJson(t, amount, percent, turns)
 
   private given Decoder[ItemJson] = Decoder.instance: (c: HCursor) =>
     for

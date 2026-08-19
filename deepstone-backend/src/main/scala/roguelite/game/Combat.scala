@@ -28,6 +28,11 @@ enum TimedBuffEffect:
     */
   case AttackBonusPercent(percent: Int)
 
+  /** Crit chance percentage points added on top of the player's normal critChance for the fight's
+    * Attack actions. See [[CombatResolver.handleAttack]].
+    */
+  case CritChanceBonusPercent(percent: Int)
+
 /** A consumable-sourced effect active for a limited number of rounds.
   *
   * Decremented by one at the end of every full round (see [[CombatResolver.enemyTurn]]) and

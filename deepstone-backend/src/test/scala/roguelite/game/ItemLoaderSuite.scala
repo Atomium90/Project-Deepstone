@@ -157,3 +157,16 @@ class ItemLoaderSuite extends CatsEffectSuite:
   test("Accessory.statLine combines multiple present bonuses"):
     val combo = Accessory("", "t", "Combo", Rarity.Common, hpBonus = Some(5), attackBonus = Some(3))
     assertEquals(combo.statLine, "+5 MAX HP, +3 ATK")
+
+  // ---------------------------------------------
+  // Rarity (pure)
+  // ---------------------------------------------
+
+  test("Rarity.statMultiplier increases strictly with tier"):
+    val multipliers = List(Rarity.Common, Rarity.Uncommon, Rarity.Rare, Rarity.Epic).map(_.statMultiplier)
+    assertEquals(multipliers, multipliers.sorted)
+    assertEquals(multipliers.distinct.size, 4, "every tier must have a distinct multiplier")
+
+  test("Rarity.label is a distinct lowercase string per tier"):
+    val labels = List(Rarity.Common, Rarity.Uncommon, Rarity.Rare, Rarity.Epic).map(_.label)
+    assertEquals(labels, List("common", "uncommon", "rare", "epic"))

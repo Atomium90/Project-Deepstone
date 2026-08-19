@@ -2,13 +2,31 @@ package roguelite.game
 
 import java.util.UUID
 
-/** Rarity tier for an item drop. */
+/** Rarity tier for an item drop.
+  *
+  * `Common`/`Uncommon` are authored per catalog entry in items.json and act as a ''floor'':
+  * [[LootTable]] rolls the actual drop tier at or above that floor, never below it, then scales
+  * the item's numeric stat fields by [[statMultiplier]] relative to the floor tier's own
+  * multiplier. `Rare`/`Epic` are never authored directly on a catalog entry, only ever rolled.
+  */
 enum Rarity:
-  case Common, Uncommon
+  case Common, Uncommon, Rare, Epic
 
   def label: String = this match {
     case Common   => "common"
     case Uncommon => "uncommon"
+    case Rare     => "rare"
+    case Epic     => "epic"
+  }
+
+  /** Stat multiplier applied to a rolled item's numeric bonus fields, relative to another tier's
+    * own multiplier (see [[LootTable]]'s roll-and-scale step). Not meant to be read in isolation.
+    */
+  def statMultiplier: Double = this match {
+    case Common   => 1.0
+    case Uncommon => 1.15
+    case Rare     => 1.35
+    case Epic     => 1.6
   }
 
 /** Effect applied when a consumable is used. */

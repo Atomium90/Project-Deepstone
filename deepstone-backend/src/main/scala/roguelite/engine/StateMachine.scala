@@ -117,6 +117,7 @@ class StateMachine(roomPool: Map[String, Room],
                             case PickupOutcome.Equipped(updated)     => updated
                             case PickupOutcome.KeyCollected(updated) => updated
                             case PickupOutcome.ChoicePending(_)      => p
+                            case PickupOutcome.Discarded(updated)    => updated
                           }
                       }
 

@@ -513,6 +513,12 @@ class CombatResolver(rng: Random = Random(),
                Nil,
                Some(pending)
               )
+            case PickupOutcome.Discarded(p) =>
+              (p,
+               List(s"${deadEnemy.label} dropped ${item.name}, but you already have a better one."),
+               Nil,
+               None
+              )
           }
       }
 

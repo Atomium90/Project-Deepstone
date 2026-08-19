@@ -69,6 +69,8 @@ object ItemLoader extends JsonResourceLoader[Item, String]:
     s.toLowerCase match
       case "common"   => Right(Rarity.Common)
       case "uncommon" => Right(Rarity.Uncommon)
+      case "rare"     => Right(Rarity.Rare)
+      case "epic"     => Right(Rarity.Epic)
       case other      => Left(s"Unknown rarity: '$other'")
 
   private def parseKeyKind(s: String, ij: ItemJson): Either[String, KeyKind] =

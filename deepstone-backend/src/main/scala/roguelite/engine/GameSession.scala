@@ -30,7 +30,8 @@ class GameSession private (
     upgradeDefs: Map[String, UpgradeDef],
     achievementDefs: Map[String, AchievementDef],
     abilityCatalog: List[AbilityView],
-    setDefs: Map[String, SetDef] = Map.empty
+    setDefs: Map[String, SetDef] = Map.empty,
+    setCatalog: List[SetView] = Nil
 ):
 
   /** Process a player action, update the internal state, and return the new state snapshot to be
@@ -56,11 +57,12 @@ class GameSession private (
       progress <- achievementRef.get
     yield withAchievements(withCatalog(state.toStateUpdate()), progress)
 
-  /** Attach the static per-class ability catalog to every outgoing update, so the client never
-    * has to hardcode ability names, costs, or resource labels. See [[AbilityView]].
+  /** Attach the static per-class ability catalog and the equipment set catalog to every outgoing
+    * update, so the client never has to hardcode ability names/costs/resource labels or set
+    * names/bonus text. See [[AbilityView]] and [[SetView]].
     */
   private def withCatalog(update: StateUpdate): StateUpdate =
-    update.copy(abilities = abilityCatalog)
+    update.copy(abilities = abilityCatalog, sets = setCatalog)
 
   /** Attach the full achievement catalog (locked and unlocked) to every outgoing update, so the
     * client never has to hardcode achievement labels or descriptions. See [[AchievementView]].
@@ -303,6 +305,7 @@ object GameSession:
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
       abilityCatalog = abilityDefs.values.map(toAbilityView).toList
+      setCatalog     = setDefs.values.map(toSetView).toList
     yield new GameSession(stateRef,
                           metaRef,
                           achievementRef,
@@ -312,7 +315,8 @@ object GameSession:
                           upgradeDefs,
                           achievementDefs,
                           abilityCatalog,
-                          setDefs
+                          setDefs,
+                          setCatalog
     )
 
   private def toAbilityView(a: AbilityDef): AbilityView =
@@ -323,4 +327,12 @@ object GameSession:
       cost = a.cost,
       resourceName = a.resourceName,
       description = a.description
+    )
+
+  private def toSetView(s: SetDef): SetView =
+    SetView(id = s.id,
+           name = s.name,
+           classId = s.classId,
+           bonus2pcLabel = s.twoPiece.label,
+           bonus4pcLabel = s.fourPiece.label
     )

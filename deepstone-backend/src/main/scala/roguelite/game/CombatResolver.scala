@@ -506,7 +506,7 @@ class CombatResolver(rng: Random = Random(),
 
   /** Every set bonus effect currently active for `player` (see [[SetDef.activeBonuses]]). */
   private[game] def activeSetBonuses(player: Player): List[SetBonusEffect] =
-    SetDef.activeBonuses(player.equippedSetIds, setDefs)
+    SetDef.activeBonuses(player.equippedSetIds, setDefs, player.classId)
 
   private def sumSetBonus(player: Player, extract: PartialFunction[SetBonusEffect, Int]): Int =
     activeSetBonuses(player).collect(extract).sum

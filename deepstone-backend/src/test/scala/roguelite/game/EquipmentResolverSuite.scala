@@ -230,6 +230,15 @@ class EquipmentResolverSuite extends FunSuite:
         assertEquals(p.activeSetHpBonusFlat, expectedBonus)
       case other => fail(s"expected Equipped, got $other")
 
+  test("equipping a full set as the wrong class applies no HP bonus"):
+    val archer = PlayerFixtures.startingPlayer(ClassId.Archer).copy(equippedWeapon = Some(hpWeapon))
+    val baseMaxHp = archer.maxHp
+    EquipmentResolver.resolvePickup(archer, hpArmor, setDefs) match
+      case PickupOutcome.Equipped(p) =>
+        assertEquals(p.maxHp, baseMaxHp, "an Archer wearing a Warrior set should get no MaxHpPercent bonus")
+        assertEquals(p.activeSetHpBonusFlat, 0)
+      case other => fail(s"expected Equipped, got $other")
+
   test("crossing to 4 pieces doesn't change the HP bonus when the 4pc effect isn't MaxHpPercent"):
     val threePieces = player
       .copy(equippedWeapon = Some(hpWeapon),

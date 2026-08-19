@@ -125,6 +125,14 @@ class SetBonusSuite extends FunSuite:
     assertEquals(resolver.activeSetBonuses(withSetPieces(makePlayer(), "unknown_set", 4)), Nil)
   }
 
+  test("activeSetBonuses is empty when the set's classId doesn't match the player's class") {
+    val resolver = CombatResolver(Random(1), setDefs = Map("two_piece_set" -> twoPieceOnly))
+    val archer   = withSetPieces(makePlayer(classId = ClassId.Archer), "two_piece_set", 4)
+    assertEquals(resolver.activeSetBonuses(archer), Nil,
+                 "an Archer wearing a full Warrior set should get none of its bonuses"
+    )
+  }
+
   // -----------------------------------------------------------------------
   // FlatAttack / FlatDefense: show up exactly in combat math
   // -----------------------------------------------------------------------

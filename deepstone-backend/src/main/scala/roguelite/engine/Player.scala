@@ -91,7 +91,7 @@ case class Player(
     */
   def reconcileSetHpBonus(setDefs: Map[String, SetDef]): Player =
     val baseline = (maxHp - activeSetHpBonusFlat).max(1)
-    val percent  = SetDef.activeBonuses(equippedSetIds, setDefs).collect {
+    val percent  = SetDef.activeBonuses(equippedSetIds, setDefs, classId).collect {
       case SetBonusEffect.MaxHpPercent(p) => p
     }.sum
     val newBonus = baseline * percent / 100

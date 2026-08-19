@@ -85,8 +85,12 @@ class CombatResolver(rng: Random = Random(),
     }
 
     // Crit chance is an Attack-specific weapon-strike stat: it never applies to Ability's
-    // FlatDamage (Arcane Blast), which bypasses calcDamage entirely.
-    val isCrit = rollCrit(state.player.critChance)
+    // FlatDamage (Arcane Blast), which bypasses calcDamage entirely. FirstAttackAlwaysCrit (Silent
+    // Archer 4pc) overrides the roll on the player's first Attack of the fight, win or lose the roll.
+    val firstAttackGuaranteedCrit =
+      !state.combat.hasAttackedThisCombat &&
+        activeSetBonuses(state.player).contains(SetBonusEffect.FirstAttackAlwaysCrit)
+    val isCrit = firstAttackGuaranteedCrit || rollCrit(state.player.critChance)
 
     // Set-driven "+N% attack damage" is a final multiplier on top of the base hit, applied
     // alongside (not instead of) the crit multiplier - the two stack multiplicatively.
@@ -106,13 +110,14 @@ class CombatResolver(rng: Random = Random(),
     val updatedCombat = state.combat.copy(
       enemy = damagedEnemy,
       pendingAbility = None,
-      playerIsDefending = false
+      playerIsDefending = false,
+      hasAttackedThisCombat = true
     )
 
     val damageEvent = GameEvent.DamageDealt(targetIsPlayer = false, amount = damage, crit = isCrit)
     val (finalState, finalLog, downstreamEvents) =
       if !damagedEnemy.isAlive then
-        victory(state.copy(player = playerAfterResource, combat = updatedCombat), damagedEnemy, log)
+        victory(state.copy(player = playerAfterResource, combat = updatedCombat), damagedEnemy, log, damage)
       else enemyTurn(state.copy(player = playerAfterResource, combat = updatedCombat), log)
     (finalState, finalLog, damageEvent :: downstreamEvents)
 
@@ -155,20 +160,24 @@ class CombatResolver(rng: Random = Random(),
       case None =>
         (state, List("No ability available for this class."), Nil)
 
-      case Some(ability) if state.player.resourceCurrent < ability.cost =>
-        (state,
-         List(
-           s"Not enough ${ability.resourceName} — ${ability.name} requires ${ability.cost} ${ability.resourceName}."
-         ),
-         Nil
-        )
-
       case Some(ability) =>
-        val updatedPlayer = state.player.copy(
-          resourceCurrent = state.player.resourceCurrent - ability.cost
-        )
-        applyAbilityEffect(state.copy(player = updatedPlayer), ability)
+        val cost = effectiveAbilityCost(state.player, ability)
+        if state.player.resourceCurrent < cost then
+          (state,
+           List(s"Not enough ${ability.resourceName} — ${ability.name} requires $cost ${ability.resourceName}."),
+           Nil
+          )
+        else
+          val updatedPlayer = state.player.copy(resourceCurrent = state.player.resourceCurrent - cost)
+          applyAbilityEffect(state.copy(player = updatedPlayer), ability)
     }
+
+  /** `ability.cost` reduced by any active set AbilityCostReductionPercent bonus (Pyromancer 4pc),
+    * floored at 0.
+    */
+  private def effectiveAbilityCost(player: Player, ability: AbilityDef): Int =
+    val reduction = sumSetBonus(player, { case SetBonusEffect.AbilityCostReductionPercent(n) => n })
+    math.round(ability.cost * (100 - reduction).max(0) / 100.0).toInt
 
   /** Apply an ability's effect once its cost has already been deducted. */
   private def applyAbilityEffect(state: CombatState,
@@ -199,7 +208,7 @@ class CombatResolver(rng: Random = Random(),
         val damageEvent   = GameEvent.DamageDealt(targetIsPlayer = false, amount = amount)
 
         val (finalState, finalLog, downstreamEvents) =
-          if !damagedEnemy.isAlive then victory(state.copy(combat = updatedCombat), damagedEnemy, log)
+          if !damagedEnemy.isAlive then victory(state.copy(combat = updatedCombat), damagedEnemy, log, amount)
           else enemyTurn(state.copy(combat = updatedCombat), log)
         (finalState, finalLog, damageEvent :: downstreamEvents)
     }
@@ -346,10 +355,18 @@ class CombatResolver(rng: Random = Random(),
   // Outcome helpers
   // ---------------------------------------------
 
-  /** Player wins: remove enemy from room, award XP & Coins, roll for a loot drop, return to exploration. */
+  /** Player wins: remove enemy from room, award XP & Coins, apply heal-on-kill set bonuses if any,
+    * roll for a loot drop, return to exploration.
+    *
+    * @param killingBlowDamage
+    *   Raw damage dealt by the hit that killed `deadEnemy`, feeding necromancer's
+    *   HealOnKillPercent 4pc bonus. Passed in rather than re-derived since both call sites
+    *   (Attack, Arcane Blast's FlatDamage) already have it in scope.
+    */
   private def victory(state: CombatState,
                       deadEnemy: EnemyInstance,
-                      log: List[String]
+                      log: List[String],
+                      killingBlowDamage: Int
   ): (GameState, List[String], List[GameEvent]) = {
     val xpGained = deadEnemy.xpReward
     // Stone Shards: 1 per 5 XP, minimum 1 per kill
@@ -357,6 +374,14 @@ class CombatResolver(rng: Random = Random(),
     val playerWithXp = state.player.copy(xp = state.player.xp + xpGained,
                                          metaCurrency = state.player.metaCurrency + shardsEarned
     )
+
+    // Necromancer 4pc: heal a percentage of the killing blow's damage as HP.
+    val healOnKillPercent = sumSetBonus(playerWithXp, { case SetBonusEffect.HealOnKillPercent(n) => n })
+    val healAmount         = (killingBlowDamage * healOnKillPercent / 100).max(0)
+    val healedHp            = (playerWithXp.hp + healAmount).min(playerWithXp.maxHp) - playerWithXp.hp
+    val playerAfterHeal      = playerWithXp.copy(hp = playerWithXp.hp + healedHp)
+    val healLog   = if healedHp > 0 then List(s"The kill heals you for $healedHp HP.") else Nil
+    val healEvent = if healedHp > 0 then List(GameEvent.Healed(healedHp)) else Nil
 
     // Remove the defeated enemy
     val updatedRoom = state.dungeon.currentRoom.removeEntity(deadEnemy.entityId)
@@ -367,7 +392,7 @@ class CombatResolver(rng: Random = Random(),
     val victoryLog = log ++ List(
       s"${deadEnemy.label} has been defeated!",
       s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
-    )
+    ) ++ healLog
 
     // Known before resolving loot: a boss kill ends the run into GameOverState, which has no
     // room to hold a pending equip choice - see the ChoicePending branch below.
@@ -375,9 +400,9 @@ class CombatResolver(rng: Random = Random(),
 
     val (playerAfterLoot, lootLog, lootEvents, pendingChoice) =
       LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty) match {
-        case None => (playerWithXp, Nil, Nil, None)
+        case None => (playerAfterHeal, Nil, Nil, None)
         case Some(item) =>
-          EquipmentResolver.resolvePickup(playerWithXp, item, setDefs) match {
+          EquipmentResolver.resolvePickup(playerAfterHeal, item, setDefs) match {
             case PickupOutcome.Equipped(p) =>
               (p,
                List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
@@ -392,13 +417,13 @@ class CombatResolver(rng: Random = Random(),
               )
             case PickupOutcome.ChoicePending(pending) if isBossKill =>
               // No ExplorationState survives this kill to hold a pending choice - lost, not offered.
-              (playerWithXp,
+              (playerAfterHeal,
                List(s"${deadEnemy.label} dropped ${item.name}, but there's no time to decide - it's lost."),
                Nil,
                None
               )
             case PickupOutcome.ChoicePending(pending) =>
-              (playerWithXp,
+              (playerAfterHeal,
                List(s"${deadEnemy.label} dropped ${item.name}. Choose what to do with it."),
                Nil,
                Some(pending)
@@ -417,7 +442,8 @@ class CombatResolver(rng: Random = Random(),
     if isBossKill then
       val runCompleteLog = List("You have vanquished the dungeon's guardian! Victory is yours.")
       val events =
-        enemyDefeatedEvent :: lootEvents ::: levelUpEvents ::: List(GameEvent.RunEnded(victory = true))
+        enemyDefeatedEvent :: healEvent ::: lootEvents ::: levelUpEvents :::
+          List(GameEvent.RunEnded(victory = true))
       (GameOverState(finalPlayer, victory = true),
        victoryLog ++ lootLog ++ levelUpLog ++ runCompleteLog,
        events
@@ -432,7 +458,7 @@ class CombatResolver(rng: Random = Random(),
         enemyStats = state.enemyStats,
         pendingEquipChoice = pendingChoice
       )
-      val events = enemyDefeatedEvent :: lootEvents ::: levelUpEvents
+      val events = enemyDefeatedEvent :: healEvent ::: lootEvents ::: levelUpEvents
       (nextState, victoryLog ++ lootLog ++ levelUpLog, events)
   }
 

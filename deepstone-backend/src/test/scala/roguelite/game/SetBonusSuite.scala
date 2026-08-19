@@ -213,6 +213,117 @@ class SetBonusSuite extends FunSuite:
   }
 
   // -----------------------------------------------------------------------
+  // FirstAttackAlwaysCrit, AbilityCostReductionPercent, HealOnKillPercent
+  // -----------------------------------------------------------------------
+
+  test("FirstAttackAlwaysCrit guarantees a crit on the first Attack, not on the second") {
+    val firstAttackSet = SetDef(
+      id = "faac_set",
+      name = "First Attack Set",
+      classId = ClassId.Warrior,
+      twoPiece = SetBonus(SetBonusEffect.FlatAttack(0), "no-op"),
+      fourPiece = SetBonus(SetBonusEffect.FirstAttackAlwaysCrit, "first attack always crits")
+    )
+    val setDefs = Map(firstAttackSet.id -> firstAttackSet)
+    val player  = withSetPieces(makePlayer(), firstAttackSet.id, 4) // critChance is otherwise 0
+
+    val resolver = CombatResolver(Random(1), setDefs = setDefs)
+    val (afterFirst, firstLog, _) = resolver.resolve(makeCombatState(player), CombatAction(CombatActionType.Attack))
+    assert(firstLog.exists(_.contains("Critical hit!")), "expected the first attack to be a guaranteed crit")
+
+    val stateAfterFirst = afterFirst match
+      case cs: CombatState => cs
+      case _                => fail("expected CombatState after the first attack (enemy has 500 HP)")
+
+    val (_, secondLog, _) = resolver.resolve(stateAfterFirst, CombatAction(CombatActionType.Attack))
+    assert(!secondLog.exists(_.contains("Critical hit!")),
+           "expected the second attack to not be forced (critChance is otherwise 0)"
+    )
+  }
+
+  test("AbilityCostReductionPercent reduces the resource cost actually deducted") {
+    val costReductionSet = SetDef(
+      id = "cost_set",
+      name = "Cost Set",
+      classId = ClassId.Warrior,
+      twoPiece = SetBonus(SetBonusEffect.FlatAttack(0), "no-op"),
+      fourPiece = SetBonus(SetBonusEffect.AbilityCostReductionPercent(50), "-50% ability cost")
+    )
+    val setDefs = Map(costReductionSet.id -> costReductionSet)
+    val ability = AbilityDef(ClassId.Warrior,
+                             id = "test_ability",
+                             name = "Test Strike",
+                             cost = 40,
+                             resourceName = "Rage",
+                             description = "test",
+                             effect = AbilityEffect.FlatDamage(1)
+    )
+    val abilityDefs = Map(ClassId.Warrior -> ability)
+
+    val base    = makePlayer().copy(resourceCurrent = 40, resourceMax = 100)
+    val withSet = withSetPieces(base, costReductionSet.id, 4)
+
+    // Defend-only enemy: Warrior gains +10 Rage on being hit, which would confound the resource
+    // assertion below if the enemy's counter-attack landed.
+    val passiveEnemy = tankEnemy.copy(actions = List(EnemyActionWeight("DEFEND", 100)))
+    def stateFor(p: Player): CombatState = CombatState(p, makeDungeon, 0, 0, Combat(enemy = passiveEnemy), "dummy")
+
+    val (nextBase, _, _) = CombatResolver(Random(1), abilityDefs = abilityDefs, setDefs = setDefs)
+      .resolve(stateFor(base), CombatAction(CombatActionType.Ability))
+    val (nextWithSet, _, _) = CombatResolver(Random(1), abilityDefs = abilityDefs, setDefs = setDefs)
+      .resolve(stateFor(withSet), CombatAction(CombatActionType.Ability))
+
+    val resourceBase    = nextBase match { case cs: CombatState => cs.player.resourceCurrent; case _ => fail("expected CombatState") }
+    val resourceWithSet = nextWithSet match { case cs: CombatState => cs.player.resourceCurrent; case _ => fail("expected CombatState") }
+    assertEquals(resourceBase, 0, "full cost (40) should be deducted without the set")
+    assertEquals(resourceWithSet, 20, "half cost (20) should be deducted with the -50% set bonus")
+  }
+
+  test("HealOnKillPercent heals a percentage of the killing blow's damage") {
+    val healOnKillSet = SetDef(
+      id = "heal_set",
+      name = "Heal Set",
+      classId = ClassId.Warrior,
+      twoPiece = SetBonus(SetBonusEffect.HealOnKillPercent(50), "heal 50% of kill damage"),
+      fourPiece = SetBonus(SetBonusEffect.FlatDefense(0), "no-op")
+    )
+    val setDefs = Map(healOnKillSet.id -> healOnKillSet)
+    val player  = withSetPieces(makePlayer(hp = 100, maxHp = 200), healOnKillSet.id, 2)
+
+    val fragileEnemy = EnemyInstance(
+      entityId = "dummy",
+      typeId = "goblin",
+      label = "Goblin",
+      hp = 1,
+      maxHp = 1,
+      attack = 0,
+      defense = 0,
+      xpReward = 10,
+      actions = Nil,
+      dropChance = 0,
+      lootTable = Nil
+    )
+    val room = Room("r",
+                    RoomType.Combat,
+                    3,
+                    3,
+                    Vector.fill(3)(Vector.fill(3)(Tile.Floor)),
+                    List(Enemy("dummy", 1, 1, "goblin", "Goblin"))
+    )
+    val dungeon = Dungeon.fromRooms(List(room)).getOrElse(throw IllegalStateException("test dungeon"))
+    val state   = CombatState(player, dungeon, 0, 0, Combat(enemy = fragileEnemy), "dummy")
+
+    val (next, log, events) = CombatResolver(Random(1), setDefs = setDefs).resolve(state, CombatAction(CombatActionType.Attack))
+    val nextPlayer = next match
+      case es: roguelite.engine.ExplorationState => es.player
+      case other                                  => fail(s"expected the 1-HP enemy to die and return ExplorationState, got $other")
+
+    assert(nextPlayer.hp > 100, s"expected the kill to heal the player above their starting 100 HP, got ${nextPlayer.hp}")
+    assert(log.exists(_.contains("heals you")), s"expected a heal-on-kill log line: $log")
+    assert(events.exists { case GameEvent.Healed(_) => true; case _ => false }, s"expected a Healed event: $events")
+  }
+
+  // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
 

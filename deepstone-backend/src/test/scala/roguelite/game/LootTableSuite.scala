@@ -109,6 +109,53 @@ class LootTableSuite extends FunSuite:
     val hardRate    = uncommonRate(Difficulty.Hard)
     assert(hardRate > normalRate, s"expected Hard ($hardRate) > Normal ($normalRate)")
 
+  // --- Rarity roll-and-scale -------------------------------------------------
+
+  test("rolled drops never fall below the item's authored rarity floor"):
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("steel_sword", 100)))
+    val rng   = Random(11)
+    (1 to 300).foreach:
+      _ =>
+        val item = LootTable.rollEnemy(enemy, itemDefs, rng).getOrElse(fail("expected Some"))
+        assert(item.rarity.ordinal >= Rarity.Uncommon.ordinal,
+               s"steel_sword (floor Uncommon) rolled ${item.rarity}"
+        )
+
+  test("rolled drops can land above the item's authored floor over many trials"):
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("steel_sword", 100)))
+    val rng   = Random(3)
+    val rolledAboveFloor = (1 to 500).exists:
+      _ => LootTable.rollEnemy(enemy, itemDefs, rng).exists(_.rarity != Rarity.Uncommon)
+    assert(rolledAboveFloor, "expected at least one steel_sword drop above its Uncommon floor in 500 trials")
+
+  test("a weapon's attackBonus scales relative to its floor's multiplier when rolled higher"):
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))
+    val rng   = Random(3)
+    val scaledUp = (1 to 500)
+      .flatMap(_ => LootTable.rollEnemy(enemy, itemDefs, rng))
+      .collectFirst { case w: Weapon if w.rarity != Rarity.Common => w }
+      .getOrElse(fail("expected at least one iron_sword drop above Common in 500 trials"))
+
+    val expected =
+      math.max(1, math.round(3 * (scaledUp.rarity.statMultiplier / Rarity.Common.statMultiplier)).toInt)
+    assertEquals(scaledUp.attackBonus, expected)
+
+  test("consumables and keys keep their authored rarity, never rolled"):
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
+    val rng   = Random(5)
+    (1 to 300).foreach:
+      _ =>
+        val item = LootTable.rollEnemy(enemy, itemDefs, rng).getOrElse(fail("expected Some"))
+        assertEquals(item.rarity, Rarity.Common)
+
+  test("Epic rolls are rarer than Common rolls over many trials"):
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))
+    val rng     = Random(21)
+    val results = (1 to 3000).flatMap(_ => LootTable.rollEnemy(enemy, itemDefs, rng)).map(_.rarity)
+    val commonCount = results.count(_ == Rarity.Common)
+    val epicCount   = results.count(_ == Rarity.Epic)
+    assert(commonCount > epicCount, s"expected Common ($commonCount) > Epic ($epicCount) over 3000 trials")
+
   // --- Helper --------------------------------------------------------------
 
   private def makeEnemy(

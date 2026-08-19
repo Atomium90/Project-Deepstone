@@ -40,10 +40,13 @@ import boundary.break
   *   Random instance: inject a seeded one for deterministic tests.
   * @param abilityDefs
   *   Loaded ability catalog, keyed by class. See [[AbilityLoader]].
+  * @param setDefs
+  *   Loaded equipment set catalog, keyed by setId. See [[SetLoader]].
   */
 class CombatResolver(rng: Random = Random(),
                      itemDefs: Map[String, Item] = Map.empty,
-                     abilityDefs: Map[ClassId, AbilityDef] = Map.empty
+                     abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
+                     setDefs: Map[String, SetDef] = Map.empty
 ):
 
   /** Entry point called by the StateMachine for every CombatAction. */
@@ -84,7 +87,12 @@ class CombatResolver(rng: Random = Random(),
     // Crit chance is an Attack-specific weapon-strike stat: it never applies to Ability's
     // FlatDamage (Arcane Blast), which bypasses calcDamage entirely.
     val isCrit = rollCrit(state.player.critChance)
-    val damage = if isCrit then math.round(baseDamage * CritMultiplier).toInt else baseDamage
+
+    // Set-driven "+N% attack damage" is a final multiplier on top of the base hit, applied
+    // alongside (not instead of) the crit multiplier - the two stack multiplicatively.
+    val setDamagePercent = sumSetBonus(state.player, { case SetBonusEffect.AttackDamagePercent(n) => n })
+    val critMultiplier    = if isCrit then CritMultiplier else 1.0
+    val damage = math.round(baseDamage * (1.0 + setDamagePercent / 100.0) * critMultiplier).toInt
 
     val damagedEnemy = state.combat.enemy.takeDamage(damage)
     val critSuffix   = if isCrit then " Critical hit!" else ""
@@ -470,10 +478,31 @@ class CombatResolver(rng: Random = Random(),
       base * (if acc.typeTag.exists(player.affinityTags.contains) then 2 else 1)
     .sum
 
+  /** Count equipped pieces per setId, across the weapon/armor/2 accessory slots. */
+  private def equippedSetCounts(player: Player): Map[String, Int] =
+    val setIds = List(player.equippedWeapon.flatMap(_.setId), player.equippedArmor.flatMap(_.setId))
+      ++ player.equippedAccessories.flatten.map(_.setId)
+    setIds.flatten.groupBy(identity).view.mapValues(_.size).toMap
+
+  /** Every set bonus effect currently active for `player`: the 2-piece bonus once 2+ pieces of a
+    * set are equipped, plus the 4-piece bonus once all 4 are (both apply together, they don't
+    * replace each other). Unknown setIds (should not happen with a valid sets.json) are ignored.
+    */
+  private[game] def activeSetBonuses(player: Player): List[SetBonusEffect] =
+    equippedSetCounts(player).toList.flatMap:
+      case (setId, count) =>
+        setDefs.get(setId).toList.flatMap:
+          setDef =>
+            (if count >= 2 then List(setDef.twoPiece.effect) else Nil) ++
+              (if count >= 4 then List(setDef.fourPiece.effect) else Nil)
+
+  private def sumSetBonus(player: Player, extract: PartialFunction[SetBonusEffect, Int]): Int =
+    activeSetBonuses(player).collect(extract).sum
+
   /** Will be tuned later. */
   extension (player: Player)
     /** Effective attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon
-      * and accessory bonuses.
+      * and accessory bonuses + any active set FlatAttack bonus.
       *
       * The equipped weapon's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Hunter's Bow (+5 ATK, "ranged") held by an Archer (affinity: "ranged") → +10 ATK.
@@ -485,10 +514,11 @@ class CombatResolver(rng: Random = Random(),
         case None    => 0
       }
       val accessoryBonus = accessoryBonusSum(player, _.attackBonus)
-      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus
+      val setBonus        = sumSetBonus(player, { case SetBonusEffect.FlatAttack(n) => n })
+      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus + setBonus
 
     /** Effective defense: level scaling + permanent bonus + affinity-aware armor and accessory
-      * bonuses.
+      * bonuses + any active set FlatDefense bonus.
       *
       * The equipped armor's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Chain Mail (+6 DEF, "heavy") held by a Warrior (affinity: "heavy") → +12 DEF.
@@ -500,11 +530,14 @@ class CombatResolver(rng: Random = Random(),
         case None    => 0
       }
       val accessoryBonus = accessoryBonusSum(player, _.defenseBonus)
-      player.level * 2 + player.bonusDefense + armorBonus + accessoryBonus
+      val setBonus        = sumSetBonus(player, { case SetBonusEffect.FlatDefense(n) => n })
+      player.level * 2 + player.bonusDefense + armorBonus + accessoryBonus + setBonus
 
     /** Percent chance (0-100) of a critical hit on the player's next Attack action, summed across
-      * both equipped accessories' critChanceBonus with the same affinity-doubling rule as
-      * attack/defense. Weapon/armor never contribute - crit chance is accessory-only in the
-      * current data.
+      * both equipped accessories' critChanceBonus (same affinity-doubling rule as attack/defense)
+      * plus any active set CritChancePercent bonus. Weapon/armor never contribute directly - crit
+      * chance is otherwise accessory-only in the current data.
       */
-    private[game] def critChance: Int = accessoryBonusSum(player, _.critChanceBonus)
+    private[game] def critChance: Int =
+      accessoryBonusSum(player, _.critChanceBonus) +
+        sumSetBonus(player, { case SetBonusEffect.CritChancePercent(n) => n })

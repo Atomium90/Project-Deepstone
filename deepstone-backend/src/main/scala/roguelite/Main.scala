@@ -19,6 +19,7 @@ import roguelite.game.{
   ItemLoader,
   NpcDialogueLoader,
   RoomLoader,
+  SetLoader,
   UpgradeLoader
 }
 import roguelite.db.Database
@@ -47,13 +48,14 @@ object Main extends IOApp.Simple:
             upgradeDefs <- UpgradeLoader.loadAll()
             npcDialogueDefs <- NpcDialogueLoader.loadAll()
             achievementDefs <- AchievementLoader.loadAll()
+            setDefs <- SetLoader.loadAll()
             _ <- logger.info(
               s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
                 s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, ${npcDialogueDefs.size} npc dialogues, " +
-                s"${achievementDefs.size} achievements."
+                s"${achievementDefs.size} achievements, ${setDefs.size} equipment sets."
             )
 
-            resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs)
+            resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs, setDefs = setDefs)
             stateMachine = StateMachine(roomPool,
                                         enemyStats,
                                         itemDefs,

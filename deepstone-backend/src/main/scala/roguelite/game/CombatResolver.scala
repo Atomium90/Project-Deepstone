@@ -377,7 +377,7 @@ class CombatResolver(rng: Random = Random(),
       LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty) match {
         case None => (playerWithXp, Nil, Nil, None)
         case Some(item) =>
-          EquipmentResolver.resolvePickup(playerWithXp, item) match {
+          EquipmentResolver.resolvePickup(playerWithXp, item, setDefs) match {
             case PickupOutcome.Equipped(p) =>
               (p,
                List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
@@ -478,23 +478,9 @@ class CombatResolver(rng: Random = Random(),
       base * (if acc.typeTag.exists(player.affinityTags.contains) then 2 else 1)
     .sum
 
-  /** Count equipped pieces per setId, across the weapon/armor/2 accessory slots. */
-  private def equippedSetCounts(player: Player): Map[String, Int] =
-    val setIds = List(player.equippedWeapon.flatMap(_.setId), player.equippedArmor.flatMap(_.setId))
-      ++ player.equippedAccessories.flatten.map(_.setId)
-    setIds.flatten.groupBy(identity).view.mapValues(_.size).toMap
-
-  /** Every set bonus effect currently active for `player`: the 2-piece bonus once 2+ pieces of a
-    * set are equipped, plus the 4-piece bonus once all 4 are (both apply together, they don't
-    * replace each other). Unknown setIds (should not happen with a valid sets.json) are ignored.
-    */
+  /** Every set bonus effect currently active for `player` (see [[SetDef.activeBonuses]]). */
   private[game] def activeSetBonuses(player: Player): List[SetBonusEffect] =
-    equippedSetCounts(player).toList.flatMap:
-      case (setId, count) =>
-        setDefs.get(setId).toList.flatMap:
-          setDef =>
-            (if count >= 2 then List(setDef.twoPiece.effect) else Nil) ++
-              (if count >= 4 then List(setDef.fourPiece.effect) else Nil)
+    SetDef.activeBonuses(player.equippedSetIds, setDefs)
 
   private def sumSetBonus(player: Player, extract: PartialFunction[SetBonusEffect, Int]): Int =
     activeSetBonuses(player).collect(extract).sum

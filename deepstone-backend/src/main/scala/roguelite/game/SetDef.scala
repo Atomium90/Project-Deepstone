@@ -47,3 +47,26 @@ case class SetDef(
     twoPiece: SetBonus,
     fourPiece: SetBonus
 )
+
+object SetDef:
+  /** Active 2pc/4pc bonus effects across every set represented in `equippedSetIds` (one entry per
+    * equipped weapon/armor/accessory that carries a setId - duplicates are expected and are how
+    * piece counts are derived). Unknown setIds absent from `setDefs` are ignored. 2pc and 4pc
+    * bonuses stack: a 4-piece set contributes both, not just the 4pc one.
+    *
+    * Free-standing (not on [[roguelite.engine.Player]]) so both [[CombatResolver]] and
+    * [[roguelite.engine.Player.reconcileSetHpBonus]] share one counting/threshold implementation
+    * without `game` needing to depend on `engine.Player`.
+    */
+  def activeBonuses(equippedSetIds: List[String], setDefs: Map[String, SetDef]): List[SetBonusEffect] =
+    equippedSetIds
+      .groupBy(identity)
+      .view
+      .mapValues(_.size)
+      .toList
+      .flatMap:
+        case (setId, count) =>
+          setDefs.get(setId).toList.flatMap:
+            setDef =>
+              (if count >= 2 then List(setDef.twoPiece.effect) else Nil) ++
+                (if count >= 4 then List(setDef.fourPiece.effect) else Nil)

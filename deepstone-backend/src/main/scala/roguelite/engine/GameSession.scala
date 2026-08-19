@@ -9,7 +9,7 @@ import doobie.util.update
 import roguelite.game.UpgradeDef
 import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
-import roguelite.game.{ EquipmentResolver, PickupOutcome }
+import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 
 /** Represents one active player connection.
@@ -29,7 +29,8 @@ class GameSession private (
     itemDefs: Map[String, Item],
     upgradeDefs: Map[String, UpgradeDef],
     achievementDefs: Map[String, AchievementDef],
-    abilityCatalog: List[AbilityView]
+    abilityCatalog: List[AbilityView],
+    setDefs: Map[String, SetDef] = Map.empty
 ):
 
   /** Process a player action, update the internal state, and return the new state snapshot to be
@@ -251,7 +252,7 @@ class GameSession private (
       itemDefs.get(typeId) match
         case None => player
         case Some(proto) =>
-          EquipmentResolver.resolvePickup(player, proto.withNewId) match
+          EquipmentResolver.resolvePickup(player, proto.withNewId, setDefs) match
             case PickupOutcome.Equipped(p)      => p
             case PickupOutcome.KeyCollected(p)  => p
             case PickupOutcome.ChoicePending(_) => player // no room => silently skip
@@ -274,13 +275,16 @@ object GameSession:
     * @param abilityDefs   The loaded ability catalog (see [[roguelite.game.AbilityLoader]]),
     *                      projected once into the [[AbilityView]] catalog sent on every update.
     * @param achievementDefs The loaded achievement catalog (see [[roguelite.game.AchievementLoader]]).
+    * @param setDefs       The loaded equipment set catalog (see [[roguelite.game.SetLoader]]), used
+    *                      to resolve the `StartingItem` upgrade effect's set HP reconciliation.
     */
   def create(stateMachine: StateMachine,
              database: Database,
              itemDefs: Map[String, Item],
              upgradeDefs: Map[String, UpgradeDef],
              abilityDefs: Map[ClassId, AbilityDef],
-             achievementDefs: Map[String, AchievementDef]
+             achievementDefs: Map[String, AchievementDef],
+             setDefs: Map[String, SetDef] = Map.empty
   ): IO[GameSession] =
     for
       meta                 <- database.loadMeta()
@@ -307,7 +311,8 @@ object GameSession:
                           itemDefs,
                           upgradeDefs,
                           achievementDefs,
-                          abilityCatalog
+                          abilityCatalog,
+                          setDefs
     )
 
   private def toAbilityView(a: AbilityDef): AbilityView =

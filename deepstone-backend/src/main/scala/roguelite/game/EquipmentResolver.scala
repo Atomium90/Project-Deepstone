@@ -26,22 +26,28 @@ enum PickupOutcome:
   * dependency-free, like [[LootTable]].
   */
 object EquipmentResolver:
-  def resolvePickup(player: Player, item: Item): PickupOutcome = item match
+  def resolvePickup(player: Player,
+                    item: Item,
+                    setDefs: Map[String, SetDef] = Map.empty
+  ): PickupOutcome = item match
     case w: Weapon =>
       player.equippedWeapon match
-        case None => PickupOutcome.Equipped(player.copy(equippedWeapon = Some(w)))
+        case None =>
+          PickupOutcome.Equipped(player.copy(equippedWeapon = Some(w)).reconcileSetHpBonus(setDefs))
         case Some(current) =>
           PickupOutcome.ChoicePending(PendingEquipChoice(w, Map(EquipSlot.WeaponSlot -> current)))
 
     case a: Armor =>
       player.equippedArmor match
-        case None => PickupOutcome.Equipped(player.copy(equippedArmor = Some(a)))
+        case None =>
+          PickupOutcome.Equipped(player.copy(equippedArmor = Some(a)).reconcileSetHpBonus(setDefs))
         case Some(current) =>
           PickupOutcome.ChoicePending(PendingEquipChoice(a, Map(EquipSlot.ArmorSlot -> current)))
 
     case acc: Accessory =>
       val idx = player.equippedAccessories.indexWhere(_.isEmpty)
-      if idx >= 0 then PickupOutcome.Equipped(player.equipAccessory(idx, acc))
+      if idx >= 0 then
+        PickupOutcome.Equipped(player.equipAccessory(idx, acc).reconcileSetHpBonus(setDefs))
       else
         val options = player.equippedAccessories.zipWithIndex.collect {
           case (Some(current), i) => EquipSlot.AccessorySlot(i) -> current
@@ -70,7 +76,8 @@ object EquipmentResolver:
     * left untouched so the client can retry.
     */
   def resolveChoice(exp: ExplorationState,
-                    targetSlot: Option[EquipSlot]
+                    targetSlot: Option[EquipSlot],
+                    setDefs: Map[String, SetDef] = Map.empty
   ): (GameState, List[String], List[GameEvent]) =
     exp.pendingEquipChoice match
       case None => (exp, List("No equip choice pending."), Nil)
@@ -83,7 +90,7 @@ object EquipmentResolver:
             (exp, List("Invalid equip slot choice."), Nil)
 
           case Some(slot) =>
-            val updatedPlayer = applyToSlot(exp.player, slot, pending.newItem)
+            val updatedPlayer = applyToSlot(exp.player, slot, pending.newItem, setDefs)
             val next           = exp.copy(player = updatedPlayer, pendingEquipChoice = None)
             (next,
              List(s"You equip ${pending.newItem.name}."),
@@ -91,14 +98,21 @@ object EquipmentResolver:
             )
 
   /** Place `newItem` into `slot`, evicting whatever was there (reversing an accessory's maxHp
-    * bonus first, so swapping accessories never leaves a stale bonus behind).
+    * bonus first, so swapping accessories never leaves a stale bonus behind), then reconciling
+    * any set HP bonus that the swap may have gained or lost.
     */
-  private def applyToSlot(player: Player, slot: EquipSlot, newItem: Item): Player = (slot, newItem) match
-    case (EquipSlot.WeaponSlot, w: Weapon) => player.copy(equippedWeapon = Some(w))
-    case (EquipSlot.ArmorSlot, a: Armor)   => player.copy(equippedArmor = Some(a))
+  private def applyToSlot(player: Player,
+                          slot: EquipSlot,
+                          newItem: Item,
+                          setDefs: Map[String, SetDef]
+  ): Player = (slot, newItem) match
+    case (EquipSlot.WeaponSlot, w: Weapon) =>
+      player.copy(equippedWeapon = Some(w)).reconcileSetHpBonus(setDefs)
+    case (EquipSlot.ArmorSlot, a: Armor) =>
+      player.copy(equippedArmor = Some(a)).reconcileSetHpBonus(setDefs)
     case (EquipSlot.AccessorySlot(i), acc: Accessory) =>
       val (_, unequipped) = player.unequipAccessory(i)
-      unequipped.equipAccessory(i, acc)
+      unequipped.equipAccessory(i, acc).reconcileSetHpBonus(setDefs)
     case (EquipSlot.PotionSlot(i), c: Consumable) =>
       player.copy(potionBelt = player.potionBelt.updated(i, Some(c)))
     case _ =>

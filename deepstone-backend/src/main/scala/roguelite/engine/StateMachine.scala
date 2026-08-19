@@ -11,7 +11,8 @@ import roguelite.game.{
   Item,
   NpcDialogueDef,
   PickupOutcome,
-  Room
+  Room,
+  SetDef
 }
 
 import scala.util.Random
@@ -54,9 +55,11 @@ class StateMachine(roomPool: Map[String, Room],
                    upgradeDefs: Map[String, UpgradeDef],
                    resolver: CombatResolver,
                    rng: Random = Random(),
-                   npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty
+                   npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
+                   setDefs: Map[String, SetDef] = Map.empty
 ):
-  private val interactionResolver = InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs)
+  private val interactionResolver =
+    InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs, setDefs = setDefs)
 
   /** Lifts a plain (state, log) transition result into the richer type `applyActionPure` returns,
     * so every action that never produces dialogue (everything except Interact on an Npc) can keep
@@ -110,7 +113,7 @@ class StateMachine(roomPool: Map[String, Room],
                       itemDefs.get(typeId) match {
                         case None => p
                         case Some(proto) =>
-                          EquipmentResolver.resolvePickup(p, proto.withNewId) match {
+                          EquipmentResolver.resolvePickup(p, proto.withNewId, setDefs) match {
                             case PickupOutcome.Equipped(updated)     => updated
                             case PickupOutcome.KeyCollected(updated) => updated
                             case PickupOutcome.ChoicePending(_)      => p
@@ -183,7 +186,7 @@ class StateMachine(roomPool: Map[String, Room],
         interactionResolver.interact(exp, targetId)
 
       case (exp: ExplorationState, EquipChoice(targetSlot)) =>
-        val (next, log, events) = EquipmentResolver.resolveChoice(exp, targetSlot)
+        val (next, log, events) = EquipmentResolver.resolveChoice(exp, targetSlot, setDefs)
         TransitionResult(next, log, events = events)
 
       // -- Combat -----------------------------------------------------------

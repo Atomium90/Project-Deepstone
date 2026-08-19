@@ -26,7 +26,8 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                           itemDefs: Map[String, Item],
                           rng: Random = Random(),
                           npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
-                          clock: () => Long = () => System.currentTimeMillis()
+                          clock: () => Long = () => System.currentTimeMillis(),
+                          setDefs: Map[String, SetDef] = Map.empty
 ):
 
   def interact(exp: ExplorationState, targetId: String): TransitionResult =
@@ -159,7 +160,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         case None =>
           (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."), Nil)
         case Some(item) =>
-          EquipmentResolver.resolvePickup(exp.player, item) match {
+          EquipmentResolver.resolvePickup(exp.player, item, setDefs) match {
             case PickupOutcome.Equipped(p) =>
               (exp.copy(dungeon = updatedDungeon, player = p),
                List(s"You open the chest and find ${item.name}! (${item.statLine})"),

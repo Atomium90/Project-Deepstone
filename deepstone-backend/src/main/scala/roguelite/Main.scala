@@ -62,9 +62,12 @@ object Main extends IOApp.Simple:
                                         classDefs,
                                         upgradeDefs,
                                         resolver,
-                                        npcDialogueDefs = npcDialogueDefs
+                                        npcDialogueDefs = npcDialogueDefs,
+                                        setDefs = setDefs
             )
-            router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs, achievementDefs)
+            router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
+                                     achievementDefs, setDefs
+            )
 
             // Serves the frontend's built static files (copied into resources/static/ by
             // build-release.ps1 before packaging - see that script). Root serves index.html

@@ -58,7 +58,7 @@
 {#if item}
     <div
         class="equip-slot occupied"
-        style="width:{size}px; height:{size}px; border-color:{ITEM_RARITY_COLORS[item.rarity]}"
+        style="width:{size}px; height:{size}px; border-color:{ITEM_RARITY_COLORS[item.rarity]}; --rarity-tint:{ITEM_RARITY_COLORS[item.rarity]}1a"
         on:mouseenter={showTooltip}
         on:mouseleave={hideTooltip}
         on:focus={showTooltip}
@@ -92,6 +92,10 @@
         justify-content: center;
         flex-shrink: 0;
         transition: border-color 0.1s;
+    }
+
+    .equip-slot.occupied {
+        background: var(--rarity-tint, #111);
     }
 
     .equip-slot.occupied:hover,

@@ -1,8 +1,17 @@
 <script lang="ts">
-    import { ITEM_RARITY_COLORS, SET_NAMES } from "../engine/constants";
+    import { ITEM_RARITY_COLORS } from "../engine/constants";
+    import { gameState, equippedSetCounts } from "../engine/StateStore";
     import type { ItemView } from "../engine/protocol";
 
     export let item: ItemView;
+
+    /** Full SetView for this item's set, if any - the client never hardcodes set names/bonus
+     * text, it comes from StateUpdate.sets (same discipline as AbilityView). */
+    $: setView = item.setId ? $gameState?.sets.find((s) => s.id === item.setId) : undefined;
+    $: setCount = item.setId ? $equippedSetCounts[item.setId] ?? 0 : 0;
+    /** Set bonuses are class-gated server-side - equipping another class's set never grants its
+     * bonus, so the tooltip must reflect that rather than showing a misleading "active" state. */
+    $: classMatches = setView !== undefined && setView.classId === $gameState?.player.classId;
 </script>
 
 <div class="item-tooltip">
@@ -10,7 +19,17 @@
     <p class="tooltip-kind">{item.kind}</p>
     <p class="tooltip-stat">{item.statLine}</p>
     {#if item.setId}
-        <p class="tooltip-set">Part of: {SET_NAMES[item.setId] ?? item.setId}</p>
+        <div class="tooltip-set" style="--set-accent:{ITEM_RARITY_COLORS.epic}">
+            <p class="set-name">Part of: {setView?.name ?? item.setId} ({setCount}/4)</p>
+            {#if setView}
+                <p class="set-bonus" class:active={classMatches && setCount >= 2}>
+                    2pc: {setView.bonus2pcLabel}
+                </p>
+                <p class="set-bonus" class:active={classMatches && setCount >= 4}>
+                    4pc: {setView.bonus4pcLabel}
+                </p>
+            {/if}
+        </div>
     {/if}
 </div>
 
@@ -46,8 +65,24 @@
     }
 
     .tooltip-set {
+        display: flex;
+        flex-direction: column;
+        gap: 0.1rem;
+        margin-top: 0.15rem;
+    }
+
+    .set-name {
         font-size: 0.68rem;
-        color: #8e44ad;
+        color: var(--set-accent);
         font-style: italic;
+    }
+
+    .set-bonus {
+        font-size: 0.62rem;
+        color: #555;
+    }
+
+    .set-bonus.active {
+        color: var(--set-accent);
     }
 </style>

@@ -18,7 +18,10 @@
         <div class="modal">
             <p class="modal-title">New item found</p>
 
-            <div class="new-item" style="border-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}">
+            <div
+                class="new-item"
+                style="border-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}; background-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}1a"
+            >
                 <span class="item-name">{choice.newItem.name}</span>
                 <span class="item-stat">{choice.newItem.statLine}</span>
             </div>

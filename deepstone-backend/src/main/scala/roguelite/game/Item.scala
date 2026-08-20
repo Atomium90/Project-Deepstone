@@ -88,8 +88,21 @@ sealed trait Item:
   /** Category string used by the client protocol. */
   def kind: String
 
-  /** One-line stat summary for the UI, e.g. "+3 ATK", "Heal 30 HP". */
+  /** One-line stat summary for the UI, e.g. "+3 ATK", "Heal 30 HP". Always the flat catalog
+    * baseline, independent of any player - see [[effectiveStatLine]] for the player-aware value.
+    */
   def statLine: String
+
+  /** Same as [[statLine]], but for Weapon/Armor/Accessory carrying a `typeTag`, the affinity-
+    * scaled numeric bonus is shown instead of the flat baseline - the actual value
+    * [[CombatResolver]]'s affinity doubling would grant a player whose `affinityTags` contains
+    * that tag. Defaults to [[statLine]] unchanged for Consumable/Key (no typeTag exists) and for
+    * an untagged Weapon/Armor/Accessory. Resolved once at the `itemToView` protocol boundary
+    * (`GameState.scala`), same discipline as every other player-facing number already resolved
+    * server-side (`PlayerView.maxHp`, ability costs, set bonus labels) rather than shipping a raw
+    * baseline for the client to multiply itself.
+    */
+  def effectiveStatLine(affinityTags: Set[String]): String = statLine
 
   /** Flavor text, e.g. "Warm to the touch, humming with barely-checked fury." Absent for every
     * item authored before the item-pool rework; not yet surfaced to the client (see ItemView).
@@ -120,6 +133,12 @@ case class Weapon(
     case Some(tag)  => s"+$attackBonus ATK [$tag]"
     case None       => s"+$attackBonus ATK"
   }
+  override def effectiveStatLine(affinityTags: Set[String]): String =
+    val effective = if typeTag.exists(affinityTags.contains) then attackBonus * 2 else attackBonus
+    typeTag match {
+      case Some(tag) => s"+$effective ATK [$tag]"
+      case None      => s"+$effective ATK"
+    }
   def withNewId: Item  = copy(id = Item.newId())
 
 case class Armor(
@@ -138,6 +157,12 @@ case class Armor(
     case Some(tag)  => s"+$defenseBonus DEF [$tag]"
     case None       => s"+$defenseBonus DEF"
   }
+  override def effectiveStatLine(affinityTags: Set[String]): String =
+    val effective = if typeTag.exists(affinityTags.contains) then defenseBonus * 2 else defenseBonus
+    typeTag match {
+      case Some(tag) => s"+$effective DEF [$tag]"
+      case None      => s"+$effective DEF"
+    }
   def withNewId: Item  = copy(id = Item.newId())
 
 /** Accessories may carry any combination of hpBonus/attackBonus/defenseBonus/critChanceBonus -
@@ -167,6 +192,18 @@ case class Accessory(
       attackBonus.map(n => s"+$n ATK"),
       defenseBonus.map(n => s"+$n DEF"),
       critChanceBonus.map(n => s"+$n% CRIT")
+    ).flatten
+    val tagSuffix = typeTag.map(tag => s" [$tag]").getOrElse("")
+    parts.mkString(", ") + tagSuffix
+  override def effectiveStatLine(affinityTags: Set[String]): String =
+    // hpBonus is never affinity-scaled (applied flat at pickup, see Player.equipAccessory) -
+    // only attackBonus/defenseBonus/critChanceBonus are, same fields CombatResolver doubles.
+    val multiplier = if typeTag.exists(affinityTags.contains) then 2 else 1
+    val parts = List(
+      hpBonus.map(n => s"+$n MAX HP"),
+      attackBonus.map(n => s"+${n * multiplier} ATK"),
+      defenseBonus.map(n => s"+${n * multiplier} DEF"),
+      critChanceBonus.map(n => s"+${n * multiplier}% CRIT")
     ).flatten
     val tagSuffix = typeTag.map(tag => s" [$tag]").getOrElse("")
     parts.mkString(", ") + tagSuffix

@@ -336,3 +336,14 @@ class StateMachineSuite extends FunSuite:
     assertEquals(update.equipment.armor.flatMap(_.iconId), Some("steel_plate"))
     assertEquals(update.equipment.accessories.flatten.head.iconId, Some("ring_of_strength"))
     assertEquals(update.equipment.weapon.flatMap(_.iconId), None)
+
+  test("StateUpdate equipment resolves an item's statLine to the affinity-doubled value for the player's class"):
+    val matchingWeapon  = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 5, typeTag = Some("heavy"))
+    val mismatchedArmor = Armor("a1", "leather_cape", "Leather Cape", Rarity.Common, defenseBonus = 4, typeTag = Some("ranged"))
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior) // affinityTags = Set("heavy")
+      .copy(equippedWeapon = Some(matchingWeapon), equippedArmor = Some(mismatchedArmor))
+    val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
+    assertEquals(update.equipment.weapon.map(_.statLine), Some("+10 ATK [heavy]"))
+    assertEquals(update.equipment.weapon.flatMap(_.typeTag), Some("heavy"))
+    assertEquals(update.equipment.armor.map(_.statLine), Some("+4 DEF [ranged]"))
+    assertEquals(update.player.affinityTags, List("heavy"))

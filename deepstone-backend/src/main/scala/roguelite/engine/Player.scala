@@ -30,7 +30,8 @@ case class Player(
     resourceMax = resourceMax,
     level = level,
     xp = xp,
-    metaCurrency = metaCurrency
+    metaCurrency = metaCurrency,
+    affinityTags = affinityTags.toList
   )
 
   def isAlive: Boolean = hp > 0

@@ -192,8 +192,11 @@
 
     </div>
 
-    <!-- No Inventory nav here: the Hub has no inventory context. -->
     <footer class="hub-footer">
+        <button class="footer-nav-btn" on:click={() => characterTab.set("equipment")}>
+            <span class="footer-nav-icon">🎒</span>
+            <span class="footer-nav-label">Equipment</span>
+        </button>
         <button class="footer-nav-btn" on:click={() => characterTab.set("settings")}>
             <img class="footer-nav-icon" src={ICON_GEAR} alt="" />
             <span class="footer-nav-label">Settings</span>

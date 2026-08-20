@@ -13,10 +13,17 @@
     let tooltipTop = 0;
     let tooltipLeft = 0;
 
-    /** Approximate tooltip width used only to keep it from going off the left edge of the
-     * viewport - matches ItemTooltip's CSS min-width. The real rendered width can grow up to
-     * max-width depending on content, but this is enough slack for the common case. */
-    const TOOLTIP_MIN_WIDTH = 170;
+    /** Upper bound on the tooltip's rendered width, used to keep it from crossing the left edge
+     * of the viewport - matches ItemTooltip's CSS max-width (16rem). Clamping against max-width
+     * rather than min-width is deliberate: a set item's tooltip (name + both bonus lines) often
+     * renders close to that width, and clamping only to the shorter min-width let the real thing
+     * overflow past x=0 for any slot sitting close to the left edge (e.g. the Equipment tab's
+     * leftmost Weapon slot). */
+    const TOOLTIP_MAX_WIDTH = 256;
+
+    /** Minimum gap kept between the tooltip and the true left edge of the viewport once clamped,
+     * so it never ends up sitting flush against the edge. */
+    const EDGE_MARGIN = 16;
 
     /** Slot's own bounding rect determines where the (portaled) tooltip renders: right edge of
      * the tooltip aligned to the right edge of the slot, bottom edge just above the slot's top.
@@ -24,7 +31,7 @@
     function showTooltip(e: MouseEvent | FocusEvent): void {
         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
         tooltipTop = rect.top - 6;
-        tooltipLeft = Math.max(rect.right, TOOLTIP_MIN_WIDTH);
+        tooltipLeft = Math.max(rect.right, TOOLTIP_MAX_WIDTH + EDGE_MARGIN);
         hovered = true;
     }
 

@@ -28,6 +28,14 @@ enum UpgradeEffect:
     */
   case UnlockClass(classId: ClassId)
 
+/** Which HUB upgrade tab an upgrade belongs to (the ALL tab always shows everything).
+  *
+  * `Stat`: a mechanical run buff (more HP, more potion slots). `Meta`: unlocks or changes the
+  * starting kit (a new class, a guaranteed starting item).
+  */
+enum UpgradeCategory:
+  case Stat, Meta
+
 /** Static definition of one hub upgrade available for purchase, loaded from `data/upgrades.json`.
   *
   * @param displayOrder
@@ -41,5 +49,6 @@ case class UpgradeDef(
     cost: Int,
     displayOrder: Int,
     icon: String,
+    category: UpgradeCategory,
     effect: UpgradeEffect
 )

@@ -72,6 +72,17 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
             u => assert(u.cost > 0, s"${u.id} has non-positive cost ${u.cost}")
   }
 
+  test("categories match the STATS/META split") {
+    UpgradeLoader
+      .loadAll()
+      .map:
+        defs =>
+          val statIds = Set("hp_boost_1", "hp_boost_2", "extra_slot")
+          val metaIds = Set("potion_start", "archer_unlock", "mage_unlock")
+          statIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Stat, id))
+          metaIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Meta, id))
+  }
+
   test("every upgrade has a non-empty icon") {
     UpgradeLoader
       .loadAll()

@@ -71,6 +71,7 @@ class StateMachineSuite extends FunSuite:
                                   cost = 50,
                                   displayOrder = 0,
                                   icon = "🏹",
+                                  category = UpgradeCategory.Meta,
                                   effect = UpgradeEffect.UnlockClass(ClassId.Archer)
     ),
     "mage_unlock" -> UpgradeDef("mage_unlock",
@@ -79,6 +80,7 @@ class StateMachineSuite extends FunSuite:
                                 cost = 80,
                                 displayOrder = 1,
                                 icon = "✦",
+                                category = UpgradeCategory.Meta,
                                 effect = UpgradeEffect.UnlockClass(ClassId.Mage)
     )
   )

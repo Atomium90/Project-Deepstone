@@ -1,7 +1,7 @@
 package roguelite.db
 
 import munit.CatsEffectSuite
-import roguelite.game.{ AchievementStats, MetaProgression, UpgradeDef, UpgradeEffect }
+import roguelite.game.{ AchievementStats, MetaProgression, UpgradeCategory, UpgradeDef, UpgradeEffect }
 
 /** Tests for [[Database]]: schema initialisation, meta loading, currency persistence,
   * and upgrade purchase atomicity.
@@ -201,6 +201,7 @@ class DatabaseSuite extends CatsEffectSuite:
                                cost = 30,
                                displayOrder = 0,
                                icon = "❤",
+                               category = UpgradeCategory.Stat,
                                effect = UpgradeEffect.MaxHpBoost(20)
     )
   )

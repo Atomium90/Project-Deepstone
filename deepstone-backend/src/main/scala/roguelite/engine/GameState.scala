@@ -111,6 +111,7 @@ case class HubState(player: Player,
             description = u.description,
             cost = u.cost,
             icon = u.icon,
+            category = u.category,
             unlocked = meta.isUnlocked(u.id)
           )
       })),

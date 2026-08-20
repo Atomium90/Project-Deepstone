@@ -57,6 +57,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                cost = 30,
                                displayOrder = 0,
                                icon = "❤",
+                               category = UpgradeCategory.Stat,
                                effect = UpgradeEffect.MaxHpBoost(20)
     ),
     "hp_boost_2" -> UpgradeDef("hp_boost_2",
@@ -65,6 +66,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                cost = 75,
                                displayOrder = 1,
                                icon = "❤",
+                               category = UpgradeCategory.Stat,
                                effect = UpgradeEffect.MaxHpBoost(40)
     ),
     "potion_start" -> UpgradeDef("potion_start",
@@ -73,6 +75,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                  cost = 40,
                                  displayOrder = 2,
                                  icon = "🧪",
+                                 category = UpgradeCategory.Meta,
                                  effect = UpgradeEffect.StartingItem("health_potion")
     ),
     "archer_unlock" -> UpgradeDef("archer_unlock",
@@ -81,6 +84,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                   cost = 50,
                                   displayOrder = 3,
                                   icon = "🏹",
+                                  category = UpgradeCategory.Meta,
                                   effect = UpgradeEffect.UnlockClass(ClassId.Archer)
     ),
     "mage_unlock" -> UpgradeDef("mage_unlock",
@@ -89,6 +93,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                 cost = 80,
                                 displayOrder = 4,
                                 icon = "✦",
+                                category = UpgradeCategory.Meta,
                                 effect = UpgradeEffect.UnlockClass(ClassId.Mage)
     ),
     "extra_slot" -> UpgradeDef("extra_slot",
@@ -97,6 +102,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                cost = 60,
                                displayOrder = 5,
                                icon = "⚗",
+                               category = UpgradeCategory.Stat,
                                effect = UpgradeEffect.ExtraPotionSlot
     )
   )

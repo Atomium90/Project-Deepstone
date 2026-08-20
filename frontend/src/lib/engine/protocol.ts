@@ -8,6 +8,7 @@ export type CombatActionType = "ATTACK" | "ABILITY" | "ITEM" | "DEFEND";
 export type HubActionType = "STARTRUN" | "BUYUPGRADE" | "RETURNTOHUB";
 export type ClassId = "warrior" | "archer" | "mage";
 export type Difficulty = "easy" | "normal" | "hard";
+export type UpgradeCategory = "stat" | "meta";
 
 export type ItemKind = "weapon" | "armor" | "accessory" | "consumable" | "key";
 export type ItemRarity = "common" | "uncommon" | "rare" | "epic";
@@ -141,6 +142,7 @@ export interface UpgradeView {
   description: string;
   cost: number;
   icon: string;
+  category: UpgradeCategory;
   unlocked: boolean;
 }
 

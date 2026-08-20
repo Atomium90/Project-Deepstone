@@ -14,7 +14,7 @@
     const ICON_LOCK = "/sprites/ui/icons/icon_lock.png";
     const ICON_GEAR = "/sprites/ui/icons/icon_gear.png";
     const ICON_SHARD = "/sprites/ui/icons/icon_shard.png";
-    import type { ClassId, Difficulty, UpgradeView } from "../engine/protocol";
+    import type { ClassId, Difficulty, UpgradeCategory, UpgradeView } from "../engine/protocol";
 
     // Selected class (Warrior by default)
     let selectedClass: ClassId = "warrior";
@@ -22,8 +22,18 @@
     // Selected difficulty (Normal by default)
     let selectedDifficulty: Difficulty = "normal";
 
+    type UpgradeTab = "all" | UpgradeCategory;
+    const upgradeTabs: { id: UpgradeTab; label: string }[] = [
+        { id: "all", label: "All" },
+        { id: "stat", label: "Stats" },
+        { id: "meta", label: "Meta" },
+    ];
+    let selectedUpgradeTab: UpgradeTab = "all";
+
     $: player   = $gameState?.player;
     $: upgrades = $gameState?.hub?.upgrades ?? [];
+    $: visibleUpgrades =
+        selectedUpgradeTab === "all" ? upgrades : upgrades.filter((u) => u.category === selectedUpgradeTab);
     $: shards   = player?.metaCurrency ?? 0;
 
     const classes: ClassId[] = ["warrior", "archer", "mage"];
@@ -144,11 +154,23 @@
         <section class="right-panel">
             <p class="section-label">Hub Upgrades</p>
 
-            {#if upgrades.length === 0}
+            <div class="upgrade-tabs">
+                {#each upgradeTabs as tab}
+                    <button
+                        class="upgrade-tab"
+                        class:selected={selectedUpgradeTab === tab.id}
+                        on:click={() => (selectedUpgradeTab = tab.id)}
+                    >
+                        {tab.label}
+                    </button>
+                {/each}
+            </div>
+
+            {#if visibleUpgrades.length === 0}
                 <p class="muted">No upgrades available.</p>
             {:else}
                 <div class="upgrade-list">
-                    {#each upgrades as u}
+                    {#each visibleUpgrades as u}
                         <div class="upgrade-row" class:owned={u.unlocked}>
                             <div class="upgrade-main">
                                 <span class="upgrade-icon">{u.icon}</span>
@@ -459,6 +481,36 @@
         display: flex;
         flex-direction: column;
         overflow-y: auto;
+    }
+
+    .upgrade-tabs {
+        display: flex;
+        gap: 0.4rem;
+        margin-bottom: 1rem;
+    }
+
+    .upgrade-tab {
+        padding: 0.3rem 0.8rem;
+        background: #161616;
+        border: 1px solid #252525;
+        color: #777;
+        font-family: monospace;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+
+    .upgrade-tab:hover {
+        background: #1e1e1e;
+        border-color: #444;
+    }
+
+    .upgrade-tab.selected {
+        background: #1a1a1a;
+        border-color: #c8a84b;
+        color: #d4ac0d;
     }
 
     .upgrade-list {

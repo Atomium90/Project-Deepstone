@@ -446,7 +446,8 @@
     "name": "Health Potion",
     "rarity": "common",
     "effect": { "type": "HealFixed", "amount": 30 },
-    "description": "Bottled comfort. Tastes faintly of copper."
+    "description": "Bottled comfort. Tastes faintly of copper.",
+    "iconId": "health_potion"
   },
   {
     "typeId": "second_wind",
@@ -454,7 +455,8 @@
     "name": "Second Wind",
     "rarity": "common",
     "effect": { "type": "RestoreResource", "amount": 25 },
-    "description": "A jolt of pure will, spent however the drinker needs it."
+    "description": "A jolt of pure will, spent however the drinker needs it.",
+    "iconId": "second_wind"
   },
   {
     "typeId": "battle_brew",
@@ -462,7 +464,8 @@
     "name": "Battle Brew",
     "rarity": "uncommon",
     "effect": { "type": "AttackBuff", "percent": 25, "turns": 3 },
-    "description": "Thick and bitter. Makes even cowards charge first."
+    "description": "Thick and bitter. Makes even cowards charge first.",
+    "iconId": "battle_brew"
   },
   {
     "typeId": "volatile_flask",
@@ -470,7 +473,8 @@
     "name": "Volatile Flask",
     "rarity": "uncommon",
     "effect": { "type": "FlatDamage", "amount": 20 },
-    "description": "Best thrown quickly. Better thrown far."
+    "description": "Best thrown quickly. Better thrown far.",
+    "iconId": "volatile_flask"
   },
   {
     "typeId": "focus_tonic",
@@ -478,7 +482,8 @@
     "name": "Focus Tonic",
     "rarity": "uncommon",
     "effect": { "type": "CritBuff", "percent": 20, "turns": 3 },
-    "description": "Sharpens the mind until every opening looks obvious."
+    "description": "Sharpens the mind until every opening looks obvious.",
+    "iconId": "focus_tonic"
   },
   {
     "typeId": "rusty_key",

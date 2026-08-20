@@ -22,17 +22,24 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
       .flatMap(js => js.traverse(toUpgradeDef))
 
   private def toUpgradeDef(j: UpgradeDefJson): Either[String, UpgradeDef] =
-    parseEffect(j.effect).map:
-      effect =>
-        UpgradeDef(
-          id = j.id,
-          label = j.label,
-          description = j.description,
-          cost = j.cost,
-          displayOrder = j.displayOrder,
-          icon = j.icon,
-          effect = effect
-        )
+    for
+      category <- parseCategory(j.category)
+      effect   <- parseEffect(j.effect)
+    yield UpgradeDef(
+      id = j.id,
+      label = j.label,
+      description = j.description,
+      cost = j.cost,
+      displayOrder = j.displayOrder,
+      icon = j.icon,
+      category = category,
+      effect = effect
+    )
+
+  private def parseCategory(s: String): Either[String, UpgradeCategory] =
+    UpgradeCategory.values
+      .find(_.toString.toLowerCase == s.toLowerCase)
+      .toRight(s"Unknown upgrade category: '$s'")
 
   private def parseEffect(e: UpgradeEffectJson): Either[String, UpgradeEffect] =
     e.`type` match
@@ -73,6 +80,7 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
       cost: Int,
       displayOrder: Int,
       icon: String,
+      category: String,
       effect: UpgradeEffectJson
   )
 
@@ -94,5 +102,6 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
         cost         <- c.get[Int]("cost")
         displayOrder <- c.get[Int]("displayOrder")
         icon         <- c.get[String]("icon")
+        category     <- c.get[String]("category")
         effect       <- c.get[UpgradeEffectJson]("effect")
-      yield UpgradeDefJson(id, label, description, cost, displayOrder, icon, effect)
+      yield UpgradeDefJson(id, label, description, cost, displayOrder, icon, category, effect)

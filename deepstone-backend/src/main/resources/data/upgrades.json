@@ -6,6 +6,7 @@
     "cost": 30,
     "displayOrder": 0,
     "icon": "❤",
+    "category": "stat",
     "effect": { "type": "MaxHpBoost", "amount": 20 }
   },
   {
@@ -15,6 +16,7 @@
     "cost": 75,
     "displayOrder": 1,
     "icon": "❤",
+    "category": "stat",
     "effect": { "type": "MaxHpBoost", "amount": 40 }
   },
   {
@@ -24,6 +26,7 @@
     "cost": 40,
     "displayOrder": 2,
     "icon": "🧪",
+    "category": "meta",
     "effect": { "type": "StartingItem", "typeId": "health_potion" }
   },
   {
@@ -33,6 +36,7 @@
     "cost": 50,
     "displayOrder": 3,
     "icon": "🏹",
+    "category": "meta",
     "effect": { "type": "UnlockClass", "classId": "archer" }
   },
   {
@@ -42,6 +46,7 @@
     "cost": 80,
     "displayOrder": 4,
     "icon": "✦",
+    "category": "meta",
     "effect": { "type": "UnlockClass", "classId": "mage" }
   },
   {
@@ -51,6 +56,7 @@
     "cost": 60,
     "displayOrder": 5,
     "icon": "⚗",
+    "category": "stat",
     "effect": { "type": "ExtraPotionSlot" }
   }
 ]

@@ -3,7 +3,7 @@ package roguelite.engine
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
 import io.circe.{ Decoder, Encoder }
-import roguelite.game.{ EquipSlot, Rarity }
+import roguelite.game.{ EquipSlot, Rarity, UpgradeCategory }
 
 // -------------------
 // Shared enumerations
@@ -174,7 +174,14 @@ case class CombatView(
 case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String, crit: Boolean = false)
 
 /** Hub data: available upgrades and their unlock status. */
-case class UpgradeView(id: String, label: String, description: String, cost: Int, icon: String, unlocked: Boolean)
+case class UpgradeView(id: String,
+                       label: String,
+                       description: String,
+                       cost: Int,
+                       icon: String,
+                       category: UpgradeCategory,
+                       unlocked: Boolean
+)
 
 case class HubView(upgrades: List[UpgradeView])
 
@@ -368,6 +375,14 @@ object MessageProtocol:
       Difficulty.values
         .find(_.toString.toLowerCase == s.toLowerCase)
         .toRight(s"Unknown difficulty: $s")
+  )
+
+  given Encoder[UpgradeCategory] = Encoder[String].contramap(_.toString.toLowerCase)
+  given Decoder[UpgradeCategory] = Decoder[String].emap(
+    s =>
+      UpgradeCategory.values
+        .find(_.toString.toLowerCase == s.toLowerCase)
+        .toRight(s"Unknown upgrade category: $s")
   )
 
   // EquipSlot: hand-written (not the toString.toUpperCase pattern above) since two cases carry

@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { pendingEquipChoice, client } from "../engine/StateStore";
+    import { gameState, pendingEquipChoice, client } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
-    import type { EquipChoiceOptionView } from "../engine/protocol";
+    import type { EquipChoiceOptionView, ItemView } from "../engine/protocol";
 
     function replace(option: EquipChoiceOptionView): void {
         client.send({ type: "EQUIP_CHOICE", targetSlot: option.slot });
@@ -9,6 +9,12 @@
 
     function keepCurrent(): void {
         client.send({ type: "EQUIP_CHOICE" });
+    }
+
+    /** True when `item` carries an affinity tag the player's class doesn't have - `statLine` is
+     * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
+    function isOffAffinity(item: ItemView): boolean {
+        return item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
     }
 </script>
 
@@ -23,7 +29,7 @@
                 style="border-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}; background-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}1a"
             >
                 <span class="item-name">{choice.newItem.name}</span>
-                <span class="item-stat">{choice.newItem.statLine}</span>
+                <span class="item-stat" class:off-affinity={isOffAffinity(choice.newItem)}>{choice.newItem.statLine}</span>
             </div>
 
             <!-- Weapon/armor naturally offer a single option here; accessories/potions can offer
@@ -33,7 +39,7 @@
                 {#each choice.options as option (option.slot)}
                     <button class="option-row" on:click={() => replace(option)}>
                         <span class="option-name">{option.current.name}</span>
-                        <span class="option-stat">{option.current.statLine}</span>
+                        <span class="option-stat" class:off-affinity={isOffAffinity(option.current)}>{option.current.statLine}</span>
                         <span class="option-action">Replace</span>
                     </button>
                 {/each}
@@ -95,6 +101,10 @@
         font-size: 0.75rem;
     }
 
+    .item-stat.off-affinity {
+        color: #666;
+    }
+
     .options {
         display: flex;
         flex-direction: column;
@@ -128,8 +138,12 @@
     }
 
     .option-stat {
-        color: #888;
+        color: #5ce07a;
         font-size: 0.72rem;
+    }
+
+    .option-stat.off-affinity {
+        color: #666;
     }
 
     .option-action {

@@ -18,6 +18,7 @@ import roguelite.game.{
   EnemyLoader,
   ItemLoader,
   NpcDialogueLoader,
+  PerkLoader,
   RoomLoader,
   SetLoader,
   UpgradeLoader
@@ -49,10 +50,11 @@ object Main extends IOApp.Simple:
             npcDialogueDefs <- NpcDialogueLoader.loadAll()
             achievementDefs <- AchievementLoader.loadAll()
             setDefs <- SetLoader.loadAll()
+            perkDefs <- PerkLoader.loadAll()
             _ <- logger.info(
               s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
                 s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, ${npcDialogueDefs.size} npc dialogues, " +
-                s"${achievementDefs.size} achievements, ${setDefs.size} equipment sets."
+                s"${achievementDefs.size} achievements, ${setDefs.size} equipment sets, ${perkDefs.size} run perks."
             )
 
             resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs, setDefs = setDefs)
@@ -66,7 +68,7 @@ object Main extends IOApp.Simple:
                                         setDefs = setDefs
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
-                                     achievementDefs, setDefs
+                                     achievementDefs, setDefs, perkDefs
             )
 
             // Serves the frontend's built static files (copied into resources/static/ by

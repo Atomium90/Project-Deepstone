@@ -10,6 +10,7 @@ import roguelite.game.{
   KeyKind,
   MetaProgression,
   PendingEquipChoice,
+  PerkDef,
   UpgradeDef,
   Weapon
 }
@@ -94,27 +95,36 @@ sealed trait GameState:
   *   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]), used to render [[HubView]].
   *   Defaults to empty so tests that don't care about the upgrade list can keep using
   *   `HubState(player)`.
+  * @param perkOptions
+  *   A random subset of the perk catalog, rolled fresh by [[GameSession]] every time the player
+  *   freshly lands in the hub (not on every hub-state rebuild, e.g. after a purchase - see
+  *   [[GameSession.handleBuyUpgrade]]). Durable for the whole visit, consumed by a `StartRun`
+  *   action's `perkId`. Defaults to empty, same rationale as `upgradeDefs`.
   */
 case class HubState(player: Player,
                     upgradeDefs: Map[String, UpgradeDef] = Map.empty,
-                    meta: MetaProgression = MetaProgression.empty
+                    meta: MetaProgression = MetaProgression.empty,
+                    perkOptions: List[PerkDef] = Nil
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
       phase = GamePhase.Hub,
       player = player.toView,
-      hub = Some(HubView(upgrades = upgradeDefs.values.toList.sortBy(_.displayOrder).map {
-        u =>
-          UpgradeView(
-            id = u.id,
-            label = u.label,
-            description = u.description,
-            cost = u.cost,
-            icon = u.icon,
-            category = u.category,
-            unlocked = meta.isUnlocked(u.id)
-          )
-      })),
+      hub = Some(HubView(
+        upgrades = upgradeDefs.values.toList.sortBy(_.displayOrder).map {
+          u =>
+            UpgradeView(
+              id = u.id,
+              label = u.label,
+              description = u.description,
+              cost = u.cost,
+              icon = u.icon,
+              category = u.category,
+              unlocked = meta.isUnlocked(u.id)
+            )
+        },
+        perks = perkOptions.map(p => PerkView(id = p.id, label = p.label, description = p.description, icon = p.icon))
+      )),
       equipment = equipmentToView(player),
       log = log
     )

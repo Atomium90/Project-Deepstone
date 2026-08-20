@@ -100,14 +100,28 @@ class StateMachineSuite extends FunSuite:
     )
 
   def sm(roomPool: Map[String, Room] = defaultRoomPool,
-         upgradeDefs: Map[String, UpgradeDef] = Map.empty
+         upgradeDefs: Map[String, UpgradeDef] = Map.empty,
+         itemDefs: Map[String, Item] = Map.empty
   ): StateMachine =
     StateMachine(roomPool,
                  enemyStatsMap,
-                 Map.empty[String, Item],
+                 itemDefs,
                  testClassDefs,
                  upgradeDefs,
                  CombatResolver(Random(0L))
+    )
+
+  val healthPotion: Consumable =
+    Consumable(id = "", typeId = "health_potion", name = "Health Potion", rarity = Rarity.Common,
+              effect = ConsumableEffect.HealFixed(30)
+    )
+
+  val wellStockedPerk: PerkDef =
+    PerkDef("well_stocked",
+           "Well Stocked",
+           "Start the run with one extra Health Potion",
+           icon = "🧪",
+           effect = PerkEffect.ExtraStartingItem("health_potion")
     )
 
   def hubPlayer: Player =
@@ -211,6 +225,41 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(next, log, _, _) = sm().applyActionPure(HubState(hubPlayer), Move(Direction.Up))
     assert(next.isInstanceOf[HubState])
     assert(log.nonEmpty)
+
+  // --- Hub: perks ------------------------------------------------------------
+
+  test("StartRun with an offered perk applies its effect and sets activePerkId"):
+    val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
+    val TransitionResult(next, log, _, _) = sm(itemDefs = Map("health_potion" -> healthPotion))
+      .applyActionPure(hub,
+                       HubAction(HubActionType.StartRun,
+                                 classId = Some(ClassId.Warrior),
+                                 perkId = Some("well_stocked")
+                       )
+      )
+    val exp = next.asInstanceOf[ExplorationState]
+    assertEquals(exp.player.activePerkId, Some("well_stocked"))
+    assertEquals(exp.player.potionBelt.flatten.map(_.typeId), Vector("health_potion"))
+    assert(log.exists(_.contains("Well Stocked")), s"expected perk confirmation in log: $log")
+
+  test("StartRun with a perkId not currently offered is silently ignored"):
+    val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
+    val TransitionResult(next, _, _, _) = sm(itemDefs = Map("health_potion" -> healthPotion))
+      .applyActionPure(hub,
+                       HubAction(HubActionType.StartRun,
+                                 classId = Some(ClassId.Warrior),
+                                 perkId = Some("not_offered")
+                       )
+      )
+    val exp = next.asInstanceOf[ExplorationState]
+    assertEquals(exp.player.activePerkId, None)
+    assert(exp.player.potionBelt.flatten.isEmpty)
+
+  test("StartRun without a perkId leaves activePerkId unset"):
+    val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
+    val TransitionResult(next, _, _, _) =
+      sm().applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+    assertEquals(next.asInstanceOf[ExplorationState].player.activePerkId, None)
 
   // --- Exploration: movement -----------------------------------------------
 

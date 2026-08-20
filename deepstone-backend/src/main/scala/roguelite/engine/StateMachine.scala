@@ -10,6 +10,7 @@ import roguelite.game.{
   InteractionResolver,
   Item,
   NpcDialogueDef,
+  PerkEffect,
   PickupOutcome,
   Room,
   SetDef
@@ -75,7 +76,7 @@ class StateMachine(roomPool: Map[String, Room],
 
       // -- Hub --------------------------------------------------------------
 
-      case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt)) =>
+      case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt, perkIdOpt)) =>
         lift({
           val lockedBehind = upgradeDefs.values.find {
             u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
@@ -121,25 +122,48 @@ class StateMachine(roomPool: Map[String, Room],
                           }
                       }
 
+                  // A perkId not currently among hub.perkOptions (stale/tampered) is silently
+                  // ignored, same discipline as EquipChoice's invalid-slot handling.
+                  val chosenPerk = perkIdOpt.flatMap(id => hub.perkOptions.find(_.id == id))
+                  val playerWithPerk = chosenPerk match {
+                    case None => playerWithKit
+                    case Some(perk) =>
+                      val withEffect = perk.effect match {
+                        case PerkEffect.ExtraStartingItem(typeId) =>
+                          itemDefs.get(typeId) match {
+                            case None => playerWithKit
+                            case Some(proto) =>
+                              EquipmentResolver.resolvePickup(playerWithKit, proto.withNewId, setDefs) match {
+                                case PickupOutcome.Equipped(updated)     => updated
+                                case PickupOutcome.KeyCollected(updated) => updated
+                                case PickupOutcome.ChoicePending(_)      => playerWithKit
+                                case PickupOutcome.Discarded(updated)    => updated
+                              }
+                          }
+                      }
+                      withEffect.copy(activePerkId = Some(perk.id))
+                  }
+
                   val nextState =
-                    ExplorationState(playerWithKit,
+                    ExplorationState(playerWithPerk,
                                       dungeon,
                                       playerX = 1,
                                       playerY = 1,
                                       difficulty,
                                       enemyStats = enemyStats
                     )
-                  (nextState, List(s"A new run begins. Good luck, $classId."))
+                  val perkLog = chosenPerk.map(p => s"Run perk active: ${p.label}").toList
+                  (nextState, s"A new run begins. Good luck, $classId." :: perkLog)
               }
           }
         })
 
-      case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _)) =>
+      case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _, _)) =>
         // BuyUpgrade is intercepted by GameSession (needs DB access); reject here as a safety net
         lift((hub, List("Upgrade purchases must be routed through GameSession.")))
 
       // Return to hub after death: GameSession enriches the HubState with real meta
-      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _)) =>
+      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _, _)) =>
         // Placeholder: class is re-chosen on next StartRun
         val hubPlayer = Player(
           classId = ClassId.Warrior,

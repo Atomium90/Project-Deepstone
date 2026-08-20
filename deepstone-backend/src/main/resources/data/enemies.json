@@ -13,7 +13,7 @@
     ],
     "dropChance": 25,
     "lootTable": [
-      { "typeId": "bread",          "weight": 30 },
+      { "typeId": "battle_brew",    "weight": 30 },
       { "typeId": "health_potion",  "weight": 25 },
       { "typeId": "practice_sword", "weight": 15 },
       { "typeId": "gold_dagger",    "weight": 15 },
@@ -40,7 +40,7 @@
       { "typeId": "bronze_battleaxe",  "weight": 15 },
       { "typeId": "steel_plate",       "weight": 15 },
       { "typeId": "red_shield",        "weight": 10 },
-      { "typeId": "rage_draught",      "weight": 10 },
+      { "typeId": "second_wind",       "weight": 10 },
       { "typeId": "plain_ring",        "weight": 5 }
     ]
   },
@@ -64,7 +64,7 @@
       { "typeId": "pyromancer_cape",        "weight": 15 },
       { "typeId": "dark_mantle",            "weight": 15 },
       { "typeId": "soulstone",              "weight": 10 },
-      { "typeId": "ether",                  "weight": 5 }
+      { "typeId": "second_wind",            "weight": 5 }
     ]
   },
   {
@@ -89,8 +89,8 @@
       { "typeId": "berserker_armor",   "weight": 10 },
       { "typeId": "copper_cape",       "weight": 10 },
       { "typeId": "luck_clover",       "weight": 8 },
-      { "typeId": "greater_potion",    "weight": 6 },
-      { "typeId": "elixir",            "weight": 5 }
+      { "typeId": "volatile_flask",    "weight": 6 },
+      { "typeId": "focus_tonic",       "weight": 5 }
     ]
   },
   {
@@ -113,9 +113,9 @@
       { "typeId": "occult_grimoire",      "weight": 12 },
       { "typeId": "skull_talisman",       "weight": 12 },
       { "typeId": "arcana_scroll",        "weight": 10 },
-      { "typeId": "greater_potion",       "weight": 10 },
-      { "typeId": "elixir",               "weight": 8 },
-      { "typeId": "mana_crystal",         "weight": 6 }
+      { "typeId": "battle_brew",          "weight": 10 },
+      { "typeId": "focus_tonic",          "weight": 8 },
+      { "typeId": "second_wind",          "weight": 6 }
     ]
   },
   {
@@ -138,9 +138,9 @@
       { "typeId": "copper_cape",         "weight": 10 },
       { "typeId": "skull_talisman",      "weight": 10 },
       { "typeId": "accuracy_necklace",   "weight": 10 },
-      { "typeId": "greater_potion",      "weight": 8 },
-      { "typeId": "mana_crystal",        "weight": 8 },
-      { "typeId": "elixir",              "weight": 5 }
+      { "typeId": "volatile_flask",      "weight": 8 },
+      { "typeId": "second_wind",         "weight": 8 },
+      { "typeId": "battle_brew",         "weight": 5 }
     ]
   },
   {
@@ -180,7 +180,7 @@
     "lootTable": [
       { "typeId": "health_potion",  "weight": 30 },
       { "typeId": "red_shield",     "weight": 20 },
-      { "typeId": "rage_draught",   "weight": 20 },
+      { "typeId": "second_wind",    "weight": 20 },
       { "typeId": "wooden_shield",  "weight": 15 },
       { "typeId": "plain_ring",     "weight": 15 }
     ]
@@ -202,7 +202,7 @@
       { "typeId": "leather_bound_grimoire", "weight": 25 },
       { "typeId": "open_grimoire",          "weight": 20 },
       { "typeId": "pyromancer_cape",        "weight": 20 },
-      { "typeId": "ether",                  "weight": 15 },
+      { "typeId": "second_wind",            "weight": 15 },
       { "typeId": "health_potion",          "weight": 15 },
       { "typeId": "storm_potion",           "weight": 5 }
     ]
@@ -226,10 +226,10 @@
       { "typeId": "steel_sword",      "weight": 12 },
       { "typeId": "steel_plate",      "weight": 12 },
       { "typeId": "mask_of_terror",   "weight": 12 },
-      { "typeId": "greater_potion",   "weight": 12 },
+      { "typeId": "focus_tonic",      "weight": 12 },
       { "typeId": "skull_talisman",   "weight": 10 },
-      { "typeId": "elixir",           "weight": 8 },
-      { "typeId": "mana_crystal",     "weight": 4 }
+      { "typeId": "volatile_flask",   "weight": 8 },
+      { "typeId": "second_wind",      "weight": 4 }
     ]
   },
   {
@@ -248,12 +248,12 @@
       { "typeId": "pyromancer_staff",  "weight": 15 },
       { "typeId": "occult_grimoire",   "weight": 15 },
       { "typeId": "open_grimoire",     "weight": 12 },
-      { "typeId": "mana_crystal",      "weight": 12 },
+      { "typeId": "second_wind",       "weight": 12 },
       { "typeId": "skull_talisman",    "weight": 10 },
       { "typeId": "dark_gem",          "weight": 10 },
       { "typeId": "arcane_scroll",     "weight": 10 },
-      { "typeId": "greater_potion",    "weight": 10 },
-      { "typeId": "elixir",            "weight": 6 }
+      { "typeId": "battle_brew",       "weight": 10 },
+      { "typeId": "volatile_flask",    "weight": 6 }
     ]
   },
   {
@@ -272,11 +272,11 @@
     "lootTable": [
       { "typeId": "occult_grimoire",   "weight": 15 },
       { "typeId": "pyromancer_staff",  "weight": 15 },
-      { "typeId": "mana_crystal",      "weight": 13 },
+      { "typeId": "second_wind",       "weight": 13 },
       { "typeId": "skull_talisman",    "weight": 12 },
       { "typeId": "dark_gem",          "weight": 12 },
-      { "typeId": "elixir",            "weight": 11 },
-      { "typeId": "greater_potion",    "weight": 11 },
+      { "typeId": "focus_tonic",       "weight": 11 },
+      { "typeId": "volatile_flask",    "weight": 11 },
       { "typeId": "arcane_scroll",     "weight": 6 },
       { "typeId": "storm_potion",      "weight": 5 }
     ]
@@ -301,8 +301,8 @@
       { "typeId": "steel_plate",      "weight": 13 },
       { "typeId": "mask_of_terror",   "weight": 10 },
       { "typeId": "skull_talisman",   "weight": 10 },
-      { "typeId": "greater_potion",   "weight": 14 },
-      { "typeId": "elixir",           "weight": 10 }
+      { "typeId": "battle_brew",      "weight": 14 },
+      { "typeId": "focus_tonic",      "weight": 10 }
     ]
   }
 ]

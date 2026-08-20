@@ -19,8 +19,10 @@ class ItemLoaderSuite extends CatsEffectSuite:
         "ring_of_strength",
         "skull_talisman",
         "health_potion",
-        "greater_potion",
-        "ether",
+        "second_wind",
+        "battle_brew",
+        "volatile_flask",
+        "focus_tonic",
         "rusty_key"
       )
       expected.foreach:
@@ -77,7 +79,7 @@ class ItemLoaderSuite extends CatsEffectSuite:
       .foreach:
         c => assert(c.effect != null, s"${c.typeId} must have an effect")
 
-  test("HealFixed consumables have positive amount"):
+  test("every consumable's effect values are positive"):
     for items <- ItemLoader.loadAll()
     yield items.values
       .collect {
@@ -92,6 +94,14 @@ class ItemLoaderSuite extends CatsEffectSuite:
               assert(pct > 0 && pct <= 100, s"${c.typeId} heal percent must be 1-100")
             case ConsumableEffect.RestoreResource(amount) =>
               assert(amount > 0, s"${c.typeId} restore amount must be positive")
+            case ConsumableEffect.AttackBuff(percent, turns) =>
+              assert(percent > 0, s"${c.typeId} attack buff percent must be positive")
+              assert(turns > 0, s"${c.typeId} attack buff turns must be positive")
+            case ConsumableEffect.FlatDamage(amount) =>
+              assert(amount > 0, s"${c.typeId} flat damage amount must be positive")
+            case ConsumableEffect.CritBuff(percent, turns) =>
+              assert(percent > 0, s"${c.typeId} crit buff percent must be positive")
+              assert(turns > 0, s"${c.typeId} crit buff turns must be positive")
 
   test("uncommon items have higher stat bonuses than their common counterparts"):
     // Armor has no generic (non-set) common tier in the current catalog (all 6 armor rows are

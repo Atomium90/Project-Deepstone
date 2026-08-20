@@ -441,53 +441,44 @@
     "iconId": "luck_clover"
   },
   {
-    "typeId": "bread",
-    "kind": "consumable",
-    "name": "Bread",
-    "rarity": "common",
-    "effect": { "type": "HealFixed", "amount": 15 }
-  },
-  {
     "typeId": "health_potion",
     "kind": "consumable",
     "name": "Health Potion",
     "rarity": "common",
-    "effect": { "type": "HealFixed", "amount": 30 }
+    "effect": { "type": "HealFixed", "amount": 30 },
+    "description": "Bottled comfort. Tastes faintly of copper."
   },
   {
-    "typeId": "greater_potion",
+    "typeId": "second_wind",
     "kind": "consumable",
-    "name": "Greater Potion",
-    "rarity": "uncommon",
-    "effect": { "type": "HealFixed", "amount": 60 }
-  },
-  {
-    "typeId": "elixir",
-    "kind": "consumable",
-    "name": "Elixir",
-    "rarity": "uncommon",
-    "effect": { "type": "HealPercent", "percent": 40 }
-  },
-  {
-    "typeId": "rage_draught",
-    "kind": "consumable",
-    "name": "Rage Draught",
+    "name": "Second Wind",
     "rarity": "common",
-    "effect": { "type": "RestoreResource", "amount": 25 }
+    "effect": { "type": "RestoreResource", "amount": 25 },
+    "description": "A jolt of pure will, spent however the drinker needs it."
   },
   {
-    "typeId": "ether",
+    "typeId": "battle_brew",
     "kind": "consumable",
-    "name": "Ether",
+    "name": "Battle Brew",
     "rarity": "uncommon",
-    "effect": { "type": "RestoreResource", "amount": 20 }
+    "effect": { "type": "AttackBuff", "percent": 25, "turns": 3 },
+    "description": "Thick and bitter. Makes even cowards charge first."
   },
   {
-    "typeId": "mana_crystal",
+    "typeId": "volatile_flask",
     "kind": "consumable",
-    "name": "Mana Crystal",
+    "name": "Volatile Flask",
     "rarity": "uncommon",
-    "effect": { "type": "RestoreResource", "amount": 40 }
+    "effect": { "type": "FlatDamage", "amount": 20 },
+    "description": "Best thrown quickly. Better thrown far."
+  },
+  {
+    "typeId": "focus_tonic",
+    "kind": "consumable",
+    "name": "Focus Tonic",
+    "rarity": "uncommon",
+    "effect": { "type": "CritBuff", "percent": 20, "turns": 3 },
+    "description": "Sharpens the mind until every opening looks obvious."
   },
   {
     "typeId": "rusty_key",

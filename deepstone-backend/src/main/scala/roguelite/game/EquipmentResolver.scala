@@ -4,7 +4,9 @@ import roguelite.engine.{ ExplorationState, GameState, Player }
 
 /** Outcome of resolving an item pickup against the player's current equipment. */
 enum PickupOutcome:
-  /** Auto-equipped into an empty slot. */
+  /** Auto-equipped into an empty slot, or auto-replaced a strictly-lower-rarity copy of the same
+    * typeId already occupying its slot (see [[resolvePickup]]'s same-typeId branches).
+    */
   case Equipped(player: Player)
 
   /** A key's count was incremented. Keys have no "slot" to fill, so there is never a choice to
@@ -20,8 +22,9 @@ enum PickupOutcome:
   case ChoicePending(pending: PendingEquipChoice)
 
   /** The pickup was resolved with no equipment change: the player already holds an equal-or-
-    * better copy of the same consumable typeId (see [[resolvePickup]]'s Consumable case). `player`
-    * is unchanged, carried only so every case has the same "resulting player" shape at call sites.
+    * better copy of the same typeId, in the matching weapon/armor/accessory slot or potion belt
+    * slot (see [[resolvePickup]]'s same-typeId branches). `player` is unchanged, carried only so
+    * every case has the same "resulting player" shape at call sites.
     */
   case Discarded(player: Player)
 
@@ -37,7 +40,14 @@ object EquipmentResolver:
                     setDefs: Map[String, SetDef] = Map.empty
   ): PickupOutcome = item match
     case w: Weapon =>
+      // Same typeId already equipped: a rarity comparison against that one copy, never a
+      // slot/choice decision - same convention as the Consumable case below.
       player.equippedWeapon match
+        case Some(current) if current.typeId == w.typeId =>
+          if w.rarity.ordinal > current.rarity.ordinal then
+            PickupOutcome.Equipped(player.copy(equippedWeapon = Some(w)).reconcileSetHpBonus(setDefs))
+          else
+            PickupOutcome.Discarded(player)
         case None =>
           PickupOutcome.Equipped(player.copy(equippedWeapon = Some(w)).reconcileSetHpBonus(setDefs))
         case Some(current) =>
@@ -45,20 +55,35 @@ object EquipmentResolver:
 
     case a: Armor =>
       player.equippedArmor match
+        case Some(current) if current.typeId == a.typeId =>
+          if a.rarity.ordinal > current.rarity.ordinal then
+            PickupOutcome.Equipped(player.copy(equippedArmor = Some(a)).reconcileSetHpBonus(setDefs))
+          else
+            PickupOutcome.Discarded(player)
         case None =>
           PickupOutcome.Equipped(player.copy(equippedArmor = Some(a)).reconcileSetHpBonus(setDefs))
         case Some(current) =>
           PickupOutcome.ChoicePending(PendingEquipChoice(a, Map(EquipSlot.ArmorSlot -> current)))
 
     case acc: Accessory =>
-      val idx = player.equippedAccessories.indexWhere(_.isEmpty)
-      if idx >= 0 then
-        PickupOutcome.Equipped(player.equipAccessory(idx, acc).reconcileSetHpBonus(setDefs))
-      else
-        val options = player.equippedAccessories.zipWithIndex.collect {
-          case (Some(current), i) => EquipSlot.AccessorySlot(i) -> current
-        }
-        PickupOutcome.ChoicePending(PendingEquipChoice(acc, options.toMap))
+      player.equippedAccessories.zipWithIndex.collectFirst {
+        case (Some(existing), i) if existing.typeId == acc.typeId => (i, existing)
+      } match
+        case Some((i, existing)) =>
+          if acc.rarity.ordinal > existing.rarity.ordinal then
+            val (_, unequipped) = player.unequipAccessory(i)
+            PickupOutcome.Equipped(unequipped.equipAccessory(i, acc).reconcileSetHpBonus(setDefs))
+          else
+            PickupOutcome.Discarded(player)
+        case None =>
+          val idx = player.equippedAccessories.indexWhere(_.isEmpty)
+          if idx >= 0 then
+            PickupOutcome.Equipped(player.equipAccessory(idx, acc).reconcileSetHpBonus(setDefs))
+          else
+            val options = player.equippedAccessories.zipWithIndex.collect {
+              case (Some(current), i) => EquipSlot.AccessorySlot(i) -> current
+            }
+            PickupOutcome.ChoicePending(PendingEquipChoice(acc, options.toMap))
 
     case c: Consumable =>
       // Same typeId already in the belt: this is a rarity comparison against that one specific

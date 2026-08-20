@@ -12,12 +12,16 @@
     /** Set bonuses are class-gated server-side - equipping another class's set never grants its
      * bonus, so the tooltip must reflect that rather than showing a misleading "active" state. */
     $: classMatches = setView !== undefined && setView.classId === $gameState?.player.classId;
+
+    /** True when this item carries an affinity tag the player's class doesn't have - statLine is
+     * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
+    $: offAffinity = item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
 </script>
 
 <div class="item-tooltip">
     <p class="tooltip-name" style="color:{ITEM_RARITY_COLORS[item.rarity]}">{item.name}</p>
     <p class="tooltip-kind">{item.kind}</p>
-    <p class="tooltip-stat">{item.statLine}</p>
+    <p class="tooltip-stat" class:off-affinity={offAffinity}>{item.statLine}</p>
     {#if item.setId}
         <div class="tooltip-set" style="--set-accent:{ITEM_RARITY_COLORS.epic}">
             <p class="set-name">Part of: {setView?.name ?? item.setId} ({setCount}/4)</p>
@@ -62,6 +66,10 @@
     .tooltip-stat {
         font-size: 0.72rem;
         color: #5ce07a;
+    }
+
+    .tooltip-stat.off-affinity {
+        color: #666;
     }
 
     .tooltip-set {

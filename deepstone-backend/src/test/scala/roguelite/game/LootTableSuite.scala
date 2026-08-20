@@ -140,13 +140,57 @@ class LootTableSuite extends FunSuite:
       math.max(1, math.round(3 * (scaledUp.rarity.statMultiplier / Rarity.Common.statMultiplier)).toInt)
     assertEquals(scaledUp.attackBonus, expected)
 
-  test("consumables and keys keep their authored rarity, never rolled"):
-    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
+  test("keys keep their authored rarity, never rolled"):
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("rusty_key", 100)))
     val rng   = Random(5)
     (1 to 300).foreach:
       _ =>
         val item = LootTable.rollEnemy(enemy, itemDefs, rng).getOrElse(fail("expected Some"))
         assertEquals(item.rarity, Rarity.Common)
+
+  test("consumables can roll above their authored floor over many trials"):
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
+    val rng   = Random(3)
+    val rolledAboveFloor = (1 to 500).exists:
+      _ => LootTable.rollEnemy(enemy, itemDefs, rng).exists(_.rarity != Rarity.Common)
+    assert(rolledAboveFloor, "expected at least one health_potion drop above its Common floor in 500 trials")
+
+  test("a HealFixed potion's amount scales by potionMultiplier relative to its floor when rolled higher"):
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
+    val rng   = Random(3)
+    val scaledUp = (1 to 500)
+      .flatMap(_ => LootTable.rollEnemy(enemy, itemDefs, rng))
+      .collectFirst { case c: Consumable if c.rarity != Rarity.Common => c }
+      .getOrElse(fail("expected at least one health_potion drop above Common in 500 trials"))
+
+    val expected =
+      math.max(1, math.round(30 * (scaledUp.rarity.potionMultiplier / Rarity.Common.potionMultiplier)).toInt)
+    scaledUp.effect match
+      case ConsumableEffect.HealFixed(amount) => assertEquals(amount, expected)
+      case other                              => fail(s"expected HealFixed, got $other")
+
+  test("an AttackBuff potion's percent scales by statMultiplier (not potionMultiplier), turns never scales"):
+    val buffPotion = Consumable("",
+                                "battle_brew",
+                                "Battle Brew",
+                                Rarity.Common,
+                                ConsumableEffect.AttackBuff(percent = 20, turns = 3)
+    )
+    val defs  = Map("battle_brew" -> buffPotion)
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("battle_brew", 100)))
+    val rng   = Random(3)
+    val scaledUp = (1 to 500)
+      .flatMap(_ => LootTable.rollEnemy(enemy, defs, rng))
+      .collectFirst { case c: Consumable if c.rarity != Rarity.Common => c }
+      .getOrElse(fail("expected at least one battle_brew drop above Common in 500 trials"))
+
+    val expectedPercent =
+      math.max(1, math.round(20 * (scaledUp.rarity.statMultiplier / Rarity.Common.statMultiplier)).toInt)
+    scaledUp.effect match
+      case ConsumableEffect.AttackBuff(percent, turns) =>
+        assertEquals(percent, expectedPercent)
+        assertEquals(turns, 3, "duration must never scale with rarity")
+      case other => fail(s"expected AttackBuff, got $other")
 
   test("Epic rolls are rarer than Common rolls over many trials"):
     val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))

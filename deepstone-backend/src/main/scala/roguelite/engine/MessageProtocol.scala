@@ -90,7 +90,16 @@ case class EquipChoice(targetSlot: Option[EquipSlot] = None) extends PlayerActio
 // Server → Client: state views (read-only snapshots)
 // ---------------------------------------------
 
-/** Lightweight view of the player sent to the client every update. */
+/** Lightweight view of the player sent to the client every update.
+  *
+  * @param affinityTags
+  *   The class's affinity tags (see [[roguelite.game.ClassDef]]). Purely informational - every
+  *   [[ItemView.statLine]] already reflects whether the item's own `typeTag` benefits from the
+  *   affinity doubling CombatResolver applies (resolved server-side, see
+  *   [[roguelite.engine.GameState]]'s `itemToView`), so the client never needs to compare this
+  *   list against `ItemView.typeTag` itself - it's carried mainly so the UI can gray out an
+  *   off-affinity item's stat line as a secondary visual cue.
+  */
 case class PlayerView(
     classId: ClassId,
     hp: Int,
@@ -99,7 +108,8 @@ case class PlayerView(
     resourceMax: Int,
     level: Int,
     xp: Int,
-    metaCurrency: Int
+    metaCurrency: Int,
+    affinityTags: List[String] = Nil
 )
 
 /** Describes one entity visible in the room (enemy, chest, door, etc.).
@@ -181,10 +191,16 @@ case class ItemView(
       * [[roguelite.game.AudioManager]]-equivalent client-side handling for sound/music).
       */
     iconId: Option[String] = None,
-    /** Which equipment set this item belongs to, if any. Set bonuses aren't computed yet - this
-      * is only for frontend recognition.
+    /** Which equipment set this item belongs to, if any. See [[SetView]] for the set's actual
+      * 2pc/4pc bonus text.
       */
-    setId: Option[String] = None
+    setId: Option[String] = None,
+    /** Weapon/Armor/Accessory's affinity tag ("heavy"/"ranged"/"magic"/"light"), if any. `None`
+      * for Consumable/Key and for untagged gear. Purely informational for the UI (see
+      * [[PlayerView.affinityTags]]) - `statLine` above already reflects the affinity-doubled
+      * value when applicable, this isn't needed to compute that.
+      */
+    typeTag: Option[String] = None
 )
 
 /** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses

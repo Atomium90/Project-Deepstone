@@ -76,6 +76,10 @@ export interface PlayerView {
   level: number;
   xp: number;
   metaCurrency: number;
+  /** The class's affinity tags (e.g. ["heavy"]). ItemView.statLine already reflects whether an
+   * item's own typeTag benefits from the affinity doubling CombatResolver applies - this is
+   * carried mainly so the UI can gray out an off-affinity item's stat line as a visual cue. */
+  affinityTags: string[];
 }
 
 export interface EntityView {
@@ -152,14 +156,19 @@ export interface ItemView {
   name: string;
   kind: ItemKind;
   rarity: ItemRarity;
-  /** One-line stat summary, e.g. "+3 ATK" or "Heal 30 HP". */
+  /** One-line stat summary, e.g. "+3 ATK" or "Heal 30 HP". Already resolved server-side for the
+   * viewing player's class - the affinity-doubled value when applicable, not a flat baseline. */
   statLine: string;
   /** Atlas sprite key hint for the item's icon. Undefined until an icon pack is chosen and
    * items.json gains real values - falls back to a plain color box client-side. */
   iconId?: string;
-  /** Which equipment set this item belongs to, if any. Set bonuses aren't computed yet - this is
-   * only for frontend recognition. */
+  /** Which equipment set this item belongs to, if any. See StateUpdate.sets for the set's actual
+   * 2pc/4pc bonus text. */
   setId?: string;
+  /** Weapon/Armor/Accessory's affinity tag ("heavy"/"ranged"/"magic"/"light"), if any. Undefined
+   * for consumables/keys and untagged gear. `statLine` above already reflects the affinity-doubled
+   * value when applicable - this is only needed to decide whether to gray the stat line out. */
+  typeTag?: string;
 }
 
 /** One key kind the player is holding, with how many. Coarse: collapses Specific/Typed's target

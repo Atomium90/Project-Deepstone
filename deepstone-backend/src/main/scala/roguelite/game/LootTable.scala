@@ -83,9 +83,13 @@ object LootTable:
     * but can still roll Rare or Epic. Scaling is relative to the floor tier's own multiplier, not
     * absolute, so an item already authored above Common doesn't get its bonus double-counted.
     *
-    * Only Weapon/Armor/Accessory carry numeric stat fields worth scaling; Consumable/Key pass
-    * through unchanged, keeping their authored rarity (rolling a "Rare" health potion that heals
-    * the same amount would be meaningless).
+    * Weapon/Armor/Accessory scale by [[Rarity.statMultiplier]]. Consumable rolls too and scales
+    * its flat-amount effect fields (heal/restore/damage) by the steeper [[Rarity.potionMultiplier]]
+    * - a potion is a one-shot payoff, not a bonus that compounds over a whole run the way gear
+    * does. Percent-based consumable effects (attack/crit buffs) stay on the gentler
+    * `statMultiplier` curve instead, and their `turns` duration never scales at all - only the
+    * magnitude gets bigger at higher rarity, not the duration. Key passes through unchanged,
+    * keeping its authored rarity (a key has no numeric field to scale in the first place).
     */
   private def rollRarityAndScale(item: Item, rng: Random): Item = item match
     case w: Weapon =>
@@ -106,6 +110,23 @@ object LootTable:
         critChanceBonus = acc.critChanceBonus.map(scale(_, acc.rarity, tier))
       )
 
+    case c: Consumable =>
+      val tier = rollTier(c.rarity, rng)
+      val scaledEffect = c.effect match
+        case ConsumableEffect.HealFixed(amount) =>
+          ConsumableEffect.HealFixed(scale(amount, c.rarity, tier, _.potionMultiplier))
+        case ConsumableEffect.HealPercent(pct) =>
+          ConsumableEffect.HealPercent(math.min(100, scale(pct, c.rarity, tier, _.potionMultiplier)))
+        case ConsumableEffect.RestoreResource(amount) =>
+          ConsumableEffect.RestoreResource(scale(amount, c.rarity, tier, _.potionMultiplier))
+        case ConsumableEffect.FlatDamage(amount) =>
+          ConsumableEffect.FlatDamage(scale(amount, c.rarity, tier, _.potionMultiplier))
+        case ConsumableEffect.AttackBuff(percent, turns) =>
+          ConsumableEffect.AttackBuff(scale(percent, c.rarity, tier), turns)
+        case ConsumableEffect.CritBuff(percent, turns) =>
+          ConsumableEffect.CritBuff(scale(percent, c.rarity, tier), turns)
+      c.copy(rarity = tier, effect = scaledEffect)
+
     case other => other
 
   /** Roll a tier at or above `floor`, weighted by [[RarityRollWeights]]. Falls back to `floor`
@@ -117,11 +138,13 @@ object LootTable:
       .map(tier => tier -> RarityRollWeights(tier))
     pickWeighted(eligible, rng).getOrElse(floor)
 
-  /** Scale a single stat field from `floor` to `rolled`, relative to floor's own multiplier.
-    * Floored at 1 so rounding never zeroes out a positive base stat.
+  /** Scale a single stat field from `floor` to `rolled`, relative to floor's own multiplier under
+    * `multiplierOf` (defaults to [[Rarity.statMultiplier]] - gear's scaling curve; pass
+    * `_.potionMultiplier` for a potion's flat-amount effect fields instead). Floored at 1 so
+    * rounding never zeroes out a positive base stat.
     */
-  private def scale(base: Int, floor: Rarity, rolled: Rarity): Int =
-    math.max(1, math.round(base * (rolled.statMultiplier / floor.statMultiplier)).toInt)
+  private def scale(base: Int, floor: Rarity, rolled: Rarity, multiplierOf: Rarity => Double = _.statMultiplier): Int =
+    math.max(1, math.round(base * (multiplierOf(rolled) / multiplierOf(floor))).toInt)
 
   /** Pick one element from a weighted list using a single uniform random draw.
     *

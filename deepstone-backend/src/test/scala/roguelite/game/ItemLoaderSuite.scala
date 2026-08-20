@@ -169,6 +169,42 @@ class ItemLoaderSuite extends CatsEffectSuite:
     assertEquals(combo.statLine, "+5 MAX HP, +3 ATK")
 
   // ---------------------------------------------
+  // Item.effectiveStatLine (pure) - the affinity-doubled value shown to a specific player
+  // ---------------------------------------------
+
+  test("effectiveStatLine doubles a Weapon's attackBonus when its typeTag matches affinityTags"):
+    val bow = Weapon("", "t", "Bow", Rarity.Common, attackBonus = 5, typeTag = Some("ranged"))
+    assertEquals(bow.effectiveStatLine(Set("ranged")), "+10 ATK [ranged]")
+
+  test("effectiveStatLine leaves a Weapon's attackBonus unscaled when its typeTag doesn't match"):
+    val bow = Weapon("", "t", "Bow", Rarity.Common, attackBonus = 5, typeTag = Some("ranged"))
+    assertEquals(bow.effectiveStatLine(Set("heavy")), "+5 ATK [ranged]")
+    assertEquals(bow.effectiveStatLine(Set.empty), bow.statLine)
+
+  test("effectiveStatLine leaves an untagged Weapon unscaled regardless of affinityTags"):
+    val sword = Weapon("", "t", "Sword", Rarity.Common, attackBonus = 5)
+    assertEquals(sword.effectiveStatLine(Set("heavy")), sword.statLine)
+
+  test("effectiveStatLine doubles an Armor's defenseBonus when its typeTag matches affinityTags"):
+    val plate = Armor("", "t", "Plate", Rarity.Common, defenseBonus = 4, typeTag = Some("heavy"))
+    assertEquals(plate.effectiveStatLine(Set("heavy")), "+8 DEF [heavy]")
+    assertEquals(plate.effectiveStatLine(Set("ranged")), "+4 DEF [heavy]")
+
+  test("effectiveStatLine doubles an Accessory's attack/defense/crit bonuses but never hpBonus"):
+    val trinket = Accessory("",
+                            "t",
+                            "Trinket",
+                            Rarity.Common,
+                            hpBonus = Some(10),
+                            typeTag = Some("magic"),
+                            attackBonus = Some(2),
+                            defenseBonus = Some(3),
+                            critChanceBonus = Some(4)
+    )
+    assertEquals(trinket.effectiveStatLine(Set("magic")), "+10 MAX HP, +4 ATK, +6 DEF, +8% CRIT [magic]")
+    assertEquals(trinket.effectiveStatLine(Set("heavy")), trinket.statLine)
+
+  // ---------------------------------------------
   // Rarity (pure)
   // ---------------------------------------------
 

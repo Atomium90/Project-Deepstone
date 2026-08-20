@@ -23,13 +23,19 @@ class EquipmentResolverSuite extends FunSuite:
   ): ExplorationState =
     ExplorationState(p, testDungeon, playerX = 1, playerY = 1, pendingEquipChoice = pending)
 
-  private val sword  = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
-  private val sword2 = Weapon("w2", "steel_sword", "Steel Sword", Rarity.Uncommon, attackBonus = 7)
-  private val armor  = Armor("a1", "leather_armor", "Leather Armor", Rarity.Common, defenseBonus = 2)
-  private val armor2 = Armor("a2", "chain_mail", "Chain Mail", Rarity.Uncommon, defenseBonus = 6)
+  private val sword       = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+  private val sword2      = Weapon("w2", "steel_sword", "Steel Sword", Rarity.Uncommon, attackBonus = 7)
+  private val rareSword   = Weapon("w3", "iron_sword", "Iron Sword", Rarity.Rare, attackBonus = 5)
+  private val commonSword = Weapon("w4", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+  private val armor       = Armor("a1", "leather_armor", "Leather Armor", Rarity.Common, defenseBonus = 2)
+  private val armor2      = Armor("a2", "chain_mail", "Chain Mail", Rarity.Uncommon, defenseBonus = 6)
+  private val rareArmor   = Armor("a3", "leather_armor", "Leather Armor", Rarity.Rare, defenseBonus = 4)
+  private val commonArmor = Armor("a4", "leather_armor", "Leather Armor", Rarity.Common, defenseBonus = 2)
   private val ring   = Accessory("r1", "iron_ring", "Iron Ring", Rarity.Common, hpBonus = Some(10))
   private val ring2  = Accessory("r2", "gold_ring", "Gold Ring", Rarity.Uncommon, hpBonus = Some(15))
   private val ring3  = Accessory("r3", "ruby_ring", "Ruby Ring", Rarity.Uncommon, hpBonus = Some(20))
+  private val rareRing   = Accessory("r4", "iron_ring", "Iron Ring", Rarity.Rare, hpBonus = Some(16))
+  private val commonRing = Accessory("r5", "iron_ring", "Iron Ring", Rarity.Common, hpBonus = Some(10))
   private val potion =
     Consumable("p1", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
   private val ether =
@@ -55,6 +61,18 @@ class EquipmentResolverSuite extends FunSuite:
         assertEquals(pending.currentItems, Map(EquipSlot.WeaponSlot -> sword))
       case other => fail(s"expected ChoicePending, got $other")
 
+  test("Weapon pickup of a higher-rarity copy of the equipped typeId replaces it in place, no choice"):
+    val equipped = player.copy(equippedWeapon = Some(sword))
+    EquipmentResolver.resolvePickup(equipped, rareSword) match
+      case PickupOutcome.Equipped(p) => assertEquals(p.equippedWeapon, Some(rareSword))
+      case other                     => fail(s"expected Equipped, got $other")
+
+  test("Weapon pickup of an equal-or-lower-rarity copy of the equipped typeId is discarded"):
+    val equipped = player.copy(equippedWeapon = Some(sword))
+    EquipmentResolver.resolvePickup(equipped, commonSword) match
+      case PickupOutcome.Discarded(p) => assertEquals(p.equippedWeapon, Some(sword))
+      case other                      => fail(s"expected Discarded, got $other")
+
   // --- resolvePickup: Armor -------------------------------------------------------
 
   test("Armor into an empty armor slot equips it"):
@@ -69,6 +87,18 @@ class EquipmentResolverSuite extends FunSuite:
         assertEquals(pending.newItem, armor2)
         assertEquals(pending.currentItems, Map(EquipSlot.ArmorSlot -> armor))
       case other => fail(s"expected ChoicePending, got $other")
+
+  test("Armor pickup of a higher-rarity copy of the equipped typeId replaces it in place, no choice"):
+    val equipped = player.copy(equippedArmor = Some(armor))
+    EquipmentResolver.resolvePickup(equipped, rareArmor) match
+      case PickupOutcome.Equipped(p) => assertEquals(p.equippedArmor, Some(rareArmor))
+      case other                     => fail(s"expected Equipped, got $other")
+
+  test("Armor pickup of an equal-or-lower-rarity copy of the equipped typeId is discarded"):
+    val equipped = player.copy(equippedArmor = Some(armor))
+    EquipmentResolver.resolvePickup(equipped, commonArmor) match
+      case PickupOutcome.Discarded(p) => assertEquals(p.equippedArmor, Some(armor))
+      case other                      => fail(s"expected Discarded, got $other")
 
   // --- resolvePickup: Accessory -----------------------------------------------------
 
@@ -87,7 +117,7 @@ class EquipmentResolverSuite extends FunSuite:
         assertEquals(p.equippedAccessories, Vector(Some(ring), Some(ring2)))
       case other => fail(s"expected Equipped, got $other")
 
-  test("Accessory pickup offers both slots as choices once both are full"):
+  test("Accessory pickup offers both slots as choices once both are full with a different typeId"):
     val bothFull = player.copy(equippedAccessories = Vector(Some(ring), Some(ring2)))
     EquipmentResolver.resolvePickup(bothFull, ring3) match
       case PickupOutcome.ChoicePending(pending) =>
@@ -96,6 +126,27 @@ class EquipmentResolverSuite extends FunSuite:
                      Map(EquipSlot.AccessorySlot(0) -> ring, EquipSlot.AccessorySlot(1) -> ring2)
         )
       case other => fail(s"expected ChoicePending, got $other")
+
+  test("Accessory pickup of a higher-rarity copy of an already-equipped typeId replaces that slot, no choice"):
+    val bothFull  = player.copy(equippedAccessories = Vector(Some(ring), Some(ring2)))
+    val baseMaxHp = bothFull.maxHp
+    EquipmentResolver.resolvePickup(bothFull, rareRing) match
+      case PickupOutcome.Equipped(p) =>
+        assertEquals(p.equippedAccessories, Vector(Some(rareRing), Some(ring2)))
+        assertEquals(p.maxHp, baseMaxHp - ring.hpBonus.getOrElse(0) + rareRing.hpBonus.getOrElse(0))
+      case other => fail(s"expected Equipped, got $other")
+
+  test("Accessory pickup of an equal-or-lower-rarity copy of an already-equipped typeId is discarded"):
+    val bothFull = player.copy(equippedAccessories = Vector(Some(ring), Some(ring2)))
+    EquipmentResolver.resolvePickup(bothFull, commonRing) match
+      case PickupOutcome.Discarded(p) => assertEquals(p.equippedAccessories, bothFull.equippedAccessories)
+      case other                      => fail(s"expected Discarded, got $other")
+
+  test("Accessory pickup of a same-typeId duplicate with an empty slot elsewhere still dedupes"):
+    val oneSlotUsed = player.copy(equippedAccessories = Vector(Some(ring), None))
+    EquipmentResolver.resolvePickup(oneSlotUsed, rareRing) match
+      case PickupOutcome.Equipped(p) => assertEquals(p.equippedAccessories, Vector(Some(rareRing), None))
+      case other                     => fail(s"expected Equipped, got $other")
 
   // --- resolvePickup: Consumable (potion belt) ---------------------------------------
 

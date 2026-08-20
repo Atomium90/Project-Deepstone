@@ -222,6 +222,14 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(update.phase, GamePhase.Exploration)
   }
 
+  db.test("StartRun populates player.affinityTags from the class catalog") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assertEquals(update.player.affinityTags, List("heavy"))
+  }
+
   db.test("session state persists across multiple handle calls") {
     database =>
       for

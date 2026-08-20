@@ -16,22 +16,34 @@ import roguelite.game.{
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
+  *
+  * @param playerAffinityTags
+  *   The viewing player's `affinityTags`, used to resolve `statLine` to the affinity-doubled
+  *   value when applicable (see [[Item.effectiveStatLine]]) - defaults to empty so call sites
+  *   that don't have a specific player in scope (none today, but keeps this safe to call
+  *   generically) still get the flat baseline instead of a build error.
   */
-private def itemToView(item: Item): ItemView =
+private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty): ItemView =
   ItemView(
     id = item.id,
     typeId = item.typeId,
     name = item.name,
     kind = item.kind,
     rarity = item.rarity.label,
-    statLine = item.statLine,
+    statLine = item.effectiveStatLine(playerAffinityTags),
+    iconId = item.iconId,
     setId = item match {
       case w: Weapon    => w.setId
       case a: Armor     => a.setId
       case a: Accessory => a.setId
       case _            => None
     },
-    iconId = item.iconId
+    typeTag = item match {
+      case w: Weapon    => w.typeTag
+      case a: Armor     => a.typeTag
+      case a: Accessory => a.typeTag
+      case _            => None
+    }
   )
 
 /** Coarse display label for a key kind - collapses `Specific`/`Typed`'s payload away, see
@@ -44,19 +56,21 @@ private def keyKindLabel(kind: KeyKind): String = kind match
   case KeyKind.Universal   => "universal"
 
 /** Project a [[PendingEquipChoice]] into the client-facing [[PendingEquipChoiceView]]. */
-private def pendingChoiceToView(pending: PendingEquipChoice): PendingEquipChoiceView =
+private def pendingChoiceToView(pending: PendingEquipChoice, playerAffinityTags: Set[String]): PendingEquipChoiceView =
   PendingEquipChoiceView(
-    newItem = itemToView(pending.newItem),
-    options = pending.currentItems.toList.map { case (slot, item) => EquipChoiceOptionView(slot, itemToView(item)) }
+    newItem = itemToView(pending.newItem, playerAffinityTags),
+    options = pending.currentItems.toList.map {
+      case (slot, item) => EquipChoiceOptionView(slot, itemToView(item, playerAffinityTags))
+    }
   )
 
 /** Project a player's equipment into the client-facing [[EquipmentView]]. */
 private def equipmentToView(player: Player): EquipmentView =
   EquipmentView(
-    weapon = player.equippedWeapon.map(itemToView),
-    armor = player.equippedArmor.map(itemToView),
-    accessories = player.equippedAccessories.map(_.map(itemToView)).toList,
-    potionBelt = player.potionBelt.map(_.map(itemToView)).toList,
+    weapon = player.equippedWeapon.map(itemToView(_, player.affinityTags)),
+    armor = player.equippedArmor.map(itemToView(_, player.affinityTags)),
+    accessories = player.equippedAccessories.map(_.map(itemToView(_, player.affinityTags))).toList,
+    potionBelt = player.potionBelt.map(_.map(itemToView(_, player.affinityTags))).toList,
     keys = player.keyCounts.collect {
       case (kind, count) if count > 0 => KeyCountView(keyKindLabel(kind), count)
     }.toList
@@ -128,7 +142,7 @@ case class ExplorationState(player: Player,
       player = player.toView,
       room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
       equipment = equipmentToView(player),
-      pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView),
+      pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView(_, player.affinityTags)),
       log = log,
       dialogue = dialogue
     )

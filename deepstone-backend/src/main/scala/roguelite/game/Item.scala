@@ -29,6 +29,20 @@ enum Rarity:
     case Epic     => 1.6
   }
 
+  /** Multiplier applied to a rolled potion's flat-amount effect fields (heal/restore/damage
+    * amounts), relative to another tier's own multiplier - same role as [[statMultiplier]] but
+    * steeper, since a potion is a one-shot consumed effect rather than a bonus that compounds
+    * over a whole run the way equipped gear does. Percent-based consumable effects (attack/crit
+    * buffs) deliberately stay on the gentler [[statMultiplier]] curve instead - see
+    * [[LootTable.rollRarityAndScale]].
+    */
+  def potionMultiplier: Double = this match {
+    case Common   => 1.0
+    case Uncommon => 1.5
+    case Rare     => 2.0
+    case Epic     => 2.5
+  }
+
 /** Effect applied when a consumable is used. */
 enum ConsumableEffect:
   /** Restore a fixed amount of HP. */

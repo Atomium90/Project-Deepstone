@@ -34,6 +34,10 @@ class EquipmentResolverSuite extends FunSuite:
     Consumable("p1", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
   private val ether =
     Consumable("p2", "ether", "Ether", Rarity.Uncommon, ConsumableEffect.RestoreResource(20))
+  private val elixir =
+    Consumable("p3", "elixir", "Elixir", Rarity.Common, ConsumableEffect.HealPercent(40))
+  private val rareHealthPotion =
+    Consumable("p4", "health_potion", "Health Potion", Rarity.Rare, ConsumableEffect.HealFixed(70))
   private val key = Key("k1", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic)
 
   // --- resolvePickup: Weapon -----------------------------------------------------
@@ -106,15 +110,37 @@ class EquipmentResolverSuite extends FunSuite:
       case PickupOutcome.Equipped(p) => assertEquals(p.potionBelt, Vector(Some(potion), Some(ether)))
       case other                     => fail(s"expected Equipped, got $other")
 
-  test("Consumable pickup offers both belt slots as choices once the belt is full"):
+  test("Consumable pickup offers both belt slots as choices once the belt is full with a different typeId"):
     val beltFull = player.copy(potionBelt = Vector(Some(potion), Some(ether)))
-    EquipmentResolver.resolvePickup(beltFull, potion) match
+    EquipmentResolver.resolvePickup(beltFull, elixir) match
       case PickupOutcome.ChoicePending(pending) =>
-        assertEquals(pending.newItem, potion)
+        assertEquals(pending.newItem, elixir)
         assertEquals(pending.currentItems,
                      Map(EquipSlot.PotionSlot(0) -> potion, EquipSlot.PotionSlot(1) -> ether)
         )
       case other => fail(s"expected ChoicePending, got $other")
+
+  test("Consumable pickup of a higher-rarity copy of an already-held typeId replaces it in place"):
+    val beltFull = player.copy(potionBelt = Vector(Some(potion), Some(ether)))
+    EquipmentResolver.resolvePickup(beltFull, rareHealthPotion) match
+      case PickupOutcome.Equipped(p) =>
+        assertEquals(p.potionBelt, Vector(Some(rareHealthPotion), Some(ether)))
+      case other => fail(s"expected Equipped, got $other")
+
+  test("Consumable pickup of an equal-or-lower-rarity copy of an already-held typeId is discarded"):
+    val beltFull = player.copy(potionBelt = Vector(Some(potion), Some(ether)))
+    val secondCommonHealthPotion =
+      Consumable("p5", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
+    EquipmentResolver.resolvePickup(beltFull, secondCommonHealthPotion) match
+      case PickupOutcome.Discarded(p) => assertEquals(p.potionBelt, beltFull.potionBelt)
+      case other                      => fail(s"expected Discarded, got $other")
+
+  test("Consumable pickup of a same-typeId duplicate with an empty slot elsewhere still dedupes"):
+    // Dedup applies even when a slot is free - a duplicate typeId should never take a second slot.
+    val oneSlotUsed = player.copy(potionBelt = Vector(Some(potion), None))
+    EquipmentResolver.resolvePickup(oneSlotUsed, rareHealthPotion) match
+      case PickupOutcome.Equipped(p) => assertEquals(p.potionBelt, Vector(Some(rareHealthPotion), None))
+      case other                     => fail(s"expected Equipped, got $other")
 
   // --- resolvePickup: Key ---------------------------------------------------------
 

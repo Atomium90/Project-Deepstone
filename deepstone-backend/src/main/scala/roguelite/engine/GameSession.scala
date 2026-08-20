@@ -258,6 +258,7 @@ class GameSession private (
             case PickupOutcome.Equipped(p)      => p
             case PickupOutcome.KeyCollected(p)  => p
             case PickupOutcome.ChoicePending(_) => player // no room => silently skip
+            case PickupOutcome.Discarded(p)     => p
 
     case UpgradeEffect.UnlockClass(_) =>
       // Gates class selection at StartRun (see StateMachine); no player-state effect to apply.

@@ -524,6 +524,41 @@
       "y": 192,
       "w": 16,
       "h": 16
+    },
+    "health_potion": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 208,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "second_wind": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 192,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "battle_brew": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 0,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "volatile_flask": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 144,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "focus_tonic": {
+      "sheet": "/sprites/items/spritesheet_16x16.png",
+      "x": 112,
+      "y": 224,
+      "w": 16,
+      "h": 16
     }
   }
 }

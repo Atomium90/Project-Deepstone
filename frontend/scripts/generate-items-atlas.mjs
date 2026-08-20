@@ -78,6 +78,12 @@ const MANIFEST = [
     { typeId: "soulstone", sheet: "spritesheet_16x16.png", row: 9, col: 11 },
     { typeId: "speed_potion", sheet: "spritesheet_16x16.png", row: 14, col: 14 },
     { typeId: "luck_clover", sheet: "spritesheet_16x16.png", row: 12, col: 15 },
+    // -- Consumables --
+    { typeId: "health_potion", sheet: "spritesheet_16x16.png", row: 14, col: 13 },
+    { typeId: "second_wind", sheet: "spritesheet_16x16.png", row: 15, col: 12 },
+    { typeId: "battle_brew", sheet: "spritesheet_16x16.png", row: 15, col: 0 },
+    { typeId: "volatile_flask", sheet: "spritesheet_16x16.png", row: 14, col: 9 },
+    { typeId: "focus_tonic", sheet: "spritesheet_16x16.png", row: 14, col: 7 },
 ];
 
 const existing = JSON.parse(readFileSync(itemsAtlasPath, "utf-8"));

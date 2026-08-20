@@ -364,6 +364,100 @@ class CombatResolverSuite extends FunSuite:
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(log.size >= 2, s"Expected item use + enemy action in log: $log")
 
+  // --- AttackBuff potion -----------------------------------------------------
+
+  test("AttackBuff potion arms a timed buff with the correct percent and duration"):
+    // Using an item still triggers the enemy's turn in the same transition (see "using an item
+    // triggers enemy counter-turn" above), so the freshly-armed buff has already ticked down by
+    // one round-end decrement by the time this resolve() call returns: 3 -> 2.
+    val brew  = Consumable("b1", "battle_brew", "Battle Brew", Rarity.Common, ConsumableEffect.AttackBuff(50, 3))
+    val state = combatState(weakEnemy(hp = 500), player = equipPotion(fullHpPlayer(), brew))
+    val (next, log, _) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("b1")))
+    assertEquals(next.asInstanceOf[CombatState].combat.activeBuffs,
+                 List(TimedBuff(TimedBuffEffect.AttackBonusPercent(50), 2))
+    )
+    assert(log.exists(_.contains("Battle Brew")))
+
+  test("using a second AttackBuff potion refreshes duration instead of stacking"):
+    val brew1 = Consumable("b1", "battle_brew", "Battle Brew", Rarity.Common, ConsumableEffect.AttackBuff(50, 5))
+    val brew2 = Consumable("b2", "battle_brew", "Battle Brew", Rarity.Common, ConsumableEffect.AttackBuff(50, 3))
+    val state = combatState(weakEnemy(hp = 500),
+                            player = equipPotion(equipPotion(fullHpPlayer(), brew1, slot = 0), brew2, slot = 1)
+    )
+    val (afterFirst, _, _) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("b1")))
+    val (afterSecond, _, _) = resolver().resolve(afterFirst.asInstanceOf[CombatState],
+                                                  CombatAction(CombatActionType.Item, itemId = Some("b2"))
+    )
+    assertEquals(afterSecond.asInstanceOf[CombatState].combat.activeBuffs,
+                 List(TimedBuff(TimedBuffEffect.AttackBonusPercent(50), 2)),
+                 "expected exactly one AttackBonusPercent buff, replaced by the newer one (5-turn brew1 would" +
+                   " otherwise still show 4 turns left)"
+    )
+
+  // --- CritBuff potion ---------------------------------------------------------
+
+  test("CritBuff potion arms a timed crit buff with the correct percent and duration"):
+    val tonic = Consumable("c1", "focus_tonic", "Focus Tonic", Rarity.Common, ConsumableEffect.CritBuff(30, 2))
+    val state = combatState(weakEnemy(hp = 500), player = equipPotion(fullHpPlayer(), tonic))
+    val (next, log, _) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("c1")))
+    // Same round-end decrement as AttackBuff: armed at 2, already ticked to 1 by the time the
+    // enemy's turn (part of the same transition) completes.
+    assertEquals(next.asInstanceOf[CombatState].combat.activeBuffs,
+                 List(TimedBuff(TimedBuffEffect.CritChanceBonusPercent(30), 1))
+    )
+    assert(log.exists(_.contains("Focus Tonic")))
+
+  test("an AttackBuff and a CritBuff coexist without clobbering each other"):
+    val brew  = Consumable("b1", "battle_brew", "Battle Brew", Rarity.Common, ConsumableEffect.AttackBuff(50, 5))
+    val tonic = Consumable("c1", "focus_tonic", "Focus Tonic", Rarity.Common, ConsumableEffect.CritBuff(30, 5))
+    val state = combatState(weakEnemy(hp = 500),
+                            player = equipPotion(equipPotion(fullHpPlayer(), brew, slot = 0), tonic, slot = 1)
+    )
+    val (afterFirst, _, _) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("b1")))
+    val (afterSecond, _, _) = resolver().resolve(afterFirst.asInstanceOf[CombatState],
+                                                  CombatAction(CombatActionType.Item, itemId = Some("c1"))
+    )
+    val finalBuffs = afterSecond.asInstanceOf[CombatState].combat.activeBuffs
+    assertEquals(finalBuffs.toSet,
+                 Set(TimedBuff(TimedBuffEffect.AttackBonusPercent(50), 3),
+                     TimedBuff(TimedBuffEffect.CritChanceBonusPercent(30), 4)
+                 )
+    )
+
+  test("a CritChanceBonusPercent buff can push a guaranteed crit on Attack"):
+    val buff  = TimedBuff(TimedBuffEffect.CritChanceBonusPercent(100), turnsRemaining = 2)
+    val state = combatState(weakEnemy(hp = 500), player = fullHpPlayer())
+    val withBuff = state.copy(combat = state.combat.copy(activeBuffs = List(buff)))
+    val (next, log, _) = resolver().resolve(withBuff, CombatAction(CombatActionType.Attack))
+    assert(log.exists(_.contains("Critical hit!")), s"expected a guaranteed crit: $log")
+    assert(next.isInstanceOf[CombatState])
+
+  // --- FlatDamage potion -------------------------------------------------------
+
+  test("FlatDamage potion damages the enemy without killing it, combat continues"):
+    val bomb  = Consumable("f1", "volatile_flask", "Volatile Flask", Rarity.Common, ConsumableEffect.FlatDamage(25))
+    val state = combatState(weakEnemy(hp = 100), player = equipPotion(fullHpPlayer(), bomb))
+    val (next, log, events) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("f1")))
+    val nextCombat = next.asInstanceOf[CombatState].combat
+    assertEquals(nextCombat.enemy.hp, 75)
+    assert(log.exists(_.contains("25 damage")), s"expected the damage amount in the log: $log")
+    assert(events.exists { case GameEvent.DamageDealt(false, 25, _) => true; case _ => false },
+           s"expected a DamageDealt event: $events"
+    )
+
+  test("FlatDamage potion that kills the enemy routes to victory"):
+    val bomb  = Consumable("f1", "volatile_flask", "Volatile Flask", Rarity.Common, ConsumableEffect.FlatDamage(25))
+    val state = combatState(weakEnemy(hp = 10), player = equipPotion(fullHpPlayer(), bomb))
+    val (next, log, _) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("f1")))
+    assert(!next.isInstanceOf[CombatState], s"expected combat to end, got $next")
+    assert(log.exists(_.contains("defeated")), s"expected a victory log line: $log")
+
   // --- Inventory stat bonuses ----------------------------------------------
 
   test("weapon bonus increases damage dealt to enemy"):

@@ -178,6 +178,12 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                List(s"You open the chest and find ${item.name}. Choose what to do with it."),
                Nil
               )
+
+            case PickupOutcome.Discarded(p) =>
+              (exp.copy(dungeon = updatedDungeon, player = p),
+               List(s"You open the chest and find ${item.name}, but you already have a better one."),
+               Nil
+              )
           }
       }
 

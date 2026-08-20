@@ -90,13 +90,21 @@ class CombatResolver(rng: Random = Random(),
     val firstAttackGuaranteedCrit =
       !state.combat.hasAttackedThisCombat &&
         activeSetBonuses(state.player).contains(SetBonusEffect.FirstAttackAlwaysCrit)
-    val isCrit = firstAttackGuaranteedCrit || rollCrit(state.player.critChance)
+    val buffCritBonus = state.combat.activeBuffs.collect {
+      case TimedBuff(TimedBuffEffect.CritChanceBonusPercent(n), _) => n
+    }.sum
+    val isCrit = firstAttackGuaranteedCrit || rollCrit(state.player.critChance + buffCritBonus)
 
-    // Set-driven "+N% attack damage" is a final multiplier on top of the base hit, applied
-    // alongside (not instead of) the crit multiplier - the two stack multiplicatively.
+    // Set-driven "+N% attack damage" and any active potion AttackBuff are both a final percentage
+    // added on top of the base hit (summed together, not each its own multiplier), then the crit
+    // multiplier applies on top of that combined total.
     val setDamagePercent = sumSetBonus(state.player, { case SetBonusEffect.AttackDamagePercent(n) => n })
-    val critMultiplier    = if isCrit then CritMultiplier else 1.0
-    val damage = math.round(baseDamage * (1.0 + setDamagePercent / 100.0) * critMultiplier).toInt
+    val buffDamagePercent = state.combat.activeBuffs.collect {
+      case TimedBuff(TimedBuffEffect.AttackBonusPercent(n), _) => n
+    }.sum
+    val critMultiplier = if isCrit then CritMultiplier else 1.0
+    val damage =
+      math.round(baseDamage * (1.0 + (setDamagePercent + buffDamagePercent) / 100.0) * critMultiplier).toInt
 
     val damagedEnemy = state.combat.enemy.takeDamage(damage)
     val critSuffix   = if isCrit then " Critical hit!" else ""
@@ -141,13 +149,23 @@ class CombatResolver(rng: Random = Random(),
           case None =>
             (state, List("Item not found in inventory."), Nil)
           case Some((idx, consumable)) =>
-            val playerWithoutItem = state.player.copy(potionBelt = state.player.potionBelt.updated(idx, None))
-            val (updatedPlayer, effectLog, healEvents) =
-              applyConsumableEffect(playerWithoutItem, consumable)
-            val updatedCombat = state.combat.copy(playerIsDefending = false)
-            val (finalState, finalLog, downstreamEvents) =
-              enemyTurn(state.copy(player = updatedPlayer, combat = updatedCombat), effectLog)
-            (finalState, finalLog, healEvents ++ downstreamEvents)
+            val stateWithoutItem = state.copy(
+              player = state.player.copy(potionBelt = state.player.potionBelt.updated(idx, None))
+            )
+            val (updatedState, effectLog, effectEvents, killingBlowDamage) =
+              applyConsumableEffect(stateWithoutItem, consumable)
+
+            killingBlowDamage match
+              case Some(damage) =>
+                // FlatDamage killed the enemy: route to victory like Attack/Arcane Blast do.
+                val (finalState, finalLog, downstreamEvents) =
+                  victory(updatedState, updatedState.combat.enemy, effectLog, damage)
+                (finalState, finalLog, effectEvents ++ downstreamEvents)
+              case None =>
+                val updatedCombat = updatedState.combat.copy(playerIsDefending = false)
+                val (finalState, finalLog, downstreamEvents) =
+                  enemyTurn(updatedState.copy(combat = updatedCombat), effectLog)
+                (finalState, finalLog, effectEvents ++ downstreamEvents)
         }
     }
 
@@ -247,37 +265,84 @@ class CombatResolver(rng: Random = Random(),
   // Consumable effect application
   // ---------------------------------------------
 
-  private def applyConsumableEffect(player: Player,
+  /** Apply a consumable's effect within an active combat.
+    *
+    * Returns the updated combat state, log lines, any GameEvents, and - only for an effect that
+    * can kill the enemy (FlatDamage) - the killing blow's damage, so [[handleItem]] knows to
+    * route to [[victory]] instead of continuing to [[enemyTurn]].
+    */
+  private def applyConsumableEffect(state: CombatState,
                                     item: Consumable
-  ): (Player, List[String], List[GameEvent]) =
+  ): (CombatState, List[String], List[GameEvent], Option[Int]) =
     item.effect match
       case ConsumableEffect.HealFixed(amount) =>
-        val before = player.hp
-        val after  = (player.hp + amount).min(player.maxHp)
+        val before = state.player.hp
+        val after  = (state.player.hp + amount).min(state.player.maxHp)
         val healed = after - before
-        (player.copy(hp = after),
+        (state.copy(player = state.player.copy(hp = after)),
          List(s"You use ${item.name}. Restored $healed HP."),
-         if healed > 0 then List(GameEvent.Healed(healed)) else Nil
+         if healed > 0 then List(GameEvent.Healed(healed)) else Nil,
+         None
         )
 
       case ConsumableEffect.HealPercent(pct) =>
-        val amount = (player.maxHp * pct / 100).max(1)
-        val before = player.hp
-        val after  = (player.hp + amount).min(player.maxHp)
+        val amount = (state.player.maxHp * pct / 100).max(1)
+        val before = state.player.hp
+        val after  = (state.player.hp + amount).min(state.player.maxHp)
         val healed = after - before
-        (player.copy(hp = after),
+        (state.copy(player = state.player.copy(hp = after)),
          List(s"You use ${item.name}. Restored $healed HP."),
-         if healed > 0 then List(GameEvent.Healed(healed)) else Nil
+         if healed > 0 then List(GameEvent.Healed(healed)) else Nil,
+         None
         )
 
       case ConsumableEffect.RestoreResource(amount) =>
-        val before   = player.resourceCurrent
-        val after    = (player.resourceCurrent + amount).min(player.resourceMax)
+        val before   = state.player.resourceCurrent
+        val after    = (state.player.resourceCurrent + amount).min(state.player.resourceMax)
         val restored = after - before
-        (player.copy(resourceCurrent = after),
+        (state.copy(player = state.player.copy(resourceCurrent = after)),
          List(s"You use ${item.name}. Restored $restored resource."),
-         Nil
+         Nil,
+         None
         )
+
+      case ConsumableEffect.AttackBuff(percent, turns) =>
+        val updatedCombat = armBuff(state.combat, TimedBuffEffect.AttackBonusPercent(percent), turns)
+        (state.copy(combat = updatedCombat),
+         List(s"You use ${item.name}. You feel a surge of power! (+$percent% ATK for $turns turns)"),
+         Nil,
+         None
+        )
+
+      case ConsumableEffect.FlatDamage(amount) =>
+        // Flat damage: no calcDamage call, no jitter, no crit, no defense subtraction - same
+        // pattern as Arcane Blast.
+        val damagedEnemy  = state.combat.enemy.takeDamage(amount)
+        val updatedCombat = state.combat.copy(enemy = damagedEnemy)
+        val log           = List(s"You use ${item.name}. It deals $amount damage to ${damagedEnemy.label}.")
+        val damageEvent   = GameEvent.DamageDealt(targetIsPlayer = false, amount = amount)
+        (state.copy(combat = updatedCombat),
+         log,
+         List(damageEvent),
+         if !damagedEnemy.isAlive then Some(amount) else None
+        )
+
+      case ConsumableEffect.CritBuff(percent, turns) =>
+        val updatedCombat = armBuff(state.combat, TimedBuffEffect.CritChanceBonusPercent(percent), turns)
+        (state.copy(combat = updatedCombat),
+         List(s"You use ${item.name}. Your senses sharpen! (+$percent% crit chance for $turns turns)"),
+         Nil,
+         None
+        )
+
+  /** Arm a timed buff on `combat`, replacing any existing buff of the same [[TimedBuffEffect]]
+    * case rather than stacking alongside it (refresh duration, not magnitude - see TimedBuff's
+    * docblock). Compares by `.ordinal` (same enum case, regardless of percent value) so a new
+    * TimedBuffEffect case never needs a matching branch added here.
+    */
+  private def armBuff(combat: Combat, effect: TimedBuffEffect, turns: Int): Combat =
+    val otherBuffs = combat.activeBuffs.filterNot(_.effect.ordinal == effect.ordinal)
+    combat.copy(activeBuffs = TimedBuff(effect, turns) :: otherBuffs)
 
   // ---------------------------------------------
   // Enemy turn
@@ -309,32 +374,52 @@ class CombatResolver(rng: Random = Random(),
             onHit = true,
             onRound = true
           )
+          val (survivingBuffs, buffExpiryLog) = advanceBuffs(state.combat)
           val nextCombat = state.combat.copy(
             isPlayerTurn = true,
             round = state.combat.round + 1,
             playerIsDefending = false,
-            tookDamage = true
+            tookDamage = true,
+            activeBuffs = survivingBuffs
           )
-          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog, List(damageEvent))
+          (state.copy(player = playerAfterHit, combat = nextCombat), attackLog ++ buffExpiryLog, List(damageEvent))
 
       case "DEFEND" =>
         val roundLog = priorLog :+ s"${state.combat.enemy.label} takes a defensive stance."
         // Archer +5 Focus per round even when the enemy defends
         val playerAfterRound = gainResource(state.player, onRound = true)
+        val (survivingBuffs, buffExpiryLog) = advanceBuffs(state.combat)
         val nextCombat = state.combat.copy(
           isPlayerTurn = true,
           round = state.combat.round + 1,
-          playerIsDefending = false
+          playerIsDefending = false,
+          activeBuffs = survivingBuffs
         )
-        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog, Nil)
+        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog ++ buffExpiryLog, Nil)
 
       case other =>
         // Unknow action -> skip enemy turn
-        val roundLog         = priorLog :+ s"${state.combat.enemy.label} hesitates."
-        val playerAfterRound = gainResource(state.player, onRound = true)
-        val nextCombat       = state.combat.copy(isPlayerTurn = true, playerIsDefending = false)
-        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog, Nil)
+        val roundLog                        = priorLog :+ s"${state.combat.enemy.label} hesitates."
+        val playerAfterRound                = gainResource(state.player, onRound = true)
+        val (survivingBuffs, buffExpiryLog) = advanceBuffs(state.combat)
+        val nextCombat = state.combat.copy(isPlayerTurn = true,
+                                           playerIsDefending = false,
+                                           activeBuffs = survivingBuffs
+        )
+        (state.copy(player = playerAfterRound, combat = nextCombat), roundLog ++ buffExpiryLog, Nil)
     }
+
+  /** Decrement every active buff's remaining duration by one round. Returns the surviving buffs
+    * plus a log line for each one that just expired.
+    */
+  private def advanceBuffs(combat: Combat): (List[TimedBuff], List[String]) =
+    val decremented                = combat.activeBuffs.map(b => b.copy(turnsRemaining = b.turnsRemaining - 1))
+    val (expired, surviving)       = decremented.partition(_.turnsRemaining <= 0)
+    (surviving, expired.map(b => describeBuffExpiry(b.effect)))
+
+  private def describeBuffExpiry(effect: TimedBuffEffect): String = effect match
+    case TimedBuffEffect.AttackBonusPercent(_)     => "Your battle fury fades."
+    case TimedBuffEffect.CritChanceBonusPercent(_) => "Your sharpened senses dull."
 
   /** Pick an enemy action using weighted random selection. */
   private def pickEnemyAction(enemy: EnemyInstance): String =
@@ -427,6 +512,12 @@ class CombatResolver(rng: Random = Random(),
                List(s"${deadEnemy.label} dropped ${item.name}. Choose what to do with it."),
                Nil,
                Some(pending)
+              )
+            case PickupOutcome.Discarded(p) =>
+              (p,
+               List(s"${deadEnemy.label} dropped ${item.name}, but you already have a better one."),
+               Nil,
+               None
               )
           }
       }

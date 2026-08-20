@@ -19,6 +19,12 @@ enum PickupOutcome:
     */
   case ChoicePending(pending: PendingEquipChoice)
 
+  /** The pickup was resolved with no equipment change: the player already holds an equal-or-
+    * better copy of the same consumable typeId (see [[resolvePickup]]'s Consumable case). `player`
+    * is unchanged, carried only so every case has the same "resulting player" shape at call sites.
+    */
+  case Discarded(player: Player)
+
 /** Resolves an item pickup into an auto-equip, a key count bump, or a pending choice.
   *
   * Shared by [[InteractionResolver.handleChest]] and [[CombatResolver.victory]] so the two
@@ -55,14 +61,26 @@ object EquipmentResolver:
         PickupOutcome.ChoicePending(PendingEquipChoice(acc, options.toMap))
 
     case c: Consumable =>
-      val idx = player.potionBelt.indexWhere(_.isEmpty)
-      if idx >= 0
-      then PickupOutcome.Equipped(player.copy(potionBelt = player.potionBelt.updated(idx, Some(c))))
-      else
-        val options = player.potionBelt.zipWithIndex.collect {
-          case (Some(current), i) => EquipSlot.PotionSlot(i) -> current
-        }
-        PickupOutcome.ChoicePending(PendingEquipChoice(c, options.toMap))
+      // Same typeId already in the belt: this is a rarity comparison against that one specific
+      // copy, never a slot/choice decision - two rarities of the same potion sitting in the belt
+      // together would be redundant (you'd always just drink the stronger one).
+      player.potionBelt.zipWithIndex.collectFirst {
+        case (Some(existing), i) if existing.typeId == c.typeId => (i, existing)
+      } match
+        case Some((i, existing)) =>
+          if c.rarity.ordinal > existing.rarity.ordinal then
+            PickupOutcome.Equipped(player.copy(potionBelt = player.potionBelt.updated(i, Some(c))))
+          else
+            PickupOutcome.Discarded(player)
+        case None =>
+          val idx = player.potionBelt.indexWhere(_.isEmpty)
+          if idx >= 0
+          then PickupOutcome.Equipped(player.copy(potionBelt = player.potionBelt.updated(idx, Some(c))))
+          else
+            val options = player.potionBelt.zipWithIndex.collect {
+              case (Some(current), i) => EquipSlot.PotionSlot(i) -> current
+            }
+            PickupOutcome.ChoicePending(PendingEquipChoice(c, options.toMap))
 
     case k: Key =>
       val updatedCount = player.keyCounts.getOrElse(k.keyKind, 0) + 1

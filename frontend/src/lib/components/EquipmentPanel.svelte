@@ -1,9 +1,18 @@
 <script lang="ts">
-    import { gameState } from "../engine/StateStore";
+    import { gameState, equippedSetCounts } from "../engine/StateStore";
+    import { ITEM_RARITY_COLORS } from "../engine/constants";
     import EquipSlotBox from "./EquipSlotBox.svelte";
 
     $: equipment = $gameState?.equipment;
     $: keyCount = equipment?.keys.reduce((sum, k) => sum + k.count, 0) ?? 0;
+
+    /** Sets with an active (2pc+) bonus for the current class - class-gated the same way the
+     * server decides whether a bonus is actually granted, so this never shows a badge for gear
+     * from another class's set. */
+    $: activeSets = ($gameState?.sets ?? [])
+        .filter((s) => s.classId === $gameState?.player.classId)
+        .map((s) => ({ set: s, count: $equippedSetCounts[s.id] ?? 0 }))
+        .filter(({ count }) => count >= 2);
 </script>
 
 <div class="equipment-panel">
@@ -36,6 +45,19 @@
                 </div>
             {/each}
         </div>
+
+        {#if activeSets.length > 0}
+            <div
+                class="set-badges"
+                style="--set-accent:{ITEM_RARITY_COLORS.epic}; --set-tint:{ITEM_RARITY_COLORS.epic}1a"
+            >
+                {#each activeSets as { set, count } (set.id)}
+                    <span class="set-badge" title="{count >= 4 ? set.bonus4pcLabel : set.bonus2pcLabel}">
+                        {set.name} {count >= 4 ? "4/4" : `${count}/4`}
+                    </span>
+                {/each}
+            </div>
+        {/if}
 
         {#if keyCount > 0}
             <p class="key-count">🔑 {keyCount} key{keyCount !== 1 ? "s" : ""}</p>
@@ -88,6 +110,24 @@
         margin-top: 1.25rem;
         font-size: 0.8rem;
         color: #999;
+    }
+
+    .set-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.25rem;
+    }
+
+    .set-badge {
+        padding: 0.3rem 0.6rem;
+        background: var(--set-tint);
+        border: 1px solid var(--set-accent);
+        border-radius: 2px;
+        color: #c9a0dc;
+        font-size: 0.68rem;
+        letter-spacing: 0.03em;
+        cursor: default;
     }
 
     .muted { color: #444; font-size: 0.85rem; }

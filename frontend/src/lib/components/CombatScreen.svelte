@@ -1,7 +1,7 @@
 <script lang="ts">
     import { gameState, client, combatLog, combatDamageEvents } from "../engine/StateStore";
     import { settings } from "../engine/SettingsStore";
-    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, PLAYER_CLASS_COLORS } from "../engine/constants";
+    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, PLAYER_CLASS_COLORS, ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
     import StatBar from "./StatBar.svelte";
@@ -244,10 +244,7 @@
                         >
                             <span class="picker-name">{item.name}</span>
                             <span class="picker-stat">{item.statLine}</span>
-                            <span
-                                    class="picker-rarity"
-                                    class:uncommon={item.rarity === "uncommon"}
-                            >
+                            <span class="picker-rarity" style="color:{ITEM_RARITY_COLORS[item.rarity]}">
                                 {item.rarity}
                             </span>
                         </button>
@@ -522,10 +519,7 @@
         font-size: 0.6rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: #555;
     }
-
-    .picker-rarity.uncommon { color: #8e44ad; }
 
     /* -- Log -------------------------------------------------------------- */
 

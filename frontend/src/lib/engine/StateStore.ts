@@ -2,6 +2,20 @@ import { writable, derived } from "svelte/store";
 import type { StateUpdate } from "./protocol";
 import { GameClient } from "./GameClient";
 
+/** How many equipped weapon/armor/accessory pieces carry each setId - the same counting rule as
+ * the server's `Player.equippedSetIds`/`SetDef.activeBonuses` (potion belt and keys don't count).
+ * Purely a display concern: the client never decides whether a set bonus is mechanically active,
+ * it only mirrors the count so tooltips/badges can show 2pc/4pc progress locally. */
+function countEquippedSets(equipment: StateUpdate["equipment"] | undefined): Record<string, number> {
+  const counts: Record<string, number> = {};
+  if (!equipment) return counts;
+  const pieces = [equipment.weapon, equipment.armor, ...equipment.accessories];
+  for (const piece of pieces) {
+    if (piece?.setId) counts[piece.setId] = (counts[piece.setId] ?? 0) + 1;
+  }
+  return counts;
+}
+
 // ---------------------------------------------
 // Core store
 // ---------------------------------------------
@@ -37,6 +51,11 @@ export const soundEvents = derived(gameState, ($s) => $s?.soundEvents ?? []);
  * next update until actually resolved), so it needs no extra latch/dedup logic here - it's a
  * direct reflection of server state, not a one-shot signal. Drives EquipChoiceModal.svelte. */
 export const pendingEquipChoice = derived(gameState, ($s) => $s?.pendingEquipChoice ?? null);
+
+/** Derived convenience: how many equipped pieces carry each setId, keyed by setId. Drives the
+ * set-bonus progress shown in ItemTooltip.svelte and the active-set badges in
+ * EquipmentPanel.svelte. See `countEquippedSets` above for the counting rule. */
+export const equippedSetCounts = derived(gameState, ($s) => countEquippedSets($s?.equipment));
 
 // ---------------------------------------------
 // Client singleton

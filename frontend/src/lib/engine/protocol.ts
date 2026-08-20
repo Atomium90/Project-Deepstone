@@ -10,7 +10,7 @@ export type ClassId = "warrior" | "archer" | "mage";
 export type Difficulty = "easy" | "normal" | "hard";
 
 export type ItemKind = "weapon" | "armor" | "accessory" | "consumable" | "key";
-export type ItemRarity = "common" | "uncommon";
+export type ItemRarity = "common" | "uncommon" | "rare" | "epic";
 
 /** Identifies one equipment or potion-belt slot. `ACCESSORY_i`/`POTION_i` carry the slot index
  * (0-based) since both families are fixed-size arrays, not one enum case per physical slot. */
@@ -220,6 +220,18 @@ export interface AchievementView {
   unlocked: boolean;
 }
 
+/** Static description of one equipment set's 2pc/4pc bonus, sent as a full catalog on every
+ * StateUpdate (same rationale as AbilityView: the client never hardcodes set names or bonus
+ * text). Whether a set's bonus is currently active isn't carried here - the client already has
+ * `setId` on every equipped ItemView and counts matching pieces itself. */
+export interface SetView {
+  id: string;
+  name: string;
+  classId: ClassId;
+  bonus2pcLabel: string;
+  bonus4pcLabel: string;
+}
+
 export interface StateUpdate {
   phase: GamePhase;
   player: PlayerView;
@@ -235,6 +247,8 @@ export interface StateUpdate {
   abilities: AbilityView[];
   /** Full achievement catalog (locked and unlocked), always present, independent of phase. */
   achievements: AchievementView[];
+  /** Full equipment set catalog, always present, independent of phase. */
+  sets: SetView[];
   /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
   victory: boolean;
   log: string[];

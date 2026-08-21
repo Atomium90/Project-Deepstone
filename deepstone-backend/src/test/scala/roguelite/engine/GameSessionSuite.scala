@@ -107,6 +107,16 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
+  /** Wider-than-production perk pool (5 entries), so tests can exercise the "3 of N" roll instead
+    * of the real catalog's single entry always being trivially offered in full.
+    */
+  val testPerkDefs: Map[String, PerkDef] =
+    (1 to 5).map:
+      i =>
+        val id = s"perk_$i"
+        id -> PerkDef(id, s"Perk $i", s"Test perk $i", icon = "*", effect = PerkEffect.ExtraStartingItem("health_potion"))
+    .toMap
+
   /** Minimal achievement catalog mirroring achievements.json, avoids file I/O in unit tests.
     * Only a small representative subset is needed here (thorough per-condition coverage lives in
     * AchievementCheckerSuite); this just exercises the GameSession wiring end-to-end.
@@ -182,6 +192,30 @@ class GameSessionSuite extends CatsEffectSuite:
     actions = List(EnemyActionWeight("ATTACK", 100))
   )
 
+  /** Survives the player's attack (maxHp far outsizes any player damage) and one-shots the player
+    * back (attack far outsizes any player HP/defense), so a single Attack reliably reaches
+    * GameOverState(victory = false) through the enemy's counter-attack.
+    */
+  val lethalGoblinStats: EnemyStats = EnemyStats(
+    typeId = "goblin",
+    label = "Goblin",
+    spriteId = "mob_orc_rogue_idle",
+    maxHp = 99999,
+    attack = 9999,
+    defense = 0,
+    xpReward = 15,
+    actions = List(EnemyActionWeight("ATTACK", 100))
+  )
+
+  def smWithLethalEnemy: StateMachine =
+    StateMachine(achievementRoomPool,
+                 Map("goblin" -> lethalGoblinStats),
+                 Map.empty,
+                 testClassDefs,
+                 testUpgradeDefs,
+                 CombatResolver(Random(0L))
+    )
+
   def smWithEnemy: StateMachine =
     StateMachine(achievementRoomPool,
                  Map("goblin" -> weakGoblinStats),
@@ -218,6 +252,43 @@ class GameSessionSuite extends CatsEffectSuite:
         session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
         update  <- session.currentUpdate
       yield assert(update.hub.get.upgrades.forall(!_.unlocked), "no upgrades should be unlocked")
+  }
+
+  db.test("fresh session offers 3 perks out of a wider catalog") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      perkDefs = testPerkDefs, rng = Random(0L)
+                   )
+        update  <- session.currentUpdate
+      yield assertEquals(update.hub.get.perks.length, 3)
+  }
+
+  db.test("ReturnToHub after a run rerolls the offered perks") {
+    database =>
+      for
+        session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, perkDefs = testPerkDefs, rng = Random(0L)
+                   )
+        _         <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _         <- session.handle(Interact("e1"))
+        afterHit  <- session.handle(CombatAction(CombatActionType.Attack)) // enemy survives, counters, kills player
+        afterReturn <- session.handle(HubAction(HubActionType.ReturnToHub))
+      yield
+        assertEquals(afterHit.phase, GamePhase.GameOver, s"expected defeat to end the run: ${afterHit.log}")
+        assertEquals(afterReturn.phase, GamePhase.Hub)
+        assertEquals(afterReturn.hub.get.perks.length, 3)
+  }
+
+  db.test("BuyUpgrade does not reroll the offered perks") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      perkDefs = testPerkDefs, rng = Random(0L)
+                   )
+        before <- session.currentUpdate
+        after  <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+      yield assertEquals(after.hub.get.perks.map(_.id), before.hub.get.perks.map(_.id))
   }
 
   db.test("StartRun transitions session to Exploration") {

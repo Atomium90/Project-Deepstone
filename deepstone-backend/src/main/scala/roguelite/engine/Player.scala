@@ -20,7 +20,8 @@ case class Player(
     equippedAccessories: Vector[Option[Accessory]] = Player.emptyAccessorySlots,
     potionBelt: Vector[Option[Consumable]] = Player.emptyPotionBelt,
     keyCounts: Map[KeyKind, Int] = Map.empty,
-    activeSetHpBonusFlat: Int = 0
+    activeSetHpBonusFlat: Int = 0,
+    activePerkId: Option[String] = None
 ):
   def toView: PlayerView = PlayerView(
     classId = classId,

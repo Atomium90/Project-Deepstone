@@ -11,6 +11,9 @@ import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
+import roguelite.game.PerkDef
+
+import scala.util.Random
 
 /** Represents one active player connection.
   *
@@ -31,15 +34,23 @@ class GameSession private (
     achievementDefs: Map[String, AchievementDef],
     abilityCatalog: List[AbilityView],
     setDefs: Map[String, SetDef] = Map.empty,
-    setCatalog: List[SetView] = Nil
+    setCatalog: List[SetView] = Nil,
+    perkDefs: Map[String, PerkDef] = Map.empty,
+    rng: Random = Random()
 ):
+
+  /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
+    * action or replaced by the next fresh hub entry. See `HubState.perkOptions`.
+    */
+  private def rollPerkOptions(): List[PerkDef] =
+    rng.shuffle(perkDefs.values.toList).take(GameSession.PerkOptionsCount)
 
   /** Process a player action, update the internal state, and return the new state snapshot to be
     * serialized and sent to the client.
     */
   def handle(action: PlayerAction): IO[StateUpdate] =
     val result = action match
-      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _) =>
+      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _) =>
         handleBuyUpgrade(upgradeId)
       case _ =>
         handleTransition(action)
@@ -136,12 +147,14 @@ class GameSession private (
           IO.pure(gameOver)
 
       case (_: GameOverState, hub: HubState) =>
-        // State machine puts MetaProgression.empty as placeholder; replace with real meta
+        // State machine puts MetaProgression.empty as placeholder; replace with real meta.
+        // This is also a fresh hub entry, so roll a new set of perk options.
         metaRef.get.flatMap:
           meta =>
             val enriched = hub.copy(
               player = hub.player.copy(metaCurrency = meta.currency),
-              meta = meta
+              meta = meta,
+              perkOptions = rollPerkOptions()
             )
             stateRef.set(enriched) *> IO.pure(enriched)
 
@@ -223,7 +236,13 @@ class GameSession private (
             _ <- database.purchaseUpgrade(upgradeId, newMeta.currency)
             _ <- metaRef.set(newMeta)
             newPlayer = state.player.copy(metaCurrency = newMeta.currency)
-            newState  = HubState(newPlayer, upgradeDefs, newMeta)
+            // A purchase isn't a fresh hub entry: carry the already-rolled perk options forward
+            // instead of rerolling them.
+            currentPerkOptions = state match {
+              case hub: HubState => hub.perkOptions
+              case _             => Nil
+            }
+            newState = HubState(newPlayer, upgradeDefs, newMeta, currentPerkOptions)
             _ <- stateRef.set(newState)
             label = upgradeDefs.get(upgradeId).map(_.label).getOrElse(upgradeId)
             newlyUnlocked <- processAchievementPurchase(spent, newMeta.unlockedUpgrades.size)
@@ -280,6 +299,10 @@ object GameSession:
     * @param achievementDefs The loaded achievement catalog (see [[roguelite.game.AchievementLoader]]).
     * @param setDefs       The loaded equipment set catalog (see [[roguelite.game.SetLoader]]), used
     *                      to resolve the `StartingItem` upgrade effect's set HP reconciliation.
+    * @param perkDefs      The loaded run-perk catalog (see [[roguelite.game.PerkLoader]]), a random
+    *                      subset of which is offered on every fresh hub entry.
+    * @param rng           Random instance for perk rolls. Inject a seeded one for deterministic
+    *                      tests.
     */
   def create(stateMachine: StateMachine,
              database: Database,
@@ -287,7 +310,9 @@ object GameSession:
              upgradeDefs: Map[String, UpgradeDef],
              abilityDefs: Map[ClassId, AbilityDef],
              achievementDefs: Map[String, AchievementDef],
-             setDefs: Map[String, SetDef] = Map.empty
+             setDefs: Map[String, SetDef] = Map.empty,
+             perkDefs: Map[String, PerkDef] = Map.empty,
+             rng: Random = Random()
   ): IO[GameSession] =
     for
       meta                 <- database.loadMeta()
@@ -302,7 +327,8 @@ object GameSession:
                           xp = 0,
                           metaCurrency = meta.currency
       )
-      stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta))
+      initPerkOptions = rng.shuffle(perkDefs.values.toList).take(PerkOptionsCount)
+      stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions))
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
       abilityCatalog = abilityDefs.values.map(toAbilityView).toList
@@ -317,8 +343,13 @@ object GameSession:
                           achievementDefs,
                           abilityCatalog,
                           setDefs,
-                          setCatalog
+                          setCatalog,
+                          perkDefs,
+                          rng
     )
+
+  /** Number of perks offered per hub visit, out of the full catalog. */
+  private val PerkOptionsCount = 3
 
   private def toAbilityView(a: AbilityDef): AbilityView =
     AbilityView(

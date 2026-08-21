@@ -1,0 +1,9 @@
+[
+  {
+    "id": "well_stocked",
+    "label": "Well Stocked",
+    "description": "Start the run with one extra Health Potion",
+    "icon": "🧪",
+    "effect": { "type": "ExtraStartingItem", "typeId": "health_potion" }
+  }
+]

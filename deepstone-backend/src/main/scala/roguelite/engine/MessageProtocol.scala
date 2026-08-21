@@ -77,7 +77,8 @@ case class HubAction(
     action: HubActionType,
     classId: Option[ClassId] = None,
     upgradeId: Option[String] = None,
-    difficulty: Option[Difficulty] = None
+    difficulty: Option[Difficulty] = None,
+    perkId: Option[String] = None
 ) extends PlayerAction
 
 /** Resolve a pending equip choice (see [[PendingEquipChoiceView]]). `targetSlot = None` means
@@ -183,7 +184,10 @@ case class UpgradeView(id: String,
                        unlocked: Boolean
 )
 
-case class HubView(upgrades: List[UpgradeView])
+/** One run perk offered to the player, rolled fresh every HUB visit (see `HubState.perkOptions`). */
+case class PerkView(id: String, label: String, description: String, icon: String)
+
+case class HubView(upgrades: List[UpgradeView], perks: List[PerkView] = Nil)
 
 case class ItemView(
     id: String,
@@ -446,6 +450,7 @@ object MessageProtocol:
   given Encoder[CombatView]  = deriveEncoder
   given Encoder[DamageEventView] = deriveEncoder
   given Encoder[UpgradeView]  = deriveEncoder
+  given Encoder[PerkView]     = deriveEncoder
   given Encoder[HubView]      = deriveEncoder
   given Encoder[ItemView]     = deriveEncoder
   given Encoder[KeyCountView] = deriveEncoder

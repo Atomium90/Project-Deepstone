@@ -112,6 +112,9 @@
     /** Only the potion belt can be used in combat. */
     $: consumables = (equipment?.potionBelt ?? []).filter((i): i is ItemView => i !== null);
     $: hasConsumables = consumables.length > 0;
+    /** Total charges across every stack, not the number of occupied slots - two stacked potions
+     * of the same type should read as "2", not "1". */
+    $: totalConsumableCharges = consumables.reduce((sum, i) => sum + (i.count ?? 1), 0);
 
     /** Whether the item picker panel is open. */
     let itemPickerOpen = false;
@@ -232,7 +235,7 @@
                     title={hasConsumables ? "Use a consumable" : "No consumables in inventory"}
                     on:click={toggleItemPicker}
             >
-                ⊕ Item {hasConsumables ? `(${consumables.length})` : ""}
+                ⊕ Item {hasConsumables ? `(${totalConsumableCharges})` : ""}
             </button>
         </div>
 
@@ -246,7 +249,7 @@
                                 class="picker-row"
                                 on:click={() => useItem(item)}
                         >
-                            <span class="picker-name">{item.name}</span>
+                            <span class="picker-name">{item.name}{item.count && item.count > 1 ? ` x${item.count}` : ""}</span>
                             <span class="picker-stat">{item.statLine}</span>
                             <span class="picker-rarity" style="color:{ITEM_RARITY_COLORS[item.rarity]}">
                                 {item.rarity}

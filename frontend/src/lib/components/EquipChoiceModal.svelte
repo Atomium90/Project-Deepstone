@@ -38,7 +38,11 @@
             <div class="options">
                 {#each choice.options as option (option.slot)}
                     <button class="option-row" on:click={() => replace(option)}>
-                        <span class="option-name">{option.current.name}</span>
+                        <span class="option-name">
+                            {option.current.name}{option.current.count && option.current.count > 1
+                                ? ` x${option.current.count}`
+                                : ""}
+                        </span>
                         <span class="option-stat" class:off-affinity={isOffAffinity(option.current)}>{option.current.statLine}</span>
                         <span class="option-action">Replace</span>
                     </button>

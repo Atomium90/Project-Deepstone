@@ -149,16 +149,19 @@ class CombatResolver(rng: Random = Random(),
         (state, List("No item selected."), Nil)
       case Some(id) =>
         state.player.potionBelt.zipWithIndex.collectFirst {
-          case (Some(c), idx) if c.id == id => (idx, c)
+          case (Some(stack), idx) if stack.item.id == id => (idx, stack)
         } match {
           case None =>
             (state, List("Item not found in inventory."), Nil)
-          case Some((idx, consumable)) =>
+          case Some((idx, stack)) =>
+            // Drink one charge: decrement the stack, clearing the slot only once it's empty.
+            val remaining = stack.count - 1
+            val newSlot   = if remaining > 0 then Some(stack.copy(count = remaining)) else None
             val stateWithoutItem = state.copy(
-              player = state.player.copy(potionBelt = state.player.potionBelt.updated(idx, None))
+              player = state.player.copy(potionBelt = state.player.potionBelt.updated(idx, newSlot))
             )
             val (updatedState, effectLog, effectEvents, killingBlowDamage) =
-              applyConsumableEffect(stateWithoutItem, consumable)
+              applyConsumableEffect(stateWithoutItem, stack.item)
 
             killingBlowDamage match
               case Some(damage) =>

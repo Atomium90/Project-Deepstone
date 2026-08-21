@@ -77,6 +77,9 @@
         <Sprite spriteId={item.iconId ?? item.typeId} fallbackColor={ITEM_KIND_COLORS[item.kind]} size={size - 8}>
             <span slot="fallback" class="abbrev">{abbrev(item.name)}</span>
         </Sprite>
+        {#if item.count && item.count > 1}
+            <span class="stack-count">x{item.count}</span>
+        {/if}
     </div>
 
     {#if hovered}
@@ -116,6 +119,20 @@
         font-weight: bold;
         color: #ccc;
         letter-spacing: 0.02em;
+    }
+
+    .stack-count {
+        position: absolute;
+        right: 1px;
+        bottom: 1px;
+        padding: 0 3px;
+        background: rgba(0, 0, 0, 0.75);
+        border-radius: 2px;
+        font-size: 0.6rem;
+        font-weight: bold;
+        color: #eee;
+        line-height: 1.3;
+        pointer-events: none;
     }
 
     /* position:fixed + a portal to <body> (see the `portal` action) - the coordinates are the

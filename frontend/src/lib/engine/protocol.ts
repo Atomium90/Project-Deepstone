@@ -185,6 +185,9 @@ export interface ItemView {
    * for consumables/keys and untagged gear. `statLine` above already reflects the affinity-doubled
    * value when applicable - this is only needed to decide whether to gray the stat line out. */
   typeTag?: string;
+  /** Charge count for a potion-belt stack. Undefined for every other item kind, which never
+   * stacks - the UI only shows a count badge when this is present. */
+  count?: number;
 }
 
 /** One key kind the player is holding, with how many. Coarse: collapses Specific/Typed's target

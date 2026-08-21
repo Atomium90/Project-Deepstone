@@ -285,6 +285,9 @@ class GameSession private (
       then player.copy(potionBelt = player.potionBelt :+ None)
       else player
 
+    case UpgradeEffect.ExtraPotionCapacity =>
+      player.copy(potionCapacity = Player.UpgradedPotionCapacity)
+
     case UpgradeEffect.StartingItem(typeId) =>
       itemDefs.get(typeId) match
         case None => player

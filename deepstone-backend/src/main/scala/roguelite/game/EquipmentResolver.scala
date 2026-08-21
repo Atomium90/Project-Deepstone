@@ -86,26 +86,37 @@ object EquipmentResolver:
             PickupOutcome.ChoicePending(PendingEquipChoice(acc, options.toMap))
 
     case c: Consumable =>
-      // Same typeId already in the belt: this is a rarity comparison against that one specific
-      // copy, never a slot/choice decision - two rarities of the same potion sitting in the belt
-      // together would be redundant (you'd always just drink the stronger one).
+      // Same typeId already in the belt: a pickup below capacity always adds a charge (the stack
+      // keeps its single best rarity, upgrading in place if the new pickup rolled higher) - never
+      // a slot/choice decision. Only at capacity does rarity decide whether the find is wasted.
       player.potionBelt.zipWithIndex.collectFirst {
-        case (Some(existing), i) if existing.typeId == c.typeId => (i, existing)
+        case (Some(stack), i) if stack.item.typeId == c.typeId => (i, stack)
       } match
-        case Some((i, existing)) =>
-          if c.rarity.ordinal > existing.rarity.ordinal then
-            PickupOutcome.Equipped(player.copy(potionBelt = player.potionBelt.updated(i, Some(c))))
+        case Some((i, stack)) =>
+          val betterRarity = c.rarity.ordinal > stack.item.rarity.ordinal
+          if stack.count < player.potionCapacity then
+            val upgradedItem = if betterRarity then c else stack.item
+            val newStack     = PotionStack(upgradedItem, stack.count + 1)
+            PickupOutcome.Equipped(player.copy(potionBelt = player.potionBelt.updated(i, Some(newStack))))
+          else if betterRarity then
+            PickupOutcome.Equipped(player.copy(potionBelt = player.potionBelt.updated(i, Some(stack.copy(item = c)))))
           else
             PickupOutcome.Discarded(player)
         case None =>
           val idx = player.potionBelt.indexWhere(_.isEmpty)
           if idx >= 0
-          then PickupOutcome.Equipped(player.copy(potionBelt = player.potionBelt.updated(idx, Some(c))))
+          then
+            PickupOutcome.Equipped(
+              player.copy(potionBelt = player.potionBelt.updated(idx, Some(PotionStack(c, 1))))
+            )
           else
             val options = player.potionBelt.zipWithIndex.collect {
-              case (Some(current), i) => EquipSlot.PotionSlot(i) -> current
+              case (Some(stack), i) => EquipSlot.PotionSlot(i) -> stack.item
             }
-            PickupOutcome.ChoicePending(PendingEquipChoice(c, options.toMap))
+            val stackCounts = player.potionBelt.zipWithIndex.collect {
+              case (Some(stack), i) => EquipSlot.PotionSlot(i) -> stack.count
+            }
+            PickupOutcome.ChoicePending(PendingEquipChoice(c, options.toMap, stackCounts.toMap))
 
     case k: Key =>
       val updatedCount = player.keyCounts.getOrElse(k.keyKind, 0) + 1
@@ -157,7 +168,9 @@ object EquipmentResolver:
       val (_, unequipped) = player.unequipAccessory(i)
       unequipped.equipAccessory(i, acc).reconcileSetHpBonus(setDefs)
     case (EquipSlot.PotionSlot(i), c: Consumable) =>
-      player.copy(potionBelt = player.potionBelt.updated(i, Some(c)))
+      // A choice replaces the whole stack with a fresh one of the new type, count 1 - swapping
+      // types can cost the outgoing stack's remaining charges (see PotionStack).
+      player.copy(potionBelt = player.potionBelt.updated(i, Some(PotionStack(c, 1))))
     case _ =>
       // Can't happen: `slot` always comes from a PendingEquipChoice built for this exact item's
       // kind (see resolvePickup above).

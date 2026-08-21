@@ -47,6 +47,8 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
         e.amount.toRight("MaxHpBoost is missing 'amount' field").map(UpgradeEffect.MaxHpBoost.apply)
       case "ExtraPotionSlot" =>
         Right(UpgradeEffect.ExtraPotionSlot)
+      case "ExtraPotionCapacity" =>
+        Right(UpgradeEffect.ExtraPotionCapacity)
       case "StartingItem" =>
         e.typeId.toRight("StartingItem is missing 'typeId' field").map(UpgradeEffect.StartingItem.apply)
       case "UnlockClass" =>

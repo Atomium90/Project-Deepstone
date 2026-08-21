@@ -29,7 +29,8 @@ class AchievementLoaderSuite extends CatsEffectSuite:
             "full_belt",
             "stockpiler",
             "hard_mode_victory",
-            "potion_master"
+            "potion_master",
+            "potion_connoisseur"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -62,6 +63,9 @@ class AchievementLoaderSuite extends CatsEffectSuite:
                        AchievementCondition.WinOnDifficulty(Difficulty.Hard)
           )
           assertEquals(defs("potion_master").condition, AchievementCondition.ConsumablesUsed(10))
+          assertEquals(defs("potion_connoisseur").condition,
+                       AchievementCondition.DistinctPotionTypesUsed(5)
+          )
   }
 
   test("parameterized conditions decode with the right values") {

@@ -40,6 +40,8 @@ class AchievementCheckerSuite extends FunSuite:
   private val hardModeVictory =
     defOf("hard_mode_victory", AchievementCondition.WinOnDifficulty(Difficulty.Hard))
   private val potionMaster = defOf("potion_master", AchievementCondition.ConsumablesUsed(10))
+  private val potionConnoisseur =
+    defOf("potion_connoisseur", AchievementCondition.DistinctPotionTypesUsed(5))
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -59,7 +61,8 @@ class AchievementCheckerSuite extends FunSuite:
     fullBelt.id      -> fullBelt,
     stockpiler.id    -> stockpiler,
     hardModeVictory.id -> hardModeVictory,
-    potionMaster.id -> potionMaster
+    potionMaster.id -> potionMaster,
+    potionConnoisseur.id -> potionConnoisseur
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -327,6 +330,27 @@ class AchievementCheckerSuite extends FunSuite:
       List(GameEvent.ConsumableUsed("health_potion")) // 9 -> 10, crosses the threshold
     )
     assert(unlocked.map(_.id).contains("potion_master"))
+  }
+
+  test("the 5th distinct potion type unlocks potion_connoisseur, a repeat of an existing type does not") {
+    val fourDistinct = AchievementStats(potionTypesUsed =
+      Set("health_potion", "second_wind", "battle_brew", "volatile_flask")
+    )
+    val (_, fifthNewType) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.ConsumableUsed("focus_tonic")) // a genuinely new 5th type
+    )
+    assert(fifthNewType.map(_.id).contains("potion_connoisseur"))
+
+    val (_, repeatOfExisting) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.ConsumableUsed("health_potion")) // already in the set, still only 4 distinct
+    )
+    assert(!repeatOfExisting.map(_.id).contains("potion_connoisseur"))
   }
 
   test("RunEnded(victory = true) with an active perk adds it to perksWonWith; a loss does not") {

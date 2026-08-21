@@ -29,6 +29,12 @@ enum AchievementCondition:
   case WinOnDifficulty(difficulty: Difficulty)
   case ConsumablesUsed(count: Int)
 
+  /** `count` is a fixed threshold baked into `achievements.json` (currently 5, the size of the
+    * potion pool), not a live comparison against the loaded catalog - bump it by hand if the pool
+    * ever grows.
+    */
+  case DistinctPotionTypesUsed(count: Int)
+
 /** Static definition of one achievement, loaded from `data/achievements.json`.
   *
   * @param displayOrder

@@ -107,4 +107,6 @@ object AchievementChecker:
         victory && difficulty == target
       case (AchievementCondition.ConsumablesUsed(n), GameEvent.ConsumableUsed(_)) =>
         stats.consumablesUsed >= n
+      case (AchievementCondition.DistinctPotionTypesUsed(n), GameEvent.ConsumableUsed(_)) =>
+        stats.potionTypesUsed.size >= n
       case _                                                          => false

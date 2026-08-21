@@ -78,6 +78,10 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
         c.count
           .toRight("ConsumablesUsed is missing 'count' field")
           .map(AchievementCondition.ConsumablesUsed.apply)
+      case "DistinctPotionTypesUsed" =>
+        c.count
+          .toRight("DistinctPotionTypesUsed is missing 'count' field")
+          .map(AchievementCondition.DistinctPotionTypesUsed.apply)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
 

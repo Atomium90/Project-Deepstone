@@ -84,6 +84,8 @@ object AchievementChecker:
       case (AchievementCondition.FillInventory, GameEvent.ItemPickedUp(full, _, _, _, _)) => full
       case (AchievementCondition.LootRarity(minRarity), GameEvent.ItemPickedUp(_, rarity, _, _, _)) =>
         rarity.ordinal >= minRarity.ordinal
+      case (AchievementCondition.FourPieceSetActive, GameEvent.ItemPickedUp(_, _, hasFourPieceSet, _, _)) =>
+        hasFourPieceSet
       case (AchievementCondition.UnlockDoorWithKey, GameEvent.DoorUnlockedWithKey) => true
       case (AchievementCondition.RevealSecretDoor, GameEvent.SecretDoorRevealed)   => true
       case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_, _)) => stats.runsCompleted >= n

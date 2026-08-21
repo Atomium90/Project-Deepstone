@@ -89,5 +89,12 @@
     "description": "Loot an item that rolls Epic rarity.",
     "displayOrder": 12,
     "condition": { "type": "LootRarity", "rarity": "epic" }
+  },
+  {
+    "id": "set_complete",
+    "label": "Set Complete",
+    "description": "Have a full 4-piece equipment set bonus active.",
+    "displayOrder": 13,
+    "condition": { "type": "FourPieceSetActive" }
   }
 ]

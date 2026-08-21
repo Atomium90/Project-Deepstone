@@ -62,6 +62,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
           .toRight("LootRarity is missing 'rarity' field")
           .flatMap(parseRarity)
           .map(AchievementCondition.LootRarity.apply)
+      case "FourPieceSetActive" =>
+        Right(AchievementCondition.FourPieceSetActive)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
 

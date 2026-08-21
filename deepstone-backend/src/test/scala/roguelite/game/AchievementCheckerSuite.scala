@@ -34,6 +34,7 @@ class AchievementCheckerSuite extends FunSuite:
   private val bigSpender    = defOf("big_spender", AchievementCondition.TotalShardsSpent(200))
   private val completionist = defOf("completionist", AchievementCondition.AllUpgradesUnlocked)
   private val epicFind      = defOf("epic_find", AchievementCondition.LootRarity(Rarity.Epic))
+  private val setComplete   = defOf("set_complete", AchievementCondition.FourPieceSetActive)
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -48,7 +49,8 @@ class AchievementCheckerSuite extends FunSuite:
     winStreak.id     -> winStreak,
     bigSpender.id    -> bigSpender,
     completionist.id -> completionist,
-    epicFind.id      -> epicFind
+    epicFind.id      -> epicFind,
+    setComplete.id   -> setComplete
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -157,6 +159,24 @@ class AchievementCheckerSuite extends FunSuite:
       List(itemPickedUp(rarity = Rarity.Rare))
     )
     assert(!rare.map(_.id).contains("epic_find"))
+  }
+
+  test("ItemPickedUp(hasFourPieceSet = true) unlocks set_complete, false does not") {
+    val (_, active) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(hasFourPieceSet = true))
+    )
+    assert(active.map(_.id).contains("set_complete"))
+
+    val (_, inactive) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(hasFourPieceSet = false))
+    )
+    assert(!inactive.map(_.id).contains("set_complete"))
   }
 
   test("DoorUnlockedWithKey unlocks key_master") {

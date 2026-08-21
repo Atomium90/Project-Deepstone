@@ -23,7 +23,8 @@ class AchievementLoaderSuite extends CatsEffectSuite:
             "champion",
             "win_streak",
             "completionist",
-            "epic_find"
+            "epic_find",
+            "set_complete"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -49,6 +50,7 @@ class AchievementLoaderSuite extends CatsEffectSuite:
           assertEquals(defs("key_master").condition, AchievementCondition.UnlockDoorWithKey)
           assertEquals(defs("secret_finder").condition, AchievementCondition.RevealSecretDoor)
           assertEquals(defs("completionist").condition, AchievementCondition.AllUpgradesUnlocked)
+          assertEquals(defs("set_complete").condition, AchievementCondition.FourPieceSetActive)
   }
 
   test("parameterized conditions decode with the right values") {

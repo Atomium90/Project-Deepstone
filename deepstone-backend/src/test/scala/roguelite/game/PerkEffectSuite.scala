@@ -151,3 +151,85 @@ class PerkEffectSuite extends FunSuite:
     assertEquals(nextBase.player.hp, 90, "50 + 40 (base heal, no perk)")
     assertEquals(nextWithPerk.player.hp, 110, "50 + 60 (40 boosted by +50%)")
   }
+
+  // -----------------------------------------------------------------------
+  // AbilityCostReductionPercent: reduces the resource cost actually deducted
+  // -----------------------------------------------------------------------
+
+  private val efficientCasting = PerkDef("efficient_casting", "Efficient Casting",
+                                         "Abilities cost 20% less this run", icon = "*",
+                                         effect = PerkEffect.AbilityCostReductionPercent(20)
+  )
+
+  private val testAbility = AbilityDef(ClassId.Warrior,
+                                       id = "test_ability",
+                                       name = "Test Strike",
+                                       cost = 40,
+                                       resourceName = "Rage",
+                                       description = "test",
+                                       effect = AbilityEffect.FlatDamage(1)
+  )
+
+  // DEFEND-only so a Warrior's +10 Rage-on-hit gain never confounds the resourceCurrent assertion.
+  private val passiveAbilityEnemy = tankEnemy.copy(actions = List(EnemyActionWeight("DEFEND", 100)))
+
+  private def stateForAbility(player: Player): CombatState =
+    CombatState(player, makeDungeon, 0, 0, Combat(enemy = passiveAbilityEnemy), "dummy")
+
+  test("AbilityCostReductionPercent perk reduces the resource cost actually deducted") {
+    val perkDefs    = Map(efficientCasting.id -> efficientCasting)
+    val abilityDefs = Map(ClassId.Warrior -> testAbility)
+
+    val base     = makePlayer().copy(resourceCurrent = 40, resourceMax = 100)
+    val withPerk = makePlayer(activePerkId = Some("efficient_casting")).copy(resourceCurrent = 40, resourceMax = 100)
+
+    val (nextBase, _, _)     = CombatResolver(Random(1), abilityDefs = abilityDefs, perkDefs = perkDefs)
+      .resolve(stateForAbility(base), CombatAction(CombatActionType.Ability))
+    val (nextWithPerk, _, _) = CombatResolver(Random(1), abilityDefs = abilityDefs, perkDefs = perkDefs)
+      .resolve(stateForAbility(withPerk), CombatAction(CombatActionType.Ability))
+
+    assertEquals(nextBase.player.resourceCurrent, 0, "full cost (40) deducted without the perk")
+    assertEquals(nextWithPerk.player.resourceCurrent, 8, "80% of 40 = 32 deducted, 8 left with the -20% perk")
+  }
+
+  test("AbilityCostReductionPercent perk stacks additively with an active set discount") {
+    val costSet = SetDef(
+      id = "cost_set",
+      name = "Cost Set",
+      classId = ClassId.Warrior,
+      twoPiece = SetBonus(SetBonusEffect.FlatAttack(0), "no-op"),
+      fourPiece = SetBonus(SetBonusEffect.AbilityCostReductionPercent(30), "-30% ability cost")
+    )
+    val setDefs     = Map(costSet.id -> costSet)
+    val perkDefs    = Map(efficientCasting.id -> efficientCasting)
+    val abilityDefs = Map(ClassId.Warrior -> testAbility)
+
+    val player = makePlayer(activePerkId = Some("efficient_casting"))
+      .copy(resourceCurrent = 40, resourceMax = 100,
+            equippedWeapon = Some(Weapon(id = Item.newId(), typeId = "dw", name = "Dummy Weapon",
+                                         rarity = Rarity.Common, attackBonus = 0, setId = Some(costSet.id)
+                                  )
+            ),
+            equippedArmor = Some(Armor(id = Item.newId(), typeId = "da", name = "Dummy Armor",
+                                       rarity = Rarity.Common, defenseBonus = 0, setId = Some(costSet.id)
+                                 )
+            ),
+            equippedAccessories = Vector(
+              Some(Accessory(id = Item.newId(), typeId = "dac0", name = "Dummy Accessory 0",
+                             rarity = Rarity.Common, setId = Some(costSet.id)
+                   )
+              ),
+              Some(Accessory(id = Item.newId(), typeId = "dac1", name = "Dummy Accessory 1",
+                             rarity = Rarity.Common, setId = Some(costSet.id)
+                   )
+              )
+            )
+      )
+
+    val (next, _, _) = CombatResolver(Random(1), abilityDefs = abilityDefs, setDefs = setDefs, perkDefs = perkDefs)
+      .resolve(stateForAbility(player), CombatAction(CombatActionType.Ability))
+
+    assertEquals(next.player.resourceCurrent, 20,
+                 "30% (set) + 20% (perk) = 50% off 40 = 20 deducted, 20 left"
+    )
+  }

@@ -35,6 +35,10 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
         e.amount
           .toRight("PotionHealBonusPercent is missing 'amount' field")
           .map(PerkEffect.PotionHealBonusPercent.apply)
+      case "AbilityCostReductionPercent" =>
+        e.amount
+          .toRight("AbilityCostReductionPercent is missing 'amount' field")
+          .map(PerkEffect.AbilityCostReductionPercent.apply)
       case other =>
         Left(s"Unknown perk effect type: '$other'")
 

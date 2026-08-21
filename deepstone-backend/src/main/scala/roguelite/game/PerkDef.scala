@@ -24,6 +24,12 @@ enum PerkEffect:
     */
   case PotionHealBonusPercent(percent: Int)
 
+  /** Percent reduction applied to every ability's resource cost for the whole run. Stacks
+    * additively with any active set AbilityCostReductionPercent bonus (Pyromancer 4pc), same
+    * combination rule the set system already uses for stacking multiple effects of one kind.
+    */
+  case AbilityCostReductionPercent(percent: Int)
+
 /** Static definition of one run perk, loaded from `data/perks.json`.
   *
   * Unlike [[UpgradeDef]], perks have no cost and no `displayOrder` - a random subset is rolled

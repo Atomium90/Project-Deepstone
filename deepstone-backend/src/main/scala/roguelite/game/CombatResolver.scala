@@ -195,12 +195,16 @@ class CombatResolver(rng: Random = Random(),
           applyAbilityEffect(state.copy(player = updatedPlayer), ability)
     }
 
-  /** `ability.cost` reduced by any active set AbilityCostReductionPercent bonus (Pyromancer 4pc),
-    * floored at 0.
+  /** `ability.cost` reduced by any active set AbilityCostReductionPercent bonus (Pyromancer 4pc)
+    * plus any active AbilityCostReductionPercent perk, summed then applied once, floored at 0.
     */
   private def effectiveAbilityCost(player: Player, ability: AbilityDef): Int =
-    val reduction = sumSetBonus(player, { case SetBonusEffect.AbilityCostReductionPercent(n) => n })
-    math.round(ability.cost * (100 - reduction).max(0) / 100.0).toInt
+    val setReduction  = sumSetBonus(player, { case SetBonusEffect.AbilityCostReductionPercent(n) => n })
+    val perkReduction = activePerkEffect(player) match {
+      case Some(PerkEffect.AbilityCostReductionPercent(n)) => n
+      case _                                               => 0
+    }
+    math.round(ability.cost * (100 - setReduction - perkReduction).max(0) / 100.0).toInt
 
   /** Apply an ability's effect once its cost has already been deducted. */
   private def applyAbilityEffect(state: CombatState,

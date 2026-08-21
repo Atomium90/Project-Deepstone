@@ -19,5 +19,12 @@
     "description": "Potions heal 50% more this run",
     "icon": "🌿",
     "effect": { "type": "PotionHealBonusPercent", "amount": 50 }
+  },
+  {
+    "id": "efficient_casting",
+    "label": "Efficient Casting",
+    "description": "Abilities cost 20% less this run",
+    "icon": "✦",
+    "effect": { "type": "AbilityCostReductionPercent", "amount": 20 }
   }
 ]

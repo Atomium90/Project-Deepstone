@@ -9,7 +9,10 @@ class PerkLoaderSuite extends CatsEffectSuite:
     PerkLoader
       .loadAll()
       .map:
-        defs => assertEquals(defs.keySet, Set("well_stocked", "heavy_hand", "herbalist_blessing", "efficient_casting"))
+        defs =>
+          assertEquals(defs.keySet,
+                       Set("well_stocked", "heavy_hand", "herbalist_blessing", "efficient_casting", "lucky_find")
+          )
   }
 
   test("well_stocked decodes to ExtraStartingItem(health_potion)") {
@@ -38,6 +41,13 @@ class PerkLoaderSuite extends CatsEffectSuite:
       .loadAll()
       .map:
         defs => assertEquals(defs("efficient_casting").effect, PerkEffect.AbilityCostReductionPercent(20))
+  }
+
+  test("lucky_find decodes to GuaranteedRarityFirstChest(Rare)") {
+    PerkLoader
+      .loadAll()
+      .map:
+        defs => assertEquals(defs("lucky_find").effect, PerkEffect.GuaranteedRarityFirstChest(Rarity.Rare))
   }
 
   test("every perk has a non-empty icon") {

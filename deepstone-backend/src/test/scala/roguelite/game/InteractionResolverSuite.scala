@@ -47,9 +47,10 @@ class InteractionResolverSuite extends FunSuite:
   def resolver(itemDefs: Map[String, Item] = Map.empty,
                rng: Random = Random(),
                npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
-               clock: () => Long = () => System.currentTimeMillis()
+               clock: () => Long = () => System.currentTimeMillis(),
+               perkDefs: Map[String, PerkDef] = Map.empty
   ): InteractionResolver =
-    InteractionResolver(enemyStatsMap, itemDefs, rng, npcDialogueDefs, clock)
+    InteractionResolver(enemyStatsMap, itemDefs, rng, npcDialogueDefs, clock, perkDefs = perkDefs)
 
   def dungeonWith(entities: List[Entity] = Nil, extraRooms: Map[String, Room] = Map.empty): Dungeon =
     val r1 = makeRoom("r1", entities = entities)
@@ -205,6 +206,55 @@ class InteractionResolverSuite extends FunSuite:
     val state    = explorationAt(3, 3, entities = List(chest))
     val TransitionResult(_, _, _, events) = resolver().interact(state, "c1")
     assertEquals(events, Nil)
+
+  // --- Chest: Lucky Find perk ---------------------------------------------------
+
+  private val luckyFind = PerkDef("lucky_find", "Lucky Find",
+                                  "The first chest you open this run is guaranteed Rare or better",
+                                  icon = "*", effect = PerkEffect.GuaranteedRarityFirstChest(Rarity.Rare)
+  )
+
+  private val chestItemDefs: Map[String, Item] = Map(
+    "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
+  )
+
+  test("Lucky Find perk guarantees at least Rare on the first chest opened this run"):
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(activePerkId = Some("lucky_find"))
+    val chest  = Chest("c1", x = 3, y = 3)
+    val state  = ExplorationState(player, dungeonWith(entities = List(chest)), 3, 3)
+    val TransitionResult(next, _, _, _) = resolver(itemDefs = chestItemDefs, rng = Random(11),
+                                                    perkDefs = Map("lucky_find" -> luckyFind)
+    ).interact(state, "c1")
+    val picked = next.asInstanceOf[ExplorationState].player.potionBelt.flatten
+      .find(_.typeId == "health_potion")
+      .getOrElse(fail("expected a health potion in the belt"))
+    assert(picked.rarity.ordinal >= Rarity.Rare.ordinal, s"expected at least Rare, got ${picked.rarity}")
+
+  test("Lucky Find perk is consumed after the first chest, regardless of the roll"):
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(activePerkId = Some("lucky_find"))
+    val chest  = Chest("c1", x = 3, y = 3)
+    val state  = ExplorationState(player, dungeonWith(entities = List(chest)), 3, 3)
+    val TransitionResult(next, _, _, _) = resolver(itemDefs = chestItemDefs, rng = Random(11),
+                                                    perkDefs = Map("lucky_find" -> luckyFind)
+    ).interact(state, "c1")
+    assert(next.asInstanceOf[ExplorationState].player.firstChestBonusUsed)
+
+  test("Lucky Find perk does not reapply once already used"):
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior)
+      .copy(activePerkId = Some("lucky_find"), firstChestBonusUsed = true)
+    val chest = Chest("c1", x = 3, y = 3)
+    val state = ExplorationState(player, dungeonWith(entities = List(chest)), 3, 3)
+    // Across many seeds, an unforced roll should sometimes land below Rare - if it never did, the
+    // perk would still be silently reapplying despite firstChestBonusUsed already being true.
+    val everBelowRare = (0 to 50).exists:
+      seed =>
+        val TransitionResult(next, _, _, _) = resolver(itemDefs = chestItemDefs, rng = Random(seed),
+                                                        perkDefs = Map("lucky_find" -> luckyFind)
+        ).interact(state, "c1")
+        next.asInstanceOf[ExplorationState].player.potionBelt.flatten
+          .find(_.typeId == "health_potion")
+          .exists(_.rarity.ordinal < Rarity.Rare.ordinal)
+    assert(everBelowRare, "expected at least one below-Rare roll across 50 seeds once the perk is already used")
 
   // --- LockedDoor --------------------------------------------------------------
 

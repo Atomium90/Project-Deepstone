@@ -39,24 +39,42 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
         e.amount
           .toRight("AbilityCostReductionPercent is missing 'amount' field")
           .map(PerkEffect.AbilityCostReductionPercent.apply)
+      case "GuaranteedRarityFirstChest" =>
+        e.minRarity
+          .toRight("GuaranteedRarityFirstChest is missing 'minRarity' field")
+          .flatMap(parseRarity)
+          .map(PerkEffect.GuaranteedRarityFirstChest.apply)
       case other =>
         Left(s"Unknown perk effect type: '$other'")
+
+  private def parseRarity(s: String): Either[String, Rarity] =
+    s match
+      case "common"   => Right(Rarity.Common)
+      case "uncommon" => Right(Rarity.Uncommon)
+      case "rare"     => Right(Rarity.Rare)
+      case "epic"     => Right(Rarity.Epic)
+      case other      => Left(s"Unknown rarity: '$other'")
 
   // -----------------------------------------------------------------------
   // Internal JSON DTOs
   // -----------------------------------------------------------------------
 
-  private case class PerkEffectJson(`type`: String, typeId: Option[String] = None, amount: Option[Int] = None)
+  private case class PerkEffectJson(`type`: String,
+                                    typeId: Option[String] = None,
+                                    amount: Option[Int] = None,
+                                    minRarity: Option[String] = None
+  )
 
   private case class PerkDefJson(id: String, label: String, description: String, icon: String, effect: PerkEffectJson)
 
   private given Decoder[PerkEffectJson] = Decoder.instance:
     (c: HCursor) =>
       for
-        t      <- c.get[String]("type")
-        typeId <- c.get[Option[String]]("typeId")
-        amount <- c.get[Option[Int]]("amount")
-      yield PerkEffectJson(t, typeId, amount)
+        t         <- c.get[String]("type")
+        typeId    <- c.get[Option[String]]("typeId")
+        amount    <- c.get[Option[Int]]("amount")
+        minRarity <- c.get[Option[String]]("minRarity")
+      yield PerkEffectJson(t, typeId, amount, minRarity)
 
   private given Decoder[PerkDefJson] = Decoder.instance:
     (c: HCursor) =>

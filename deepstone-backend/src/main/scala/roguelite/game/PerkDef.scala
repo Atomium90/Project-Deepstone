@@ -30,6 +30,12 @@ enum PerkEffect:
     */
   case AbilityCostReductionPercent(percent: Int)
 
+  /** The first chest opened this run rolls at least `minRarity`, consumed by
+    * [[roguelite.engine.Player.firstChestBonusUsed]] regardless of what the roll actually lands on
+    * - a one-shot boost to the roll itself, not a standing floor for the rest of the run.
+    */
+  case GuaranteedRarityFirstChest(minRarity: Rarity)
+
 /** Static definition of one run perk, loaded from `data/perks.json`.
   *
   * Unlike [[UpgradeDef]], perks have no cost and no `displayOrder` - a random subset is rolled

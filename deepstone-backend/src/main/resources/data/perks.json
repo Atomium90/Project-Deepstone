@@ -26,5 +26,12 @@
     "description": "Abilities cost 20% less this run",
     "icon": "✦",
     "effect": { "type": "AbilityCostReductionPercent", "amount": 20 }
+  },
+  {
+    "id": "lucky_find",
+    "label": "Lucky Find",
+    "description": "The first chest you open this run is guaranteed Rare or better",
+    "icon": "🍀",
+    "effect": { "type": "GuaranteedRarityFirstChest", "minRarity": "rare" }
   }
 ]

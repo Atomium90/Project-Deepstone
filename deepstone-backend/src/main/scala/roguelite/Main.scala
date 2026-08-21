@@ -67,7 +67,8 @@ object Main extends IOApp.Simple:
                                         upgradeDefs,
                                         resolver,
                                         npcDialogueDefs = npcDialogueDefs,
-                                        setDefs = setDefs
+                                        setDefs = setDefs,
+                                        perkDefs = perkDefs
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
                                      achievementDefs, setDefs, perkDefs

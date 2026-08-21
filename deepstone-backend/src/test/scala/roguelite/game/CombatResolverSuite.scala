@@ -227,7 +227,7 @@ class CombatResolverSuite extends FunSuite:
     assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true)),
            s"expected EnemyDefeated(isBoss=true, tookNoDamage=true): $events"
     )
-    assert(events.exists { case GameEvent.RunEnded(victory, _) => victory; case _ => false },
+    assert(events.exists { case GameEvent.RunEnded(victory, _, _) => victory; case _ => false },
            s"expected RunEnded(true): $events"
     )
 
@@ -254,7 +254,7 @@ class CombatResolverSuite extends FunSuite:
     events match
       case Nil => () // player may not have died this turn, inconclusive
       case _ =>
-        assert(events.exists { case GameEvent.RunEnded(victory, _) => !victory; case _ => false },
+        assert(events.exists { case GameEvent.RunEnded(victory, _, _) => !victory; case _ => false },
                s"expected RunEnded(false): $events"
         )
 

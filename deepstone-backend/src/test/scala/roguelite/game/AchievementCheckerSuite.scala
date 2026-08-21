@@ -227,7 +227,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard, activePerkId = None))
     )
     assert(wonHard.map(_.id).contains("hard_mode_victory"))
 
@@ -235,7 +235,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assert(!wonNormal.map(_.id).contains("hard_mode_victory"))
 
@@ -243,7 +243,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Hard))
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Hard, activePerkId = None))
     )
     assert(!lostHard.map(_.id).contains("hard_mode_victory"))
   }
@@ -276,7 +276,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 3)
@@ -289,11 +289,42 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 4)
     assertEquals(stats.currentWinStreak, 4)
+  }
+
+  test("ConsumableUsed increments consumablesUsed and adds the typeId to potionTypesUsed") {
+    val (stats, _) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.ConsumableUsed("health_potion"), GameEvent.ConsumableUsed("health_potion"),
+           GameEvent.ConsumableUsed("second_wind")
+      )
+    )
+    assertEquals(stats.consumablesUsed, 3)
+    assertEquals(stats.potionTypesUsed, Set("health_potion", "second_wind"))
+  }
+
+  test("RunEnded(victory = true) with an active perk adds it to perksWonWith; a loss does not") {
+    val (afterWin, _) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = Some("heavy_hand")))
+    )
+    assertEquals(afterWin.perksWonWith, Set("heavy_hand"))
+
+    val (afterLoss, _) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = Some("heavy_hand")))
+    )
+    assertEquals(afterLoss.perksWonWith, Set.empty[String])
   }
 
   test("a win that crosses all three run-count thresholds unlocks veteran, champion, and win_streak together") {
@@ -302,7 +333,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assertEquals(unlocked.map(_.id).toSet, Set("veteran", "champion", "win_streak"))
   }
@@ -313,7 +344,7 @@ class AchievementCheckerSuite extends FunSuite:
         allDefs,
         Set.empty,
         AchievementStats(runsCompleted = 4, runsWon = 4, currentWinStreak = 4),
-        List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal))
+        List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = None))
       )
     // runsCompleted also increments on a loss, so veteran (5 total runs, win or lose) legitimately
     // unlocks here - only win_streak/champion (win-gated) must NOT unlock from a loss.
@@ -324,7 +355,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("veteran"), // already persisted after the loss, per the production GameSession flow
       statsAfterLoss,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assert(!unlockedAfterNextWin.map(_.id).contains("win_streak"),
            s"win_streak should not unlock right after a broken streak: $unlockedAfterNextWin"

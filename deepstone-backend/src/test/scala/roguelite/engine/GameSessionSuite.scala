@@ -540,6 +540,89 @@ class GameSessionSuite extends CatsEffectSuite:
         assert(unlockedInDb.contains("first_blood"))
   }
 
+  db.test("using a potion in combat persists its typeId to potionTypesUsed in the DB") {
+    database =>
+      val wellStocked = PerkDef("well_stocked", "Well Stocked", "test", icon = "*",
+                                effect = PerkEffect.ExtraStartingItem("health_potion")
+      )
+      val itemDefs: Map[String, Item] = Map(
+        "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common,
+                                      ConsumableEffect.HealFixed(30)
+        )
+      )
+      // StartRun's starting-kit/perk-item resolution reads the StateMachine's own itemDefs (not
+      // GameSession's separate copy, used elsewhere) - smWithEnemy hardcodes Map.empty, so this
+      // test needs its own instance with health_potion actually resolvable.
+      val smWithEnemyAndItems = StateMachine(achievementRoomPool,
+                                             Map("goblin" -> weakGoblinStats),
+                                             itemDefs,
+                                             testClassDefs,
+                                             testUpgradeDefs,
+                                             CombatResolver(Random(0L))
+      )
+      for
+        session <- GameSession.create(smWithEnemyAndItems, database, itemDefs, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, perkDefs = Map(wellStocked.id -> wellStocked),
+                                      rng = Random(0L)
+                   )
+        afterStart <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                               perkId = Some("well_stocked")
+                      ))
+        potionId = afterStart.equipment.potionBelt.flatten.head.id
+        _         <- session.handle(Interact("e1"))
+        _         <- session.handle(CombatAction(CombatActionType.Item, itemId = Some(potionId)))
+        statsInDb <- database.loadAchievementStats()
+      yield assert(statsInDb.potionTypesUsed.contains("health_potion"),
+                   s"expected health_potion in potionTypesUsed: ${statsInDb.potionTypesUsed}"
+      )
+  }
+
+  db.test("winning a boss fight with an active perk persists the perk id to perksWonWith in the DB") {
+    database =>
+      val heavyHand = PerkDef("heavy_hand", "Heavy Hand", "test", icon = "*",
+                              effect = PerkEffect.FlatDamageBonus(1)
+      )
+      // A 2-room pool (exactly 1 Combat + 1 Boss room, nothing else) clamps DungeonBuilder's
+      // totalRooms down to 2 regardless of difficulty (count = totalRooms.max(2).min(pool.size)),
+      // so the entrance's exit door leads straight to the boss room - no middle rooms to navigate.
+      val tiles         = makeTiles()
+      val doorToBoss    = Door("door_to_boss", x = 4, y = 5, direction = Direction.Down, targetRoomId = "NEXT")
+      val doorFromBoss  = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, targetRoomId = "PREV")
+      val entranceRoom  = Room("r1", RoomType.Combat, 8, 6, tiles, List(doorToBoss))
+      val bossRoom = Room("boss",
+                          RoomType.Boss,
+                          8,
+                          6,
+                          tiles,
+                          List(doorFromBoss, Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin"))
+      )
+      val smWithBoss = StateMachine(Map("r1" -> entranceRoom, "boss" -> bossRoom),
+                                    Map("goblin" -> weakGoblinStats),
+                                    Map.empty,
+                                    testClassDefs,
+                                    testUpgradeDefs,
+                                    CombatResolver(Random(0L))
+      )
+      for
+        session <- GameSession.create(smWithBoss, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, perkDefs = Map(heavyHand.id -> heavyHand),
+                                      rng = Random(0L)
+                   )
+        _         <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                              perkId = Some("heavy_hand")
+                      ))
+        _         <- session.handle(Interact("door_to_boss"))
+        _         <- session.handle(Interact("e1"))
+        afterKill <- session.handle(CombatAction(CombatActionType.Attack))
+        statsInDb <- database.loadAchievementStats()
+      yield
+        assertEquals(afterKill.phase, GamePhase.GameOver)
+        assert(afterKill.victory, "expected a boss kill to be a victory")
+        assert(statsInDb.perksWonWith.contains("heavy_hand"),
+               s"expected heavy_hand in perksWonWith: ${statsInDb.perksWonWith}"
+        )
+  }
+
   db.test("purchasing upgrades whose cumulative cost crosses the big_spender threshold unlocks it") {
     database =>
       for

@@ -549,7 +549,10 @@ class CombatResolver(rng: Random = Random(),
       val runCompleteLog = List("You have vanquished the dungeon's guardian! Victory is yours.")
       val events =
         enemyDefeatedEvent :: healEvent ::: lootEvents ::: levelUpEvents :::
-          List(GameEvent.RunEnded(victory = true, difficulty = state.difficulty))
+          List(GameEvent.RunEnded(victory = true,
+                                  difficulty = state.difficulty,
+                                  activePerkId = finalPlayer.activePerkId
+          ))
       (GameOverState(finalPlayer, victory = true),
        victoryLog ++ lootLog ++ levelUpLog ++ runCompleteLog,
        events
@@ -576,7 +579,10 @@ class CombatResolver(rng: Random = Random(),
     val defeatLog = log :+ "You have been defeated. The dungeon claims another soul."
     (GameOverState(deadPlayer),
      defeatLog,
-     List(GameEvent.RunEnded(victory = false, difficulty = state.difficulty))
+     List(GameEvent.RunEnded(victory = false,
+                             difficulty = state.difficulty,
+                             activePerkId = deadPlayer.activePerkId
+     ))
     )
 
   // ---------------------------------------------

@@ -161,7 +161,12 @@ case class CombatView(
     enemyMaxHp: Int,
     isPlayerTurn: Boolean,
     spriteId: Option[String] = None,
-    isBoss: Boolean = false
+    isBoss: Boolean = false,
+    /** The player's class ability, resolved through any active set/perk cost discount (see
+      * [[roguelite.game.AbilityDef.effectiveCost]]) - the real cost to check affordability
+      * against, not the static per-class catalog value in `StateUpdate.abilities`. `None` only if
+      * the player's class has no loaded ability def. */
+    abilityCost: Option[Int] = None
 )
 
 /** One damage or heal event produced by the action that generated this [[StateUpdate]]. Transient:

@@ -36,7 +36,8 @@ class GameSession private (
     setDefs: Map[String, SetDef] = Map.empty,
     setCatalog: List[SetView] = Nil,
     perkDefs: Map[String, PerkDef] = Map.empty,
-    rng: Random = Random()
+    rng: Random = Random(),
+    abilityDefs: Map[ClassId, AbilityDef] = Map.empty
 ):
 
   /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
@@ -56,8 +57,9 @@ class GameSession private (
         handleTransition(action)
     for
       update   <- result
+      state    <- stateRef.get
       progress <- achievementRef.get
-    yield withAchievements(withCatalog(update), progress)
+    yield withAbilityCost(withAchievements(withCatalog(update), progress), state)
 
   /** Return the current state snapshot without changing anything. Useful for sending the initial
     * state right after connection.
@@ -66,7 +68,21 @@ class GameSession private (
     for
       state    <- stateRef.get
       progress <- achievementRef.get
-    yield withAchievements(withCatalog(state.toStateUpdate()), progress)
+    yield withAbilityCost(withAchievements(withCatalog(state.toStateUpdate()), progress), state)
+
+  /** Resolve `CombatView.abilityCost` against the player's live set/perk discounts (see
+    * [[roguelite.game.AbilityDef.effectiveCost]]) - a no-op outside combat, or if the player's
+    * class has no loaded ability def.
+    */
+  private def withAbilityCost(update: StateUpdate, state: GameState): StateUpdate =
+    state match
+      case combat: CombatState =>
+        abilityDefs.get(combat.player.classId) match
+          case None => update
+          case Some(ability) =>
+            val cost = AbilityDef.effectiveCost(combat.player, ability, setDefs, perkDefs)
+            update.copy(combat = update.combat.map(_.copy(abilityCost = Some(cost))))
+      case _ => update
 
   /** Attach the static per-class ability catalog and the equipment set catalog to every outgoing
     * update, so the client never has to hardcode ability names/costs/resource labels or set
@@ -345,7 +361,8 @@ object GameSession:
                           setDefs,
                           setCatalog,
                           perkDefs,
-                          rng
+                          rng,
+                          abilityDefs
     )
 
   /** Number of perks offered per hub visit, out of the full catalog. */

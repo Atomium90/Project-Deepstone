@@ -291,6 +291,37 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(after.hub.get.perks.map(_.id), before.hub.get.perks.map(_.id))
   }
 
+  db.test("CombatView.abilityCost reflects an active perk discount, not the static catalog cost") {
+    database =>
+      val ability = AbilityDef(ClassId.Warrior,
+                               id = "berserker_slash",
+                               name = "Berserker Slash",
+                               cost = 40,
+                               resourceName = "Rage",
+                               description = "test",
+                               effect = AbilityEffect.FlatDamage(1)
+      )
+      val discountPerk = PerkDef("efficient_casting", "Efficient Casting", "test", icon = "*",
+                                 effect = PerkEffect.AbilityCostReductionPercent(20)
+      )
+      for
+        session <- GameSession.create(smWithEnemy, database, Map.empty, testUpgradeDefs,
+                                      Map(ClassId.Warrior -> ability), testAchievementDefs,
+                                      perkDefs = Map(discountPerk.id -> discountPerk), rng = Random(0L)
+                   )
+        _      <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                           perkId = Some("efficient_casting")
+                   ))
+        update <- session.handle(Interact("e1"))
+      yield
+        assertEquals(update.abilities.find(_.classId == ClassId.Warrior).map(_.cost), Some(40),
+                     "the static catalog cost stays the raw, undiscounted value"
+        )
+        assertEquals(update.combat.flatMap(_.abilityCost), Some(32),
+                     "the live per-player cost reflects the -20% perk (40 * 0.8 = 32)"
+        )
+  }
+
   db.test("StartRun transitions session to Exploration") {
     database =>
       for

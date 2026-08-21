@@ -96,5 +96,12 @@
     "description": "Have a full 4-piece equipment set bonus active.",
     "displayOrder": 13,
     "condition": { "type": "FourPieceSetActive" }
+  },
+  {
+    "id": "full_belt",
+    "label": "Fully Stocked",
+    "description": "Fill every potion belt slot.",
+    "displayOrder": 14,
+    "condition": { "type": "FillPotionBelt" }
   }
 ]

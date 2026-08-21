@@ -86,6 +86,8 @@ object AchievementChecker:
         rarity.ordinal >= minRarity.ordinal
       case (AchievementCondition.FourPieceSetActive, GameEvent.ItemPickedUp(_, _, hasFourPieceSet, _, _)) =>
         hasFourPieceSet
+      case (AchievementCondition.FillPotionBelt, GameEvent.ItemPickedUp(_, _, _, potionBeltFull, _)) =>
+        potionBeltFull
       case (AchievementCondition.UnlockDoorWithKey, GameEvent.DoorUnlockedWithKey) => true
       case (AchievementCondition.RevealSecretDoor, GameEvent.SecretDoorRevealed)   => true
       case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_, _)) => stats.runsCompleted >= n

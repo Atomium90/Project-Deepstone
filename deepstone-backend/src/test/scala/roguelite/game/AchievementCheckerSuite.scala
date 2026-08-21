@@ -35,6 +35,7 @@ class AchievementCheckerSuite extends FunSuite:
   private val completionist = defOf("completionist", AchievementCondition.AllUpgradesUnlocked)
   private val epicFind      = defOf("epic_find", AchievementCondition.LootRarity(Rarity.Epic))
   private val setComplete   = defOf("set_complete", AchievementCondition.FourPieceSetActive)
+  private val fullBelt      = defOf("full_belt", AchievementCondition.FillPotionBelt)
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -50,7 +51,8 @@ class AchievementCheckerSuite extends FunSuite:
     bigSpender.id    -> bigSpender,
     completionist.id -> completionist,
     epicFind.id      -> epicFind,
-    setComplete.id   -> setComplete
+    setComplete.id   -> setComplete,
+    fullBelt.id      -> fullBelt
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -177,6 +179,24 @@ class AchievementCheckerSuite extends FunSuite:
       List(itemPickedUp(hasFourPieceSet = false))
     )
     assert(!inactive.map(_.id).contains("set_complete"))
+  }
+
+  test("ItemPickedUp(potionBeltFull = true) unlocks full_belt, false does not") {
+    val (_, full) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(potionBeltFull = true))
+    )
+    assert(full.map(_.id).contains("full_belt"))
+
+    val (_, notFull) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(potionBeltFull = false))
+    )
+    assert(!notFull.map(_.id).contains("full_belt"))
   }
 
   test("DoorUnlockedWithKey unlocks key_master") {

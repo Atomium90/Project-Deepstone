@@ -64,6 +64,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
           .map(AchievementCondition.LootRarity.apply)
       case "FourPieceSetActive" =>
         Right(AchievementCondition.FourPieceSetActive)
+      case "FillPotionBelt" =>
+        Right(AchievementCondition.FillPotionBelt)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
 

@@ -22,6 +22,9 @@
     // Selected difficulty (Normal by default)
     let selectedDifficulty: Difficulty = "normal";
 
+    // Selected run perk (none by default - a perk is optional, not required to start a run)
+    let selectedPerkId: string | null = null;
+
     type UpgradeTab = "all" | UpgradeCategory;
     const upgradeTabs: { id: UpgradeTab; label: string }[] = [
         { id: "all", label: "All" },
@@ -34,6 +37,7 @@
     $: upgrades = $gameState?.hub?.upgrades ?? [];
     $: visibleUpgrades =
         selectedUpgradeTab === "all" ? upgrades : upgrades.filter((u) => u.category === selectedUpgradeTab);
+    $: perks    = $gameState?.hub?.perks ?? [];
     $: shards   = player?.metaCurrency ?? 0;
 
     const classes: ClassId[] = ["warrior", "archer", "mage"];
@@ -55,6 +59,11 @@
         selectedDifficulty = d;
     }
 
+    /** Clicking an already-selected perk deselects it - a perk is optional, not required. */
+    function selectPerk(id: string): void {
+        selectedPerkId = selectedPerkId === id ? null : id;
+    }
+
     function startRun(): void {
         lastStartedDifficulty.set(selectedDifficulty);
         client.send({
@@ -62,6 +71,7 @@
             action: "STARTRUN",
             classId: selectedClass,
             difficulty: selectedDifficulty,
+            ...(selectedPerkId ? { perkId: selectedPerkId } : {}),
         });
     }
 
@@ -203,6 +213,25 @@
                                 {/if}
                             </div>
                         </div>
+                    {/each}
+                </div>
+            {/if}
+
+            {#if perks.length > 0}
+                <p class="section-label perk-section-label">Run Perk</p>
+                <div class="perk-list">
+                    {#each perks as p}
+                        <button
+                            class="perk-card"
+                            class:selected={selectedPerkId === p.id}
+                            on:click={() => selectPerk(p.id)}
+                        >
+                            <span class="perk-icon">{p.icon}</span>
+                            <span class="perk-info">
+                                <span class="perk-label">{p.label}</span>
+                                <span class="perk-desc">{p.description}</span>
+                            </span>
+                        </button>
                     {/each}
                 </div>
             {/if}
@@ -628,6 +657,69 @@
         height: auto;
         image-rendering: pixelated;
         flex-shrink: 0;
+    }
+
+    .perk-section-label {
+        margin-top: 1.5rem;
+    }
+
+    .perk-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .perk-card {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.65rem 0.85rem;
+        background: #161616;
+        border: 1px solid #222;
+        color: #aaa;
+        cursor: pointer;
+        text-align: left;
+        font-family: monospace;
+        width: 100%;
+        transition: background 0.12s, border-color 0.12s;
+    }
+
+    .perk-card:hover {
+        background: #1e1e1e;
+        border-color: #333;
+    }
+
+    .perk-card.selected {
+        background: #1a1a1a;
+        border-color: #c8a84b;
+    }
+
+    .perk-icon {
+        font-size: 1.15rem;
+        flex-shrink: 0;
+        width: 1.4rem;
+        text-align: center;
+    }
+
+    .perk-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        min-width: 0;
+    }
+
+    .perk-label {
+        font-size: 0.85rem;
+        color: #ccc;
+    }
+
+    .perk-card.selected .perk-label {
+        color: #d4ac0d;
+    }
+
+    .perk-desc {
+        font-size: 0.7rem;
+        color: #555;
     }
 
     .feedback {

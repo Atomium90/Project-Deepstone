@@ -117,5 +117,12 @@
     "description": "Win a run on Hard difficulty.",
     "displayOrder": 16,
     "condition": { "type": "WinOnDifficulty", "difficulty": "hard" }
+  },
+  {
+    "id": "potion_master",
+    "label": "Potion Master",
+    "description": "Use 10 potions in total.",
+    "displayOrder": 17,
+    "condition": { "type": "ConsumablesUsed", "count": 10 }
   }
 ]

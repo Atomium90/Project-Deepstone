@@ -105,4 +105,6 @@ object AchievementChecker:
       case (AchievementCondition.WinStreak(n), GameEvent.RunEnded(_, _, _)) => stats.currentWinStreak >= n
       case (AchievementCondition.WinOnDifficulty(target), GameEvent.RunEnded(victory, difficulty, _)) =>
         victory && difficulty == target
+      case (AchievementCondition.ConsumablesUsed(n), GameEvent.ConsumableUsed(_)) =>
+        stats.consumablesUsed >= n
       case _                                                          => false

@@ -39,6 +39,7 @@ class AchievementCheckerSuite extends FunSuite:
   private val stockpiler    = defOf("stockpiler", AchievementCondition.FillPotionStack)
   private val hardModeVictory =
     defOf("hard_mode_victory", AchievementCondition.WinOnDifficulty(Difficulty.Hard))
+  private val potionMaster = defOf("potion_master", AchievementCondition.ConsumablesUsed(10))
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -57,7 +58,8 @@ class AchievementCheckerSuite extends FunSuite:
     setComplete.id   -> setComplete,
     fullBelt.id      -> fullBelt,
     stockpiler.id    -> stockpiler,
-    hardModeVictory.id -> hardModeVictory
+    hardModeVictory.id -> hardModeVictory,
+    potionMaster.id -> potionMaster
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -307,6 +309,24 @@ class AchievementCheckerSuite extends FunSuite:
     )
     assertEquals(stats.consumablesUsed, 3)
     assertEquals(stats.potionTypesUsed, Set("health_potion", "second_wind"))
+  }
+
+  test("the 10th ConsumableUsed unlocks potion_master, the 9th does not") {
+    val (_, notYet) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats(consumablesUsed = 8),
+      List(GameEvent.ConsumableUsed("health_potion")) // 8 -> 9, below threshold
+    )
+    assert(!notYet.map(_.id).contains("potion_master"))
+
+    val (_, unlocked) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats(consumablesUsed = 9),
+      List(GameEvent.ConsumableUsed("health_potion")) // 9 -> 10, crosses the threshold
+    )
+    assert(unlocked.map(_.id).contains("potion_master"))
   }
 
   test("RunEnded(victory = true) with an active perk adds it to perksWonWith; a loss does not") {

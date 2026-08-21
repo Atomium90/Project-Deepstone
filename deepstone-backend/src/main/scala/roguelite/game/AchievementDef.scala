@@ -27,6 +27,7 @@ enum AchievementCondition:
   case FillPotionBelt
   case FillPotionStack
   case WinOnDifficulty(difficulty: Difficulty)
+  case ConsumablesUsed(count: Int)
 
 /** Static definition of one achievement, loaded from `data/achievements.json`.
   *

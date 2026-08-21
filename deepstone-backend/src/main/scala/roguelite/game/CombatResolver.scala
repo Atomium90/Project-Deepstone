@@ -160,8 +160,9 @@ class CombatResolver(rng: Random = Random(),
             val stateWithoutItem = state.copy(
               player = state.player.copy(potionBelt = state.player.potionBelt.updated(idx, newSlot))
             )
-            val (updatedState, effectLog, effectEvents, killingBlowDamage) =
+            val (updatedState, effectLog, effectEventsRaw, killingBlowDamage) =
               applyConsumableEffect(stateWithoutItem, stack.item)
+            val effectEvents = GameEvent.ConsumableUsed(stack.item.typeId) :: effectEventsRaw
 
             killingBlowDamage match
               case Some(damage) =>

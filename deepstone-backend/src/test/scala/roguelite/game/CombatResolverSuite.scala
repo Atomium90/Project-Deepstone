@@ -333,6 +333,15 @@ class CombatResolverSuite extends FunSuite:
     assertEquals(next.player.potionBelt.flatten.find(_.item.id == "p1"), None)
     assert(log.exists(_.contains("Health Potion")))
 
+  test("using any potion emits ConsumableUsed with its typeId, regardless of effect kind"):
+    val ether = Consumable("p1", "ether", "Ether", Rarity.Common, ConsumableEffect.RestoreResource(20))
+    val state = combatState(weakEnemy(hp = 50),
+                            player = equipPotion(fullHpPlayer().copy(resourceCurrent = 0), ether)
+    )
+    val (_, _, events) =
+      resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
+    assert(events.contains(GameEvent.ConsumableUsed("ether")), s"expected ConsumableUsed(ether): $events")
+
   test("HealFixed does not overheal past maxHp"):
     val potion = Consumable("p1", "hp", "HP", Rarity.Common, ConsumableEffect.HealFixed(9999))
     val state =

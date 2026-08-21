@@ -56,6 +56,9 @@ enum GameEvent:
     */
   case Healed(amount: Int)
 
+  /** A potion was drunk (one charge consumed from a belt stack), regardless of its effect kind. */
+  case ConsumableUsed(typeId: String)
+
 object GameEvent:
   /** Builds an [[GameEvent.ItemPickedUp]] from the resulting player state and the item just
     * resolved - shared by every pickup call site ([[EquipmentResolver]], [[CombatResolver]],

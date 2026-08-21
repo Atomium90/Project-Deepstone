@@ -18,7 +18,12 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
             "archer_unlock",
             "mage_unlock",
             "extra_slot",
-            "extra_potion_capacity"
+            "extra_potion_capacity",
+            "weapon_mastery",
+            "rarity_insight",
+            "warrior_kit",
+            "archer_kit",
+            "mage_kit"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -62,6 +67,21 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
         defs => assertEquals(defs("extra_potion_capacity").effect, UpgradeEffect.ExtraPotionCapacity)
   }
 
+  test("weapon_mastery decodes to FlatAttackBoost") {
+    UpgradeLoader
+      .loadAll()
+      .map:
+        defs => assertEquals(defs("weapon_mastery").effect, UpgradeEffect.FlatAttackBoost(1))
+  }
+
+  test("rarity_insight decodes to GuaranteedChestRarity") {
+    UpgradeLoader
+      .loadAll()
+      .map:
+        defs =>
+          assertEquals(defs("rarity_insight").effect, UpgradeEffect.GuaranteedChestRarity(Rarity.Uncommon))
+  }
+
   test("archer_unlock and mage_unlock decode to UnlockClass") {
     UpgradeLoader
       .loadAll()
@@ -69,6 +89,16 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
         defs =>
           assertEquals(defs("archer_unlock").effect, UpgradeEffect.UnlockClass(ClassId.Archer))
           assertEquals(defs("mage_unlock").effect, UpgradeEffect.UnlockClass(ClassId.Mage))
+  }
+
+  test("warrior_kit, archer_kit, and mage_kit decode to UnlockStartingKit") {
+    UpgradeLoader
+      .loadAll()
+      .map:
+        defs =>
+          assertEquals(defs("warrior_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Warrior))
+          assertEquals(defs("archer_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Archer))
+          assertEquals(defs("mage_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Mage))
   }
 
   test("every upgrade has a positive cost") {
@@ -85,8 +115,15 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
       .loadAll()
       .map:
         defs =>
-          val statIds = Set("hp_boost_1", "hp_boost_2", "extra_slot", "extra_potion_capacity")
-          val metaIds = Set("potion_start", "archer_unlock", "mage_unlock")
+          val statIds = Set("hp_boost_1",
+                            "hp_boost_2",
+                            "extra_slot",
+                            "extra_potion_capacity",
+                            "weapon_mastery",
+                            "rarity_insight"
+          )
+          val metaIds =
+            Set("potion_start", "archer_unlock", "mage_unlock", "warrior_kit", "archer_kit", "mage_kit")
           statIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Stat, id))
           metaIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Meta, id))
   }

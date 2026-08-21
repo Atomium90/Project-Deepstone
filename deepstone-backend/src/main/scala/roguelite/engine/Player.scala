@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.{ Accessory, Armor, KeyKind, PotionStack, SetBonusEffect, SetDef, Weapon }
+import roguelite.game.{ Accessory, Armor, KeyKind, PotionStack, Rarity, SetBonusEffect, SetDef, Weapon }
 
 /** Full player data as stored on the server. */
 case class Player(
@@ -23,7 +23,8 @@ case class Player(
     keyCounts: Map[KeyKind, Int] = Map.empty,
     activeSetHpBonusFlat: Int = 0,
     activePerkId: Option[String] = None,
-    firstChestBonusUsed: Boolean = false
+    firstChestBonusUsed: Boolean = false,
+    chestRarityFloor: Option[Rarity] = None
 ):
   def toView: PlayerView = PlayerView(
     classId = classId,

@@ -258,6 +258,51 @@ class InteractionResolverSuite extends FunSuite:
           .exists(_.item.rarity.ordinal < Rarity.Rare.ordinal)
     assert(everBelowRare, "expected at least one below-Rare roll across 50 seeds once the perk is already used")
 
+  // --- Chest: Rarity Insight upgrade (Player.chestRarityFloor) -------------------
+
+  test("chestRarityFloor guarantees at least the floor rarity, and is never consumed"):
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(chestRarityFloor = Some(Rarity.Rare))
+    val chest1 = Chest("c1", x = 3, y = 3)
+    val state1 = ExplorationState(player, dungeonWith(entities = List(chest1)), 3, 3)
+    val TransitionResult(afterFirst, _, _, _) =
+      resolver(itemDefs = chestItemDefs, rng = Random(11)).interact(state1, "c1")
+    val firstPlayer = afterFirst.asInstanceOf[ExplorationState].player
+    val firstPick    = firstPlayer.potionBelt.flatten
+      .find(_.item.typeId == "health_potion")
+      .getOrElse(fail("expected a health potion in the belt"))
+    assert(firstPick.item.rarity.ordinal >= Rarity.Rare.ordinal, s"expected at least Rare, got ${firstPick.item.rarity}")
+    assert(!firstPlayer.firstChestBonusUsed, "the permanent upgrade must never consume the one-shot perk flag")
+
+    // A second chest, opened by a player who already has the floor active, is still guaranteed.
+    val chest2 = Chest("c2", x = 4, y = 3)
+    val state2 = ExplorationState(firstPlayer, dungeonWith(entities = List(chest2)), 4, 3)
+    val TransitionResult(afterSecond, _, _, _) =
+      resolver(itemDefs = chestItemDefs, rng = Random(11)).interact(state2, "c2")
+    val secondPick = afterSecond.asInstanceOf[ExplorationState].player.potionBelt.flatten
+      .filter(_.item.typeId == "health_potion")
+      .lastOption
+      .getOrElse(fail("expected a second health potion pickup"))
+    assert(secondPick.item.rarity.ordinal >= Rarity.Rare.ordinal,
+           s"expected the second chest to also be at least Rare, got ${secondPick.item.rarity}"
+    )
+
+  test("an active Lucky Find perk and chestRarityFloor combine, taking the stronger floor"):
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior)
+      .copy(activePerkId = Some("lucky_find"), chestRarityFloor = Some(Rarity.Uncommon))
+    val chest = Chest("c1", x = 3, y = 3)
+    val state = ExplorationState(player, dungeonWith(entities = List(chest)), 3, 3)
+    val TransitionResult(next, _, _, _) = resolver(itemDefs = chestItemDefs, rng = Random(11),
+                                                    perkDefs = Map("lucky_find" -> luckyFind)
+    ).interact(state, "c1")
+    // The perk's floor (Rare) is stronger than the upgrade's (Uncommon), so Rare wins. The perk's
+    // one-shot flag is consumed regardless - it was active and not yet used, independent of
+    // whether its own floor ends up being the dominant one in the combined roll.
+    val picked = next.asInstanceOf[ExplorationState].player.potionBelt.flatten
+      .find(_.item.typeId == "health_potion")
+      .getOrElse(fail("expected a health potion in the belt"))
+    assert(picked.item.rarity.ordinal >= Rarity.Rare.ordinal, s"expected at least Rare, got ${picked.item.rarity}")
+    assert(next.asInstanceOf[ExplorationState].player.firstChestBonusUsed)
+
   // --- LockedDoor --------------------------------------------------------------
 
   test("Interact with LockedDoor without a matching key is rejected and inventory is untouched"):

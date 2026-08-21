@@ -56,6 +56,18 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
           .toRight("UnlockClass is missing 'classId' field")
           .flatMap(parseClassId)
           .map(UpgradeEffect.UnlockClass.apply)
+      case "FlatAttackBoost" =>
+        e.amount.toRight("FlatAttackBoost is missing 'amount' field").map(UpgradeEffect.FlatAttackBoost.apply)
+      case "GuaranteedChestRarity" =>
+        e.rarity
+          .toRight("GuaranteedChestRarity is missing 'rarity' field")
+          .flatMap(parseRarity)
+          .map(UpgradeEffect.GuaranteedChestRarity.apply)
+      case "UnlockStartingKit" =>
+        e.classId
+          .toRight("UnlockStartingKit is missing 'classId' field")
+          .flatMap(parseClassId)
+          .map(UpgradeEffect.UnlockStartingKit.apply)
       case other =>
         Left(s"Unknown upgrade effect type: '$other'")
 
@@ -63,6 +75,11 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
     ClassId.values
       .find(_.toString.toLowerCase == s.toLowerCase)
       .toRight(s"Unknown classId: '$s'")
+
+  private def parseRarity(s: String): Either[String, Rarity] =
+    Rarity.values
+      .find(_.toString.toLowerCase == s.toLowerCase)
+      .toRight(s"Unknown rarity: '$s'")
 
   // -----------------------------------------------------------------------
   // Internal JSON DTOs
@@ -72,7 +89,8 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
       `type`: String,
       amount: Option[Int] = None,
       typeId: Option[String] = None,
-      classId: Option[String] = None
+      classId: Option[String] = None,
+      rarity: Option[String] = None
   )
 
   private case class UpgradeDefJson(
@@ -93,7 +111,8 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
         amount  <- c.get[Option[Int]]("amount")
         typeId  <- c.get[Option[String]]("typeId")
         classId <- c.get[Option[String]]("classId")
-      yield UpgradeEffectJson(t, amount, typeId, classId)
+        rarity  <- c.get[Option[String]]("rarity")
+      yield UpgradeEffectJson(t, amount, typeId, classId, rarity)
 
   private given Decoder[UpgradeDefJson] = Decoder.instance:
     (c: HCursor) =>

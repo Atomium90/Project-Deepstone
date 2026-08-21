@@ -87,6 +87,13 @@ class StateMachine(roomPool: Map[String, Room],
           val lockedBehind = upgradeDefs.values.find {
             u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
           }
+          // Unlike lockedBehind, an un-purchased kit doesn't block the run - it just starts with
+          // nothing instead of the class's usual weapon/armor. Every class needs its own kit
+          // upgrade, including Warrior (which has no UnlockClass gate at all) - the two gates are
+          // independent concepts.
+          val kitUnlocked = upgradeDefs.values.exists {
+            u => u.effect == UpgradeEffect.UnlockStartingKit(classId) && hub.meta.isUnlocked(u.id)
+          }
 
           (lockedBehind, classDefs.get(classId)) match {
             case (Some(u), _) =>
@@ -114,19 +121,24 @@ class StateMachine(roomPool: Map[String, Room],
                     affinityTags = classDef.affinityTags
                   )
 
-                  // Resolve starting kit: unknown typeIds are skipped, slot collisions are not expected
-                  val playerWithKit = classDef.startingKit.foldLeft(basePlayer):
-                    (p, typeId) =>
-                      itemDefs.get(typeId) match {
-                        case None => p
-                        case Some(proto) =>
-                          EquipmentResolver.resolvePickup(p, proto.withNewId, setDefs) match {
-                            case PickupOutcome.Equipped(updated)     => updated
-                            case PickupOutcome.KeyCollected(updated) => updated
-                            case PickupOutcome.ChoicePending(_)      => p
-                            case PickupOutcome.Discarded(updated)    => updated
+                  // Resolve starting kit: unknown typeIds are skipped, slot collisions are not
+                  // expected. Skipped entirely (basePlayer unchanged) if this class's kit-unlock
+                  // upgrade hasn't been purchased.
+                  val playerWithKit =
+                    if !kitUnlocked then basePlayer
+                    else
+                      classDef.startingKit.foldLeft(basePlayer):
+                        (p, typeId) =>
+                          itemDefs.get(typeId) match {
+                            case None => p
+                            case Some(proto) =>
+                              EquipmentResolver.resolvePickup(p, proto.withNewId, setDefs) match {
+                                case PickupOutcome.Equipped(updated)     => updated
+                                case PickupOutcome.KeyCollected(updated) => updated
+                                case PickupOutcome.ChoicePending(_)      => p
+                                case PickupOutcome.Discarded(updated)    => updated
+                              }
                           }
-                      }
 
                   // A perkId not currently among hub.perkOptions (stale/tampered) is silently
                   // ignored, same discipline as EquipChoice's invalid-slot handling.

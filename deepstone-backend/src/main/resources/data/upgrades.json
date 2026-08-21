@@ -68,5 +68,55 @@
     "icon": "🧴",
     "category": "stat",
     "effect": { "type": "ExtraPotionCapacity" }
+  },
+  {
+    "id": "weapon_mastery",
+    "label": "Weapon Mastery",
+    "description": "+1 flat attack for every run",
+    "cost": 90,
+    "displayOrder": 7,
+    "icon": "⚔",
+    "category": "stat",
+    "effect": { "type": "FlatAttackBoost", "amount": 1 }
+  },
+  {
+    "id": "rarity_insight",
+    "label": "Rarity Insight",
+    "description": "Every chest is guaranteed at least Uncommon rarity",
+    "cost": 110,
+    "displayOrder": 8,
+    "icon": "🔮",
+    "category": "stat",
+    "effect": { "type": "GuaranteedChestRarity", "rarity": "uncommon" }
+  },
+  {
+    "id": "warrior_kit",
+    "label": "Warrior's Basic Kit",
+    "description": "Start Warrior runs with a weapon and armor",
+    "cost": 25,
+    "displayOrder": 9,
+    "icon": "🛡",
+    "category": "meta",
+    "effect": { "type": "UnlockStartingKit", "classId": "warrior" }
+  },
+  {
+    "id": "archer_kit",
+    "label": "Archer's Basic Kit",
+    "description": "Start Archer runs with a weapon and armor",
+    "cost": 25,
+    "displayOrder": 10,
+    "icon": "🛡",
+    "category": "meta",
+    "effect": { "type": "UnlockStartingKit", "classId": "archer" }
+  },
+  {
+    "id": "mage_kit",
+    "label": "Mage's Basic Kit",
+    "description": "Start Mage runs with a weapon and armor",
+    "cost": 25,
+    "displayOrder": 11,
+    "icon": "🛡",
+    "category": "meta",
+    "effect": { "type": "UnlockStartingKit", "classId": "mage" }
   }
 ]

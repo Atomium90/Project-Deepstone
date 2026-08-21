@@ -302,8 +302,19 @@ class GameSession private (
             case PickupOutcome.ChoicePending(_) => player // no room => silently skip
             case PickupOutcome.Discarded(p)     => p
 
+    case UpgradeEffect.FlatAttackBoost(amount) =>
+      player.copy(bonusAttack = player.bonusAttack + amount)
+
+    case UpgradeEffect.GuaranteedChestRarity(minRarity) =>
+      player.copy(chestRarityFloor = Some(minRarity))
+
     case UpgradeEffect.UnlockClass(_) =>
       // Gates class selection at StartRun (see StateMachine); no player-state effect to apply.
+      player
+
+    case UpgradeEffect.UnlockStartingKit(_) =>
+      // Gates the starting-kit fold itself inside StateMachine's StartRun case (runs before
+      // applyMetaBonuses ever sees the player); no player-state effect to apply here.
       player
 
 object GameSession:

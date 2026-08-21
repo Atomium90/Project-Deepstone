@@ -33,6 +33,31 @@ enum UpgradeEffect:
     */
   case UnlockClass(classId: ClassId)
 
+  /** Flat bonus added to the player's effective attack for every run, permanently. Reuses
+    * [[roguelite.engine.Player.bonusAttack]] directly - the same field level-up perks already
+    * add to, already wired into the attack formula - so no new [[roguelite.game.CombatResolver]]
+    * hook is needed.
+    */
+  case FlatAttackBoost(amount: Int)
+
+  /** Guarantee at least `minRarity` on every non-trapped chest for the whole run, permanently.
+    * Baked onto [[roguelite.engine.Player.chestRarityFloor]] once at Hub -> Exploration, not
+    * re-checked against the hub catalog per chest - same "resolve once onto Player" discipline as
+    * `bonusAttack`/`potionCapacity`. Deliberately weaker than the Lucky Find perk's one-shot
+    * Rare-or-better first chest (this applies to every chest, not just the first), so the upgrade
+    * doesn't make the perk redundant - see [[roguelite.game.InteractionResolver.handleChest]] for
+    * how the two combine when both are active.
+    */
+  case GuaranteedChestRarity(minRarity: Rarity)
+
+  /** Gate the given class's `startingKit` behind this upgrade. Without it, a run with this class
+    * starts with nothing (no weapon/armor) instead of its usual kit - unlike `UnlockClass`, this
+    * never blocks the run itself, it only makes the start harder. Independent of `UnlockClass`:
+    * even Warrior (no class-selection gate at all) needs its own kit-unlock upgrade. See
+    * [[roguelite.engine.StateMachine]]'s `StartRun` case for where this is checked.
+    */
+  case UnlockStartingKit(classId: ClassId)
+
 /** Which HUB upgrade tab an upgrade belongs to (the ALL tab always shows everything).
   *
   * `Stat`: a mechanical run buff (more HP, more potion slots). `Meta`: unlocks or changes the

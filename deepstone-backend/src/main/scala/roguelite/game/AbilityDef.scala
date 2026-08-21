@@ -1,6 +1,6 @@
 package roguelite.game
 
-import roguelite.engine.ClassId
+import roguelite.engine.{ ClassId, Player }
 
 /** Effect produced when a class ability is activated.
   *
@@ -29,3 +29,27 @@ case class AbilityDef(
     description: String,
     effect: AbilityEffect
 )
+
+object AbilityDef:
+
+  /** `ability.cost` reduced by any active set AbilityCostReductionPercent bonus (Pyromancer 4pc)
+    * plus any active AbilityCostReductionPercent perk, summed then applied once, floored at 0.
+    *
+    * Pure resolution shared by [[CombatResolver]] (the resource check/deduction) and the
+    * `toStateUpdate` boundary (so the client sees the real, player-specific cost instead of the
+    * static per-class catalog value) - same "resolve once at the view boundary" discipline already
+    * used for `PlayerView.maxHp`/`ItemView.statLine`.
+    */
+  def effectiveCost(player: Player,
+                    ability: AbilityDef,
+                    setDefs: Map[String, SetDef],
+                    perkDefs: Map[String, PerkDef]
+  ): Int =
+    val setReduction = SetDef.activeBonuses(player.equippedSetIds, setDefs, player.classId).collect {
+      case SetBonusEffect.AbilityCostReductionPercent(n) => n
+    }.sum
+    val perkReduction = player.activePerkId.flatMap(perkDefs.get).map(_.effect) match {
+      case Some(PerkEffect.AbilityCostReductionPercent(n)) => n
+      case _                                               => 0
+    }
+    math.round(ability.cost * (100 - setReduction - perkReduction).max(0) / 100.0).toInt

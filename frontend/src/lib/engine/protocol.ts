@@ -121,6 +121,10 @@ export interface CombatView {
   spriteId?: string;
   /** True if the current room is a boss room - drives boss music. */
   isBoss: boolean;
+  /** The player's class ability cost, resolved through any active set/perk discount - the real
+   * cost to check affordability against, not the static per-class value in StateUpdate.abilities.
+   * Undefined only if the player's class has no loaded ability def. */
+  abilityCost?: number;
 }
 
 /** One damage or heal event produced by the action that generated this StateUpdate. Transient -

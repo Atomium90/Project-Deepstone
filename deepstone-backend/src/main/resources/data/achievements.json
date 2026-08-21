@@ -103,5 +103,12 @@
     "description": "Fill every potion belt slot.",
     "displayOrder": 14,
     "condition": { "type": "FillPotionBelt" }
+  },
+  {
+    "id": "stockpiler",
+    "label": "Stockpiler",
+    "description": "Fill a potion stack to its maximum capacity.",
+    "displayOrder": 15,
+    "condition": { "type": "FillPotionStack" }
   }
 ]

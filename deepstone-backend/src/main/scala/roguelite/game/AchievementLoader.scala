@@ -66,6 +66,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
         Right(AchievementCondition.FourPieceSetActive)
       case "FillPotionBelt" =>
         Right(AchievementCondition.FillPotionBelt)
+      case "FillPotionStack" =>
+        Right(AchievementCondition.FillPotionStack)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
 

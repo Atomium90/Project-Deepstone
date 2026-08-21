@@ -36,6 +36,7 @@ class AchievementCheckerSuite extends FunSuite:
   private val epicFind      = defOf("epic_find", AchievementCondition.LootRarity(Rarity.Epic))
   private val setComplete   = defOf("set_complete", AchievementCondition.FourPieceSetActive)
   private val fullBelt      = defOf("full_belt", AchievementCondition.FillPotionBelt)
+  private val stockpiler    = defOf("stockpiler", AchievementCondition.FillPotionStack)
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -52,7 +53,8 @@ class AchievementCheckerSuite extends FunSuite:
     completionist.id -> completionist,
     epicFind.id      -> epicFind,
     setComplete.id   -> setComplete,
-    fullBelt.id      -> fullBelt
+    fullBelt.id      -> fullBelt,
+    stockpiler.id    -> stockpiler
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -197,6 +199,24 @@ class AchievementCheckerSuite extends FunSuite:
       List(itemPickedUp(potionBeltFull = false))
     )
     assert(!notFull.map(_.id).contains("full_belt"))
+  }
+
+  test("ItemPickedUp(stackAtCapacity = true) unlocks stockpiler, false does not") {
+    val (_, atCapacity) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(stackAtCapacity = true))
+    )
+    assert(atCapacity.map(_.id).contains("stockpiler"))
+
+    val (_, belowCapacity) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(stackAtCapacity = false))
+    )
+    assert(!belowCapacity.map(_.id).contains("stockpiler"))
   }
 
   test("DoorUnlockedWithKey unlocks key_master") {

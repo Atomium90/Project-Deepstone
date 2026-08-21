@@ -88,6 +88,8 @@ object AchievementChecker:
         hasFourPieceSet
       case (AchievementCondition.FillPotionBelt, GameEvent.ItemPickedUp(_, _, _, potionBeltFull, _)) =>
         potionBeltFull
+      case (AchievementCondition.FillPotionStack, GameEvent.ItemPickedUp(_, _, _, _, stackAtCapacity)) =>
+        stackAtCapacity
       case (AchievementCondition.UnlockDoorWithKey, GameEvent.DoorUnlockedWithKey) => true
       case (AchievementCondition.RevealSecretDoor, GameEvent.SecretDoorRevealed)   => true
       case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_, _)) => stats.runsCompleted >= n

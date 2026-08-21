@@ -23,6 +23,7 @@ enum AchievementCondition:
   case LootRarity(rarity: Rarity)
   case FourPieceSetActive
   case FillPotionBelt
+  case FillPotionStack
 
 /** Static definition of one achievement, loaded from `data/achievements.json`.
   *

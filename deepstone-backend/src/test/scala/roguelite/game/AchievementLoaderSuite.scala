@@ -25,7 +25,8 @@ class AchievementLoaderSuite extends CatsEffectSuite:
             "completionist",
             "epic_find",
             "set_complete",
-            "full_belt"
+            "full_belt",
+            "stockpiler"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -53,6 +54,7 @@ class AchievementLoaderSuite extends CatsEffectSuite:
           assertEquals(defs("completionist").condition, AchievementCondition.AllUpgradesUnlocked)
           assertEquals(defs("set_complete").condition, AchievementCondition.FourPieceSetActive)
           assertEquals(defs("full_belt").condition, AchievementCondition.FillPotionBelt)
+          assertEquals(defs("stockpiler").condition, AchievementCondition.FillPotionStack)
   }
 
   test("parameterized conditions decode with the right values") {

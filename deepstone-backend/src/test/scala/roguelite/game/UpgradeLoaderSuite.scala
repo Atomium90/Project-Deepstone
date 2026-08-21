@@ -19,7 +19,8 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
             "mage_unlock",
             "extra_slot",
             "extra_potion_capacity",
-            "weapon_mastery"
+            "weapon_mastery",
+            "rarity_insight"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -70,6 +71,14 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
         defs => assertEquals(defs("weapon_mastery").effect, UpgradeEffect.FlatAttackBoost(1))
   }
 
+  test("rarity_insight decodes to GuaranteedChestRarity") {
+    UpgradeLoader
+      .loadAll()
+      .map:
+        defs =>
+          assertEquals(defs("rarity_insight").effect, UpgradeEffect.GuaranteedChestRarity(Rarity.Uncommon))
+  }
+
   test("archer_unlock and mage_unlock decode to UnlockClass") {
     UpgradeLoader
       .loadAll()
@@ -93,7 +102,13 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
       .loadAll()
       .map:
         defs =>
-          val statIds = Set("hp_boost_1", "hp_boost_2", "extra_slot", "extra_potion_capacity", "weapon_mastery")
+          val statIds = Set("hp_boost_1",
+                            "hp_boost_2",
+                            "extra_slot",
+                            "extra_potion_capacity",
+                            "weapon_mastery",
+                            "rarity_insight"
+          )
           val metaIds = Set("potion_start", "archer_unlock", "mage_unlock")
           statIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Stat, id))
           metaIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Meta, id))

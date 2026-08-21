@@ -78,5 +78,15 @@
     "icon": "⚔",
     "category": "stat",
     "effect": { "type": "FlatAttackBoost", "amount": 1 }
+  },
+  {
+    "id": "rarity_insight",
+    "label": "Rarity Insight",
+    "description": "Every chest is guaranteed at least Uncommon rarity",
+    "cost": 110,
+    "displayOrder": 8,
+    "icon": "🔮",
+    "category": "stat",
+    "effect": { "type": "GuaranteedChestRarity", "rarity": "uncommon" }
   }
 ]

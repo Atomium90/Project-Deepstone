@@ -40,6 +40,16 @@ enum UpgradeEffect:
     */
   case FlatAttackBoost(amount: Int)
 
+  /** Guarantee at least `minRarity` on every non-trapped chest for the whole run, permanently.
+    * Baked onto [[roguelite.engine.Player.chestRarityFloor]] once at Hub -> Exploration, not
+    * re-checked against the hub catalog per chest - same "resolve once onto Player" discipline as
+    * `bonusAttack`/`potionCapacity`. Deliberately weaker than the Lucky Find perk's one-shot
+    * Rare-or-better first chest (this applies to every chest, not just the first), so the upgrade
+    * doesn't make the perk redundant - see [[roguelite.game.InteractionResolver.handleChest]] for
+    * how the two combine when both are active.
+    */
+  case GuaranteedChestRarity(minRarity: Rarity)
+
 /** Which HUB upgrade tab an upgrade belongs to (the ALL tab always shows everything).
   *
   * `Stat`: a mechanical run buff (more HP, more potion slots). `Meta`: unlocks or changes the

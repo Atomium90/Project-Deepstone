@@ -169,13 +169,16 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
       // Lucky Find: raise the roll's floor for this one chest, then consume the perk regardless of
       // what the roll actually lands on - it's a one-shot boost to the roll, not a standing floor.
-      val rarityFloorOverride = activePerkEffect(exp.player) match {
+      // The Rarity Insight upgrade (Player.chestRarityFloor) is the opposite: a permanent floor on
+      // every chest, never consumed - the two combine by taking whichever floor is stronger.
+      val perkFloor = activePerkEffect(exp.player) match {
         case Some(PerkEffect.GuaranteedRarityFirstChest(minRarity)) if !exp.player.firstChestBonusUsed =>
           Some(minRarity)
         case _ => None
       }
+      val rarityFloorOverride = List(perkFloor, exp.player.chestRarityFloor).flatten.maxByOption(_.ordinal)
       val basePlayer =
-        if rarityFloorOverride.isDefined then exp.player.copy(firstChestBonusUsed = true) else exp.player
+        if perkFloor.isDefined then exp.player.copy(firstChestBonusUsed = true) else exp.player
 
       LootTable.rollChest(itemDefs, rng, exp.difficulty, rarityFloorOverride) match {
         case None =>

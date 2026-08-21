@@ -122,6 +122,15 @@ class GameSessionSuite extends CatsEffectSuite:
                                    icon = "⚔",
                                    category = UpgradeCategory.Stat,
                                    effect = UpgradeEffect.FlatAttackBoost(1)
+    ),
+    "rarity_insight" -> UpgradeDef("rarity_insight",
+                                   "Rarity Insight",
+                                   "Every chest is guaranteed at least Uncommon rarity",
+                                   cost = 110,
+                                   displayOrder = 8,
+                                   icon = "🔮",
+                                   category = UpgradeCategory.Stat,
+                                   effect = UpgradeEffect.GuaranteedChestRarity(Rarity.Uncommon)
     )
   )
 
@@ -536,6 +545,41 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(boostedDamage, baselineDamage + 1)
   }
 
+  db.test("rarity_insight guarantees at least Uncommon rarity on every chest, not just the first") {
+    database =>
+      val chestItemDefs: Map[String, Item] = Map(
+        "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common,
+                                      ConsumableEffect.HealFixed(30)
+        )
+      )
+      val tiles     = makeTiles()
+      val chestRoom = Room("r1", RoomType.Combat, 8, 6, tiles, List(Chest("c1", x = 2, y = 1)))
+      val bossRoom  = Room("boss", RoomType.Boss, 8, 6, tiles, Nil)
+      val smWithChest = StateMachine(Map("r1" -> chestRoom, "boss" -> bossRoom),
+                                     Map.empty,
+                                     chestItemDefs,
+                                     testClassDefs,
+                                     testUpgradeDefs,
+                                     CombatResolver(Random(0L)),
+                                     rng = Random(0L)
+      )
+      for
+        _       <- database.saveCurrency(110)
+        session <- GameSession.create(smWithChest, database, chestItemDefs, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, rng = Random(0L)
+                   )
+        _      <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("rarity_insight")))
+        _      <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        update <- session.handle(Interact("c1"))
+      yield
+        val picked = update.equipment.potionBelt.flatten
+          .find(_.typeId == "health_potion")
+          .getOrElse(fail("expected a health potion in the belt"))
+        // rollChest's rarityFloorOverride excludes every tier below the floor entirely (not just
+        // reweights toward it), so "never Common" holds regardless of which seed rolls.
+        assertNotEquals(picked.rarity, "common", s"expected at least Uncommon, got ${picked.rarity}")
+  }
+
   // Note: unlike hp_boost_1/extra_slot, extra_potion_capacity's effect (Player.potionCapacity) has
   // no counterpart on PlayerView/StateUpdate to assert against at this level - applyUpgradeEffect's
   // ExtraPotionCapacity case is a one-line field set, structurally identical to the already-
@@ -705,7 +749,8 @@ class GameSessionSuite extends CatsEffectSuite:
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("mage_unlock")))
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_slot")))
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_potion_capacity")))
-        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("weapon_mastery")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("weapon_mastery")))
+        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("rarity_insight")))
       yield
         assert(last.newlyUnlocked.exists(_.id == "completionist"),
                s"expected completionist in newlyUnlocked: ${last.newlyUnlocked}"

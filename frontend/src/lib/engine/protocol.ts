@@ -48,6 +48,7 @@ export interface HubAction {
   classId?: ClassId;
   upgradeId?: string;
   difficulty?: Difficulty;
+  perkId?: string;
 }
 
 /** Resolve a pending equip choice. `targetSlot` omitted means "keep what's currently equipped,
@@ -150,8 +151,17 @@ export interface UpgradeView {
   unlocked: boolean;
 }
 
+/** One run perk offered to the player, rolled fresh every HUB visit. */
+export interface PerkView {
+  id: string;
+  label: string;
+  description: string;
+  icon: string;
+}
+
 export interface HubView {
   upgrades: UpgradeView[];
+  perks: PerkView[];
 }
 
 /** A single item as seen by the client, whether equipped, in the potion belt, or shown in a

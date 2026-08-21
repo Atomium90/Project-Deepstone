@@ -96,4 +96,6 @@ object AchievementChecker:
       case (AchievementCondition.RunsWon(n), GameEvent.RunEnded(victory, _)) =>
         victory && stats.runsWon >= n
       case (AchievementCondition.WinStreak(n), GameEvent.RunEnded(_, _)) => stats.currentWinStreak >= n
+      case (AchievementCondition.WinOnDifficulty(target), GameEvent.RunEnded(victory, difficulty)) =>
+        victory && difficulty == target
       case _                                                          => false

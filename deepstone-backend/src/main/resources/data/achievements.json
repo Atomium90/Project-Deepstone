@@ -110,5 +110,12 @@
     "description": "Fill a potion stack to its maximum capacity.",
     "displayOrder": 15,
     "condition": { "type": "FillPotionStack" }
+  },
+  {
+    "id": "hard_mode_victory",
+    "label": "Against All Odds",
+    "description": "Win a run on Hard difficulty.",
+    "displayOrder": 16,
+    "condition": { "type": "WinOnDifficulty", "difficulty": "hard" }
   }
 ]

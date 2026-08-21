@@ -37,6 +37,8 @@ class AchievementCheckerSuite extends FunSuite:
   private val setComplete   = defOf("set_complete", AchievementCondition.FourPieceSetActive)
   private val fullBelt      = defOf("full_belt", AchievementCondition.FillPotionBelt)
   private val stockpiler    = defOf("stockpiler", AchievementCondition.FillPotionStack)
+  private val hardModeVictory =
+    defOf("hard_mode_victory", AchievementCondition.WinOnDifficulty(Difficulty.Hard))
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -54,7 +56,8 @@ class AchievementCheckerSuite extends FunSuite:
     epicFind.id      -> epicFind,
     setComplete.id   -> setComplete,
     fullBelt.id      -> fullBelt,
-    stockpiler.id    -> stockpiler
+    stockpiler.id    -> stockpiler,
+    hardModeVictory.id -> hardModeVictory
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -217,6 +220,32 @@ class AchievementCheckerSuite extends FunSuite:
       List(itemPickedUp(stackAtCapacity = false))
     )
     assert(!belowCapacity.map(_.id).contains("stockpiler"))
+  }
+
+  test("winning on Hard unlocks hard_mode_victory; winning on Normal, or losing on Hard, does not") {
+    val (_, wonHard) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard))
+    )
+    assert(wonHard.map(_.id).contains("hard_mode_victory"))
+
+    val (_, wonNormal) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+    )
+    assert(!wonNormal.map(_.id).contains("hard_mode_victory"))
+
+    val (_, lostHard) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Hard))
+    )
+    assert(!lostHard.map(_.id).contains("hard_mode_victory"))
   }
 
   test("DoorUnlockedWithKey unlocks key_master") {

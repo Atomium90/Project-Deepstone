@@ -1,6 +1,7 @@
 package roguelite.game
 
 import munit.CatsEffectSuite
+import roguelite.engine.Difficulty
 
 /** Tests for [[AchievementLoader]]: JSON parsing and condition decoding for every achievement kind. */
 class AchievementLoaderSuite extends CatsEffectSuite:
@@ -26,7 +27,8 @@ class AchievementLoaderSuite extends CatsEffectSuite:
             "epic_find",
             "set_complete",
             "full_belt",
-            "stockpiler"
+            "stockpiler",
+            "hard_mode_victory"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -55,6 +57,9 @@ class AchievementLoaderSuite extends CatsEffectSuite:
           assertEquals(defs("set_complete").condition, AchievementCondition.FourPieceSetActive)
           assertEquals(defs("full_belt").condition, AchievementCondition.FillPotionBelt)
           assertEquals(defs("stockpiler").condition, AchievementCondition.FillPotionStack)
+          assertEquals(defs("hard_mode_victory").condition,
+                       AchievementCondition.WinOnDifficulty(Difficulty.Hard)
+          )
   }
 
   test("parameterized conditions decode with the right values") {

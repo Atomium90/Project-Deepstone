@@ -103,7 +103,11 @@
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : "#888";
     $: isPlayerTurn    = combat?.isPlayerTurn ?? false;
 
-    $: abilityDisabled = !isPlayerTurn || !player || player.resourceCurrent < (abilityInfo?.cost ?? Infinity);
+    /** The real, player-specific cost (set/perk discounts included) - falls back to the static
+     * catalog cost only if the server hasn't resolved it yet (e.g. the very first frame). */
+    $: effectiveAbilityCost = combat?.abilityCost ?? abilityInfo?.cost;
+
+    $: abilityDisabled = !isPlayerTurn || !player || player.resourceCurrent < (effectiveAbilityCost ?? Infinity);
 
     /** Only the potion belt can be used in combat. */
     $: consumables = (equipment?.potionBelt ?? []).filter((i): i is ItemView => i !== null);
@@ -216,7 +220,7 @@
             >
                 ✦ {abilityInfo?.name ?? "Ability"}
                 <span class="ability-cost">
-                    {abilityInfo?.cost ?? 0} {resourceLabel}
+                    {effectiveAbilityCost ?? 0} {resourceLabel}
                 </span>
             </button>
 

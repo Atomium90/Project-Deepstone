@@ -18,6 +18,11 @@ enum UpgradeEffect:
   /** Grow the potion belt from [[roguelite.engine.Player.BasePotionBeltSlots]] to 3 slots. */
   case ExtraPotionSlot
 
+  /** Raise each potion-belt stack's capacity from
+    * [[roguelite.engine.Player.BasePotionCapacity]] to [[roguelite.engine.Player.UpgradedPotionCapacity]].
+    */
+  case ExtraPotionCapacity
+
   /** Add one instance of the given item typeId to the starting inventory. Silently skipped if the
     * typeId is unknown or the inventory is full.
     */

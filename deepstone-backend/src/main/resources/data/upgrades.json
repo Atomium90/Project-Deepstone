@@ -58,5 +58,15 @@
     "icon": "⚗",
     "category": "stat",
     "effect": { "type": "ExtraPotionSlot" }
+  },
+  {
+    "id": "extra_potion_capacity",
+    "label": "Alchemist's Reserve",
+    "description": "Each potion stack holds up to 5 charges",
+    "cost": 70,
+    "displayOrder": 6,
+    "icon": "🧴",
+    "category": "stat",
+    "effect": { "type": "ExtraPotionCapacity" }
   }
 ]

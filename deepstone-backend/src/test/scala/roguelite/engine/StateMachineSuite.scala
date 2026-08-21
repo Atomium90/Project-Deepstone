@@ -261,6 +261,24 @@ class StateMachineSuite extends FunSuite:
       sm().applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assertEquals(next.asInstanceOf[ExplorationState].player.activePerkId, None)
 
+  // Regression test: StartRun's perk-effect match used to only handle ExtraStartingItem (the only
+  // case that existed when it was written) and threw a MatchError on every other perk kind once
+  // more were added alongside their combat/loot hooks. Cover one representative of each remaining
+  // kind so a future new PerkEffect case can't silently reintroduce the same gap.
+  List(
+    "heavy_hand"         -> PerkEffect.FlatDamageBonus(1),
+    "herbalist_blessing" -> PerkEffect.PotionHealBonusPercent(50),
+    "efficient_casting"  -> PerkEffect.AbilityCostReductionPercent(20),
+    "lucky_find"         -> PerkEffect.GuaranteedRarityFirstChest(Rarity.Rare)
+  ).foreach:
+    (id, effect) =>
+      test(s"StartRun with a $id perk (no StartRun-time effect) sets activePerkId without throwing"):
+        val perk = PerkDef(id, id, "test perk", icon = "*", effect = effect)
+        val hub  = HubState(hubPlayer, perkOptions = List(perk))
+        val TransitionResult(next, _, _, _) =
+          sm().applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), perkId = Some(id)))
+        assertEquals(next.asInstanceOf[ExplorationState].player.activePerkId, Some(id))
+
   // --- Exploration: movement -----------------------------------------------
 
   test("Move Up decreases playerY"):

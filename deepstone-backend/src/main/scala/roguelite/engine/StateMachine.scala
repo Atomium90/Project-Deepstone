@@ -146,6 +146,9 @@ class StateMachine(roomPool: Map[String, Room],
                                 case PickupOutcome.Discarded(updated)    => updated
                               }
                           }
+                        // Every other perk kind is read live from activePerkId wherever it
+                        // applies (CombatResolver/InteractionResolver) - no StartRun-time effect.
+                        case _ => playerWithKit
                       }
                       withEffect.copy(activePerkId = Some(perk.id))
                   }

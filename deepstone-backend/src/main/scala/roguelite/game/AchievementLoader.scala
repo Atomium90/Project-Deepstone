@@ -57,8 +57,18 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
         c.count.toRight("WinStreak is missing 'count' field").map(AchievementCondition.WinStreak.apply)
       case "AllUpgradesUnlocked" =>
         Right(AchievementCondition.AllUpgradesUnlocked)
+      case "LootRarity" =>
+        c.rarity
+          .toRight("LootRarity is missing 'rarity' field")
+          .flatMap(parseRarity)
+          .map(AchievementCondition.LootRarity.apply)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
+
+  private def parseRarity(s: String): Either[String, Rarity] =
+    Rarity.values
+      .find(_.toString.toLowerCase == s.toLowerCase)
+      .toRight(s"Unknown rarity: '$s'")
 
   // -----------------------------------------------------------------------
   // Internal JSON DTOs
@@ -68,7 +78,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
       `type`: String,
       level: Option[Int] = None,
       amount: Option[Int] = None,
-      count: Option[Int] = None
+      count: Option[Int] = None,
+      rarity: Option[String] = None
   )
 
   private case class AchievementDefJson(
@@ -86,7 +97,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
         level  <- c.get[Option[Int]]("level")
         amount <- c.get[Option[Int]]("amount")
         count  <- c.get[Option[Int]]("count")
-      yield AchievementConditionJson(t, level, amount, count)
+        rarity <- c.get[Option[String]]("rarity")
+      yield AchievementConditionJson(t, level, amount, count, rarity)
 
   private given Decoder[AchievementDefJson] = Decoder.instance:
     (c: HCursor) =>

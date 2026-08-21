@@ -82,5 +82,12 @@
     "description": "Unlock every hub upgrade.",
     "displayOrder": 11,
     "condition": { "type": "AllUpgradesUnlocked" }
+  },
+  {
+    "id": "epic_find",
+    "label": "Epic Find",
+    "description": "Loot an item that rolls Epic rarity.",
+    "displayOrder": 12,
+    "condition": { "type": "LootRarity", "rarity": "epic" }
   }
 ]

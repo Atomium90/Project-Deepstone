@@ -11,6 +11,16 @@ class AchievementCheckerSuite extends FunSuite:
   private def defOf(id: String, condition: AchievementCondition): AchievementDef =
     AchievementDef(id, id, id, displayOrder = 0, condition)
 
+  /** Builds an ItemPickedUp event with every field defaulted to its "nothing notable happened"
+    * value, so each test only names the one field its condition actually cares about. */
+  private def itemPickedUp(inventoryFull: Boolean = false,
+                           rarity: Rarity = Rarity.Common,
+                           hasFourPieceSet: Boolean = false,
+                           potionBeltFull: Boolean = false,
+                           stackAtCapacity: Boolean = false
+  ): GameEvent =
+    GameEvent.ItemPickedUp(inventoryFull, rarity, hasFourPieceSet, potionBeltFull, stackAtCapacity)
+
   private val firstBlood    = defOf("first_blood", AchievementCondition.FirstKill)
   private val bossSlayer    = defOf("boss_slayer", AchievementCondition.DefeatBoss)
   private val untouchable   = defOf("untouchable", AchievementCondition.NoDamageVictory)
@@ -23,6 +33,7 @@ class AchievementCheckerSuite extends FunSuite:
   private val winStreak     = defOf("win_streak", AchievementCondition.WinStreak(5))
   private val bigSpender    = defOf("big_spender", AchievementCondition.TotalShardsSpent(200))
   private val completionist = defOf("completionist", AchievementCondition.AllUpgradesUnlocked)
+  private val epicFind      = defOf("epic_find", AchievementCondition.LootRarity(Rarity.Epic))
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -36,7 +47,8 @@ class AchievementCheckerSuite extends FunSuite:
     champion.id      -> champion,
     winStreak.id     -> winStreak,
     bigSpender.id    -> bigSpender,
-    completionist.id -> completionist
+    completionist.id -> completionist,
+    epicFind.id      -> epicFind
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -116,12 +128,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.ItemPickedUp(inventoryFull = true,
-                                  rarity = Rarity.Common,
-                                  hasFourPieceSet = false,
-                                  potionBeltFull = false,
-                                  stackAtCapacity = false
-      ))
+      List(itemPickedUp(inventoryFull = true))
     )
     assert(full.map(_.id).contains("packrat"))
 
@@ -129,14 +136,27 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.ItemPickedUp(inventoryFull = false,
-                                  rarity = Rarity.Common,
-                                  hasFourPieceSet = false,
-                                  potionBeltFull = false,
-                                  stackAtCapacity = false
-      ))
+      List(itemPickedUp(inventoryFull = false))
     )
     assert(!notFull.map(_.id).contains("packrat"))
+  }
+
+  test("ItemPickedUp(rarity = Epic) unlocks epic_find, a lower rarity does not") {
+    val (_, epic) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(rarity = Rarity.Epic))
+    )
+    assert(epic.map(_.id).contains("epic_find"))
+
+    val (_, rare) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(rarity = Rarity.Rare))
+    )
+    assert(!rare.map(_.id).contains("epic_find"))
   }
 
   test("DoorUnlockedWithKey unlocks key_master") {

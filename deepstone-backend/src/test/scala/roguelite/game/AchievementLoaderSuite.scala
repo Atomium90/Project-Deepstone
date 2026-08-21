@@ -22,7 +22,8 @@ class AchievementLoaderSuite extends CatsEffectSuite:
             "veteran",
             "champion",
             "win_streak",
-            "completionist"
+            "completionist",
+            "epic_find"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -60,4 +61,5 @@ class AchievementLoaderSuite extends CatsEffectSuite:
           assertEquals(defs("veteran").condition, AchievementCondition.RunsCompleted(5))
           assertEquals(defs("champion").condition, AchievementCondition.RunsWon(5))
           assertEquals(defs("win_streak").condition, AchievementCondition.WinStreak(5))
+          assertEquals(defs("epic_find").condition, AchievementCondition.LootRarity(Rarity.Epic))
   }

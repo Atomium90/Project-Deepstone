@@ -20,6 +20,7 @@ enum AchievementCondition:
   case RunsWon(count: Int)
   case WinStreak(count: Int)
   case AllUpgradesUnlocked
+  case LootRarity(rarity: Rarity)
 
 /** Static definition of one achievement, loaded from `data/achievements.json`.
   *

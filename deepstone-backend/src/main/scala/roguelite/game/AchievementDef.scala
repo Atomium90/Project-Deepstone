@@ -1,5 +1,7 @@
 package roguelite.game
 
+import roguelite.engine.Difficulty
+
 /** Condition that must become true for an achievement to unlock.
   *
   * Checked by AchievementChecker against either a [[GameEvent]] (most conditions) or, for
@@ -20,6 +22,11 @@ enum AchievementCondition:
   case RunsWon(count: Int)
   case WinStreak(count: Int)
   case AllUpgradesUnlocked
+  case LootRarity(rarity: Rarity)
+  case FourPieceSetActive
+  case FillPotionBelt
+  case FillPotionStack
+  case WinOnDifficulty(difficulty: Difficulty)
 
 /** Static definition of one achievement, loaded from `data/achievements.json`.
   *

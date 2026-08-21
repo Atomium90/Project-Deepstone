@@ -63,7 +63,7 @@ object AchievementChecker:
     (updatedStats, satisfied.toList)
 
   private def applyEvent(stats: AchievementStats, event: GameEvent): AchievementStats = event match
-    case GameEvent.RunEnded(victory) =>
+    case GameEvent.RunEnded(victory, _) =>
       stats.copy(
         runsCompleted = stats.runsCompleted + 1,
         runsWon = if victory then stats.runsWon + 1 else stats.runsWon,
@@ -81,11 +81,21 @@ object AchievementChecker:
       case (AchievementCondition.NoDamageVictory, GameEvent.EnemyDefeated(_, tookNoDamage)) =>
         tookNoDamage
       case (AchievementCondition.ReachLevel(lvl), GameEvent.LeveledUp(newLevel)) => newLevel >= lvl
-      case (AchievementCondition.FillInventory, GameEvent.ItemPickedUp(full))    => full
+      case (AchievementCondition.FillInventory, GameEvent.ItemPickedUp(full, _, _, _, _)) => full
+      case (AchievementCondition.LootRarity(minRarity), GameEvent.ItemPickedUp(_, rarity, _, _, _)) =>
+        rarity.ordinal >= minRarity.ordinal
+      case (AchievementCondition.FourPieceSetActive, GameEvent.ItemPickedUp(_, _, hasFourPieceSet, _, _)) =>
+        hasFourPieceSet
+      case (AchievementCondition.FillPotionBelt, GameEvent.ItemPickedUp(_, _, _, potionBeltFull, _)) =>
+        potionBeltFull
+      case (AchievementCondition.FillPotionStack, GameEvent.ItemPickedUp(_, _, _, _, stackAtCapacity)) =>
+        stackAtCapacity
       case (AchievementCondition.UnlockDoorWithKey, GameEvent.DoorUnlockedWithKey) => true
       case (AchievementCondition.RevealSecretDoor, GameEvent.SecretDoorRevealed)   => true
-      case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_)) => stats.runsCompleted >= n
-      case (AchievementCondition.RunsWon(n), GameEvent.RunEnded(victory)) =>
+      case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_, _)) => stats.runsCompleted >= n
+      case (AchievementCondition.RunsWon(n), GameEvent.RunEnded(victory, _)) =>
         victory && stats.runsWon >= n
-      case (AchievementCondition.WinStreak(n), GameEvent.RunEnded(_)) => stats.currentWinStreak >= n
+      case (AchievementCondition.WinStreak(n), GameEvent.RunEnded(_, _)) => stats.currentWinStreak >= n
+      case (AchievementCondition.WinOnDifficulty(target), GameEvent.RunEnded(victory, difficulty)) =>
+        victory && difficulty == target
       case _                                                          => false

@@ -1,6 +1,7 @@
 package roguelite.game
 
 import munit.CatsEffectSuite
+import roguelite.engine.Difficulty
 
 /** Tests for [[AchievementLoader]]: JSON parsing and condition decoding for every achievement kind. */
 class AchievementLoaderSuite extends CatsEffectSuite:
@@ -22,7 +23,12 @@ class AchievementLoaderSuite extends CatsEffectSuite:
             "veteran",
             "champion",
             "win_streak",
-            "completionist"
+            "completionist",
+            "epic_find",
+            "set_complete",
+            "full_belt",
+            "stockpiler",
+            "hard_mode_victory"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -48,6 +54,12 @@ class AchievementLoaderSuite extends CatsEffectSuite:
           assertEquals(defs("key_master").condition, AchievementCondition.UnlockDoorWithKey)
           assertEquals(defs("secret_finder").condition, AchievementCondition.RevealSecretDoor)
           assertEquals(defs("completionist").condition, AchievementCondition.AllUpgradesUnlocked)
+          assertEquals(defs("set_complete").condition, AchievementCondition.FourPieceSetActive)
+          assertEquals(defs("full_belt").condition, AchievementCondition.FillPotionBelt)
+          assertEquals(defs("stockpiler").condition, AchievementCondition.FillPotionStack)
+          assertEquals(defs("hard_mode_victory").condition,
+                       AchievementCondition.WinOnDifficulty(Difficulty.Hard)
+          )
   }
 
   test("parameterized conditions decode with the right values") {
@@ -60,4 +72,5 @@ class AchievementLoaderSuite extends CatsEffectSuite:
           assertEquals(defs("veteran").condition, AchievementCondition.RunsCompleted(5))
           assertEquals(defs("champion").condition, AchievementCondition.RunsWon(5))
           assertEquals(defs("win_streak").condition, AchievementCondition.WinStreak(5))
+          assertEquals(defs("epic_find").condition, AchievementCondition.LootRarity(Rarity.Epic))
   }

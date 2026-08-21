@@ -227,7 +227,9 @@ class CombatResolverSuite extends FunSuite:
     assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true)),
            s"expected EnemyDefeated(isBoss=true, tookNoDamage=true): $events"
     )
-    assert(events.contains(GameEvent.RunEnded(victory = true)), s"expected RunEnded(true): $events")
+    assert(events.exists { case GameEvent.RunEnded(victory, _) => victory; case _ => false },
+           s"expected RunEnded(true): $events"
+    )
 
   test("non-boss victory emits EnemyDefeated(isBoss = false) and no RunEnded"):
     val (_, _, events) =
@@ -252,7 +254,9 @@ class CombatResolverSuite extends FunSuite:
     events match
       case Nil => () // player may not have died this turn, inconclusive
       case _ =>
-        assert(events.contains(GameEvent.RunEnded(victory = false)), s"expected RunEnded(false): $events")
+        assert(events.exists { case GameEvent.RunEnded(victory, _) => !victory; case _ => false },
+               s"expected RunEnded(false): $events"
+        )
 
   test("a kill that crosses an XP threshold emits LeveledUp"):
     val bigXpEnemy = weakEnemy(hp = 1).copy(xpReward = 200)
@@ -286,7 +290,7 @@ class CombatResolverSuite extends FunSuite:
     val state = combatState(enemy, player = nearlyFull)
     val (_, _, events) =
       CombatResolver(Random(0), itemDefs).resolve(state, CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.ItemPickedUp(inventoryFull = true)),
+    assert(events.exists { case GameEvent.ItemPickedUp(full, _, _, _, _) => full; case _ => false },
            s"expected ItemPickedUp(inventoryFull=true): $events"
     )
 

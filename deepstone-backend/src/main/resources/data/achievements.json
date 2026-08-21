@@ -82,5 +82,40 @@
     "description": "Unlock every hub upgrade.",
     "displayOrder": 11,
     "condition": { "type": "AllUpgradesUnlocked" }
+  },
+  {
+    "id": "epic_find",
+    "label": "Epic Find",
+    "description": "Loot an item that rolls Epic rarity.",
+    "displayOrder": 12,
+    "condition": { "type": "LootRarity", "rarity": "epic" }
+  },
+  {
+    "id": "set_complete",
+    "label": "Set Complete",
+    "description": "Have a full 4-piece equipment set bonus active.",
+    "displayOrder": 13,
+    "condition": { "type": "FourPieceSetActive" }
+  },
+  {
+    "id": "full_belt",
+    "label": "Fully Stocked",
+    "description": "Fill every potion belt slot.",
+    "displayOrder": 14,
+    "condition": { "type": "FillPotionBelt" }
+  },
+  {
+    "id": "stockpiler",
+    "label": "Stockpiler",
+    "description": "Fill a potion stack to its maximum capacity.",
+    "displayOrder": 15,
+    "condition": { "type": "FillPotionStack" }
+  },
+  {
+    "id": "hard_mode_victory",
+    "label": "Against All Odds",
+    "description": "Win a run on Hard difficulty.",
+    "displayOrder": 16,
+    "condition": { "type": "WinOnDifficulty", "difficulty": "hard" }
   }
 ]

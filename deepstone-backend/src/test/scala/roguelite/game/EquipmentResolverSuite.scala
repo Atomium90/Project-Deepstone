@@ -260,7 +260,10 @@ class EquipmentResolverSuite extends FunSuite:
     assertEquals(nextExp.pendingEquipChoice, None)
     assertEquals(nextExp.player.equippedWeapon, Some(sword2))
     assert(log.exists(_.contains(sword2.name)))
-    assert(events.contains(GameEvent.ItemPickedUp(inventoryFull = nextExp.player.isFullyEquipped)))
+    assert(events.exists {
+      case GameEvent.ItemPickedUp(full, _, _, _, _) => full == nextExp.player.isFullyEquipped
+      case _                                         => false
+    })
 
   test("resolveChoice targeting one of two accessory slots replaces only that accessory and adjusts maxHp"):
     val basePlayer = player.copy(equippedAccessories = Vector(Some(ring), Some(ring2)))

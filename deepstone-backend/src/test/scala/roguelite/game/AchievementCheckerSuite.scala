@@ -1,6 +1,7 @@
 package roguelite.game
 
 import munit.FunSuite
+import roguelite.engine.Difficulty
 
 /** Tests for [[AchievementChecker]]: pure logic, no DB, no GameState fixtures needed - every fact
   * needed is already embedded in the [[GameEvent]] or passed explicitly.
@@ -9,6 +10,16 @@ class AchievementCheckerSuite extends FunSuite:
 
   private def defOf(id: String, condition: AchievementCondition): AchievementDef =
     AchievementDef(id, id, id, displayOrder = 0, condition)
+
+  /** Builds an ItemPickedUp event with every field defaulted to its "nothing notable happened"
+    * value, so each test only names the one field its condition actually cares about. */
+  private def itemPickedUp(inventoryFull: Boolean = false,
+                           rarity: Rarity = Rarity.Common,
+                           hasFourPieceSet: Boolean = false,
+                           potionBeltFull: Boolean = false,
+                           stackAtCapacity: Boolean = false
+  ): GameEvent =
+    GameEvent.ItemPickedUp(inventoryFull, rarity, hasFourPieceSet, potionBeltFull, stackAtCapacity)
 
   private val firstBlood    = defOf("first_blood", AchievementCondition.FirstKill)
   private val bossSlayer    = defOf("boss_slayer", AchievementCondition.DefeatBoss)
@@ -22,6 +33,12 @@ class AchievementCheckerSuite extends FunSuite:
   private val winStreak     = defOf("win_streak", AchievementCondition.WinStreak(5))
   private val bigSpender    = defOf("big_spender", AchievementCondition.TotalShardsSpent(200))
   private val completionist = defOf("completionist", AchievementCondition.AllUpgradesUnlocked)
+  private val epicFind      = defOf("epic_find", AchievementCondition.LootRarity(Rarity.Epic))
+  private val setComplete   = defOf("set_complete", AchievementCondition.FourPieceSetActive)
+  private val fullBelt      = defOf("full_belt", AchievementCondition.FillPotionBelt)
+  private val stockpiler    = defOf("stockpiler", AchievementCondition.FillPotionStack)
+  private val hardModeVictory =
+    defOf("hard_mode_victory", AchievementCondition.WinOnDifficulty(Difficulty.Hard))
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -35,7 +52,12 @@ class AchievementCheckerSuite extends FunSuite:
     champion.id      -> champion,
     winStreak.id     -> winStreak,
     bigSpender.id    -> bigSpender,
-    completionist.id -> completionist
+    completionist.id -> completionist,
+    epicFind.id      -> epicFind,
+    setComplete.id   -> setComplete,
+    fullBelt.id      -> fullBelt,
+    stockpiler.id    -> stockpiler,
+    hardModeVictory.id -> hardModeVictory
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -115,7 +137,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.ItemPickedUp(inventoryFull = true))
+      List(itemPickedUp(inventoryFull = true))
     )
     assert(full.map(_.id).contains("packrat"))
 
@@ -123,9 +145,107 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.ItemPickedUp(inventoryFull = false))
+      List(itemPickedUp(inventoryFull = false))
     )
     assert(!notFull.map(_.id).contains("packrat"))
+  }
+
+  test("ItemPickedUp(rarity = Epic) unlocks epic_find, a lower rarity does not") {
+    val (_, epic) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(rarity = Rarity.Epic))
+    )
+    assert(epic.map(_.id).contains("epic_find"))
+
+    val (_, rare) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(rarity = Rarity.Rare))
+    )
+    assert(!rare.map(_.id).contains("epic_find"))
+  }
+
+  test("ItemPickedUp(hasFourPieceSet = true) unlocks set_complete, false does not") {
+    val (_, active) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(hasFourPieceSet = true))
+    )
+    assert(active.map(_.id).contains("set_complete"))
+
+    val (_, inactive) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(hasFourPieceSet = false))
+    )
+    assert(!inactive.map(_.id).contains("set_complete"))
+  }
+
+  test("ItemPickedUp(potionBeltFull = true) unlocks full_belt, false does not") {
+    val (_, full) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(potionBeltFull = true))
+    )
+    assert(full.map(_.id).contains("full_belt"))
+
+    val (_, notFull) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(potionBeltFull = false))
+    )
+    assert(!notFull.map(_.id).contains("full_belt"))
+  }
+
+  test("ItemPickedUp(stackAtCapacity = true) unlocks stockpiler, false does not") {
+    val (_, atCapacity) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(stackAtCapacity = true))
+    )
+    assert(atCapacity.map(_.id).contains("stockpiler"))
+
+    val (_, belowCapacity) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(itemPickedUp(stackAtCapacity = false))
+    )
+    assert(!belowCapacity.map(_.id).contains("stockpiler"))
+  }
+
+  test("winning on Hard unlocks hard_mode_victory; winning on Normal, or losing on Hard, does not") {
+    val (_, wonHard) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard))
+    )
+    assert(wonHard.map(_.id).contains("hard_mode_victory"))
+
+    val (_, wonNormal) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+    )
+    assert(!wonNormal.map(_.id).contains("hard_mode_victory"))
+
+    val (_, lostHard) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Hard))
+    )
+    assert(!lostHard.map(_.id).contains("hard_mode_victory"))
   }
 
   test("DoorUnlockedWithKey unlocks key_master") {
@@ -156,7 +276,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = false))
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal))
     )
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 3)
@@ -169,7 +289,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = true))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
     )
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 4)
@@ -182,7 +302,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = true))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
     )
     assertEquals(unlocked.map(_.id).toSet, Set("veteran", "champion", "win_streak"))
   }
@@ -193,7 +313,7 @@ class AchievementCheckerSuite extends FunSuite:
         allDefs,
         Set.empty,
         AchievementStats(runsCompleted = 4, runsWon = 4, currentWinStreak = 4),
-        List(GameEvent.RunEnded(victory = false))
+        List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal))
       )
     // runsCompleted also increments on a loss, so veteran (5 total runs, win or lose) legitimately
     // unlocks here - only win_streak/champion (win-gated) must NOT unlock from a loss.
@@ -204,7 +324,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("veteran"), // already persisted after the loss, per the production GameSession flow
       statsAfterLoss,
-      List(GameEvent.RunEnded(victory = true))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
     )
     assert(!unlockedAfterNextWin.map(_.id).contains("win_streak"),
            s"win_streak should not unlock right after a broken streak: $unlockedAfterNextWin"

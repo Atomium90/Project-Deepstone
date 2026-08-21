@@ -177,7 +177,9 @@ class InteractionResolverSuite extends FunSuite:
     val chest    = Chest("c1", x = 3, y = 3)
     val state    = explorationAt(3, 3, entities = List(chest))
     val TransitionResult(_, _, _, events) = resolver(itemDefs = itemDefs).interact(state, "c1")
-    assertEquals(events, List(GameEvent.ItemPickedUp(inventoryFull = false)))
+    events match
+      case List(GameEvent.ItemPickedUp(full, _, _, _, _)) => assertEquals(full, false)
+      case other                                           => fail(s"expected a single ItemPickedUp(inventoryFull=false), got $other")
 
   test("A chest pickup that collides with an equipped weapon offers a choice instead of equipping"):
     val existingWeapon = Weapon("existing", "hunters_bow", "Hunter's Bow", Rarity.Common, attackBonus = 5)

@@ -3,6 +3,7 @@ package roguelite.game
 import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
+import roguelite.engine.Difficulty
 
 /** Loads achievement definitions from `data/achievements.json` on the classpath. Resource reading
   * and error wrapping are handled by [[JsonResourceLoader]].
@@ -57,8 +58,34 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
         c.count.toRight("WinStreak is missing 'count' field").map(AchievementCondition.WinStreak.apply)
       case "AllUpgradesUnlocked" =>
         Right(AchievementCondition.AllUpgradesUnlocked)
+      case "LootRarity" =>
+        c.rarity
+          .toRight("LootRarity is missing 'rarity' field")
+          .flatMap(parseRarity)
+          .map(AchievementCondition.LootRarity.apply)
+      case "FourPieceSetActive" =>
+        Right(AchievementCondition.FourPieceSetActive)
+      case "FillPotionBelt" =>
+        Right(AchievementCondition.FillPotionBelt)
+      case "FillPotionStack" =>
+        Right(AchievementCondition.FillPotionStack)
+      case "WinOnDifficulty" =>
+        c.difficulty
+          .toRight("WinOnDifficulty is missing 'difficulty' field")
+          .flatMap(parseDifficulty)
+          .map(AchievementCondition.WinOnDifficulty.apply)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
+
+  private def parseRarity(s: String): Either[String, Rarity] =
+    Rarity.values
+      .find(_.toString.toLowerCase == s.toLowerCase)
+      .toRight(s"Unknown rarity: '$s'")
+
+  private def parseDifficulty(s: String): Either[String, Difficulty] =
+    Difficulty.values
+      .find(_.toString.toLowerCase == s.toLowerCase)
+      .toRight(s"Unknown difficulty: '$s'")
 
   // -----------------------------------------------------------------------
   // Internal JSON DTOs
@@ -68,7 +95,9 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
       `type`: String,
       level: Option[Int] = None,
       amount: Option[Int] = None,
-      count: Option[Int] = None
+      count: Option[Int] = None,
+      rarity: Option[String] = None,
+      difficulty: Option[String] = None
   )
 
   private case class AchievementDefJson(
@@ -82,11 +111,13 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
   private given Decoder[AchievementConditionJson] = Decoder.instance:
     (c: HCursor) =>
       for
-        t      <- c.get[String]("type")
-        level  <- c.get[Option[Int]]("level")
-        amount <- c.get[Option[Int]]("amount")
-        count  <- c.get[Option[Int]]("count")
-      yield AchievementConditionJson(t, level, amount, count)
+        t          <- c.get[String]("type")
+        level      <- c.get[Option[Int]]("level")
+        amount     <- c.get[Option[Int]]("amount")
+        count      <- c.get[Option[Int]]("count")
+        rarity     <- c.get[Option[String]]("rarity")
+        difficulty <- c.get[Option[String]]("difficulty")
+      yield AchievementConditionJson(t, level, amount, count, rarity, difficulty)
 
   private given Decoder[AchievementDefJson] = Decoder.instance:
     (c: HCursor) =>

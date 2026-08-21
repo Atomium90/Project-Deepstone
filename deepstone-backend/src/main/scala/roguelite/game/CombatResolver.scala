@@ -42,11 +42,16 @@ import boundary.break
   *   Loaded ability catalog, keyed by class. See [[AbilityLoader]].
   * @param setDefs
   *   Loaded equipment set catalog, keyed by setId. See [[SetLoader]].
+  * @param perkDefs
+  *   Loaded run-perk catalog, keyed by id. See [[PerkLoader]]. Resolves
+  *   [[roguelite.engine.Player.activePerkId]] back to its [[PerkEffect]] wherever a perk needs to
+  *   be checked live (the equivalent of `setDefs` for perks).
   */
 class CombatResolver(rng: Random = Random(),
                      itemDefs: Map[String, Item] = Map.empty,
                      abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
-                     setDefs: Map[String, SetDef] = Map.empty
+                     setDefs: Map[String, SetDef] = Map.empty,
+                     perkDefs: Map[String, PerkDef] = Map.empty
 ):
 
   /** Entry point called by the StateMachine for every CombatAction. */
@@ -602,10 +607,16 @@ class CombatResolver(rng: Random = Random(),
   private def sumSetBonus(player: Player, extract: PartialFunction[SetBonusEffect, Int]): Int =
     activeSetBonuses(player).collect(extract).sum
 
+  /** The player's chosen run perk, resolved against [[perkDefs]] (`None` if no perk is active or
+    * its id isn't in the loaded catalog).
+    */
+  private[game] def activePerkEffect(player: Player): Option[PerkEffect] =
+    player.activePerkId.flatMap(perkDefs.get).map(_.effect)
+
   /** Will be tuned later. */
   extension (player: Player)
     /** Effective attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon
-      * and accessory bonuses + any active set FlatAttack bonus.
+      * and accessory bonuses + any active set FlatAttack bonus + any active FlatDamageBonus perk.
       *
       * The equipped weapon's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Hunter's Bow (+5 ATK, "ranged") held by an Archer (affinity: "ranged") → +10 ATK.
@@ -618,7 +629,11 @@ class CombatResolver(rng: Random = Random(),
       }
       val accessoryBonus = accessoryBonusSum(player, _.attackBonus)
       val setBonus        = sumSetBonus(player, { case SetBonusEffect.FlatAttack(n) => n })
-      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus + setBonus
+      val perkBonus = activePerkEffect(player) match {
+        case Some(PerkEffect.FlatDamageBonus(n)) => n
+        case _                                   => 0
+      }
+      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus + setBonus + perkBonus
 
     /** Effective defense: level scaling + permanent bonus + affinity-aware armor and accessory
       * bonuses + any active set FlatDefense bonus.

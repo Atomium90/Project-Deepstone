@@ -29,6 +29,8 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
     e.`type` match
       case "ExtraStartingItem" =>
         e.typeId.toRight("ExtraStartingItem is missing 'typeId' field").map(PerkEffect.ExtraStartingItem.apply)
+      case "FlatDamageBonus" =>
+        e.amount.toRight("FlatDamageBonus is missing 'amount' field").map(PerkEffect.FlatDamageBonus.apply)
       case other =>
         Left(s"Unknown perk effect type: '$other'")
 
@@ -36,7 +38,7 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
   // Internal JSON DTOs
   // -----------------------------------------------------------------------
 
-  private case class PerkEffectJson(`type`: String, typeId: Option[String] = None)
+  private case class PerkEffectJson(`type`: String, typeId: Option[String] = None, amount: Option[Int] = None)
 
   private case class PerkDefJson(id: String, label: String, description: String, icon: String, effect: PerkEffectJson)
 
@@ -45,7 +47,8 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
       for
         t      <- c.get[String]("type")
         typeId <- c.get[Option[String]]("typeId")
-      yield PerkEffectJson(t, typeId)
+        amount <- c.get[Option[Int]]("amount")
+      yield PerkEffectJson(t, typeId, amount)
 
   private given Decoder[PerkDefJson] = Decoder.instance:
     (c: HCursor) =>

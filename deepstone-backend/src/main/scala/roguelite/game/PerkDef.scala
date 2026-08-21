@@ -4,9 +4,10 @@ package roguelite.game
   * persisted, unlike [[UpgradeEffect]].
   *
   * `ExtraStartingItem` is applied once, at the same point the class starting kit is resolved (see
-  * [[roguelite.engine.StateMachine]]'s `StartRun` case). Other perk kinds (ongoing combat/loot
-  * modifiers) are not part of this effect yet - they arrive alongside the resolver hooks that
-  * actually check them.
+  * [[roguelite.engine.StateMachine]]'s `StartRun` case). Every other kind is read live from
+  * [[roguelite.engine.Player.activePerkId]] wherever it applies (e.g. [[FlatDamageBonus]] in
+  * [[CombatResolver]]'s `attack` extension), the same "resolve an id against an external catalog"
+  * pattern already used for equipped set bonuses.
   */
 enum PerkEffect:
   /** Add one instance of the given item typeId to the starting inventory, same resolution as
@@ -14,6 +15,9 @@ enum PerkEffect:
     * slot is already full).
     */
   case ExtraStartingItem(typeId: String)
+
+  /** Flat bonus added to the player's effective attack for the whole run. */
+  case FlatDamageBonus(amount: Int)
 
 /** Static definition of one run perk, loaded from `data/perks.json`.
   *

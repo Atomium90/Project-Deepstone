@@ -5,5 +5,12 @@
     "description": "Start the run with one extra Health Potion",
     "icon": "🧪",
     "effect": { "type": "ExtraStartingItem", "typeId": "health_potion" }
+  },
+  {
+    "id": "heavy_hand",
+    "label": "Heavy Hand",
+    "description": "+1 flat damage per hit this run",
+    "icon": "👊",
+    "effect": { "type": "FlatDamageBonus", "amount": 1 }
   }
 ]

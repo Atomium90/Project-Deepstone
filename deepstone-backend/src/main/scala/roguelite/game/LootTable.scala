@@ -30,15 +30,22 @@ object LootTable:
     *
     * Returns None only if none of the pool typeIds exist in `itemDefs` (should not happen at
     * runtime with a valid items.json).
+    *
+    * @param rarityFloorOverride
+    *   Raises the tier roll's minimum eligible rarity to at least this (never lowers it below the
+    *   item's own authored floor) - the Lucky Find perk's hook. Scaling still stays relative to
+    *   the item's own authored floor, not the override, so an item already authored above Common
+    *   still doesn't get its bonus double-counted.
     */
   def rollChest(itemDefs: Map[String, Item],
                 rng: Random,
-                difficulty: Difficulty = Difficulty.Normal
+                difficulty: Difficulty = Difficulty.Normal,
+                rarityFloorOverride: Option[Rarity] = None
   ): Option[Item] =
     val pool = ChestPool.flatMap {
       case (typeId, w) => itemDefs.get(typeId).map(item => item -> weightFor(item, w, difficulty))
     }
-    pickWeighted(pool, rng).map(item => rollRarityAndScale(item, rng).withNewId)
+    pickWeighted(pool, rng).map(item => rollRarityAndScale(item, rng, rarityFloorOverride).withNewId)
 
   /** Roll an enemy drop.
     *
@@ -91,43 +98,49 @@ object LootTable:
     * magnitude gets bigger at higher rarity, not the duration. Key passes through unchanged,
     * keeping its authored rarity (a key has no numeric field to scale in the first place).
     */
-  private def rollRarityAndScale(item: Item, rng: Random): Item = item match
-    case w: Weapon =>
-      val tier = rollTier(w.rarity, rng)
-      w.copy(rarity = tier, attackBonus = scale(w.attackBonus, w.rarity, tier))
+  private def rollRarityAndScale(item: Item, rng: Random, floorOverride: Option[Rarity] = None): Item =
+    val effectiveFloor = (authored: Rarity) =>
+      floorOverride match {
+        case Some(o) if o.ordinal > authored.ordinal => o
+        case _                                       => authored
+      }
+    item match
+      case w: Weapon =>
+        val tier = rollTier(effectiveFloor(w.rarity), rng)
+        w.copy(rarity = tier, attackBonus = scale(w.attackBonus, w.rarity, tier))
 
-    case a: Armor =>
-      val tier = rollTier(a.rarity, rng)
-      a.copy(rarity = tier, defenseBonus = scale(a.defenseBonus, a.rarity, tier))
+      case a: Armor =>
+        val tier = rollTier(effectiveFloor(a.rarity), rng)
+        a.copy(rarity = tier, defenseBonus = scale(a.defenseBonus, a.rarity, tier))
 
-    case acc: Accessory =>
-      val tier = rollTier(acc.rarity, rng)
-      acc.copy(
-        rarity = tier,
-        hpBonus = acc.hpBonus.map(scale(_, acc.rarity, tier)),
-        attackBonus = acc.attackBonus.map(scale(_, acc.rarity, tier)),
-        defenseBonus = acc.defenseBonus.map(scale(_, acc.rarity, tier)),
-        critChanceBonus = acc.critChanceBonus.map(scale(_, acc.rarity, tier))
-      )
+      case acc: Accessory =>
+        val tier = rollTier(effectiveFloor(acc.rarity), rng)
+        acc.copy(
+          rarity = tier,
+          hpBonus = acc.hpBonus.map(scale(_, acc.rarity, tier)),
+          attackBonus = acc.attackBonus.map(scale(_, acc.rarity, tier)),
+          defenseBonus = acc.defenseBonus.map(scale(_, acc.rarity, tier)),
+          critChanceBonus = acc.critChanceBonus.map(scale(_, acc.rarity, tier))
+        )
 
-    case c: Consumable =>
-      val tier = rollTier(c.rarity, rng)
-      val scaledEffect = c.effect match
-        case ConsumableEffect.HealFixed(amount) =>
-          ConsumableEffect.HealFixed(scale(amount, c.rarity, tier, _.potionMultiplier))
-        case ConsumableEffect.HealPercent(pct) =>
-          ConsumableEffect.HealPercent(math.min(100, scale(pct, c.rarity, tier, _.potionMultiplier)))
-        case ConsumableEffect.RestoreResource(amount) =>
-          ConsumableEffect.RestoreResource(scale(amount, c.rarity, tier, _.potionMultiplier))
-        case ConsumableEffect.FlatDamage(amount) =>
-          ConsumableEffect.FlatDamage(scale(amount, c.rarity, tier, _.potionMultiplier))
-        case ConsumableEffect.AttackBuff(percent, turns) =>
-          ConsumableEffect.AttackBuff(scale(percent, c.rarity, tier), turns)
-        case ConsumableEffect.CritBuff(percent, turns) =>
-          ConsumableEffect.CritBuff(scale(percent, c.rarity, tier), turns)
-      c.copy(rarity = tier, effect = scaledEffect)
+      case c: Consumable =>
+        val tier = rollTier(effectiveFloor(c.rarity), rng)
+        val scaledEffect = c.effect match
+          case ConsumableEffect.HealFixed(amount) =>
+            ConsumableEffect.HealFixed(scale(amount, c.rarity, tier, _.potionMultiplier))
+          case ConsumableEffect.HealPercent(pct) =>
+            ConsumableEffect.HealPercent(math.min(100, scale(pct, c.rarity, tier, _.potionMultiplier)))
+          case ConsumableEffect.RestoreResource(amount) =>
+            ConsumableEffect.RestoreResource(scale(amount, c.rarity, tier, _.potionMultiplier))
+          case ConsumableEffect.FlatDamage(amount) =>
+            ConsumableEffect.FlatDamage(scale(amount, c.rarity, tier, _.potionMultiplier))
+          case ConsumableEffect.AttackBuff(percent, turns) =>
+            ConsumableEffect.AttackBuff(scale(percent, c.rarity, tier), turns)
+          case ConsumableEffect.CritBuff(percent, turns) =>
+            ConsumableEffect.CritBuff(scale(percent, c.rarity, tier), turns)
+        c.copy(rarity = tier, effect = scaledEffect)
 
-    case other => other
+      case other => other
 
   /** Roll a tier at or above `floor`, weighted by [[RarityRollWeights]]. Falls back to `floor`
     * itself in the unreachable case of every eligible tier having non-positive weight.

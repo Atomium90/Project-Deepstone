@@ -57,7 +57,9 @@ object Main extends IOApp.Simple:
                 s"${achievementDefs.size} achievements, ${setDefs.size} equipment sets, ${perkDefs.size} run perks."
             )
 
-            resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs, setDefs = setDefs)
+            resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs, setDefs = setDefs,
+                                      perkDefs = perkDefs
+            )
             stateMachine = StateMachine(roomPool,
                                         enemyStats,
                                         itemDefs,
@@ -65,7 +67,8 @@ object Main extends IOApp.Simple:
                                         upgradeDefs,
                                         resolver,
                                         npcDialogueDefs = npcDialogueDefs,
-                                        setDefs = setDefs
+                                        setDefs = setDefs,
+                                        perkDefs = perkDefs
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
                                      achievementDefs, setDefs, perkDefs

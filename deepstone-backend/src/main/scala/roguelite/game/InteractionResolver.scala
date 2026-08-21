@@ -1,6 +1,6 @@
 package roguelite.game
 
-import roguelite.engine.{ CombatState, DialogueView, Direction, ExplorationState, GameState, TransitionResult }
+import roguelite.engine.{ CombatState, DialogueView, Direction, ExplorationState, GameState, Player, TransitionResult }
 
 import scala.util.Random
 
@@ -21,14 +21,25 @@ import scala.util.Random
   * @param clock
   *   Wall-clock time source for the NPC interact cooldown. Inject a fake one for deterministic
   *   tests; defaults to real time in production.
+  * @param perkDefs
+  *   Loaded run-perk catalog, keyed by id. See [[PerkLoader]]. Resolves
+  *   [[roguelite.engine.Player.activePerkId]] back to its [[PerkEffect]] for the Lucky Find hook
+  *   in [[handleChest]] - same role as `setDefs` for equipment set bonuses.
   */
 class InteractionResolver(enemyStats: Map[String, EnemyStats],
                           itemDefs: Map[String, Item],
                           rng: Random = Random(),
                           npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
                           clock: () => Long = () => System.currentTimeMillis(),
-                          setDefs: Map[String, SetDef] = Map.empty
+                          setDefs: Map[String, SetDef] = Map.empty,
+                          perkDefs: Map[String, PerkDef] = Map.empty
 ):
+
+  /** The player's chosen run perk, resolved against [[perkDefs]] (mirrors
+    * `CombatResolver.activePerkEffect`).
+    */
+  private def activePerkEffect(player: Player): Option[PerkEffect] =
+    player.activePerkId.flatMap(perkDefs.get).map(_.effect)
 
   def interact(exp: ExplorationState, targetId: String): TransitionResult =
     exp.dungeon.currentRoom.entityById(targetId) match {
@@ -156,11 +167,21 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         rooms = exp.dungeon.rooms.updated(roomWithoutChest.id, roomWithoutChest)
       )
 
-      LootTable.rollChest(itemDefs, rng, exp.difficulty) match {
+      // Lucky Find: raise the roll's floor for this one chest, then consume the perk regardless of
+      // what the roll actually lands on - it's a one-shot boost to the roll, not a standing floor.
+      val rarityFloorOverride = activePerkEffect(exp.player) match {
+        case Some(PerkEffect.GuaranteedRarityFirstChest(minRarity)) if !exp.player.firstChestBonusUsed =>
+          Some(minRarity)
+        case _ => None
+      }
+      val basePlayer =
+        if rarityFloorOverride.isDefined then exp.player.copy(firstChestBonusUsed = true) else exp.player
+
+      LootTable.rollChest(itemDefs, rng, exp.difficulty, rarityFloorOverride) match {
         case None =>
-          (exp.copy(dungeon = updatedDungeon), List("You open the chest. It's empty."), Nil)
+          (exp.copy(dungeon = updatedDungeon, player = basePlayer), List("You open the chest. It's empty."), Nil)
         case Some(item) =>
-          EquipmentResolver.resolvePickup(exp.player, item, setDefs) match {
+          EquipmentResolver.resolvePickup(basePlayer, item, setDefs) match {
             case PickupOutcome.Equipped(p) =>
               (exp.copy(dungeon = updatedDungeon, player = p),
                List(s"You open the chest and find ${item.name}! (${item.statLine})"),
@@ -174,7 +195,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
               )
 
             case PickupOutcome.ChoicePending(pending) =>
-              (exp.copy(dungeon = updatedDungeon, pendingEquipChoice = Some(pending)),
+              (exp.copy(dungeon = updatedDungeon, player = basePlayer, pendingEquipChoice = Some(pending)),
                List(s"You open the chest and find ${item.name}. Choose what to do with it."),
                Nil
               )

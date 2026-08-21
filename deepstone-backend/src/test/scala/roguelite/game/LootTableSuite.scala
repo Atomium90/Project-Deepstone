@@ -155,6 +155,40 @@ class LootTableSuite extends FunSuite:
       _ => LootTable.rollEnemy(enemy, itemDefs, rng).exists(_.rarity != Rarity.Common)
     assert(rolledAboveFloor, "expected at least one health_potion drop above its Common floor in 500 trials")
 
+  // --- rarityFloorOverride (Lucky Find perk hook) ---------------------------
+
+  test("rarityFloorOverride raises the minimum eligible tier for rollChest"):
+    val soleItem: Map[String, Item] = Map("health_potion" -> itemDefs("health_potion")) // Common floor
+    val rng = Random(11)
+    (1 to 300).foreach:
+      _ =>
+        val item = LootTable.rollChest(soleItem, rng, rarityFloorOverride = Some(Rarity.Rare))
+          .getOrElse(fail("expected Some"))
+        assert(item.rarity.ordinal >= Rarity.Rare.ordinal, s"expected at least Rare with the override, got ${item.rarity}")
+
+  test("rarityFloorOverride never pulls a roll below the item's own authored floor"):
+    val soleItem: Map[String, Item] = Map("steel_sword" -> itemDefs("steel_sword")) // Uncommon floor
+    val rng = Random(11)
+    (1 to 300).foreach:
+      _ =>
+        // An override of Common (lower than steel_sword's own Uncommon floor) must not pull it down.
+        val item = LootTable.rollChest(soleItem, rng, rarityFloorOverride = Some(Rarity.Common))
+          .getOrElse(fail("expected Some"))
+        assert(item.rarity.ordinal >= Rarity.Uncommon.ordinal,
+               s"expected at least Uncommon (its own floor), got ${item.rarity}"
+        )
+
+  test("scaling under an override still uses the item's own authored floor as the baseline"):
+    val soleItem: Map[String, Item] = Map("steel_sword" -> itemDefs("steel_sword")) // Uncommon floor, +7 ATK
+    val rng = Random(3)
+    val epicRoll = (1 to 500)
+      .flatMap(_ => LootTable.rollChest(soleItem, rng, rarityFloorOverride = Some(Rarity.Rare)))
+      .collectFirst { case w: Weapon if w.rarity == Rarity.Epic => w }
+      .getOrElse(fail("expected at least one Epic roll in 500 trials"))
+    val expected =
+      math.max(1, math.round(7 * (Rarity.Epic.statMultiplier / Rarity.Uncommon.statMultiplier)).toInt)
+    assertEquals(epicRoll.attackBonus, expected)
+
   test("a HealFixed potion's amount scales by potionMultiplier relative to its floor when rolled higher"):
     val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
     val rng   = Random(3)

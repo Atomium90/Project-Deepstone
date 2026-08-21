@@ -4,9 +4,10 @@ package roguelite.game
   * persisted, unlike [[UpgradeEffect]].
   *
   * `ExtraStartingItem` is applied once, at the same point the class starting kit is resolved (see
-  * [[roguelite.engine.StateMachine]]'s `StartRun` case). Other perk kinds (ongoing combat/loot
-  * modifiers) are not part of this effect yet - they arrive alongside the resolver hooks that
-  * actually check them.
+  * [[roguelite.engine.StateMachine]]'s `StartRun` case). Every other kind is read live from
+  * [[roguelite.engine.Player.activePerkId]] wherever it applies (e.g. [[FlatDamageBonus]] in
+  * [[CombatResolver]]'s `attack` extension), the same "resolve an id against an external catalog"
+  * pattern already used for equipped set bonuses.
   */
 enum PerkEffect:
   /** Add one instance of the given item typeId to the starting inventory, same resolution as
@@ -14,6 +15,26 @@ enum PerkEffect:
     * slot is already full).
     */
   case ExtraStartingItem(typeId: String)
+
+  /** Flat bonus added to the player's effective attack for the whole run. */
+  case FlatDamageBonus(amount: Int)
+
+  /** Percent bonus applied to every potion's heal amount (HealFixed and HealPercent alike) for the
+    * whole run.
+    */
+  case PotionHealBonusPercent(percent: Int)
+
+  /** Percent reduction applied to every ability's resource cost for the whole run. Stacks
+    * additively with any active set AbilityCostReductionPercent bonus (Pyromancer 4pc), same
+    * combination rule the set system already uses for stacking multiple effects of one kind.
+    */
+  case AbilityCostReductionPercent(percent: Int)
+
+  /** The first chest opened this run rolls at least `minRarity`, consumed by
+    * [[roguelite.engine.Player.firstChestBonusUsed]] regardless of what the roll actually lands on
+    * - a one-shot boost to the roll itself, not a standing floor for the rest of the run.
+    */
+  case GuaranteedRarityFirstChest(minRarity: Rarity)
 
 /** Static definition of one run perk, loaded from `data/perks.json`.
   *

@@ -10,6 +10,7 @@ import roguelite.game.{
   InteractionResolver,
   Item,
   NpcDialogueDef,
+  PerkDef,
   PerkEffect,
   PickupOutcome,
   Room,
@@ -48,6 +49,10 @@ import roguelite.game.UpgradeEffect
   * @param npcDialogueDefs
   *   NPC dialogue catalog (see [[roguelite.game.NpcDialogueLoader]]), passed through to
   *   [[InteractionResolver]].
+  * @param perkDefs
+  *   The loaded run-perk catalog, passed through to [[InteractionResolver]] for the Lucky Find
+  *   chest hook. `StartRun`'s own perk validation doesn't need this separately - it reads the
+  *   full `PerkDef` straight off `HubState.perkOptions`.
   */
 class StateMachine(roomPool: Map[String, Room],
                    enemyStats: Map[String, EnemyStats],
@@ -57,10 +62,11 @@ class StateMachine(roomPool: Map[String, Room],
                    resolver: CombatResolver,
                    rng: Random = Random(),
                    npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
-                   setDefs: Map[String, SetDef] = Map.empty
+                   setDefs: Map[String, SetDef] = Map.empty,
+                   perkDefs: Map[String, PerkDef] = Map.empty
 ):
   private val interactionResolver =
-    InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs, setDefs = setDefs)
+    InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs, setDefs = setDefs, perkDefs = perkDefs)
 
   /** Lifts a plain (state, log) transition result into the richer type `applyActionPure` returns,
     * so every action that never produces dialogue (everything except Interact on an Npc) can keep

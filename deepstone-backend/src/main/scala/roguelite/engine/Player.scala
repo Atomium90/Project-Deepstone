@@ -21,7 +21,8 @@ case class Player(
     potionBelt: Vector[Option[Consumable]] = Player.emptyPotionBelt,
     keyCounts: Map[KeyKind, Int] = Map.empty,
     activeSetHpBonusFlat: Int = 0,
-    activePerkId: Option[String] = None
+    activePerkId: Option[String] = None,
+    firstChestBonusUsed: Boolean = false
 ):
   def toView: PlayerView = PlayerView(
     classId = classId,

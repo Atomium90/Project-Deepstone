@@ -42,11 +42,16 @@ import boundary.break
   *   Loaded ability catalog, keyed by class. See [[AbilityLoader]].
   * @param setDefs
   *   Loaded equipment set catalog, keyed by setId. See [[SetLoader]].
+  * @param perkDefs
+  *   Loaded run-perk catalog, keyed by id. See [[PerkLoader]]. Resolves
+  *   [[roguelite.engine.Player.activePerkId]] back to its [[PerkEffect]] wherever a perk needs to
+  *   be checked live (the equivalent of `setDefs` for perks).
   */
 class CombatResolver(rng: Random = Random(),
                      itemDefs: Map[String, Item] = Map.empty,
                      abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
-                     setDefs: Map[String, SetDef] = Map.empty
+                     setDefs: Map[String, SetDef] = Map.empty,
+                     perkDefs: Map[String, PerkDef] = Map.empty
 ):
 
   /** Entry point called by the StateMachine for every CombatAction. */
@@ -190,12 +195,16 @@ class CombatResolver(rng: Random = Random(),
           applyAbilityEffect(state.copy(player = updatedPlayer), ability)
     }
 
-  /** `ability.cost` reduced by any active set AbilityCostReductionPercent bonus (Pyromancer 4pc),
-    * floored at 0.
+  /** `ability.cost` reduced by any active set AbilityCostReductionPercent bonus (Pyromancer 4pc)
+    * plus any active AbilityCostReductionPercent perk, summed then applied once, floored at 0.
     */
   private def effectiveAbilityCost(player: Player, ability: AbilityDef): Int =
-    val reduction = sumSetBonus(player, { case SetBonusEffect.AbilityCostReductionPercent(n) => n })
-    math.round(ability.cost * (100 - reduction).max(0) / 100.0).toInt
+    val setReduction  = sumSetBonus(player, { case SetBonusEffect.AbilityCostReductionPercent(n) => n })
+    val perkReduction = activePerkEffect(player) match {
+      case Some(PerkEffect.AbilityCostReductionPercent(n)) => n
+      case _                                               => 0
+    }
+    math.round(ability.cost * (100 - setReduction - perkReduction).max(0) / 100.0).toInt
 
   /** Apply an ability's effect once its cost has already been deducted. */
   private def applyAbilityEffect(state: CombatState,
@@ -271,11 +280,19 @@ class CombatResolver(rng: Random = Random(),
     * can kill the enemy (FlatDamage) - the killing blow's damage, so [[handleItem]] knows to
     * route to [[victory]] instead of continuing to [[enemyTurn]].
     */
+  /** `amount` scaled up by any active PotionHealBonusPercent perk, rounded to the nearest int. */
+  private def applyPotionHealBonus(player: Player, amount: Int): Int =
+    activePerkEffect(player) match {
+      case Some(PerkEffect.PotionHealBonusPercent(pct)) => math.round(amount * (100 + pct) / 100.0).toInt
+      case _                                            => amount
+    }
+
   private def applyConsumableEffect(state: CombatState,
                                     item: Consumable
   ): (CombatState, List[String], List[GameEvent], Option[Int]) =
     item.effect match
-      case ConsumableEffect.HealFixed(amount) =>
+      case ConsumableEffect.HealFixed(baseAmount) =>
+        val amount = applyPotionHealBonus(state.player, baseAmount)
         val before = state.player.hp
         val after  = (state.player.hp + amount).min(state.player.maxHp)
         val healed = after - before
@@ -286,7 +303,8 @@ class CombatResolver(rng: Random = Random(),
         )
 
       case ConsumableEffect.HealPercent(pct) =>
-        val amount = (state.player.maxHp * pct / 100).max(1)
+        val baseAmount = (state.player.maxHp * pct / 100).max(1)
+        val amount     = applyPotionHealBonus(state.player, baseAmount)
         val before = state.player.hp
         val after  = (state.player.hp + amount).min(state.player.maxHp)
         val healed = after - before
@@ -602,10 +620,16 @@ class CombatResolver(rng: Random = Random(),
   private def sumSetBonus(player: Player, extract: PartialFunction[SetBonusEffect, Int]): Int =
     activeSetBonuses(player).collect(extract).sum
 
+  /** The player's chosen run perk, resolved against [[perkDefs]] (`None` if no perk is active or
+    * its id isn't in the loaded catalog).
+    */
+  private[game] def activePerkEffect(player: Player): Option[PerkEffect] =
+    player.activePerkId.flatMap(perkDefs.get).map(_.effect)
+
   /** Will be tuned later. */
   extension (player: Player)
     /** Effective attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon
-      * and accessory bonuses + any active set FlatAttack bonus.
+      * and accessory bonuses + any active set FlatAttack bonus + any active FlatDamageBonus perk.
       *
       * The equipped weapon's bonus is doubled if its typeTag is in the player's affinityTags.
       * Example: Hunter's Bow (+5 ATK, "ranged") held by an Archer (affinity: "ranged") → +10 ATK.
@@ -618,7 +642,11 @@ class CombatResolver(rng: Random = Random(),
       }
       val accessoryBonus = accessoryBonusSum(player, _.attackBonus)
       val setBonus        = sumSetBonus(player, { case SetBonusEffect.FlatAttack(n) => n })
-      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus + setBonus
+      val perkBonus = activePerkEffect(player) match {
+        case Some(PerkEffect.FlatDamageBonus(n)) => n
+        case _                                   => 0
+      }
+      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus + setBonus + perkBonus
 
     /** Effective defense: level scaling + permanent bonus + affinity-aware armor and accessory
       * bonuses + any active set FlatDefense bonus.

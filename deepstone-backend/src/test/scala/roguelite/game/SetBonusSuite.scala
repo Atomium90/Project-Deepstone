@@ -134,6 +134,36 @@ class SetBonusSuite extends FunSuite:
   }
 
   // -----------------------------------------------------------------------
+  // hasFourPieceSetActive: same class-gating as activeBonuses, boolean shape
+  // -----------------------------------------------------------------------
+
+  test("hasFourPieceSetActive is true at 4 pieces, false below that") {
+    val setDefs = Map("two_piece_set" -> twoPieceOnly)
+    val player  = makePlayer()
+    assertEquals(
+      SetDef.hasFourPieceSetActive(withSetPieces(player, "two_piece_set", 4).equippedSetIds, setDefs, ClassId.Warrior),
+      true
+    )
+    assertEquals(
+      SetDef.hasFourPieceSetActive(withSetPieces(player, "two_piece_set", 3).equippedSetIds, setDefs, ClassId.Warrior),
+      false
+    )
+  }
+
+  test("hasFourPieceSetActive is false when the set's classId doesn't match the player's class") {
+    val setDefs = Map("two_piece_set" -> twoPieceOnly)
+    val archer  = withSetPieces(makePlayer(classId = ClassId.Archer), "two_piece_set", 4)
+    assertEquals(SetDef.hasFourPieceSetActive(archer.equippedSetIds, setDefs, ClassId.Archer), false,
+                 "an Archer wearing a full Warrior set should not count as an active 4-piece bonus"
+    )
+  }
+
+  test("hasFourPieceSetActive is false for a setId absent from the loaded catalog") {
+    val player = withSetPieces(makePlayer(), "unknown_set", 4)
+    assertEquals(SetDef.hasFourPieceSetActive(player.equippedSetIds, Map.empty, ClassId.Warrior), false)
+  }
+
+  // -----------------------------------------------------------------------
   // FlatAttack / FlatDefense: show up exactly in combat math
   // -----------------------------------------------------------------------
 

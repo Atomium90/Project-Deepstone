@@ -63,7 +63,7 @@ object AchievementChecker:
     (updatedStats, satisfied.toList)
 
   private def applyEvent(stats: AchievementStats, event: GameEvent): AchievementStats = event match
-    case GameEvent.RunEnded(victory) =>
+    case GameEvent.RunEnded(victory, _) =>
       stats.copy(
         runsCompleted = stats.runsCompleted + 1,
         runsWon = if victory then stats.runsWon + 1 else stats.runsWon,
@@ -84,8 +84,8 @@ object AchievementChecker:
       case (AchievementCondition.FillInventory, GameEvent.ItemPickedUp(full, _, _, _, _)) => full
       case (AchievementCondition.UnlockDoorWithKey, GameEvent.DoorUnlockedWithKey) => true
       case (AchievementCondition.RevealSecretDoor, GameEvent.SecretDoorRevealed)   => true
-      case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_)) => stats.runsCompleted >= n
-      case (AchievementCondition.RunsWon(n), GameEvent.RunEnded(victory)) =>
+      case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_, _)) => stats.runsCompleted >= n
+      case (AchievementCondition.RunsWon(n), GameEvent.RunEnded(victory, _)) =>
         victory && stats.runsWon >= n
-      case (AchievementCondition.WinStreak(n), GameEvent.RunEnded(_)) => stats.currentWinStreak >= n
+      case (AchievementCondition.WinStreak(n), GameEvent.RunEnded(_, _)) => stats.currentWinStreak >= n
       case _                                                          => false

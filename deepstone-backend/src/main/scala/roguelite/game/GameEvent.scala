@@ -1,6 +1,6 @@
 package roguelite.game
 
-import roguelite.engine.Player
+import roguelite.engine.{ Difficulty, Player }
 
 /** Pure domain facts describing "achievement-worthy" things that happened during a state
   * transition. Emitted by the resolvers that already have the relevant context in scope
@@ -42,7 +42,7 @@ enum GameEvent:
   case SecretDoorRevealed
 
   /** A run ended, win or lose. */
-  case RunEnded(victory: Boolean)
+  case RunEnded(victory: Boolean, difficulty: Difficulty)
 
   /** Damage was dealt to a combatant. `targetIsPlayer` distinguishes the player taking a hit from
     * the player's attack landing on the enemy - `amount` is always positive. `crit` is true only

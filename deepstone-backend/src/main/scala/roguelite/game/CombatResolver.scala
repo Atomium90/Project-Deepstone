@@ -548,7 +548,7 @@ class CombatResolver(rng: Random = Random(),
       val runCompleteLog = List("You have vanquished the dungeon's guardian! Victory is yours.")
       val events =
         enemyDefeatedEvent :: healEvent ::: lootEvents ::: levelUpEvents :::
-          List(GameEvent.RunEnded(victory = true))
+          List(GameEvent.RunEnded(victory = true, difficulty = state.difficulty))
       (GameOverState(finalPlayer, victory = true),
        victoryLog ++ lootLog ++ levelUpLog ++ runCompleteLog,
        events
@@ -573,7 +573,10 @@ class CombatResolver(rng: Random = Random(),
                      log: List[String]
   ): (GameState, List[String], List[GameEvent]) =
     val defeatLog = log :+ "You have been defeated. The dungeon claims another soul."
-    (GameOverState(deadPlayer), defeatLog, List(GameEvent.RunEnded(victory = false)))
+    (GameOverState(deadPlayer),
+     defeatLog,
+     List(GameEvent.RunEnded(victory = false, difficulty = state.difficulty))
+    )
 
   // ---------------------------------------------
   // Damage formula

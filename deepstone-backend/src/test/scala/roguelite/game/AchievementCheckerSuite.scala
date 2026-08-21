@@ -1,6 +1,7 @@
 package roguelite.game
 
 import munit.FunSuite
+import roguelite.engine.Difficulty
 
 /** Tests for [[AchievementChecker]]: pure logic, no DB, no GameState fixtures needed - every fact
   * needed is already embedded in the [[GameEvent]] or passed explicitly.
@@ -166,7 +167,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = false))
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal))
     )
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 3)
@@ -179,7 +180,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = true))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
     )
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 4)
@@ -192,7 +193,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = true))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
     )
     assertEquals(unlocked.map(_.id).toSet, Set("veteran", "champion", "win_streak"))
   }
@@ -203,7 +204,7 @@ class AchievementCheckerSuite extends FunSuite:
         allDefs,
         Set.empty,
         AchievementStats(runsCompleted = 4, runsWon = 4, currentWinStreak = 4),
-        List(GameEvent.RunEnded(victory = false))
+        List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal))
       )
     // runsCompleted also increments on a loss, so veteran (5 total runs, win or lose) legitimately
     // unlocks here - only win_streak/champion (win-gated) must NOT unlock from a loss.
@@ -214,7 +215,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("veteran"), // already persisted after the loss, per the production GameSession flow
       statsAfterLoss,
-      List(GameEvent.RunEnded(victory = true))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
     )
     assert(!unlockedAfterNextWin.map(_.id).contains("win_streak"),
            s"win_streak should not unlock right after a broken streak: $unlockedAfterNextWin"

@@ -93,3 +93,15 @@ class ClassLoaderSuite extends CatsEffectSuite:
               s"${cd.classId} startingKit references unknown typeId '$typeId'"
             )
   }
+
+  // Regression: no class's starting kit grants a potion anymore - the only sources of a starting
+  // potion are the potion_start hub upgrade and the Well Stocked perk, so at most 2 can stack
+  // instead of 3 (see the potion belt stacking rework).
+  test("no starting kit includes a potion") {
+    ClassLoader
+      .loadAll()
+      .map:
+        defs =>
+          defs.values.foreach:
+            cd => assert(!cd.startingKit.contains("health_potion"), s"${cd.classId} still starts with a potion")
+  }

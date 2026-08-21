@@ -50,6 +50,14 @@ enum UpgradeEffect:
     */
   case GuaranteedChestRarity(minRarity: Rarity)
 
+  /** Gate the given class's `startingKit` behind this upgrade. Without it, a run with this class
+    * starts with nothing (no weapon/armor) instead of its usual kit - unlike `UnlockClass`, this
+    * never blocks the run itself, it only makes the start harder. Independent of `UnlockClass`:
+    * even Warrior (no class-selection gate at all) needs its own kit-unlock upgrade. See
+    * [[roguelite.engine.StateMachine]]'s `StartRun` case for where this is checked.
+    */
+  case UnlockStartingKit(classId: ClassId)
+
 /** Which HUB upgrade tab an upgrade belongs to (the ALL tab always shows everything).
   *
   * `Stat`: a mechanical run buff (more HP, more potion slots). `Meta`: unlocks or changes the

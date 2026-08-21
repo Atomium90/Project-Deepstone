@@ -188,6 +188,62 @@ class StateMachineSuite extends FunSuite:
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[ExplorationState])
 
+  // --- Hub: starting-kit gating ---------------------------------------------
+
+  private val warriorKitUpgrade = UpgradeDef("warrior_kit",
+                                             "Warrior's Basic Kit",
+                                             "Start Warrior runs with a weapon and armor",
+                                             cost = 25,
+                                             displayOrder = 0,
+                                             icon = "🛡",
+                                             category = UpgradeCategory.Meta,
+                                             effect = UpgradeEffect.UnlockStartingKit(ClassId.Warrior)
+  )
+
+  /** A Warrior classDef with a real (non-empty) starting kit - `testClassDefs`' own Warrior entry
+    * deliberately uses `startingKit = Nil` (see its docblock), so the gating tests below need
+    * their own StateMachine built directly rather than via the `sm()` helper.
+    */
+  private val classDefsWithWarriorKit: Map[ClassId, ClassDef] =
+    testClassDefs.updated(ClassId.Warrior, testClassDefs(ClassId.Warrior).copy(startingKit = List("practice_sword")))
+
+  private val practiceSword: Weapon =
+    Weapon(id = "", typeId = "practice_sword", name = "Practice Sword", rarity = Rarity.Common, attackBonus = 2)
+
+  private def smWithWarriorKit(upgradeDefs: Map[String, UpgradeDef]): StateMachine =
+    StateMachine(defaultRoomPool,
+                enemyStatsMap,
+                Map("practice_sword" -> practiceSword),
+                classDefsWithWarriorKit,
+                upgradeDefs,
+                CombatResolver(Random(0L))
+    )
+
+  test("StartRun grants the starting kit once its class's kit-unlock upgrade is purchased"):
+    val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("warrior_kit"))
+    val hub  = HubState(hubPlayer, Map("warrior_kit" -> warriorKitUpgrade), meta)
+    val TransitionResult(next, _, _, _) = smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
+      .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+    // The pickup gets a freshly generated instance id (see Item's prototype pattern), so compare
+    // by typeId rather than the whole object.
+    assertEquals(next.asInstanceOf[ExplorationState].player.equippedWeapon.map(_.typeId), Some("practice_sword"))
+
+  test("StartRun starts with an empty kit when the kit-unlock upgrade hasn't been purchased"):
+    val hub = HubState(hubPlayer, Map("warrior_kit" -> warriorKitUpgrade), MetaProgression.empty)
+    val TransitionResult(next, _, _, _) = smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
+      .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+    assertEquals(next.asInstanceOf[ExplorationState].player.equippedWeapon, None)
+
+  test("Warrior's kit is gated too, despite having no UnlockClass selection gate"):
+    // Confirms the two gates are independent: Warrior is always selectable (no lockedBehind match),
+    // but still starts with nothing until its own kit-unlock upgrade is bought.
+    val hub = HubState(hubPlayer, Map.empty, MetaProgression.empty)
+    val TransitionResult(next, _, _, _) = smWithWarriorKit(Map.empty)
+      .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+    val exp = next.asInstanceOf[ExplorationState]
+    assert(exp.isInstanceOf[ExplorationState], "Warrior must still be selectable")
+    assertEquals(exp.player.equippedWeapon, None)
+
   // --- Hub: difficulty -----------------------------------------------------
 
   /** Pool with enough middle rooms for Easy/Normal/Hard's totalRooms to actually differ. */

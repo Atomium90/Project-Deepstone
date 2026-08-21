@@ -88,5 +88,35 @@
     "icon": "🔮",
     "category": "stat",
     "effect": { "type": "GuaranteedChestRarity", "rarity": "uncommon" }
+  },
+  {
+    "id": "warrior_kit",
+    "label": "Warrior's Basic Kit",
+    "description": "Start Warrior runs with a weapon and armor",
+    "cost": 25,
+    "displayOrder": 9,
+    "icon": "🛡",
+    "category": "meta",
+    "effect": { "type": "UnlockStartingKit", "classId": "warrior" }
+  },
+  {
+    "id": "archer_kit",
+    "label": "Archer's Basic Kit",
+    "description": "Start Archer runs with a weapon and armor",
+    "cost": 25,
+    "displayOrder": 10,
+    "icon": "🛡",
+    "category": "meta",
+    "effect": { "type": "UnlockStartingKit", "classId": "archer" }
+  },
+  {
+    "id": "mage_kit",
+    "label": "Mage's Basic Kit",
+    "description": "Start Mage runs with a weapon and armor",
+    "cost": 25,
+    "displayOrder": 11,
+    "icon": "🛡",
+    "category": "meta",
+    "effect": { "type": "UnlockStartingKit", "classId": "mage" }
   }
 ]

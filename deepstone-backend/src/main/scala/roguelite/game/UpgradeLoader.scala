@@ -63,6 +63,11 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
           .toRight("GuaranteedChestRarity is missing 'rarity' field")
           .flatMap(parseRarity)
           .map(UpgradeEffect.GuaranteedChestRarity.apply)
+      case "UnlockStartingKit" =>
+        e.classId
+          .toRight("UnlockStartingKit is missing 'classId' field")
+          .flatMap(parseClassId)
+          .map(UpgradeEffect.UnlockStartingKit.apply)
       case other =>
         Left(s"Unknown upgrade effect type: '$other'")
 

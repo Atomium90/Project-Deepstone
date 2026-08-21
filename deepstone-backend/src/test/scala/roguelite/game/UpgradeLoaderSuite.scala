@@ -20,7 +20,10 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
             "extra_slot",
             "extra_potion_capacity",
             "weapon_mastery",
-            "rarity_insight"
+            "rarity_insight",
+            "warrior_kit",
+            "archer_kit",
+            "mage_kit"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -88,6 +91,16 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
           assertEquals(defs("mage_unlock").effect, UpgradeEffect.UnlockClass(ClassId.Mage))
   }
 
+  test("warrior_kit, archer_kit, and mage_kit decode to UnlockStartingKit") {
+    UpgradeLoader
+      .loadAll()
+      .map:
+        defs =>
+          assertEquals(defs("warrior_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Warrior))
+          assertEquals(defs("archer_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Archer))
+          assertEquals(defs("mage_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Mage))
+  }
+
   test("every upgrade has a positive cost") {
     UpgradeLoader
       .loadAll()
@@ -109,7 +122,8 @@ class UpgradeLoaderSuite extends CatsEffectSuite:
                             "weapon_mastery",
                             "rarity_insight"
           )
-          val metaIds = Set("potion_start", "archer_unlock", "mage_unlock")
+          val metaIds =
+            Set("potion_start", "archer_unlock", "mage_unlock", "warrior_kit", "archer_kit", "mage_kit")
           statIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Stat, id))
           metaIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Meta, id))
   }

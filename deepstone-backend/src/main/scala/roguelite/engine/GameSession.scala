@@ -312,6 +312,11 @@ class GameSession private (
       // Gates class selection at StartRun (see StateMachine); no player-state effect to apply.
       player
 
+    case UpgradeEffect.UnlockStartingKit(_) =>
+      // Gates the starting-kit fold itself inside StateMachine's StartRun case (runs before
+      // applyMetaBonuses ever sees the player); no player-state effect to apply here.
+      player
+
 object GameSession:
 
   /** Create a new session.

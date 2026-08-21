@@ -131,6 +131,33 @@ class GameSessionSuite extends CatsEffectSuite:
                                    icon = "🔮",
                                    category = UpgradeCategory.Stat,
                                    effect = UpgradeEffect.GuaranteedChestRarity(Rarity.Uncommon)
+    ),
+    "warrior_kit" -> UpgradeDef("warrior_kit",
+                                "Warrior's Basic Kit",
+                                "Start Warrior runs with a weapon and armor",
+                                cost = 25,
+                                displayOrder = 9,
+                                icon = "🛡",
+                                category = UpgradeCategory.Meta,
+                                effect = UpgradeEffect.UnlockStartingKit(ClassId.Warrior)
+    ),
+    "archer_kit" -> UpgradeDef("archer_kit",
+                               "Archer's Basic Kit",
+                               "Start Archer runs with a weapon and armor",
+                               cost = 25,
+                               displayOrder = 10,
+                               icon = "🛡",
+                               category = UpgradeCategory.Meta,
+                               effect = UpgradeEffect.UnlockStartingKit(ClassId.Archer)
+    ),
+    "mage_kit" -> UpgradeDef("mage_kit",
+                             "Mage's Basic Kit",
+                             "Start Mage runs with a weapon and armor",
+                             cost = 25,
+                             displayOrder = 11,
+                             icon = "🛡",
+                             category = UpgradeCategory.Meta,
+                             effect = UpgradeEffect.UnlockStartingKit(ClassId.Mage)
     )
   )
 
@@ -501,6 +528,21 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(update.player.maxHp, 140) // base Warrior 120 (test fixture) + 20
   }
 
+  // Note: like extra_potion_capacity above, warrior_kit's applyUpgradeEffect case is a no-op at
+  // this level by design (the actual gating lives in StateMachine's StartRun case, which runs
+  // before applyMetaBonuses ever sees the player - see StateMachineSuite's dedicated gating tests
+  // for the real behavior). This just exercises the wiring so a future non-exhaustive match can't
+  // silently reintroduce a MatchError the way it did for perks (see PR#13).
+  db.test("StartRun after purchasing a kit-unlock upgrade still starts the run successfully") {
+    database =>
+      for
+        _      <- database.saveCurrency(25)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        _      <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("warrior_kit")))
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assertEquals(update.phase, GamePhase.Exploration)
+  }
+
   /** A goblin tanky enough to survive one hit (unlike weakGoblinStats' maxHp = 1) and harmless
     * enough not to kill the player back (attack = 0) - lets a single Attack's damage be read off
     * StateUpdate.damageEvents without the fight ending.
@@ -750,7 +792,10 @@ class GameSessionSuite extends CatsEffectSuite:
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_slot")))
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_potion_capacity")))
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("weapon_mastery")))
-        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("rarity_insight")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("rarity_insight")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("warrior_kit")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("archer_kit")))
+        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("mage_kit")))
       yield
         assert(last.newlyUnlocked.exists(_.id == "completionist"),
                s"expected completionist in newlyUnlocked: ${last.newlyUnlocked}"

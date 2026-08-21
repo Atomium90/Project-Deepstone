@@ -1,17 +1,24 @@
 package roguelite.game
 
-/** Lifetime counters that back the count-based achievement conditions ([[AchievementCondition.RunsCompleted]],
-  * [[AchievementCondition.RunsWon]], [[AchievementCondition.WinStreak]], and
-  * [[AchievementCondition.TotalShardsSpent]]).
+/** Lifetime counters/sets that back the count- and diversity-based achievement conditions
+  * ([[AchievementCondition.RunsCompleted]], [[AchievementCondition.RunsWon]],
+  * [[AchievementCondition.WinStreak]], [[AchievementCondition.TotalShardsSpent]],
+  * [[AchievementCondition.ConsumablesUsed]], [[AchievementCondition.DistinctPotionTypesUsed]],
+  * [[AchievementCondition.DistinctPerksWonWith]]).
   *
-  * Persisted in a dedicated `achievement_stats` table, not as new columns on `meta` - see
-  * [[roguelite.db.Database]] for why.
+  * Persisted across several dedicated tables (`achievement_stats`, `consumable_stats`,
+  * `potion_type_used`, `perk_won_with`), not as new columns on `meta` - see [[roguelite.db.Database]]
+  * for why. `potionTypesUsed`/`perksWonWith` are append-only sets of ids, not counters - a new id is
+  * recorded once and never removed, mirroring `unlocked` on [[AchievementProgress]] below.
   */
 case class AchievementStats(
     runsCompleted: Int = 0,
     runsWon: Int = 0,
     currentWinStreak: Int = 0,
-    totalShardsSpent: Int = 0
+    totalShardsSpent: Int = 0,
+    consumablesUsed: Int = 0,
+    potionTypesUsed: Set[String] = Set.empty,
+    perksWonWith: Set[String] = Set.empty
 )
 
 object AchievementStats:

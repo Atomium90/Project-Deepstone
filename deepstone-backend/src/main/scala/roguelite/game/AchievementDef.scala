@@ -27,6 +27,18 @@ enum AchievementCondition:
   case FillPotionBelt
   case FillPotionStack
   case WinOnDifficulty(difficulty: Difficulty)
+  case ConsumablesUsed(count: Int)
+
+  /** `count` is a fixed threshold baked into `achievements.json` (currently 5, the size of the
+    * potion pool), not a live comparison against the loaded catalog - bump it by hand if the pool
+    * ever grows.
+    */
+  case DistinctPotionTypesUsed(count: Int)
+
+  /** Same fixed-threshold convention as [[DistinctPotionTypesUsed]] (currently 5, the size of the
+    * perk pool) - only counts perks active in a *won* run, see [[roguelite.game.AchievementChecker]].
+    */
+  case DistinctPerksWonWith(count: Int)
 
 /** Static definition of one achievement, loaded from `data/achievements.json`.
   *

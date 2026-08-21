@@ -39,6 +39,11 @@ class AchievementCheckerSuite extends FunSuite:
   private val stockpiler    = defOf("stockpiler", AchievementCondition.FillPotionStack)
   private val hardModeVictory =
     defOf("hard_mode_victory", AchievementCondition.WinOnDifficulty(Difficulty.Hard))
+  private val potionMaster = defOf("potion_master", AchievementCondition.ConsumablesUsed(10))
+  private val potionConnoisseur =
+    defOf("potion_connoisseur", AchievementCondition.DistinctPotionTypesUsed(5))
+  private val jackOfAllTrades =
+    defOf("jack_of_all_trades", AchievementCondition.DistinctPerksWonWith(5))
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -57,7 +62,10 @@ class AchievementCheckerSuite extends FunSuite:
     setComplete.id   -> setComplete,
     fullBelt.id      -> fullBelt,
     stockpiler.id    -> stockpiler,
-    hardModeVictory.id -> hardModeVictory
+    hardModeVictory.id -> hardModeVictory,
+    potionMaster.id -> potionMaster,
+    potionConnoisseur.id -> potionConnoisseur,
+    jackOfAllTrades.id -> jackOfAllTrades
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -227,7 +235,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard, activePerkId = None))
     )
     assert(wonHard.map(_.id).contains("hard_mode_victory"))
 
@@ -235,7 +243,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assert(!wonNormal.map(_.id).contains("hard_mode_victory"))
 
@@ -243,7 +251,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Hard))
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Hard, activePerkId = None))
     )
     assert(!lostHard.map(_.id).contains("hard_mode_victory"))
   }
@@ -276,7 +284,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 3)
@@ -289,11 +297,101 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 4)
     assertEquals(stats.currentWinStreak, 4)
+  }
+
+  test("ConsumableUsed increments consumablesUsed and adds the typeId to potionTypesUsed") {
+    val (stats, _) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.ConsumableUsed("health_potion"), GameEvent.ConsumableUsed("health_potion"),
+           GameEvent.ConsumableUsed("second_wind")
+      )
+    )
+    assertEquals(stats.consumablesUsed, 3)
+    assertEquals(stats.potionTypesUsed, Set("health_potion", "second_wind"))
+  }
+
+  test("the 10th ConsumableUsed unlocks potion_master, the 9th does not") {
+    val (_, notYet) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats(consumablesUsed = 8),
+      List(GameEvent.ConsumableUsed("health_potion")) // 8 -> 9, below threshold
+    )
+    assert(!notYet.map(_.id).contains("potion_master"))
+
+    val (_, unlocked) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats(consumablesUsed = 9),
+      List(GameEvent.ConsumableUsed("health_potion")) // 9 -> 10, crosses the threshold
+    )
+    assert(unlocked.map(_.id).contains("potion_master"))
+  }
+
+  test("the 5th distinct potion type unlocks potion_connoisseur, a repeat of an existing type does not") {
+    val fourDistinct = AchievementStats(potionTypesUsed =
+      Set("health_potion", "second_wind", "battle_brew", "volatile_flask")
+    )
+    val (_, fifthNewType) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.ConsumableUsed("focus_tonic")) // a genuinely new 5th type
+    )
+    assert(fifthNewType.map(_.id).contains("potion_connoisseur"))
+
+    val (_, repeatOfExisting) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.ConsumableUsed("health_potion")) // already in the set, still only 4 distinct
+    )
+    assert(!repeatOfExisting.map(_.id).contains("potion_connoisseur"))
+  }
+
+  test("RunEnded(victory = true) with an active perk adds it to perksWonWith; a loss does not") {
+    val (afterWin, _) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = Some("heavy_hand")))
+    )
+    assertEquals(afterWin.perksWonWith, Set("heavy_hand"))
+
+    val (afterLoss, _) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = Some("heavy_hand")))
+    )
+    assertEquals(afterLoss.perksWonWith, Set.empty[String])
+  }
+
+  test("winning with the 5th distinct perk unlocks jack_of_all_trades, a repeat perk does not") {
+    val fourDistinct =
+      AchievementStats(perksWonWith = Set("heavy_hand", "herbalist_blessing", "efficient_casting", "lucky_find"))
+    val (_, fifthNewPerk) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = Some("well_stocked")))
+    )
+    assert(fifthNewPerk.map(_.id).contains("jack_of_all_trades"))
+
+    val (_, repeatOfExisting) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = Some("heavy_hand")))
+    )
+    assert(!repeatOfExisting.map(_.id).contains("jack_of_all_trades"))
   }
 
   test("a win that crosses all three run-count thresholds unlocks veteran, champion, and win_streak together") {
@@ -302,7 +400,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       startingStats,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assertEquals(unlocked.map(_.id).toSet, Set("veteran", "champion", "win_streak"))
   }
@@ -313,7 +411,7 @@ class AchievementCheckerSuite extends FunSuite:
         allDefs,
         Set.empty,
         AchievementStats(runsCompleted = 4, runsWon = 4, currentWinStreak = 4),
-        List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal))
+        List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = None))
       )
     // runsCompleted also increments on a loss, so veteran (5 total runs, win or lose) legitimately
     // unlocks here - only win_streak/champion (win-gated) must NOT unlock from a loss.
@@ -324,7 +422,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("veteran"), // already persisted after the loss, per the production GameSession flow
       statsAfterLoss,
-      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal))
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = None))
     )
     assert(!unlockedAfterNextWin.map(_.id).contains("win_streak"),
            s"win_streak should not unlock right after a broken streak: $unlockedAfterNextWin"

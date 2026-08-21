@@ -117,5 +117,26 @@
     "description": "Win a run on Hard difficulty.",
     "displayOrder": 16,
     "condition": { "type": "WinOnDifficulty", "difficulty": "hard" }
+  },
+  {
+    "id": "potion_master",
+    "label": "Potion Master",
+    "description": "Use 10 potions in total.",
+    "displayOrder": 17,
+    "condition": { "type": "ConsumablesUsed", "count": 10 }
+  },
+  {
+    "id": "potion_connoisseur",
+    "label": "Potion Connoisseur",
+    "description": "Use every kind of potion at least once.",
+    "displayOrder": 18,
+    "condition": { "type": "DistinctPotionTypesUsed", "count": 5 }
+  },
+  {
+    "id": "jack_of_all_trades",
+    "label": "Jack of All Trades",
+    "description": "Win a run with every kind of perk at least once.",
+    "displayOrder": 19,
+    "condition": { "type": "DistinctPerksWonWith", "count": 5 }
   }
 ]

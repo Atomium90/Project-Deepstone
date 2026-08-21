@@ -74,6 +74,18 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
           .toRight("WinOnDifficulty is missing 'difficulty' field")
           .flatMap(parseDifficulty)
           .map(AchievementCondition.WinOnDifficulty.apply)
+      case "ConsumablesUsed" =>
+        c.count
+          .toRight("ConsumablesUsed is missing 'count' field")
+          .map(AchievementCondition.ConsumablesUsed.apply)
+      case "DistinctPotionTypesUsed" =>
+        c.count
+          .toRight("DistinctPotionTypesUsed is missing 'count' field")
+          .map(AchievementCondition.DistinctPotionTypesUsed.apply)
+      case "DistinctPerksWonWith" =>
+        c.count
+          .toRight("DistinctPerksWonWith is missing 'count' field")
+          .map(AchievementCondition.DistinctPerksWonWith.apply)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
 

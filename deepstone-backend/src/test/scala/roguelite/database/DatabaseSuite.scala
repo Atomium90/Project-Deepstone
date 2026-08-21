@@ -189,6 +189,34 @@ class DatabaseSuite extends CatsEffectSuite:
       yield assertEquals(loaded, AchievementStats(runsCompleted = 5, runsWon = 0, currentWinStreak = 0, totalShardsSpent = 300))
   }
 
+  db.test("saveAchievementStats round-trips consumablesUsed, a separate table from the other counters") {
+    db =>
+      for
+        _      <- db.saveAchievementStats(AchievementStats(consumablesUsed = 7))
+        loaded <- db.loadAchievementStats()
+      yield assertEquals(loaded.consumablesUsed, 7)
+  }
+
+  db.test("recordPotionTypeUsed adds the typeId, idempotently") {
+    db =>
+      for
+        _      <- db.recordPotionTypeUsed("health_potion")
+        _      <- db.recordPotionTypeUsed("health_potion")
+        _      <- db.recordPotionTypeUsed("second_wind")
+        loaded <- db.loadAchievementStats()
+      yield assertEquals(loaded.potionTypesUsed, Set("health_potion", "second_wind"))
+  }
+
+  db.test("recordPerkWonWith adds the perk id, idempotently") {
+    db =>
+      for
+        _      <- db.recordPerkWonWith("heavy_hand")
+        _      <- db.recordPerkWonWith("heavy_hand")
+        _      <- db.recordPerkWonWith("lucky_find")
+        loaded <- db.loadAchievementStats()
+      yield assertEquals(loaded.perksWonWith, Set("heavy_hand", "lucky_find"))
+  }
+
   // -----------------------------------------------------------------------
   // MetaProgression domain logic (pure, no DB needed)
   // -----------------------------------------------------------------------

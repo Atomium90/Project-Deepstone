@@ -42,7 +42,7 @@ enum GameEvent:
   case SecretDoorRevealed
 
   /** A run ended, win or lose. */
-  case RunEnded(victory: Boolean, difficulty: Difficulty)
+  case RunEnded(victory: Boolean, difficulty: Difficulty, activePerkId: Option[String])
 
   /** Damage was dealt to a combatant. `targetIsPlayer` distinguishes the player taking a hit from
     * the player's attack landing on the enemy - `amount` is always positive. `crit` is true only
@@ -55,6 +55,9 @@ enum GameEvent:
     * player: no enemy-heal effect exists in this game's combat model.
     */
   case Healed(amount: Int)
+
+  /** A potion was drunk (one charge consumed from a belt stack), regardless of its effect kind. */
+  case ConsumableUsed(typeId: String)
 
 object GameEvent:
   /** Builds an [[GameEvent.ItemPickedUp]] from the resulting player state and the item just

@@ -224,11 +224,15 @@ class GameSession private (
                                          newlyUnlocked: List[AchievementDef]
   ): IO[Unit] =
     val newIds = newlyUnlocked.map(_.id)
+    val newPotionTypesUsed = updatedStats.potionTypesUsed -- prevProgress.stats.potionTypesUsed
+    val newPerksWonWith    = updatedStats.perksWonWith -- prevProgress.stats.perksWonWith
     val updatedProgress =
       prevProgress.copy(unlocked = prevProgress.unlocked ++ newIds, stats = updatedStats)
     for
       _ <- database.saveAchievementStats(updatedStats)
       _ <- newIds.foldLeft(IO.unit)((acc, id) => acc *> database.unlockAchievement(id))
+      _ <- newPotionTypesUsed.foldLeft(IO.unit)((acc, id) => acc *> database.recordPotionTypeUsed(id))
+      _ <- newPerksWonWith.foldLeft(IO.unit)((acc, id) => acc *> database.recordPerkWonWith(id))
       _ <- achievementRef.set(updatedProgress)
     yield ()
 

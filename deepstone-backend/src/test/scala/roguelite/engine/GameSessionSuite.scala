@@ -104,6 +104,15 @@ class GameSessionSuite extends CatsEffectSuite:
                                icon = "⚗",
                                category = UpgradeCategory.Stat,
                                effect = UpgradeEffect.ExtraPotionSlot
+    ),
+    "extra_potion_capacity" -> UpgradeDef("extra_potion_capacity",
+                                          "Alchemist's Reserve",
+                                          "Each potion stack holds up to 5 charges",
+                                          cost = 70,
+                                          displayOrder = 6,
+                                          icon = "🧴",
+                                          category = UpgradeCategory.Stat,
+                                          effect = UpgradeEffect.ExtraPotionCapacity
     )
   )
 
@@ -474,6 +483,12 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(update.player.maxHp, 140) // base Warrior 120 (test fixture) + 20
   }
 
+  // Note: unlike hp_boost_1/extra_slot, extra_potion_capacity's effect (Player.potionCapacity) has
+  // no counterpart on PlayerView/StateUpdate to assert against at this level - applyUpgradeEffect's
+  // ExtraPotionCapacity case is a one-line field set, structurally identical to the already-
+  // uncovered-at-this-level ExtraPotionSlot case right above it. EquipmentResolverSuite separately
+  // covers the field's actual effect (the pickup dedupe threshold), just not this wiring step.
+
   // -----------------------------------------------------------------------
   // Achievements
   // -----------------------------------------------------------------------
@@ -552,7 +567,8 @@ class GameSessionSuite extends CatsEffectSuite:
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("potion_start")))
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("archer_unlock")))
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("mage_unlock")))
-        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_slot")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_slot")))
+        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_potion_capacity")))
       yield
         assert(last.newlyUnlocked.exists(_.id == "completionist"),
                s"expected completionist in newlyUnlocked: ${last.newlyUnlocked}"

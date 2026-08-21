@@ -113,6 +113,15 @@ class GameSessionSuite extends CatsEffectSuite:
                                           icon = "🧴",
                                           category = UpgradeCategory.Stat,
                                           effect = UpgradeEffect.ExtraPotionCapacity
+    ),
+    "weapon_mastery" -> UpgradeDef("weapon_mastery",
+                                   "Weapon Mastery",
+                                   "+1 flat attack for every run",
+                                   cost = 90,
+                                   displayOrder = 7,
+                                   icon = "⚔",
+                                   category = UpgradeCategory.Stat,
+                                   effect = UpgradeEffect.FlatAttackBoost(1)
     )
   )
 
@@ -483,6 +492,50 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(update.player.maxHp, 140) // base Warrior 120 (test fixture) + 20
   }
 
+  /** A goblin tanky enough to survive one hit (unlike weakGoblinStats' maxHp = 1) and harmless
+    * enough not to kill the player back (attack = 0) - lets a single Attack's damage be read off
+    * StateUpdate.damageEvents without the fight ending.
+    */
+  def smWithTankyEnemy: StateMachine =
+    StateMachine(achievementRoomPool,
+                 Map("goblin" -> weakGoblinStats.copy(maxHp = 999, attack = 0)),
+                 Map.empty,
+                 testClassDefs,
+                 testUpgradeDefs,
+                 CombatResolver(Random(0L))
+    )
+
+  db.test("weapon_mastery adds a flat +1 to attack damage, compared to an identical unboosted run") {
+    database =>
+      for
+        baselineSession <- GameSession.create(smWithTankyEnemy, database, Map.empty, testUpgradeDefs,
+                                              Map.empty, testAchievementDefs, rng = Random(0L)
+                            )
+        _ <- baselineSession.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _ <- baselineSession.handle(Interact("e1"))
+        baselineAfterAttack <- baselineSession.handle(CombatAction(CombatActionType.Attack))
+        baselineDamage = baselineAfterAttack.damageEvents
+          .find(!_.targetIsPlayer)
+          .map(_.amount)
+          .getOrElse(fail("expected a damage event against the enemy"))
+
+        _ <- database.saveCurrency(90)
+        _ <- GameSession
+          .create(smWithTankyEnemy, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+          .flatMap(_.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("weapon_mastery"))))
+        boostedSession <- GameSession.create(smWithTankyEnemy, database, Map.empty, testUpgradeDefs,
+                                             Map.empty, testAchievementDefs, rng = Random(0L)
+                           )
+        _ <- boostedSession.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _ <- boostedSession.handle(Interact("e1"))
+        boostedAfterAttack <- boostedSession.handle(CombatAction(CombatActionType.Attack))
+        boostedDamage = boostedAfterAttack.damageEvents
+          .find(!_.targetIsPlayer)
+          .map(_.amount)
+          .getOrElse(fail("expected a damage event against the enemy"))
+      yield assertEquals(boostedDamage, baselineDamage + 1)
+  }
+
   // Note: unlike hp_boost_1/extra_slot, extra_potion_capacity's effect (Player.potionCapacity) has
   // no counterpart on PlayerView/StateUpdate to assert against at this level - applyUpgradeEffect's
   // ExtraPotionCapacity case is a one-line field set, structurally identical to the already-
@@ -651,7 +704,8 @@ class GameSessionSuite extends CatsEffectSuite:
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("archer_unlock")))
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("mage_unlock")))
         _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_slot")))
-        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_potion_capacity")))
+        _    <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_potion_capacity")))
+        last <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("weapon_mastery")))
       yield
         assert(last.newlyUnlocked.exists(_.id == "completionist"),
                s"expected completionist in newlyUnlocked: ${last.newlyUnlocked}"

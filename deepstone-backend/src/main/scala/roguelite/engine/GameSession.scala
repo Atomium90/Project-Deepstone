@@ -302,6 +302,9 @@ class GameSession private (
             case PickupOutcome.ChoicePending(_) => player // no room => silently skip
             case PickupOutcome.Discarded(p)     => p
 
+    case UpgradeEffect.FlatAttackBoost(amount) =>
+      player.copy(bonusAttack = player.bonusAttack + amount)
+
     case UpgradeEffect.UnlockClass(_) =>
       // Gates class selection at StartRun (see StateMachine); no player-state effect to apply.
       player

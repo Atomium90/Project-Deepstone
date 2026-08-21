@@ -33,6 +33,13 @@ enum UpgradeEffect:
     */
   case UnlockClass(classId: ClassId)
 
+  /** Flat bonus added to the player's effective attack for every run, permanently. Reuses
+    * [[roguelite.engine.Player.bonusAttack]] directly - the same field level-up perks already
+    * add to, already wired into the attack formula - so no new [[roguelite.game.CombatResolver]]
+    * hook is needed.
+    */
+  case FlatAttackBoost(amount: Int)
+
 /** Which HUB upgrade tab an upgrade belongs to (the ALL tab always shows everything).
   *
   * `Stat`: a mechanical run buff (more HP, more potion slots). `Meta`: unlocks or changes the

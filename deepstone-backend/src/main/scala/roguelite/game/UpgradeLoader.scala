@@ -56,6 +56,8 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
           .toRight("UnlockClass is missing 'classId' field")
           .flatMap(parseClassId)
           .map(UpgradeEffect.UnlockClass.apply)
+      case "FlatAttackBoost" =>
+        e.amount.toRight("FlatAttackBoost is missing 'amount' field").map(UpgradeEffect.FlatAttackBoost.apply)
       case other =>
         Left(s"Unknown upgrade effect type: '$other'")
 

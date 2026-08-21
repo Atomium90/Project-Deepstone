@@ -68,5 +68,15 @@
     "icon": "🧴",
     "category": "stat",
     "effect": { "type": "ExtraPotionCapacity" }
+  },
+  {
+    "id": "weapon_mastery",
+    "label": "Weapon Mastery",
+    "description": "+1 flat attack for every run",
+    "cost": 90,
+    "displayOrder": 7,
+    "icon": "⚔",
+    "category": "stat",
+    "effect": { "type": "FlatAttackBoost", "amount": 1 }
   }
 ]

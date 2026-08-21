@@ -9,7 +9,7 @@ class PerkLoaderSuite extends CatsEffectSuite:
     PerkLoader
       .loadAll()
       .map:
-        defs => assertEquals(defs.keySet, Set("well_stocked", "heavy_hand"))
+        defs => assertEquals(defs.keySet, Set("well_stocked", "heavy_hand", "herbalist_blessing"))
   }
 
   test("well_stocked decodes to ExtraStartingItem(health_potion)") {
@@ -24,6 +24,13 @@ class PerkLoaderSuite extends CatsEffectSuite:
       .loadAll()
       .map:
         defs => assertEquals(defs("heavy_hand").effect, PerkEffect.FlatDamageBonus(1))
+  }
+
+  test("herbalist_blessing decodes to PotionHealBonusPercent(50)") {
+    PerkLoader
+      .loadAll()
+      .map:
+        defs => assertEquals(defs("herbalist_blessing").effect, PerkEffect.PotionHealBonusPercent(50))
   }
 
   test("every perk has a non-empty icon") {

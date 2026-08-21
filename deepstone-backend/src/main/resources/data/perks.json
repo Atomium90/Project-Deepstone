@@ -12,5 +12,12 @@
     "description": "+1 flat damage per hit this run",
     "icon": "👊",
     "effect": { "type": "FlatDamageBonus", "amount": 1 }
+  },
+  {
+    "id": "herbalist_blessing",
+    "label": "Herbalist's Blessing",
+    "description": "Potions heal 50% more this run",
+    "icon": "🌿",
+    "effect": { "type": "PotionHealBonusPercent", "amount": 50 }
   }
 ]

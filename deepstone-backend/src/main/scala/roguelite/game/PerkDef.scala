@@ -19,6 +19,11 @@ enum PerkEffect:
   /** Flat bonus added to the player's effective attack for the whole run. */
   case FlatDamageBonus(amount: Int)
 
+  /** Percent bonus applied to every potion's heal amount (HealFixed and HealPercent alike) for the
+    * whole run.
+    */
+  case PotionHealBonusPercent(percent: Int)
+
 /** Static definition of one run perk, loaded from `data/perks.json`.
   *
   * Unlike [[UpgradeDef]], perks have no cost and no `displayOrder` - a random subset is rolled

@@ -276,11 +276,19 @@ class CombatResolver(rng: Random = Random(),
     * can kill the enemy (FlatDamage) - the killing blow's damage, so [[handleItem]] knows to
     * route to [[victory]] instead of continuing to [[enemyTurn]].
     */
+  /** `amount` scaled up by any active PotionHealBonusPercent perk, rounded to the nearest int. */
+  private def applyPotionHealBonus(player: Player, amount: Int): Int =
+    activePerkEffect(player) match {
+      case Some(PerkEffect.PotionHealBonusPercent(pct)) => math.round(amount * (100 + pct) / 100.0).toInt
+      case _                                            => amount
+    }
+
   private def applyConsumableEffect(state: CombatState,
                                     item: Consumable
   ): (CombatState, List[String], List[GameEvent], Option[Int]) =
     item.effect match
-      case ConsumableEffect.HealFixed(amount) =>
+      case ConsumableEffect.HealFixed(baseAmount) =>
+        val amount = applyPotionHealBonus(state.player, baseAmount)
         val before = state.player.hp
         val after  = (state.player.hp + amount).min(state.player.maxHp)
         val healed = after - before
@@ -291,7 +299,8 @@ class CombatResolver(rng: Random = Random(),
         )
 
       case ConsumableEffect.HealPercent(pct) =>
-        val amount = (state.player.maxHp * pct / 100).max(1)
+        val baseAmount = (state.player.maxHp * pct / 100).max(1)
+        val amount     = applyPotionHealBonus(state.player, baseAmount)
         val before = state.player.hp
         val after  = (state.player.hp + amount).min(state.player.maxHp)
         val healed = after - before

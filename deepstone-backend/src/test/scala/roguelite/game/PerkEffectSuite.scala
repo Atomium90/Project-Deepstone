@@ -101,3 +101,53 @@ class PerkEffectSuite extends FunSuite:
     val dmgWithPerk = 500 - extractEnemyHp(nextWithPerk)
     assertEquals(dmgWithPerk - dmgBase, 1, "expected the +1 FlatDamageBonus perk to add exactly 1 damage")
   }
+
+  // -----------------------------------------------------------------------
+  // PotionHealBonusPercent: shows up exactly in potion healing
+  // -----------------------------------------------------------------------
+
+  private val herbalistBlessing = PerkDef("herbalist_blessing", "Herbalist's Blessing",
+                                          "Potions heal 50% more this run", icon = "*",
+                                          effect = PerkEffect.PotionHealBonusPercent(50)
+  )
+
+  // DEFEND-only so the enemy's counter-attack never lands, keeping the HP delta attributable to
+  // the potion alone.
+  private val passiveEnemy = tankEnemy.copy(actions = List(EnemyActionWeight("DEFEND", 100)))
+
+  private def equipPotion(player: Player, potion: Consumable): Player =
+    player.copy(potionBelt = player.potionBelt.updated(0, Some(potion)))
+
+  private def stateWithPotion(player: Player, potion: Consumable): CombatState =
+    CombatState(equipPotion(player, potion), makeDungeon, 0, 0, Combat(enemy = passiveEnemy), "dummy")
+
+  test("PotionHealBonusPercent perk increases a HealFixed potion's heal amount") {
+    val perkDefs = Map(herbalistBlessing.id -> herbalistBlessing)
+    val potion   = Consumable("p1", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
+
+    val (nextBase, _, _)     = CombatResolver(Random(1), perkDefs = perkDefs)
+      .resolve(stateWithPotion(makePlayer().copy(hp = 50), potion), CombatAction(CombatActionType.Item, itemId = Some("p1")))
+    val (nextWithPerk, _, _) = CombatResolver(Random(1), perkDefs = perkDefs)
+      .resolve(stateWithPotion(makePlayer(activePerkId = Some("herbalist_blessing")).copy(hp = 50), potion),
+               CombatAction(CombatActionType.Item, itemId = Some("p1"))
+      )
+
+    assertEquals(nextBase.player.hp, 80, "50 + 30 (base heal, no perk)")
+    assertEquals(nextWithPerk.player.hp, 95, "50 + 45 (30 boosted by +50%)")
+  }
+
+  test("PotionHealBonusPercent perk increases a HealPercent potion's heal amount") {
+    val perkDefs = Map(herbalistBlessing.id -> herbalistBlessing)
+    // maxHp = 200 (see makePlayer), so HealPercent(20) heals 40 at baseline.
+    val potion = Consumable("p1", "pct_potion", "Pct Potion", Rarity.Common, ConsumableEffect.HealPercent(20))
+
+    val (nextBase, _, _)     = CombatResolver(Random(1), perkDefs = perkDefs)
+      .resolve(stateWithPotion(makePlayer().copy(hp = 50), potion), CombatAction(CombatActionType.Item, itemId = Some("p1")))
+    val (nextWithPerk, _, _) = CombatResolver(Random(1), perkDefs = perkDefs)
+      .resolve(stateWithPotion(makePlayer(activePerkId = Some("herbalist_blessing")).copy(hp = 50), potion),
+               CombatAction(CombatActionType.Item, itemId = Some("p1"))
+      )
+
+    assertEquals(nextBase.player.hp, 90, "50 + 40 (base heal, no perk)")
+    assertEquals(nextWithPerk.player.hp, 110, "50 + 60 (40 boosted by +50%)")
+  }

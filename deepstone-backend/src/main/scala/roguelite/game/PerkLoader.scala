@@ -31,6 +31,10 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
         e.typeId.toRight("ExtraStartingItem is missing 'typeId' field").map(PerkEffect.ExtraStartingItem.apply)
       case "FlatDamageBonus" =>
         e.amount.toRight("FlatDamageBonus is missing 'amount' field").map(PerkEffect.FlatDamageBonus.apply)
+      case "PotionHealBonusPercent" =>
+        e.amount
+          .toRight("PotionHealBonusPercent is missing 'amount' field")
+          .map(PerkEffect.PotionHealBonusPercent.apply)
       case other =>
         Left(s"Unknown perk effect type: '$other'")
 

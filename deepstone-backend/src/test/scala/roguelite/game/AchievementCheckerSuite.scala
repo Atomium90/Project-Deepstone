@@ -115,7 +115,12 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.ItemPickedUp(inventoryFull = true))
+      List(GameEvent.ItemPickedUp(inventoryFull = true,
+                                  rarity = Rarity.Common,
+                                  hasFourPieceSet = false,
+                                  potionBeltFull = false,
+                                  stackAtCapacity = false
+      ))
     )
     assert(full.map(_.id).contains("packrat"))
 
@@ -123,7 +128,12 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.ItemPickedUp(inventoryFull = false))
+      List(GameEvent.ItemPickedUp(inventoryFull = false,
+                                  rarity = Rarity.Common,
+                                  hasFourPieceSet = false,
+                                  potionBeltFull = false,
+                                  stackAtCapacity = false
+      ))
     )
     assert(!notFull.map(_.id).contains("packrat"))
   }

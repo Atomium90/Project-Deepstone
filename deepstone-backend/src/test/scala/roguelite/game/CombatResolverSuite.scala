@@ -286,7 +286,7 @@ class CombatResolverSuite extends FunSuite:
     val state = combatState(enemy, player = nearlyFull)
     val (_, _, events) =
       CombatResolver(Random(0), itemDefs).resolve(state, CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.ItemPickedUp(inventoryFull = true)),
+    assert(events.exists { case GameEvent.ItemPickedUp(full, _, _, _, _) => full; case _ => false },
            s"expected ItemPickedUp(inventoryFull=true): $events"
     )
 

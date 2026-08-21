@@ -1,5 +1,7 @@
 package roguelite.game
 
+import roguelite.engine.Player
+
 /** Pure domain facts describing "achievement-worthy" things that happened during a state
   * transition. Emitted by the resolvers that already have the relevant context in scope
   * ([[CombatResolver]], [[InteractionResolver]]), threaded up through
@@ -19,8 +21,16 @@ enum GameEvent:
     */
   case LeveledUp(newLevel: Int)
 
-  /** An item was successfully added to the inventory (chest or enemy loot drop). */
-  case ItemPickedUp(inventoryFull: Boolean)
+  /** An item was successfully added to the inventory (chest or enemy loot drop). Build with
+    * [[GameEvent.itemPickedUp]] rather than the constructor directly - every field here is derived
+    * from the resulting player state, not just carried along.
+    */
+  case ItemPickedUp(inventoryFull: Boolean,
+                    rarity: Rarity,
+                    hasFourPieceSet: Boolean,
+                    potionBeltFull: Boolean,
+                    stackAtCapacity: Boolean
+  )
 
   /** A locked door was opened by consuming a matching key. */
   case DoorUnlockedWithKey
@@ -45,3 +55,18 @@ enum GameEvent:
     * player: no enemy-heal effect exists in this game's combat model.
     */
   case Healed(amount: Int)
+
+object GameEvent:
+  /** Builds an [[GameEvent.ItemPickedUp]] from the resulting player state and the item just
+    * resolved - shared by every pickup call site ([[EquipmentResolver]], [[CombatResolver]],
+    * [[InteractionResolver]]) so the derived fields aren't recomputed slightly differently in each
+    * place.
+    */
+  def itemPickedUp(player: Player, item: Item, setDefs: Map[String, SetDef]): GameEvent =
+    GameEvent.ItemPickedUp(
+      inventoryFull = player.isFullyEquipped,
+      rarity = item.rarity,
+      hasFourPieceSet = SetDef.hasFourPieceSetActive(player.equippedSetIds, setDefs, player.classId),
+      potionBeltFull = player.potionBelt.forall(_.isDefined),
+      stackAtCapacity = player.potionBelt.exists(_.exists(s => s.count >= player.potionCapacity))
+    )

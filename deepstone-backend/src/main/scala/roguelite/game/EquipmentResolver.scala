@@ -148,7 +148,7 @@ object EquipmentResolver:
             val next           = exp.copy(player = updatedPlayer, pendingEquipChoice = None)
             (next,
              List(s"You equip ${pending.newItem.name}."),
-             List(GameEvent.ItemPickedUp(inventoryFull = updatedPlayer.isFullyEquipped))
+             List(GameEvent.itemPickedUp(updatedPlayer, pending.newItem, setDefs))
             )
 
   /** Place `newItem` into `slot`, evicting whatever was there (reversing an accessory's maxHp

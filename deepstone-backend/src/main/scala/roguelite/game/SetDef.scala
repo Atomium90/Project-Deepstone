@@ -80,3 +80,19 @@ object SetDef:
             setDef =>
               (if count >= 2 then List(setDef.twoPiece.effect) else Nil) ++
                 (if count >= 4 then List(setDef.fourPiece.effect) else Nil)
+
+  /** True if any equipped set currently has its 4-piece bonus active - same class-gating as
+    * [[activeBonuses]], just collapsed to a plain boolean. Used by the `set_complete` achievement,
+    * which only cares whether it happened, not which set or what the bonus actually does.
+    */
+  def hasFourPieceSetActive(equippedSetIds: List[String],
+                            setDefs: Map[String, SetDef],
+                            playerClassId: ClassId
+  ): Boolean =
+    equippedSetIds
+      .groupBy(identity)
+      .view
+      .mapValues(_.size)
+      .exists:
+        case (setId, count) =>
+          count >= 4 && setDefs.get(setId).exists(_.classId == playerClassId)

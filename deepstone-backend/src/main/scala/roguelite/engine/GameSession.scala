@@ -141,7 +141,7 @@ class GameSession private (
     */
   private def toSoundEventTags(events: List[GameEvent]): List[String] =
     events.collect {
-      case GameEvent.ItemPickedUp(_)     => "pickup"
+      case GameEvent.ItemPickedUp(_, _, _, _, _) => "pickup"
       case GameEvent.LeveledUp(_)        => "level_up"
       case GameEvent.DoorUnlockedWithKey => "door_unlock"
       case GameEvent.DoorOpened          => "door_open"

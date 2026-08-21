@@ -185,13 +185,13 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
             case PickupOutcome.Equipped(p) =>
               (exp.copy(dungeon = updatedDungeon, player = p),
                List(s"You open the chest and find ${item.name}! (${item.statLine})"),
-               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
+               List(GameEvent.itemPickedUp(p, item, setDefs))
               )
 
             case PickupOutcome.KeyCollected(p) =>
               (exp.copy(dungeon = updatedDungeon, player = p),
                List(s"You open the chest and find ${item.name}! (${item.statLine})"),
-               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped))
+               List(GameEvent.itemPickedUp(p, item, setDefs))
               )
 
             case PickupOutcome.ChoicePending(pending) =>

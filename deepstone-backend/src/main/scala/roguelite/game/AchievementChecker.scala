@@ -81,7 +81,7 @@ object AchievementChecker:
       case (AchievementCondition.NoDamageVictory, GameEvent.EnemyDefeated(_, tookNoDamage)) =>
         tookNoDamage
       case (AchievementCondition.ReachLevel(lvl), GameEvent.LeveledUp(newLevel)) => newLevel >= lvl
-      case (AchievementCondition.FillInventory, GameEvent.ItemPickedUp(full))    => full
+      case (AchievementCondition.FillInventory, GameEvent.ItemPickedUp(full, _, _, _, _)) => full
       case (AchievementCondition.UnlockDoorWithKey, GameEvent.DoorUnlockedWithKey) => true
       case (AchievementCondition.RevealSecretDoor, GameEvent.SecretDoorRevealed)   => true
       case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_)) => stats.runsCompleted >= n

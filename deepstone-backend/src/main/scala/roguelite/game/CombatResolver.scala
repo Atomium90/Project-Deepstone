@@ -505,13 +505,13 @@ class CombatResolver(rng: Random = Random(),
             case PickupOutcome.Equipped(p) =>
               (p,
                List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
-               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped)),
+               List(GameEvent.itemPickedUp(p, item, setDefs)),
                None
               )
             case PickupOutcome.KeyCollected(p) =>
               (p,
                List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
-               List(GameEvent.ItemPickedUp(inventoryFull = p.isFullyEquipped)),
+               List(GameEvent.itemPickedUp(p, item, setDefs)),
                None
               )
             case PickupOutcome.ChoicePending(pending) if isBossKill =>

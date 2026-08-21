@@ -56,10 +56,31 @@ class Database private (xa: Transactor[IO]):
               )
             """.update.run *>
         sql"""
+              CREATE TABLE IF NOT EXISTS consumable_stats (
+                id               INTEGER PRIMARY KEY CHECK (id = 1),
+                consumables_used INTEGER NOT NULL DEFAULT 0
+              )
+            """.update.run *>
+        sql"""
+              CREATE TABLE IF NOT EXISTS potion_type_used (
+                type_id  TEXT PRIMARY KEY,
+                used_at  INTEGER NOT NULL DEFAULT (unixepoch())
+              )
+            """.update.run *>
+        sql"""
+              CREATE TABLE IF NOT EXISTS perk_won_with (
+                perk_id TEXT PRIMARY KEY,
+                won_at  INTEGER NOT NULL DEFAULT (unixepoch())
+              )
+            """.update.run *>
+        sql"""
               INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)
             """.update.run *>
         sql"""
               INSERT OR IGNORE INTO achievement_stats (id) VALUES (1)
+            """.update.run *>
+        sql"""
+              INSERT OR IGNORE INTO consumable_stats (id) VALUES (1)
             """.update.run
     ddl.transact(xa).void
 
@@ -98,16 +119,36 @@ class Database private (xa: Transactor[IO]):
       sql"INSERT OR IGNORE INTO upgrade_unlock (upgrade_id) VALUES ($upgradeId)".update.run
     (deduct *> unlock).transact(xa).void
 
-  /** Load the lifetime achievement counters (runs completed/won, win streak, total Shards spent). */
+  /** Load the lifetime achievement counters (runs completed/won, win streak, total Shards spent,
+    * potions used) plus the two "which ids have I ever done this with" sets (potion types used,
+    * perks won a run with) - all four backing tables are read in one transaction. `consumable_stats`
+    * / `potion_type_used` / `perk_won_with` are separate tables from `achievement_stats` because
+    * `CREATE TABLE IF NOT EXISTS` cannot add columns to a table that already exists in a
+    * previously-shipped database (same reason `achievement_stats` itself was split out of `meta`).
+    */
   def loadAchievementStats(): IO[AchievementStats] =
-    sql"""SELECT runs_completed, runs_won, current_win_streak, total_shards_spent
-          FROM achievement_stats WHERE id = 1"""
-      .query[(Int, Int, Int, Int)]
-      .unique
-      .map:
-        case (runsCompleted, runsWon, currentWinStreak, totalShardsSpent) =>
-          AchievementStats(runsCompleted, runsWon, currentWinStreak, totalShardsSpent)
-      .transact(xa)
+    val getCounters = sql"""SELECT runs_completed, runs_won, current_win_streak, total_shards_spent
+          FROM achievement_stats WHERE id = 1""".query[(Int, Int, Int, Int)].unique
+    val getConsumablesUsed =
+      sql"SELECT consumables_used FROM consumable_stats WHERE id = 1".query[Int].unique
+    val getPotionTypesUsed = sql"SELECT type_id FROM potion_type_used".query[String].to[Set]
+    val getPerksWonWith    = sql"SELECT perk_id FROM perk_won_with".query[String].to[Set]
+    (for
+      counters         <- getCounters
+      consumablesUsed  <- getConsumablesUsed
+      potionTypesUsed  <- getPotionTypesUsed
+      perksWonWith     <- getPerksWonWith
+    yield
+      val (runsCompleted, runsWon, currentWinStreak, totalShardsSpent) = counters
+      AchievementStats(runsCompleted,
+                       runsWon,
+                       currentWinStreak,
+                       totalShardsSpent,
+                       consumablesUsed,
+                       potionTypesUsed,
+                       perksWonWith
+      )
+    ).transact(xa)
 
   /** Load the set of permanently-unlocked achievement ids. */
   def loadUnlockedAchievements(): IO[Set[String]] =
@@ -121,14 +162,37 @@ class Database private (xa: Transactor[IO]):
       .transact(xa)
       .void
 
-  /** Overwrite the lifetime achievement counters with their current values. */
+  /** Overwrite the lifetime achievement counters with their current values - both backing tables
+    * (`achievement_stats`, `consumable_stats`) in one transaction. Does not touch
+    * `potionTypesUsed`/`perksWonWith`: those are append-only sets, recorded one id at a time via
+    * [[recordPotionTypeUsed]]/[[recordPerkWonWith]], never overwritten wholesale.
+    */
   def saveAchievementStats(stats: AchievementStats): IO[Unit] =
-    sql"""UPDATE achievement_stats
+    val updateCounters = sql"""UPDATE achievement_stats
           SET runs_completed = ${stats.runsCompleted},
               runs_won = ${stats.runsWon},
               current_win_streak = ${stats.currentWinStreak},
               total_shards_spent = ${stats.totalShardsSpent}
-          WHERE id = 1""".update.run.transact(xa).void
+          WHERE id = 1""".update.run
+    val updateConsumablesUsed =
+      sql"UPDATE consumable_stats SET consumables_used = ${stats.consumablesUsed} WHERE id = 1".update.run
+    (updateCounters *> updateConsumablesUsed).transact(xa).void
+
+  /** Record a potion typeId as having been used at least once. Idempotent, same
+    * INSERT-OR-IGNORE pattern as [[unlockAchievement]].
+    */
+  def recordPotionTypeUsed(typeId: String): IO[Unit] =
+    sql"INSERT OR IGNORE INTO potion_type_used (type_id) VALUES ($typeId)".update.run
+      .transact(xa)
+      .void
+
+  /** Record a perk id as having been active in at least one won run. Idempotent, same
+    * INSERT-OR-IGNORE pattern as [[unlockAchievement]].
+    */
+  def recordPerkWonWith(perkId: String): IO[Unit] =
+    sql"INSERT OR IGNORE INTO perk_won_with (perk_id) VALUES ($perkId)".update.run
+      .transact(xa)
+      .void
 
 object Database:
 

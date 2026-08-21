@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.{ Accessory, Armor, Consumable, KeyKind, SetBonusEffect, SetDef, Weapon }
+import roguelite.game.{ Accessory, Armor, KeyKind, PotionStack, SetBonusEffect, SetDef, Weapon }
 
 /** Full player data as stored on the server. */
 case class Player(
@@ -18,7 +18,8 @@ case class Player(
     equippedWeapon: Option[Weapon] = None,
     equippedArmor: Option[Armor] = None,
     equippedAccessories: Vector[Option[Accessory]] = Player.emptyAccessorySlots,
-    potionBelt: Vector[Option[Consumable]] = Player.emptyPotionBelt,
+    potionBelt: Vector[Option[PotionStack]] = Player.emptyPotionBelt,
+    potionCapacity: Int = Player.BasePotionCapacity,
     keyCounts: Map[KeyKind, Int] = Map.empty,
     activeSetHpBonusFlat: Int = 0,
     activePerkId: Option[String] = None,
@@ -111,5 +112,11 @@ object Player:
   /** Potion belt size before the `extra_slot` hub upgrade (which grants a 3rd). */
   val BasePotionBeltSlots: Int = 2
 
+  /** Charges per potion-belt stack before the `extra_potion_capacity` hub upgrade. */
+  val BasePotionCapacity: Int = 3
+
+  /** Charges per potion-belt stack once `extra_potion_capacity` is unlocked. */
+  val UpgradedPotionCapacity: Int = 5
+
   def emptyAccessorySlots: Vector[Option[Accessory]] = Vector.fill(AccessorySlotCount)(None)
-  def emptyPotionBelt: Vector[Option[Consumable]]     = Vector.fill(BasePotionBeltSlots)(None)
+  def emptyPotionBelt: Vector[Option[PotionStack]]    = Vector.fill(BasePotionBeltSlots)(None)

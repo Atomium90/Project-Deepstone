@@ -116,7 +116,7 @@ class PerkEffectSuite extends FunSuite:
   private val passiveEnemy = tankEnemy.copy(actions = List(EnemyActionWeight("DEFEND", 100)))
 
   private def equipPotion(player: Player, potion: Consumable): Player =
-    player.copy(potionBelt = player.potionBelt.updated(0, Some(potion)))
+    player.copy(potionBelt = player.potionBelt.updated(0, Some(PotionStack(potion, 1))))
 
   private def stateWithPotion(player: Player, potion: Consumable): CombatState =
     CombatState(equipPotion(player, potion), makeDungeon, 0, 0, Combat(enemy = passiveEnemy), "dummy")

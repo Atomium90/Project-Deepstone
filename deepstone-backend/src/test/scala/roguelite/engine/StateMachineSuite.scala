@@ -239,7 +239,7 @@ class StateMachineSuite extends FunSuite:
       )
     val exp = next.asInstanceOf[ExplorationState]
     assertEquals(exp.player.activePerkId, Some("well_stocked"))
-    assertEquals(exp.player.potionBelt.flatten.map(_.typeId), Vector("health_potion"))
+    assertEquals(exp.player.potionBelt.flatten.map(_.item.typeId), Vector("health_potion"))
     assert(log.exists(_.contains("Well Stocked")), s"expected perk confirmation in log: $log")
 
   test("StartRun with a perkId not currently offered is silently ignored"):
@@ -379,7 +379,8 @@ class StateMachineSuite extends FunSuite:
                             Rarity.Common,
                             ConsumableEffect.HealFixed(30)
     )
-    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(potionBelt = Vector(Some(potion), None))
+    val player =
+      PlayerFixtures.startingPlayer(ClassId.Warrior).copy(potionBelt = Vector(Some(PotionStack(potion, 1)), None))
     val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
     assertEquals(update.equipment.potionBelt.flatten.length, 1)
     assertEquals(update.equipment.potionBelt.flatten.head.typeId, "health_potion")

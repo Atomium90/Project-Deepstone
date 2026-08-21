@@ -226,9 +226,9 @@ class InteractionResolverSuite extends FunSuite:
                                                     perkDefs = Map("lucky_find" -> luckyFind)
     ).interact(state, "c1")
     val picked = next.asInstanceOf[ExplorationState].player.potionBelt.flatten
-      .find(_.typeId == "health_potion")
+      .find(_.item.typeId == "health_potion")
       .getOrElse(fail("expected a health potion in the belt"))
-    assert(picked.rarity.ordinal >= Rarity.Rare.ordinal, s"expected at least Rare, got ${picked.rarity}")
+    assert(picked.item.rarity.ordinal >= Rarity.Rare.ordinal, s"expected at least Rare, got ${picked.item.rarity}")
 
   test("Lucky Find perk is consumed after the first chest, regardless of the roll"):
     val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(activePerkId = Some("lucky_find"))
@@ -252,8 +252,8 @@ class InteractionResolverSuite extends FunSuite:
                                                         perkDefs = Map("lucky_find" -> luckyFind)
         ).interact(state, "c1")
         next.asInstanceOf[ExplorationState].player.potionBelt.flatten
-          .find(_.typeId == "health_potion")
-          .exists(_.rarity.ordinal < Rarity.Rare.ordinal)
+          .find(_.item.typeId == "health_potion")
+          .exists(_.item.rarity.ordinal < Rarity.Rare.ordinal)
     assert(everBelowRare, "expected at least one below-Rare roll across 50 seeds once the perk is already used")
 
   // --- LockedDoor --------------------------------------------------------------

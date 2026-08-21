@@ -23,8 +23,11 @@ import roguelite.game.{
   *   value when applicable (see [[Item.effectiveStatLine]]) - defaults to empty so call sites
   *   that don't have a specific player in scope (none today, but keeps this safe to call
   *   generically) still get the flat baseline instead of a build error.
+  * @param count
+  *   Charge count for a potion-belt stack (see [[roguelite.game.PotionStack]]) - `None` for every
+  *   other item kind, which never stacks.
   */
-private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty): ItemView =
+private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty, count: Option[Int] = None): ItemView =
   ItemView(
     id = item.id,
     typeId = item.typeId,
@@ -44,7 +47,8 @@ private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty):
       case a: Armor     => a.typeTag
       case a: Accessory => a.typeTag
       case _            => None
-    }
+    },
+    count = count
   )
 
 /** Coarse display label for a key kind - collapses `Specific`/`Typed`'s payload away, see
@@ -61,7 +65,8 @@ private def pendingChoiceToView(pending: PendingEquipChoice, playerAffinityTags:
   PendingEquipChoiceView(
     newItem = itemToView(pending.newItem, playerAffinityTags),
     options = pending.currentItems.toList.map {
-      case (slot, item) => EquipChoiceOptionView(slot, itemToView(item, playerAffinityTags))
+      case (slot, item) =>
+        EquipChoiceOptionView(slot, itemToView(item, playerAffinityTags, pending.stackCounts.get(slot)))
     }
   )
 
@@ -71,7 +76,9 @@ private def equipmentToView(player: Player): EquipmentView =
     weapon = player.equippedWeapon.map(itemToView(_, player.affinityTags)),
     armor = player.equippedArmor.map(itemToView(_, player.affinityTags)),
     accessories = player.equippedAccessories.map(_.map(itemToView(_, player.affinityTags))).toList,
-    potionBelt = player.potionBelt.map(_.map(itemToView(_, player.affinityTags))).toList,
+    potionBelt = player.potionBelt.map(
+      _.map(stack => itemToView(stack.item, player.affinityTags, Some(stack.count)))
+    ).toList,
     keys = player.keyCounts.collect {
       case (kind, count) if count > 0 => KeyCountView(keyKindLabel(kind), count)
     }.toList

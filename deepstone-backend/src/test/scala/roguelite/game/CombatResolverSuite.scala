@@ -78,7 +78,7 @@ class CombatResolverSuite extends FunSuite:
   private def equipWeapon(player: Player, weapon: Weapon): Player = player.copy(equippedWeapon = Some(weapon))
   private def equipArmor(player: Player, armor: Armor): Player   = player.copy(equippedArmor = Some(armor))
   private def equipPotion(player: Player, potion: Consumable, slot: Int = 0): Player =
-    player.copy(potionBelt = player.potionBelt.updated(slot, Some(potion)))
+    player.copy(potionBelt = player.potionBelt.updated(slot, Some(PotionStack(potion, 1))))
   private def equipAccessory(player: Player, accessory: Accessory, slot: Int = 0): Player =
     player.copy(equippedAccessories = player.equippedAccessories.updated(slot, Some(accessory)))
 
@@ -271,7 +271,7 @@ class CombatResolverSuite extends FunSuite:
       equippedWeapon = Some(weapon),
       equippedArmor = Some(armor),
       equippedAccessories = Vector(Some(acc0), Some(acc1)),
-      potionBelt = Vector(Some(ether), None)
+      potionBelt = Vector(Some(PotionStack(ether, 1)), None)
     )
     val itemDefs: Map[String, Item] = Map(
       "health_potion" -> Consumable("",
@@ -326,7 +326,7 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(next.player.hp > 50)
-    assertEquals(next.player.potionBelt.flatten.find(_.id == "p1"), None)
+    assertEquals(next.player.potionBelt.flatten.find(_.item.id == "p1"), None)
     assert(log.exists(_.contains("Health Potion")))
 
   test("HealFixed does not overheal past maxHp"):
@@ -502,7 +502,7 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) = CombatResolver(Random(0), itemDefs)
       .resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState])
-    assertEquals(next.player.potionBelt.flatten.toList.map(_.typeId), List("health_potion"))
+    assertEquals(next.player.potionBelt.flatten.toList.map(_.item.typeId), List("health_potion"))
     assert(log.exists(_.contains("dropped")))
 
   test("enemy with 0% drop leaves the potion belt empty on defeat"):

@@ -216,7 +216,12 @@ case class ItemView(
       * [[PlayerView.affinityTags]]) - `statLine` above already reflects the affinity-doubled
       * value when applicable, this isn't needed to compute that.
       */
-    typeTag: Option[String] = None
+    typeTag: Option[String] = None,
+    /** Charge count for a potion-belt stack (see [[roguelite.game.PotionStack]]). `None` for
+      * every other item kind, which never stacks - the client only shows a count badge when this
+      * is present.
+      */
+    count: Option[Int] = None
 )
 
 /** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses

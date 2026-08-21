@@ -109,4 +109,6 @@ object AchievementChecker:
         stats.consumablesUsed >= n
       case (AchievementCondition.DistinctPotionTypesUsed(n), GameEvent.ConsumableUsed(_)) =>
         stats.potionTypesUsed.size >= n
+      case (AchievementCondition.DistinctPerksWonWith(n), GameEvent.RunEnded(victory, _, _)) =>
+        victory && stats.perksWonWith.size >= n
       case _                                                          => false

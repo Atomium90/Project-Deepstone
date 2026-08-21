@@ -35,6 +35,11 @@ enum AchievementCondition:
     */
   case DistinctPotionTypesUsed(count: Int)
 
+  /** Same fixed-threshold convention as [[DistinctPotionTypesUsed]] (currently 5, the size of the
+    * perk pool) - only counts perks active in a *won* run, see [[roguelite.game.AchievementChecker]].
+    */
+  case DistinctPerksWonWith(count: Int)
+
 /** Static definition of one achievement, loaded from `data/achievements.json`.
   *
   * @param displayOrder

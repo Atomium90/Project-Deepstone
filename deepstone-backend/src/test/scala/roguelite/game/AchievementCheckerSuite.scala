@@ -42,6 +42,8 @@ class AchievementCheckerSuite extends FunSuite:
   private val potionMaster = defOf("potion_master", AchievementCondition.ConsumablesUsed(10))
   private val potionConnoisseur =
     defOf("potion_connoisseur", AchievementCondition.DistinctPotionTypesUsed(5))
+  private val jackOfAllTrades =
+    defOf("jack_of_all_trades", AchievementCondition.DistinctPerksWonWith(5))
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -62,7 +64,8 @@ class AchievementCheckerSuite extends FunSuite:
     stockpiler.id    -> stockpiler,
     hardModeVictory.id -> hardModeVictory,
     potionMaster.id -> potionMaster,
-    potionConnoisseur.id -> potionConnoisseur
+    potionConnoisseur.id -> potionConnoisseur,
+    jackOfAllTrades.id -> jackOfAllTrades
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -369,6 +372,26 @@ class AchievementCheckerSuite extends FunSuite:
       List(GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = Some("heavy_hand")))
     )
     assertEquals(afterLoss.perksWonWith, Set.empty[String])
+  }
+
+  test("winning with the 5th distinct perk unlocks jack_of_all_trades, a repeat perk does not") {
+    val fourDistinct =
+      AchievementStats(perksWonWith = Set("heavy_hand", "herbalist_blessing", "efficient_casting", "lucky_find"))
+    val (_, fifthNewPerk) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = Some("well_stocked")))
+    )
+    assert(fifthNewPerk.map(_.id).contains("jack_of_all_trades"))
+
+    val (_, repeatOfExisting) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Normal, activePerkId = Some("heavy_hand")))
+    )
+    assert(!repeatOfExisting.map(_.id).contains("jack_of_all_trades"))
   }
 
   test("a win that crosses all three run-count thresholds unlocks veteran, champion, and win_streak together") {

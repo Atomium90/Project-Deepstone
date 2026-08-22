@@ -209,17 +209,23 @@ export const INTERACT_BADGE_BOUNCE_AMPLITUDE = 2;
 export const INTERACT_BADGE_BOUNCE_PERIOD = 300;
 
 // ---------------------------------------------
-// Elite enemy halo
+// Elite enemy aura (silhouette-hugging outline)
 // ---------------------------------------------
+//
+// A plain stroked ring (the original v1) doesn't hug a non-circular/asymmetric sprite well -
+// same class of problem already solved once in this codebase by replacing the old pulsing
+// interact-ring halo with the "[E]" keycap badge. Drawn behind the sprite in Renderer.ts: the
+// sprite's own pixels, offset 8 ways and tinted solid gold via `source-in` compositing, peeking
+// out from behind the real sprite drawn on top. A soft radial glow was tried alongside this and
+// dropped - it read as a poorly-blended fading circle rather than ambient light, the outline alone
+// carries the effect.
 
-/** Stroke color of the ring drawn around an Elite enemy's sprite. */
-export const ELITE_HALO_COLOR = COLOR_ENTITY_ELITE;
+/** Solid fill color for the silhouette-hugging outline pass. */
+export const ELITE_OUTLINE_COLOR = COLOR_ENTITY_ELITE;
 
-/** Stroke width of the Elite halo ring. */
-export const ELITE_HALO_WIDTH = 2;
-
-/** How far beyond the entity's normal draw radius the halo ring sits. */
-export const ELITE_HALO_OFFSET = 4;
+/** How far, in pixels, each of the 8 outline copies is offset from the real sprite - the visible
+ * outline thickness once the real sprite is drawn on top, covering everything but the fringe. */
+export const ELITE_OUTLINE_WIDTH = 3;
 
 // ---------------------------------------------
 // Colors - Character screen

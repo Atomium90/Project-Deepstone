@@ -48,6 +48,11 @@ export const COLOR_ENTITY_LABEL = "#ccc";
 /** Fallback color for entity kinds not explicitly mapped. */
 export const COLOR_ENTITY_FALLBACK = "#888";
 
+/** Same hex as COLOR_ENTITY_CHEST/COLOR_ACHIEVEMENT_GOLD - reuses the project's existing
+ * gold "special/notable" accent for Elite enemies rather than inventing a new hue. Used for
+ * both the exploration halo (Renderer.ts) and the combat HP bar tint (CombatScreen.svelte). */
+export const COLOR_ENTITY_ELITE = "#d4ac0d";
+
 // ---------------------------------------------
 // Colors - player
 // ---------------------------------------------
@@ -202,6 +207,25 @@ export const INTERACT_BADGE_BOUNCE_AMPLITUDE = 2;
 
 /** Period, in ms, of the badge's idle bounce - same divisor the old halo pulse used. */
 export const INTERACT_BADGE_BOUNCE_PERIOD = 300;
+
+// ---------------------------------------------
+// Elite enemy aura (silhouette-hugging outline)
+// ---------------------------------------------
+//
+// A plain stroked ring (the original v1) doesn't hug a non-circular/asymmetric sprite well -
+// same class of problem already solved once in this codebase by replacing the old pulsing
+// interact-ring halo with the "[E]" keycap badge. Drawn behind the sprite in Renderer.ts: the
+// sprite's own pixels, offset 8 ways and tinted solid gold via `source-in` compositing, peeking
+// out from behind the real sprite drawn on top. A soft radial glow was tried alongside this and
+// dropped - it read as a poorly-blended fading circle rather than ambient light, the outline alone
+// carries the effect.
+
+/** Solid fill color for the silhouette-hugging outline pass. */
+export const ELITE_OUTLINE_COLOR = COLOR_ENTITY_ELITE;
+
+/** How far, in pixels, each of the 8 outline copies is offset from the real sprite - the visible
+ * outline thickness once the real sprite is drawn on top, covering everything but the fringe. */
+export const ELITE_OUTLINE_WIDTH = 3;
 
 // ---------------------------------------------
 // Colors - Character screen

@@ -1,4 +1,4 @@
-import { assets, type AssetManager } from "./AssetManager";
+import { assets, type AssetManager, type SourceRect } from "./AssetManager";
 import type { RoomView, PlayerView, EntityView } from "./protocol";
 import {
     TILE_SIZE,
@@ -29,8 +29,18 @@ import {
     INTERACT_BADGE_TEXT,
     INTERACT_BADGE_OFFSET,
     INTERACT_BADGE_BOUNCE_AMPLITUDE,
-    INTERACT_BADGE_BOUNCE_PERIOD
+    INTERACT_BADGE_BOUNCE_PERIOD,
+    ELITE_OUTLINE_COLOR,
+    ELITE_OUTLINE_WIDTH
 } from "./constants";
+
+/** The 8 offsets (in pixels) the Elite outline pass draws the tinted sprite silhouette at,
+ * surrounding the real sprite drawn on top - the visible fringe becomes the outline. */
+const ELITE_OUTLINE_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+    [-ELITE_OUTLINE_WIDTH, -ELITE_OUTLINE_WIDTH], [0, -ELITE_OUTLINE_WIDTH], [ELITE_OUTLINE_WIDTH, -ELITE_OUTLINE_WIDTH],
+    [-ELITE_OUTLINE_WIDTH, 0],                                               [ELITE_OUTLINE_WIDTH, 0],
+    [-ELITE_OUTLINE_WIDTH, ELITE_OUTLINE_WIDTH],  [0, ELITE_OUTLINE_WIDTH],  [ELITE_OUTLINE_WIDTH, ELITE_OUTLINE_WIDTH],
+];
 
 const ENTITY_COLORS: Record<string, string> = {
     enemy: COLOR_ENTITY_ENEMY,
@@ -117,6 +127,12 @@ export class Renderer {
 
     /** ResizeObserver to react when the container changes size. */
     private resizeObserver: ResizeObserver;
+
+    /** Offscreen buffer reused every frame to build one Elite outline pass (draw the sprite, then
+     * source-in tint it solid gold) before compositing it onto the main canvas 8 times. Lazily
+     * created on first use - most rooms never contain an Elite. */
+    private eliteOutlineCanvas: HTMLCanvasElement | null = null;
+    private eliteOutlineCtx: CanvasRenderingContext2D | null = null;
 
     constructor(canvas: HTMLCanvasElement) {
         const ctx = canvas.getContext("2d");
@@ -324,14 +340,23 @@ export class Renderer {
             const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
             const isNearby = chebyshevDist(px, py, entity.x, entity.y) <= INTERACT_RANGE;
 
+            // Elite aura: always visible (not gated by proximity like the interact badge below) -
+            // the whole point is anticipation before the player approaches. Drawn behind the
+            // entity body (outline first, real sprite/circle drawn on top last).
+            const isElite = entity.kind === "enemy" && !!entity.isElite;
+
             // Entity body: real sprite when one resolves, geometric circle otherwise
             const fallbackColor = ENTITY_COLORS[entity.kind] ?? COLOR_ENTITY_FALLBACK;
             const spriteKey = entity.kind === "enemy" ? entity.spriteId : ENTITY_SPRITES[entity.kind];
             const sprite = spriteKey ? this.assets.getSprite(spriteKey, fallbackColor, this.elapsed) : null;
 
             if (sprite?.image && sprite.sourceRect) {
+                const flip = entity.kind === "enemy" && shouldFlip(entity.id);
+                if (isElite) {
+                    this.drawEliteOutline(sprite.image, sprite.sourceRect, flip, cx, cy);
+                }
                 const { x: sx, y: sy, w: sw, h: sh } = sprite.sourceRect;
-                if (entity.kind === "enemy" && shouldFlip(entity.id)) {
+                if (flip) {
                     // Stable per-entity mirror (not random per frame) so enemies vary in
                     // orientation without ever flickering - purely cosmetic, no server/protocol
                     // involvement, unlike the player's separately pre-mirrored sheets.
@@ -362,6 +387,51 @@ export class Renderer {
             if (isNearby) {
                 this.drawInteractBadge(cx, cy - radius - INTERACT_BADGE_OFFSET);
             }
+        }
+    }
+
+    /** Lazily creates the reusable offscreen buffer the Elite outline pass tints and composites
+     * from - most rooms never contain an Elite, so this never allocates in the common case. */
+    private getEliteOutlineBuffer(): CanvasRenderingContext2D {
+        if (!this.eliteOutlineCtx) {
+            this.eliteOutlineCanvas = document.createElement("canvas");
+            this.eliteOutlineCanvas.width = TILE_SIZE;
+            this.eliteOutlineCanvas.height = TILE_SIZE;
+            const ctx = this.eliteOutlineCanvas.getContext("2d");
+            if (!ctx) throw new Error("Could not get 2D context for the Elite outline buffer.");
+            this.eliteOutlineCtx = ctx;
+        }
+        return this.eliteOutlineCtx;
+    }
+
+    /** Draws a silhouette-hugging outline around an Elite enemy's sprite: the sprite's own pixels,
+     * offset by ELITE_OUTLINE_WIDTH in the 8 surrounding directions and tinted solid gold, so the
+     * visible fringe follows the actual character silhouette (any pose, either facing) instead of
+     * a generic shape laid on top. The real sprite is drawn afterward, on top, covering the center. */
+    private drawEliteOutline(image: HTMLImageElement, sourceRect: SourceRect, flip: boolean, cx: number, cy: number): void {
+        const off = this.getEliteOutlineBuffer();
+        const { x: sx, y: sy, w: sw, h: sh } = sourceRect;
+
+        off.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
+        off.save();
+        if (flip) {
+            off.translate(TILE_SIZE, 0);
+            off.scale(-1, 1);
+        }
+        off.drawImage(image, sx, sy, sw, sh, 0, 0, TILE_SIZE, TILE_SIZE);
+        off.restore();
+
+        // Recolor every non-transparent pixel solid gold, keeping the sprite's own alpha shape.
+        off.globalCompositeOperation = "source-in";
+        off.fillStyle = ELITE_OUTLINE_COLOR;
+        off.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+        off.globalCompositeOperation = "source-over";
+
+        const { ctx } = this;
+        const originX = cx - TILE_SIZE / 2;
+        const originY = cy - TILE_SIZE / 2;
+        for (const [dx, dy] of ELITE_OUTLINE_OFFSETS) {
+            ctx.drawImage(off.canvas, originX + dx, originY + dy);
         }
     }
 

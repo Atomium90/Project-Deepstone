@@ -1,7 +1,7 @@
 <script lang="ts">
     import { gameState, client, combatLog, combatDamageEvents } from "../engine/StateStore";
     import { settings } from "../engine/SettingsStore";
-    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, PLAYER_CLASS_COLORS, ITEM_RARITY_COLORS } from "../engine/constants";
+    import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, COLOR_ENTITY_ELITE, PLAYER_CLASS_COLORS, ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
     import StatBar from "./StatBar.svelte";
@@ -183,9 +183,10 @@
                     <Sprite spriteId={combat.spriteId} fallbackColor={COLOR_ENTITY_ENEMY} size={112} />
                 </div>
             {/if}
-            <p class="combatant-name">{combat?.enemyLabel ?? "—"}</p>
+            <p class="combatant-name">{combat?.isElite ? "Elite " : ""}{combat?.enemyLabel ?? "—"}</p>
 
-            <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0} color={HP_BAR_COLOR} />
+            <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0}
+                     color={combat?.isElite ? COLOR_ENTITY_ELITE : HP_BAR_COLOR} />
 
             {#each floaters.filter((f) => !f.targetIsPlayer) as f (f.id)}
                 <span class="floater" class:heal={f.kind === "heal"} class:crit={f.crit}>

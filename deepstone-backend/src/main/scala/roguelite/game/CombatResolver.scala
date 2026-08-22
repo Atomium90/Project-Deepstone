@@ -498,8 +498,14 @@ class CombatResolver(rng: Random = Random(),
     // room to hold a pending equip choice - see the ChoicePending branch below.
     val isBossKill = updatedDungeon.isAtBoss
 
+    // Elite kills guarantee at least Rare - no other enemy-kill-side floor source exists today
+    // (Lucky Find/Rarity Insight only apply to chests), so a plain Some/None is enough here; if a
+    // second source appears later, follow InteractionResolver's maxByOption(_.ordinal) precedence
+    // pattern instead of special-casing.
+    val eliteFloor = if deadEnemy.isElite then Some(Rarity.Rare) else None
+
     val (playerAfterLoot, lootLog, lootEvents, pendingChoice) =
-      LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty) match {
+      LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty, eliteFloor) match {
         case None => (playerAfterHeal, Nil, Nil, None)
         case Some(item) =>
           EquipmentResolver.resolvePickup(playerAfterHeal, item, setDefs) match {
@@ -543,7 +549,10 @@ class CombatResolver(rng: Random = Random(),
     val levelUpEvents = (startLevel + 1 to finalPlayer.level).map(GameEvent.LeveledUp.apply).toList
 
     val enemyDefeatedEvent =
-      GameEvent.EnemyDefeated(isBoss = isBossKill, tookNoDamage = !state.combat.tookDamage)
+      GameEvent.EnemyDefeated(isBoss = isBossKill,
+                              tookNoDamage = !state.combat.tookDamage,
+                              wasElite = deadEnemy.isElite
+      )
 
     if isBossKill then
       val runCompleteLog = List("You have vanquished the dungeon's guardian! Victory is yours.")

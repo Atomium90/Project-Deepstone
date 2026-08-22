@@ -49,7 +49,17 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
-  /** Minimal upgrade catalog mirroring upgrades.json, avoids file I/O in unit tests. */
+  /** Upgrade catalog for this suite's GameSession-level behavior tests, avoids file I/O in unit
+    * tests. Every entry here is load-bearing: each of the 12 real UpgradeEffect kinds has its own
+    * dedicated behavior test further down (e.g. "weapon_mastery adds a flat +1 to attack damage",
+    * "rarity_insight guarantees at least Uncommon rarity..."), and the completionist test buys all
+    * 12 by id. Unlike testAchievementDefs below, this can't be trimmed to a small subset without
+    * deleting that per-effect coverage - it only happens to mirror upgrades.json's current ids
+    * because every real effect kind is individually exercised here, not because it's meant to
+    * track the production file. A genuinely new UpgradeEffect kind needs a new entry here (and a
+    * new behavior test) the same way it needs a new case in UpgradeLoader/GameSession - that's
+    * normal test growth, not drift to chase.
+    */
   val testUpgradeDefs: Map[String, UpgradeDef] = Map(
     "hp_boost_1" -> UpgradeDef("hp_boost_1",
                                "Iron Constitution I",

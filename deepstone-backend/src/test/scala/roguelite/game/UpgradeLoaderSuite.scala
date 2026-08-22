@@ -3,136 +3,95 @@ package roguelite.game
 import munit.CatsEffectSuite
 import roguelite.engine.ClassId
 
-/** Tests for [[UpgradeLoader]]: JSON parsing and effect decoding for every upgrade kind. */
+/** Tests for [[UpgradeLoader]]. The decode-path tests run against a small fixture (via
+  * [[JsonResourceLoader.loadAllFromJson]]) that is isolated from and never needs to change
+  * alongside `data/upgrades.json` - only the "real catalog" section at the bottom still touches
+  * the production file, and only for size-independent checks.
+  */
 class UpgradeLoaderSuite extends CatsEffectSuite:
 
-  test("UpgradeLoader loads all expected upgrade ids") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs =>
-          val expectedIds = Set(
-            "hp_boost_1",
-            "hp_boost_2",
-            "potion_start",
-            "archer_unlock",
-            "mage_unlock",
-            "extra_slot",
-            "extra_potion_capacity",
-            "weapon_mastery",
-            "rarity_insight",
-            "warrior_kit",
-            "archer_kit",
-            "mage_kit"
-          )
-          assertEquals(defs.keySet, expectedIds)
-  }
+  private val fixture =
+    """[
+      |  {"id":"test_hp","label":"L","description":"d","cost":10,"displayOrder":1,"icon":"i.png","category":"stat","effect":{"type":"MaxHpBoost","amount":20}},
+      |  {"id":"test_slot","label":"L","description":"d","cost":20,"displayOrder":2,"icon":"i.png","category":"stat","effect":{"type":"ExtraPotionSlot"}},
+      |  {"id":"test_cap","label":"L","description":"d","cost":30,"displayOrder":3,"icon":"i.png","category":"stat","effect":{"type":"ExtraPotionCapacity"}},
+      |  {"id":"test_item","label":"L","description":"d","cost":40,"displayOrder":4,"icon":"i.png","category":"meta","effect":{"type":"StartingItem","typeId":"health_potion"}},
+      |  {"id":"test_unlock","label":"L","description":"d","cost":50,"displayOrder":5,"icon":"i.png","category":"meta","effect":{"type":"UnlockClass","classId":"mage"}},
+      |  {"id":"test_atk","label":"L","description":"d","cost":60,"displayOrder":6,"icon":"i.png","category":"stat","effect":{"type":"FlatAttackBoost","amount":3}},
+      |  {"id":"test_rarity","label":"L","description":"d","cost":70,"displayOrder":7,"icon":"i.png","category":"stat","effect":{"type":"GuaranteedChestRarity","rarity":"rare"}},
+      |  {"id":"test_kit","label":"L","description":"d","cost":80,"displayOrder":8,"icon":"i.png","category":"meta","effect":{"type":"UnlockStartingKit","classId":"warrior"}}
+      |]""".stripMargin
 
-  test("displayOrder values are unique") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs =>
-          val orders = defs.values.map(_.displayOrder).toList
-          assertEquals(orders.distinct.length, orders.length, "duplicate displayOrder found")
-  }
+  test("loadAllFromJson keys each entry by its id"):
+    for defs <- UpgradeLoader.loadAllFromJson(fixture)
+    yield assertEquals(defs.size, 8)
 
-  test("hp_boost_1 and hp_boost_2 decode to MaxHpBoost with the right amounts") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(defs("hp_boost_1").effect, UpgradeEffect.MaxHpBoost(20))
-          assertEquals(defs("hp_boost_2").effect, UpgradeEffect.MaxHpBoost(40))
-  }
+  test("every effect variant decodes to its own case class"):
+    for defs <- UpgradeLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs("test_hp").effect, UpgradeEffect.MaxHpBoost(20))
+      assertEquals(defs("test_slot").effect, UpgradeEffect.ExtraPotionSlot)
+      assertEquals(defs("test_cap").effect, UpgradeEffect.ExtraPotionCapacity)
+      assertEquals(defs("test_item").effect, UpgradeEffect.StartingItem("health_potion"))
+      assertEquals(defs("test_unlock").effect, UpgradeEffect.UnlockClass(ClassId.Mage))
+      assertEquals(defs("test_atk").effect, UpgradeEffect.FlatAttackBoost(3))
+      assertEquals(defs("test_rarity").effect, UpgradeEffect.GuaranteedChestRarity(Rarity.Rare))
+      assertEquals(defs("test_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Warrior))
 
-  test("potion_start decodes to StartingItem(health_potion)") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("potion_start").effect, UpgradeEffect.StartingItem("health_potion"))
-  }
+  test("category decodes Stat and Meta"):
+    for defs <- UpgradeLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs("test_hp").category, UpgradeCategory.Stat)
+      assertEquals(defs("test_item").category, UpgradeCategory.Meta)
 
-  test("extra_slot decodes to ExtraPotionSlot") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("extra_slot").effect, UpgradeEffect.ExtraPotionSlot)
-  }
+  test("MaxHpBoost missing its 'amount' field fails to parse"):
+    val bad =
+      """[{"id":"x","label":"L","description":"d","cost":1,"displayOrder":1,"icon":"i.png","category":"stat","effect":{"type":"MaxHpBoost"}}]"""
+    UpgradeLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("extra_potion_capacity decodes to ExtraPotionCapacity") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("extra_potion_capacity").effect, UpgradeEffect.ExtraPotionCapacity)
-  }
+  test("an unknown category fails to parse"):
+    val bad =
+      """[{"id":"x","label":"L","description":"d","cost":1,"displayOrder":1,"icon":"i.png","category":"bogus","effect":{"type":"ExtraPotionSlot"}}]"""
+    UpgradeLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("weapon_mastery decodes to FlatAttackBoost") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("weapon_mastery").effect, UpgradeEffect.FlatAttackBoost(1))
-  }
+  test("an unknown effect type fails to parse"):
+    val bad =
+      """[{"id":"x","label":"L","description":"d","cost":1,"displayOrder":1,"icon":"i.png","category":"stat","effect":{"type":"NotReal"}}]"""
+    UpgradeLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("rarity_insight decodes to GuaranteedChestRarity") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(defs("rarity_insight").effect, UpgradeEffect.GuaranteedChestRarity(Rarity.Uncommon))
-  }
+  test("an unknown classId in UnlockClass fails to parse"):
+    val bad =
+      """[{"id":"x","label":"L","description":"d","cost":1,"displayOrder":1,"icon":"i.png","category":"meta","effect":{"type":"UnlockClass","classId":"paladin"}}]"""
+    UpgradeLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("archer_unlock and mage_unlock decode to UnlockClass") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(defs("archer_unlock").effect, UpgradeEffect.UnlockClass(ClassId.Archer))
-          assertEquals(defs("mage_unlock").effect, UpgradeEffect.UnlockClass(ClassId.Mage))
-  }
+  // ---------------------------------------------
+  // Real catalog: size-independent checks only
+  // ---------------------------------------------
 
-  test("warrior_kit, archer_kit, and mage_kit decode to UnlockStartingKit") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(defs("warrior_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Warrior))
-          assertEquals(defs("archer_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Archer))
-          assertEquals(defs("mage_kit").effect, UpgradeEffect.UnlockStartingKit(ClassId.Mage))
-  }
+  test("the real data/upgrades.json resource loads successfully"):
+    for defs <- UpgradeLoader.loadAll()
+    yield assert(defs.nonEmpty)
 
-  test("every upgrade has a positive cost") {
+  test("every upgrade has a positive cost"):
     UpgradeLoader
       .loadAll()
       .map:
         defs =>
           defs.values.foreach:
             u => assert(u.cost > 0, s"${u.id} has non-positive cost ${u.cost}")
-  }
 
-  test("categories match the STATS/META split") {
-    UpgradeLoader
-      .loadAll()
-      .map:
-        defs =>
-          val statIds = Set("hp_boost_1",
-                            "hp_boost_2",
-                            "extra_slot",
-                            "extra_potion_capacity",
-                            "weapon_mastery",
-                            "rarity_insight"
-          )
-          val metaIds =
-            Set("potion_start", "archer_unlock", "mage_unlock", "warrior_kit", "archer_kit", "mage_kit")
-          statIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Stat, id))
-          metaIds.foreach(id => assertEquals(defs(id).category, UpgradeCategory.Meta, id))
-  }
-
-  test("every upgrade has a non-empty icon") {
+  test("every upgrade has a non-empty icon"):
     UpgradeLoader
       .loadAll()
       .map:
         defs =>
           defs.values.foreach:
             u => assert(u.icon.nonEmpty, s"${u.id} has no icon")
-  }
+
+  test("displayOrder values are unique"):
+    UpgradeLoader
+      .loadAll()
+      .map:
+        defs =>
+          val orders = defs.values.map(_.displayOrder).toList
+          assertEquals(orders.distinct.length, orders.length, "duplicate displayOrder found")

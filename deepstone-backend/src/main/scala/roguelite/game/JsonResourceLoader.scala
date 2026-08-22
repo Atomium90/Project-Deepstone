@@ -31,18 +31,22 @@ trait JsonResourceLoader[T, K]:
 
   /** Load all entries from the bundled JSON resource into a Map keyed by [[keyOf]]. */
   def loadAll(): IO[Map[K, T]] =
-    for
-      json <- readResource(resourcePath)
-      entries <- IO.fromEither(
-        parseEntries(json).leftMap(
-          err => RuntimeException(s"Failed to parse $resourcePath: $err")
-        )
+    readResource(resourcePath).flatMap(loadAllFromJson)
+
+  /** Runs this loader's own parsing/keying logic against an arbitrary JSON string instead of the
+    * bundled classpath resource. `loadAll` is built on top of this; test suites also call it
+    * directly with a small hand-authored fixture, so a suite can exercise the real decode path
+    * (DTOs, effect discriminators, error messages) against content that's isolated from - and
+    * never needs to change alongside - the production catalog.
+    */
+  def loadAllFromJson(json: String): IO[Map[K, T]] =
+    IO.fromEither(
+      parseEntries(json).leftMap(
+        err => RuntimeException(s"Failed to parse: $err")
       )
-    yield entries
-      .map(
-        e => keyOf(e) -> e
-      )
-      .toMap
+    ).map(
+      entries => entries.map(e => keyOf(e) -> e).toMap
+    )
 
   private def readResource(path: String): IO[String] =
     IO.blocking:

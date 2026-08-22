@@ -3,99 +3,68 @@ package roguelite.game
 import munit.CatsEffectSuite
 import roguelite.engine.ClassId
 
-/** Tests for [[SetLoader]]: JSON parsing and the 6 authored set definitions. */
+/** Tests for [[SetLoader]]. The decode-path tests run against a small fixture (via
+  * [[JsonResourceLoader.loadAllFromJson]]) covering each [[SetBonusEffect]] variant once, isolated
+  * from and never needing to change alongside `data/sets.json` - only the "real catalog" section
+  * at the bottom still touches the production file, and only for a size-independent smoke check.
+  */
 class SetLoaderSuite extends CatsEffectSuite:
 
-  test("SetLoader loads all 6 sets") {
-    SetLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(
-            defs.keySet,
-            Set("light_soldier",
-                "enraged_berserker",
-                "silent_archer",
-                "iron_bolter",
-                "pyromancer",
-                "necromancer"
-            )
-          )
-  }
+  private val fixture =
+    """[
+      |  {"id":"test_set_a","name":"Test Set A","classId":"warrior","twoPiece":{"type":"MaxHpPercent","label":"L1","value":5},"fourPiece":{"type":"FlatDefense","label":"L2","value":2}},
+      |  {"id":"test_set_b","name":"Test Set B","classId":"archer","twoPiece":{"type":"FlatAttack","label":"L3","value":3},"fourPiece":{"type":"CritChancePercent","label":"L4","value":5}},
+      |  {"id":"test_set_c","name":"Test Set C","classId":"mage","twoPiece":{"type":"AttackDamagePercent","label":"L5","value":10},"fourPiece":{"type":"AbilityCostReductionPercent","label":"L6","value":15}},
+      |  {"id":"test_set_d","name":"Test Set D","classId":"warrior","twoPiece":{"type":"FirstAttackAlwaysCrit","label":"L7"},"fourPiece":{"type":"HealOnKillPercent","label":"L8","value":10}}
+      |]""".stripMargin
 
-  test("every set is assigned to a real class") {
-    SetLoader
-      .loadAll()
-      .map:
-        defs =>
-          defs.values.foreach:
-            s => assert(Set(ClassId.Warrior, ClassId.Archer, ClassId.Mage).contains(s.classId))
-  }
+  test("loadAllFromJson keys each entry by its id"):
+    for defs <- SetLoader.loadAllFromJson(fixture)
+    yield assertEquals(defs.size, 4)
 
-  test("light_soldier: +5% max HP at 2pc, +2 flat DEF at 4pc") {
-    SetLoader
-      .loadAll()
-      .map:
-        defs =>
-          val s = defs("light_soldier")
-          assertEquals(s.classId, ClassId.Warrior)
-          assertEquals(s.twoPiece.effect, SetBonusEffect.MaxHpPercent(5))
-          assertEquals(s.fourPiece.effect, SetBonusEffect.FlatDefense(2))
-  }
+  test("every SetBonusEffect variant decodes to its own case class"):
+    for defs <- SetLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs("test_set_a").twoPiece.effect, SetBonusEffect.MaxHpPercent(5))
+      assertEquals(defs("test_set_a").fourPiece.effect, SetBonusEffect.FlatDefense(2))
+      assertEquals(defs("test_set_b").twoPiece.effect, SetBonusEffect.FlatAttack(3))
+      assertEquals(defs("test_set_b").fourPiece.effect, SetBonusEffect.CritChancePercent(5))
+      assertEquals(defs("test_set_c").twoPiece.effect, SetBonusEffect.AttackDamagePercent(10))
+      assertEquals(defs("test_set_c").fourPiece.effect, SetBonusEffect.AbilityCostReductionPercent(15))
+      assertEquals(defs("test_set_d").twoPiece.effect, SetBonusEffect.FirstAttackAlwaysCrit)
+      assertEquals(defs("test_set_d").fourPiece.effect, SetBonusEffect.HealOnKillPercent(10))
 
-  test("enraged_berserker: +5% crit at 2pc, +10% attack damage at 4pc") {
-    SetLoader
-      .loadAll()
-      .map:
-        defs =>
-          val s = defs("enraged_berserker")
-          assertEquals(s.twoPiece.effect, SetBonusEffect.CritChancePercent(5))
-          assertEquals(s.fourPiece.effect, SetBonusEffect.AttackDamagePercent(10))
-  }
+  test("every set is assigned to its decoded class"):
+    for defs <- SetLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs("test_set_a").classId, ClassId.Warrior)
+      assertEquals(defs("test_set_b").classId, ClassId.Archer)
+      assertEquals(defs("test_set_c").classId, ClassId.Mage)
 
-  test("silent_archer: +5% crit at 2pc, first attack always crits at 4pc") {
-    SetLoader
-      .loadAll()
-      .map:
-        defs =>
-          val s = defs("silent_archer")
-          assertEquals(s.classId, ClassId.Archer)
-          assertEquals(s.twoPiece.effect, SetBonusEffect.CritChancePercent(5))
-          assertEquals(s.fourPiece.effect, SetBonusEffect.FirstAttackAlwaysCrit)
-  }
+  test("an unknown classId fails to parse"):
+    val bad =
+      """[{"id":"x","name":"X","classId":"paladin","twoPiece":{"type":"FlatAttack","label":"L","value":1},"fourPiece":{"type":"FlatAttack","label":"L","value":1}}]"""
+    SetLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("iron_bolter: +3 flat ATK at 2pc, +8% max HP at 4pc") {
-    SetLoader
-      .loadAll()
-      .map:
-        defs =>
-          val s = defs("iron_bolter")
-          assertEquals(s.twoPiece.effect, SetBonusEffect.FlatAttack(3))
-          assertEquals(s.fourPiece.effect, SetBonusEffect.MaxHpPercent(8))
-  }
+  test("an unknown bonus effect type fails to parse"):
+    val bad =
+      """[{"id":"x","name":"X","classId":"warrior","twoPiece":{"type":"NotReal","label":"L"},"fourPiece":{"type":"FlatAttack","label":"L","value":1}}]"""
+    SetLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("pyromancer: +10% attack damage at 2pc, -15% ability cost at 4pc") {
-    SetLoader
-      .loadAll()
-      .map:
-        defs =>
-          val s = defs("pyromancer")
-          assertEquals(s.classId, ClassId.Mage)
-          assertEquals(s.twoPiece.effect, SetBonusEffect.AttackDamagePercent(10))
-          assertEquals(s.fourPiece.effect, SetBonusEffect.AbilityCostReductionPercent(15))
-  }
+  test("a value-based bonus effect missing its 'value' field fails to parse"):
+    val bad =
+      """[{"id":"x","name":"X","classId":"warrior","twoPiece":{"type":"FlatAttack","label":"L"},"fourPiece":{"type":"FlatAttack","label":"L","value":1}}]"""
+    SetLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("necromancer: +10% max HP at 2pc, heal 10% of kill damage at 4pc") {
-    SetLoader
-      .loadAll()
-      .map:
-        defs =>
-          val s = defs("necromancer")
-          assertEquals(s.twoPiece.effect, SetBonusEffect.MaxHpPercent(10))
-          assertEquals(s.fourPiece.effect, SetBonusEffect.HealOnKillPercent(10))
-  }
+  // ---------------------------------------------
+  // Real catalog: size-independent smoke check only
+  // ---------------------------------------------
 
-  test("every set bonus has a non-empty label") {
+  test("the real data/sets.json resource loads successfully"):
+    for defs <- SetLoader.loadAll()
+    yield assert(defs.nonEmpty)
+
+  test("every real set bonus has a non-empty label"):
     SetLoader
       .loadAll()
       .map:
@@ -104,4 +73,3 @@ class SetLoaderSuite extends CatsEffectSuite:
             s =>
               assert(s.twoPiece.label.nonEmpty, s"${s.id} 2pc label is empty")
               assert(s.fourPiece.label.nonEmpty, s"${s.id} 4pc label is empty")
-  }

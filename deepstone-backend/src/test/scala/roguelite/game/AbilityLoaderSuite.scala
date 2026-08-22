@@ -3,63 +3,57 @@ package roguelite.game
 import munit.CatsEffectSuite
 import roguelite.engine.ClassId
 
-/** Tests for [[AbilityLoader]]: JSON parsing and per-class ability data. */
+/** Tests for [[AbilityLoader]]. The decode-path tests run against a small fixture (via
+  * [[JsonResourceLoader.loadAllFromJson]]) that is isolated from and never needs to change
+  * alongside `data/abilities.json` - only the "real catalog" section at the bottom still touches
+  * the production file, and only for a size-independent smoke check.
+  */
 class AbilityLoaderSuite extends CatsEffectSuite:
 
-  test("AbilityLoader loads one ability per class") {
-    AbilityLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(defs.size, 3)
-          assert(defs.contains(ClassId.Warrior), "missing Warrior")
-          assert(defs.contains(ClassId.Archer), "missing Archer")
-          assert(defs.contains(ClassId.Mage), "missing Mage")
-  }
+  private val fixture =
+    """[
+      |  {"classId":"warrior","id":"test_slash","name":"Test Slash","cost":10,"resourceName":"Rage","description":"desc","effect":{"type":"DoubleNextAttack"}},
+      |  {"classId":"archer","id":"test_shot","name":"Test Shot","cost":15,"resourceName":"Focus","description":"desc","effect":{"type":"IgnoreDefenseNextAttack"}},
+      |  {"classId":"mage","id":"test_blast","name":"Test Blast","cost":20,"resourceName":"Mana","description":"desc","effect":{"type":"FlatDamage","amount":7}}
+      |]""".stripMargin
 
-  test("Warrior ability is Berserker Slash: 40 Rage, DoubleNextAttack") {
-    AbilityLoader
-      .loadAll()
-      .map:
-        defs =>
-          val a = defs(ClassId.Warrior)
-          assertEquals(a.name, "Berserker Slash")
-          assertEquals(a.cost, 40)
-          assertEquals(a.resourceName, "Rage")
-          assertEquals(a.effect, AbilityEffect.DoubleNextAttack)
-  }
+  test("loadAllFromJson keys each entry by its classId"):
+    for defs <- AbilityLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs.keySet, Set(ClassId.Warrior, ClassId.Archer, ClassId.Mage))
+      assertEquals(defs(ClassId.Warrior).id, "test_slash")
+      assertEquals(defs(ClassId.Warrior).cost, 10)
+      assertEquals(defs(ClassId.Warrior).resourceName, "Rage")
 
-  test("Archer ability is Precise Shot: 30 Focus, IgnoreDefenseNextAttack") {
-    AbilityLoader
-      .loadAll()
-      .map:
-        defs =>
-          val a = defs(ClassId.Archer)
-          assertEquals(a.name, "Precise Shot")
-          assertEquals(a.cost, 30)
-          assertEquals(a.resourceName, "Focus")
-          assertEquals(a.effect, AbilityEffect.IgnoreDefenseNextAttack)
-  }
+  test("DoubleNextAttack and IgnoreDefenseNextAttack decode with no amount"):
+    for defs <- AbilityLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs(ClassId.Warrior).effect, AbilityEffect.DoubleNextAttack)
+      assertEquals(defs(ClassId.Archer).effect, AbilityEffect.IgnoreDefenseNextAttack)
 
-  test("Mage ability is Arcane Blast: 30 Mana, 45 flat damage") {
-    AbilityLoader
-      .loadAll()
-      .map:
-        defs =>
-          val a = defs(ClassId.Mage)
-          assertEquals(a.name, "Arcane Blast")
-          assertEquals(a.cost, 30)
-          assertEquals(a.resourceName, "Mana")
-          assertEquals(a.effect, AbilityEffect.FlatDamage(45))
-  }
+  test("FlatDamage decodes with its amount"):
+    for defs <- AbilityLoader.loadAllFromJson(fixture)
+    yield assertEquals(defs(ClassId.Mage).effect, AbilityEffect.FlatDamage(7))
 
-  test("every ability has a non-empty id and description") {
-    AbilityLoader
-      .loadAll()
-      .map:
-        defs =>
-          defs.values.foreach:
-            a =>
-              assert(a.id.nonEmpty, s"${a.classId} ability has an empty id")
-              assert(a.description.nonEmpty, s"${a.classId} ability has an empty description")
-  }
+  test("FlatDamage missing its 'amount' field fails to parse"):
+    val bad =
+      """[{"classId":"mage","id":"x","name":"X","cost":1,"resourceName":"Mana","description":"d","effect":{"type":"FlatDamage"}}]"""
+    AbilityLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an unknown effect type fails to parse"):
+    val bad =
+      """[{"classId":"mage","id":"x","name":"X","cost":1,"resourceName":"Mana","description":"d","effect":{"type":"NotARealEffect"}}]"""
+    AbilityLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an unknown classId fails to parse"):
+    val bad =
+      """[{"classId":"paladin","id":"x","name":"X","cost":1,"resourceName":"Mana","description":"d","effect":{"type":"DoubleNextAttack"}}]"""
+    AbilityLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  // ---------------------------------------------
+  // Real catalog: size-independent smoke check only
+  // ---------------------------------------------
+
+  test("the real data/abilities.json resource loads successfully"):
+    for defs <- AbilityLoader.loadAll()
+    yield assert(defs.nonEmpty)

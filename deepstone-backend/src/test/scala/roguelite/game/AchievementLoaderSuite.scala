@@ -3,84 +3,68 @@ package roguelite.game
 import munit.CatsEffectSuite
 import roguelite.engine.Difficulty
 
-/** Tests for [[AchievementLoader]]: JSON parsing and condition decoding for every achievement kind. */
+/** Tests for [[AchievementLoader]]. The decode-path tests run against a small fixture (via
+  * [[JsonResourceLoader.loadAllFromJson]]) covering each shape of [[AchievementCondition]] the DTO
+  * supports (no-arg, level/amount/count/rarity/difficulty-parameterized) rather than every real
+  * condition - it's isolated from and never needs to change alongside `data/achievements.json`.
+  * Only the "real catalog" section at the bottom still touches the production file.
+  */
 class AchievementLoaderSuite extends CatsEffectSuite:
 
-  test("AchievementLoader loads all expected achievement ids") {
-    AchievementLoader
-      .loadAll()
-      .map:
-        defs =>
-          val expectedIds = Set(
-            "first_blood",
-            "boss_slayer",
-            "level_5",
-            "untouchable",
-            "packrat",
-            "big_spender",
-            "key_master",
-            "secret_finder",
-            "veteran",
-            "champion",
-            "win_streak",
-            "completionist",
-            "epic_find",
-            "set_complete",
-            "full_belt",
-            "stockpiler",
-            "hard_mode_victory",
-            "potion_master",
-            "potion_connoisseur",
-            "jack_of_all_trades",
-            "elite_hunter"
-          )
-          assertEquals(defs.keySet, expectedIds)
-  }
+  private val fixture =
+    """[
+      |  {"id":"test_noarg","label":"L","description":"d","displayOrder":1,"condition":{"type":"FirstKill"}},
+      |  {"id":"test_level","label":"L","description":"d","displayOrder":2,"condition":{"type":"ReachLevel","level":5}},
+      |  {"id":"test_amount","label":"L","description":"d","displayOrder":3,"condition":{"type":"TotalShardsSpent","amount":100}},
+      |  {"id":"test_count","label":"L","description":"d","displayOrder":4,"condition":{"type":"RunsWon","count":3}},
+      |  {"id":"test_rarity","label":"L","description":"d","displayOrder":5,"condition":{"type":"LootRarity","rarity":"epic"}},
+      |  {"id":"test_difficulty","label":"L","description":"d","displayOrder":6,"condition":{"type":"WinOnDifficulty","difficulty":"hard"}}
+      |]""".stripMargin
 
-  test("displayOrder values are unique") {
+  test("loadAllFromJson keys each entry by its id"):
+    for defs <- AchievementLoader.loadAllFromJson(fixture)
+    yield assertEquals(defs.size, 6)
+
+  test("every condition shape decodes to its own case class"):
+    for defs <- AchievementLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs("test_noarg").condition, AchievementCondition.FirstKill)
+      assertEquals(defs("test_level").condition, AchievementCondition.ReachLevel(5))
+      assertEquals(defs("test_amount").condition, AchievementCondition.TotalShardsSpent(100))
+      assertEquals(defs("test_count").condition, AchievementCondition.RunsWon(3))
+      assertEquals(defs("test_rarity").condition, AchievementCondition.LootRarity(Rarity.Epic))
+      assertEquals(defs("test_difficulty").condition, AchievementCondition.WinOnDifficulty(Difficulty.Hard))
+
+  test("ReachLevel missing its 'level' field fails to parse"):
+    val bad = """[{"id":"x","label":"L","description":"d","displayOrder":1,"condition":{"type":"ReachLevel"}}]"""
+    AchievementLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an unknown condition type fails to parse"):
+    val bad = """[{"id":"x","label":"L","description":"d","displayOrder":1,"condition":{"type":"NotReal"}}]"""
+    AchievementLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an unknown rarity fails to parse"):
+    val bad =
+      """[{"id":"x","label":"L","description":"d","displayOrder":1,"condition":{"type":"LootRarity","rarity":"mythic"}}]"""
+    AchievementLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an unknown difficulty fails to parse"):
+    val bad =
+      """[{"id":"x","label":"L","description":"d","displayOrder":1,"condition":{"type":"WinOnDifficulty","difficulty":"nightmare"}}]"""
+    AchievementLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  // ---------------------------------------------
+  // Real catalog: size-independent checks only
+  // ---------------------------------------------
+
+  test("the real data/achievements.json resource loads successfully"):
+    for defs <- AchievementLoader.loadAll()
+    yield assert(defs.nonEmpty)
+
+  test("displayOrder values are unique"):
     AchievementLoader
       .loadAll()
       .map:
         defs =>
           val orders = defs.values.map(_.displayOrder).toList
           assertEquals(orders.distinct.length, orders.length, "duplicate displayOrder found")
-  }
-
-  test("no-arg conditions decode correctly") {
-    AchievementLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(defs("first_blood").condition, AchievementCondition.FirstKill)
-          assertEquals(defs("boss_slayer").condition, AchievementCondition.DefeatBoss)
-          assertEquals(defs("untouchable").condition, AchievementCondition.NoDamageVictory)
-          assertEquals(defs("packrat").condition, AchievementCondition.FillInventory)
-          assertEquals(defs("key_master").condition, AchievementCondition.UnlockDoorWithKey)
-          assertEquals(defs("secret_finder").condition, AchievementCondition.RevealSecretDoor)
-          assertEquals(defs("completionist").condition, AchievementCondition.AllUpgradesUnlocked)
-          assertEquals(defs("set_complete").condition, AchievementCondition.FourPieceSetActive)
-          assertEquals(defs("full_belt").condition, AchievementCondition.FillPotionBelt)
-          assertEquals(defs("stockpiler").condition, AchievementCondition.FillPotionStack)
-          assertEquals(defs("hard_mode_victory").condition,
-                       AchievementCondition.WinOnDifficulty(Difficulty.Hard)
-          )
-          assertEquals(defs("potion_master").condition, AchievementCondition.ConsumablesUsed(10))
-          assertEquals(defs("potion_connoisseur").condition,
-                       AchievementCondition.DistinctPotionTypesUsed(5)
-          )
-          assertEquals(defs("jack_of_all_trades").condition, AchievementCondition.DistinctPerksWonWith(5))
-          assertEquals(defs("elite_hunter").condition, AchievementCondition.DefeatElite)
-  }
-
-  test("parameterized conditions decode with the right values") {
-    AchievementLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(defs("level_5").condition, AchievementCondition.ReachLevel(5))
-          assertEquals(defs("big_spender").condition, AchievementCondition.TotalShardsSpent(200))
-          assertEquals(defs("veteran").condition, AchievementCondition.RunsCompleted(5))
-          assertEquals(defs("champion").condition, AchievementCondition.RunsWon(5))
-          assertEquals(defs("win_streak").condition, AchievementCondition.WinStreak(5))
-          assertEquals(defs("epic_find").condition, AchievementCondition.LootRarity(Rarity.Epic))
-  }

@@ -2,9 +2,117 @@ package roguelite.game
 
 import munit.CatsEffectSuite
 
+/** Tests for [[RoomLoader]]. The "real room pool" tests below deliberately stay coupled to
+  * `data/rooms.json` - they already assert size-independent facts (at least one of a feature
+  * exists), not exact ids or counts, so they don't have the exact-content coupling problem the
+  * other loader suites had. The fixture-based tests at the top cover entity-kind decode paths and
+  * error paths (unknown kind, missing required field) that the real, always-well-formed catalog
+  * never exercises, via [[JsonResourceLoader.loadAllFromJson]].
+  */
 class RoomLoaderSuite extends CatsEffectSuite:
 
-  // The rooms.json resource is on the test classpath (same file as production)
+  private val fixture =
+    """[
+      |  {
+      |    "id":"test_room",
+      |    "type":"combat",
+      |    "width":3,
+      |    "height":2,
+      |    "tiles":[["wall","floor","wall"],["floor","floor","floor"]],
+      |    "entities":[
+      |      {"kind":"enemy","id":"e1","x":1,"y":1,"typeId":"goblin","label":"Goblin"},
+      |      {"kind":"chest","id":"c1","x":0,"y":0,"trapped":true},
+      |      {"kind":"door","id":"d1","x":2,"y":0,"direction":"up","targetRoomId":"NEXT","doorKind":"trapped"},
+      |      {"kind":"door","id":"d2","x":2,"y":1,"direction":"down","targetRoomId":"NEXT","doorKind":"secret","revealed":false},
+      |      {"kind":"door","id":"d3","x":1,"y":0,"direction":"left","targetRoomId":"PREV"},
+      |      {"kind":"locked_door","id":"ld1","x":0,"y":1,"direction":"left","targetRoomId":"vault_test","doorTag":"gold"},
+      |      {"kind":"npc","id":"n1","x":1,"y":1,"name":"Test Npc"}
+      |    ]
+      |  }
+      |]""".stripMargin
+
+  test("loadAllFromJson decodes dimensions and the tile grid"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield
+      val r = rooms("test_room")
+      assertEquals(r.width, 3)
+      assertEquals(r.height, 2)
+      assertEquals(r.tiles, Vector(Vector(Tile.Wall, Tile.Floor, Tile.Wall), Vector(Tile.Floor, Tile.Floor, Tile.Floor)))
+
+  test("enemy entity decodes typeId and label"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield
+      val e = rooms("test_room").entities.collectFirst { case e: Enemy => e }.get
+      assertEquals(e.typeId, "goblin")
+      assertEquals(e.label, "Goblin")
+
+  test("chest entity decodes its trapped flag"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield assert(rooms("test_room").entities.collectFirst { case c: Chest => c }.get.trapped)
+
+  test("door entity decodes direction, targetRoomId, and doorKind"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield
+      val doors = rooms("test_room").entities.collect { case d: Door => d }
+      val d1    = doors.find(_.id == "d1").get
+      assertEquals(d1.direction, roguelite.engine.Direction.Up)
+      assertEquals(d1.targetRoomId, "NEXT")
+      assertEquals(d1.doorKind, DoorKind.Trapped)
+
+  test("an omitted doorKind defaults to Normal, and an omitted revealed defaults from doorKind"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield
+      val doors = rooms("test_room").entities.collect { case d: Door => d }
+      val d1    = doors.find(_.id == "d1").get // trapped, revealed omitted
+      val d2    = doors.find(_.id == "d2").get // secret, revealed explicitly false
+      val d3    = doors.find(_.id == "d3").get // doorKind omitted -> Normal
+      assert(d1.revealed, "a trapped door with no explicit 'revealed' should default to revealed")
+      assert(!d2.revealed)
+      assertEquals(d3.doorKind, DoorKind.Normal)
+      assert(d3.revealed, "a normal door with no explicit 'revealed' should default to revealed")
+
+  test("locked_door entity decodes direction, targetRoomId, and doorTag"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield
+      val ld = rooms("test_room").entities.collectFirst { case d: LockedDoor => d }.get
+      assertEquals(ld.targetRoomId, "vault_test")
+      assertEquals(ld.doorTag, Some("gold"))
+
+  test("npc entity decodes its name"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield assertEquals(rooms("test_room").entities.collectFirst { case n: Npc => n }.get.name, "Test Npc")
+
+  test("an unknown tile character fails to parse"):
+    val bad = """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["lava"]],"entities":[]}]"""
+    RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an unknown room type fails to parse"):
+    val bad = """[{"id":"x","type":"bogus","width":1,"height":1,"tiles":[["wall"]],"entities":[]}]"""
+    RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an unknown entity kind fails to parse"):
+    val bad =
+      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"bogus","id":"e1","x":0,"y":0}]}]"""
+    RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an enemy entity missing 'typeId' fails to parse"):
+    val bad =
+      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"enemy","id":"e1","x":0,"y":0,"label":"L"}]}]"""
+    RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("a door entity missing 'targetRoomId' fails to parse"):
+    val bad =
+      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up"}]}]"""
+    RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an npc entity missing 'name' fails to parse"):
+    val bad = """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"npc","id":"n1","x":0,"y":0}]}]"""
+    RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  // ---------------------------------------------
+  // Real room pool: size-independent facts about data/rooms.json
+  // ---------------------------------------------
+
   test("loadAll returns a non-empty room map"):
     for rooms <- RoomLoader.loadAll()
     yield assert(rooms.nonEmpty)

@@ -2,59 +2,54 @@ package roguelite.game
 
 import munit.CatsEffectSuite
 
-/** Tests for [[PerkLoader]]: JSON parsing and effect decoding for every perk kind. */
+/** Tests for [[PerkLoader]]. The decode-path tests run against a small fixture (via
+  * [[JsonResourceLoader.loadAllFromJson]]) that is isolated from and never needs to change
+  * alongside `data/perks.json` - only the "real catalog" section at the bottom still touches the
+  * production file, and only for a size-independent smoke check.
+  */
 class PerkLoaderSuite extends CatsEffectSuite:
 
-  test("PerkLoader loads all expected perk ids") {
-    PerkLoader
-      .loadAll()
-      .map:
-        defs =>
-          assertEquals(defs.keySet,
-                       Set("well_stocked", "heavy_hand", "herbalist_blessing", "efficient_casting", "lucky_find")
-          )
-  }
+  private val fixture =
+    """[
+      |  {"id":"test_extra_item","label":"L","description":"d","icon":"icon.png","effect":{"type":"ExtraStartingItem","typeId":"health_potion"}},
+      |  {"id":"test_flat_dmg","label":"L","description":"d","icon":"icon.png","effect":{"type":"FlatDamageBonus","amount":2}},
+      |  {"id":"test_heal_bonus","label":"L","description":"d","icon":"icon.png","effect":{"type":"PotionHealBonusPercent","amount":25}},
+      |  {"id":"test_cost_reduction","label":"L","description":"d","icon":"icon.png","effect":{"type":"AbilityCostReductionPercent","amount":10}},
+      |  {"id":"test_lucky_chest","label":"L","description":"d","icon":"icon.png","effect":{"type":"GuaranteedRarityFirstChest","minRarity":"epic"}}
+      |]""".stripMargin
 
-  test("well_stocked decodes to ExtraStartingItem(health_potion)") {
-    PerkLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("well_stocked").effect, PerkEffect.ExtraStartingItem("health_potion"))
-  }
+  test("loadAllFromJson keys each entry by its id"):
+    for defs <- PerkLoader.loadAllFromJson(fixture)
+    yield assertEquals(defs.keySet,
+                        Set("test_extra_item", "test_flat_dmg", "test_heal_bonus", "test_cost_reduction", "test_lucky_chest")
+    )
 
-  test("heavy_hand decodes to FlatDamageBonus(1)") {
-    PerkLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("heavy_hand").effect, PerkEffect.FlatDamageBonus(1))
-  }
+  test("every effect variant decodes to its own case class"):
+    for defs <- PerkLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs("test_extra_item").effect, PerkEffect.ExtraStartingItem("health_potion"))
+      assertEquals(defs("test_flat_dmg").effect, PerkEffect.FlatDamageBonus(2))
+      assertEquals(defs("test_heal_bonus").effect, PerkEffect.PotionHealBonusPercent(25))
+      assertEquals(defs("test_cost_reduction").effect, PerkEffect.AbilityCostReductionPercent(10))
+      assertEquals(defs("test_lucky_chest").effect, PerkEffect.GuaranteedRarityFirstChest(Rarity.Epic))
 
-  test("herbalist_blessing decodes to PotionHealBonusPercent(50)") {
-    PerkLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("herbalist_blessing").effect, PerkEffect.PotionHealBonusPercent(50))
-  }
+  test("ExtraStartingItem missing its 'typeId' field fails to parse"):
+    val bad = """[{"id":"x","label":"L","description":"d","icon":"i.png","effect":{"type":"ExtraStartingItem"}}]"""
+    PerkLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("efficient_casting decodes to AbilityCostReductionPercent(20)") {
-    PerkLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("efficient_casting").effect, PerkEffect.AbilityCostReductionPercent(20))
-  }
+  test("an unknown effect type fails to parse"):
+    val bad = """[{"id":"x","label":"L","description":"d","icon":"i.png","effect":{"type":"NotReal"}}]"""
+    PerkLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("lucky_find decodes to GuaranteedRarityFirstChest(Rare)") {
-    PerkLoader
-      .loadAll()
-      .map:
-        defs => assertEquals(defs("lucky_find").effect, PerkEffect.GuaranteedRarityFirstChest(Rarity.Rare))
-  }
+  test("an unknown minRarity fails to parse"):
+    val bad =
+      """[{"id":"x","label":"L","description":"d","icon":"i.png","effect":{"type":"GuaranteedRarityFirstChest","minRarity":"mythic"}}]"""
+    PerkLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("every perk has a non-empty icon") {
-    PerkLoader
-      .loadAll()
-      .map:
-        defs =>
-          defs.values.foreach:
-            p => assert(p.icon.nonEmpty, s"${p.id} has no icon")
-  }
+  // ---------------------------------------------
+  // Real catalog: size-independent smoke check only
+  // ---------------------------------------------
+
+  test("the real data/perks.json resource loads successfully"):
+    for defs <- PerkLoader.loadAll()
+    yield assert(defs.nonEmpty)

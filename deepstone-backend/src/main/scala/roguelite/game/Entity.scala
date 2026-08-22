@@ -21,15 +21,21 @@ sealed trait Entity:
   *   Matches a key in enemies.json, used to look up combat stats.
   * @param label
   *   Display name shown in the UI and combat log.
+  * @param isElite
+  *   Rolled once at dungeon build time (see [[DungeonBuilder]]), never re-rolled on room
+  *   re-entry. Unlike `Chest.trapped`/`Door.doorKind`, which deliberately stay hidden from
+  *   `toView`, this flag is surfaced to the client - Elite status must be visible before the
+  *   player engages, not a combat-time surprise.
   */
 case class Enemy(
     id: String,
     x: Int,
     y: Int,
     typeId: String,
-    label: String
+    label: String,
+    isElite: Boolean = false
 ) extends Entity:
-  def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label)
+  def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label, isElite = Some(isElite))
 
 /** A loot container. Interacting with it grants items - unless it's trapped, in which case it spawns
   * enemies instead.

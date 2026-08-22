@@ -86,6 +86,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
         c.count
           .toRight("DistinctPerksWonWith is missing 'count' field")
           .map(AchievementCondition.DistinctPerksWonWith.apply)
+      case "DefeatElite" =>
+        Right(AchievementCondition.DefeatElite)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
 

@@ -224,7 +224,7 @@ class CombatResolverSuite extends FunSuite:
   test("boss victory emits EnemyDefeated(isBoss = true) and RunEnded(victory = true)"):
     val (_, _, events) =
       resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true)),
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false)),
            s"expected EnemyDefeated(isBoss=true, tookNoDamage=true): $events"
     )
     assert(events.exists { case GameEvent.RunEnded(victory, _, _) => victory; case _ => false },
@@ -234,7 +234,7 @@ class CombatResolverSuite extends FunSuite:
   test("non-boss victory emits EnemyDefeated(isBoss = false) and no RunEnded"):
     val (_, _, events) =
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true)),
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false)),
            s"expected EnemyDefeated(isBoss=false, tookNoDamage=true): $events"
     )
     assert(!events.exists(_.isInstanceOf[GameEvent.RunEnded]), s"unexpected RunEnded: $events")
@@ -243,8 +243,33 @@ class CombatResolverSuite extends FunSuite:
     val hurtState = combatState(weakEnemy(hp = 1))
     val stateWithDamageTaken = hurtState.copy(combat = hurtState.combat.copy(tookDamage = true))
     val (_, _, events) = resolver().resolve(stateWithDamageTaken, CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false)),
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false)),
            s"expected tookNoDamage = false: $events"
+    )
+
+  test("Elite kill emits wasElite = true and guarantees at least Rare rarity loot"):
+    val itemDefs: Map[String, Item] = Map(
+      "iron_sword" -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, 3)
+    )
+    val eliteEnemy = weakEnemy(hp = 1).copy(dropChance = 100,
+                                            lootTable = List(LootEntry("iron_sword", 100)),
+                                            isElite = true
+    )
+    val (_, _, events) =
+      CombatResolver(Random(0), itemDefs).resolve(combatState(eliteEnemy), CombatAction(CombatActionType.Attack))
+    assert(events.exists { case GameEvent.EnemyDefeated(_, _, wasElite) => wasElite; case _ => false },
+           s"expected EnemyDefeated with wasElite = true: $events"
+    )
+    val pickedUpRarity = events.collectFirst { case GameEvent.ItemPickedUp(_, rarity, _, _, _) => rarity }
+    assert(pickedUpRarity.exists(_.ordinal >= Rarity.Rare.ordinal),
+           s"expected at least Rare rarity loot from an Elite kill: $pickedUpRarity"
+    )
+
+  test("non-Elite kill does not force wasElite or a rarity floor"):
+    val (_, _, events) =
+      resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    assert(events.exists { case GameEvent.EnemyDefeated(_, _, wasElite) => !wasElite; case _ => false },
+           s"expected EnemyDefeated with wasElite = false: $events"
     )
 
   test("defeat emits RunEnded(victory = false)"):

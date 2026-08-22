@@ -31,7 +31,8 @@ class AchievementLoaderSuite extends CatsEffectSuite:
             "hard_mode_victory",
             "potion_master",
             "potion_connoisseur",
-            "jack_of_all_trades"
+            "jack_of_all_trades",
+            "elite_hunter"
           )
           assertEquals(defs.keySet, expectedIds)
   }
@@ -68,6 +69,7 @@ class AchievementLoaderSuite extends CatsEffectSuite:
                        AchievementCondition.DistinctPotionTypesUsed(5)
           )
           assertEquals(defs("jack_of_all_trades").condition, AchievementCondition.DistinctPerksWonWith(5))
+          assertEquals(defs("elite_hunter").condition, AchievementCondition.DefeatElite)
   }
 
   test("parameterized conditions decode with the right values") {

@@ -1,7 +1,7 @@
 package roguelite.game
 
 import munit.FunSuite
-import roguelite.engine.Direction
+import roguelite.engine.{ Difficulty, Direction }
 
 import scala.util.Random
 
@@ -183,3 +183,63 @@ class DungeonBuilderSuite extends FunSuite:
       .build(totalRooms = poolWithVault.size)
       .getOrElse(fail("build failed"))
     assert(!dungeon.rooms.contains("v1"), "Vault room should not be auto-selected without a LockedDoor reference")
+
+  // ---------------------------------------------
+  // Elite enemies
+  // ---------------------------------------------
+
+  def enemies(idPrefix: String, count: Int): List[Enemy] =
+    (1 to count).map(i => Enemy(id = s"$idPrefix-e$i", x = 1, y = 1, typeId = "goblin", label = "Goblin")).toList
+
+  /** A minimal pool: 1 combat room (always the deterministic entrance) and 1 boss room, each
+    * carrying `enemyCount` plain (non-Elite) Enemy entities so the roll has something to work on. */
+  def eliteTestPool(combatEnemyCount: Int = 1, bossEnemyCount: Int = 5): Map[String, Room] = Map(
+    "c1" -> makeRoom("c1", RoomType.Combat, exitDoor() :: enemies("c1", combatEnemyCount)),
+    "b1" -> makeRoom("b1", RoomType.Boss, entranceDoor() :: enemies("b1", bossEnemyCount))
+  )
+
+  test("boss room enemies never roll Elite, even at Hard difficulty across many seeds"):
+    val trials = 300
+    val anyBossElite = (1 to trials).exists { seed =>
+      val dungeon = DungeonBuilder(eliteTestPool(), Random(seed.toLong))
+        .build(totalRooms = 2, difficulty = Difficulty.Hard)
+        .getOrElse(fail("build failed"))
+      val bossRoom = dungeon.rooms.values.find(_.roomType == RoomType.Boss).getOrElse(fail("no boss room"))
+      bossRoom.entities.collect { case e: Enemy => e }.exists(_.isElite)
+    }
+    assert(!anyBossElite, "no boss-room enemy should ever roll Elite")
+
+  test("at most 1 enemy per room rolls Elite, even with many enemies at Hard difficulty"):
+    val trials = 300
+    val violatesCap = (1 to trials).exists { seed =>
+      val dungeon = DungeonBuilder(eliteTestPool(combatEnemyCount = 20), Random(seed.toLong))
+        .build(totalRooms = 2, difficulty = Difficulty.Hard)
+        .getOrElse(fail("build failed"))
+      val combatRoom = dungeon.rooms.values.find(_.roomType == RoomType.Combat).getOrElse(fail("no combat room"))
+      combatRoom.entities.collect { case e: Enemy => e }.count(_.isElite) > 1
+    }
+    assert(!violatesCap, "no room should ever end up with more than 1 Elite enemy")
+
+  test("Hard difficulty rolls Elite enemies at least as often as Easy, same seeds"):
+    val trials = 2000
+    def eliteRate(difficulty: Difficulty): Double =
+      val eliteCount = (1 to trials).count { seed =>
+        val dungeon = DungeonBuilder(eliteTestPool(combatEnemyCount = 1), Random(seed.toLong))
+          .build(totalRooms = 2, difficulty = difficulty)
+          .getOrElse(fail("build failed"))
+        dungeon.rooms.values.flatMap(_.entities).collect { case e: Enemy => e }.exists(_.isElite)
+      }
+      eliteCount.toDouble / trials
+
+    val easyRate = eliteRate(Difficulty.Easy)
+    val hardRate = eliteRate(Difficulty.Hard)
+    assert(hardRate >= easyRate, s"expected Hard's elite rate ($hardRate) >= Easy's ($easyRate)")
+    // Sanity bounds around the configured 8%/12% thresholds (generous tolerance to avoid flakiness).
+    assert(easyRate > 0.03 && easyRate < 0.15, s"Easy elite rate out of expected range: $easyRate")
+    assert(hardRate > 0.06 && hardRate < 0.20, s"Hard elite rate out of expected range: $hardRate")
+
+  test("with zero enemies in a room, the roll is a no-op (no crash, no elites)"):
+    val dungeon = DungeonBuilder(eliteTestPool(combatEnemyCount = 0, bossEnemyCount = 0), Random(3L))
+      .build(totalRooms = 2, difficulty = Difficulty.Hard)
+      .getOrElse(fail("build failed"))
+    assert(dungeon.rooms.values.flatMap(_.entities).collect { case e: Enemy => e }.isEmpty)

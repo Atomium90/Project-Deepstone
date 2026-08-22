@@ -14,7 +14,7 @@ import roguelite.engine.{ Difficulty, Player }
   */
 enum GameEvent:
   /** An enemy was defeated in combat (win). */
-  case EnemyDefeated(isBoss: Boolean, tookNoDamage: Boolean)
+  case EnemyDefeated(isBoss: Boolean, tookNoDamage: Boolean, wasElite: Boolean)
 
   /** The player reached a new level. Emitted once per level gained: a single kill can emit
     * several if it crosses more than one XP threshold at once.

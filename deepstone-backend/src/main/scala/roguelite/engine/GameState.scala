@@ -195,7 +195,8 @@ case class CombatState(player: Player,
                    enemyMaxHp = combat.enemy.maxHp,
                    isPlayerTurn = combat.isPlayerTurn,
                    spriteId = enemyStats.get(combat.enemy.typeId).map(_.spriteId),
-                   isBoss = dungeon.isAtBoss
+                   isBoss = dungeon.isAtBoss,
+                   isElite = combat.enemy.isElite
         )
       ),
       equipment = equipmentToView(player),

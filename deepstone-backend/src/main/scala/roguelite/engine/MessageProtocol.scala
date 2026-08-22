@@ -45,6 +45,14 @@ enum Difficulty:
     case Difficulty.Normal => 4
     case Difficulty.Hard   => 6
 
+  /** Per-enemy probability of rolling Elite at dungeon build time (see
+    * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties.
+    */
+  def eliteChance: Double = this match
+    case Difficulty.Easy   => 0.08
+    case Difficulty.Normal => 0.10
+    case Difficulty.Hard   => 0.12
+
   /** Relative weight multiplier applied to a loot candidate based on its rarity. Only Hard biases
     * toward Uncommon for now; Easy/Normal keep today's unweighted behavior.
     */
@@ -120,6 +128,11 @@ case class PlayerView(
   *   resolved from enemies.json's spriteId at the [[roguelite.game.Room.toView]] boundary, not
   *   carried on the entity itself, so it's never a second place to remember when adding an enemy.
   *   Absent for every other kind, which each render with one fixed sprite per kind client-side.
+  * @param isElite
+  *   Only set for enemies, mirrors [[roguelite.game.Enemy.isElite]] directly (rolled once at
+  *   dungeon build time, see [[roguelite.game.DungeonBuilder]]). Unlike `Chest.trapped`/
+  *   `Door.doorKind`, which deliberately stay hidden from the client, Elite status must be visible
+  *   before the player engages - the whole point is anticipation, not a combat-time surprise.
   */
 case class EntityView(
     id: String,
@@ -127,7 +140,8 @@ case class EntityView(
     x: Int,
     y: Int,
     label: String, // display name shown in the UI
-    spriteId: Option[String] = None
+    spriteId: Option[String] = None,
+    isElite: Option[Boolean] = None
 )
 
 /** One line of NPC dialogue to show the player, produced by an [[Interact]] on an [[roguelite.game.Npc]].
@@ -162,6 +176,10 @@ case class CombatView(
     isPlayerTurn: Boolean,
     spriteId: Option[String] = None,
     isBoss: Boolean = false,
+    /** Mirrors [[roguelite.game.EnemyInstance.isElite]], resolved at
+      * [[CombatState.toStateUpdate]] the same way `isBoss` is - always present once combat starts,
+      * unlike the exploration-side [[EntityView.isElite]] which is optional. */
+    isElite: Boolean = false,
     /** The player's class ability, resolved through any active set/perk cost discount (see
       * [[roguelite.game.AbilityDef.effectiveCost]]) - the real cost to check affordability
       * against, not the static per-class catalog value in `StateUpdate.abilities`. `None` only if

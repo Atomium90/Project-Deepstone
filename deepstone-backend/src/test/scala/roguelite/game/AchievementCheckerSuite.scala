@@ -44,6 +44,7 @@ class AchievementCheckerSuite extends FunSuite:
     defOf("potion_connoisseur", AchievementCondition.DistinctPotionTypesUsed(5))
   private val jackOfAllTrades =
     defOf("jack_of_all_trades", AchievementCondition.DistinctPerksWonWith(5))
+  private val eliteHunter = defOf("elite_hunter", AchievementCondition.DefeatElite)
 
   private val allDefs: Map[String, AchievementDef] = Map(
     firstBlood.id    -> firstBlood,
@@ -65,7 +66,8 @@ class AchievementCheckerSuite extends FunSuite:
     hardModeVictory.id -> hardModeVictory,
     potionMaster.id -> potionMaster,
     potionConnoisseur.id -> potionConnoisseur,
-    jackOfAllTrades.id -> jackOfAllTrades
+    jackOfAllTrades.id -> jackOfAllTrades,
+    eliteHunter.id -> eliteHunter
   )
 
   // --- checkEvents: single-event conditions ---------------------------------
@@ -75,7 +77,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
     )
     assertEquals(unlocked.map(_.id), List("first_blood"))
   }
@@ -85,7 +87,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
     )
     assertEquals(unlocked, Nil)
   }
@@ -95,7 +97,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = false))
+      List(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = false, wasElite = false))
     )
     assert(unlocked.map(_.id).contains("boss_slayer"))
   }
@@ -105,7 +107,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
     )
     assert(!unlocked.map(_.id).contains("boss_slayer"))
   }
@@ -115,7 +117,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false))
     )
     assert(unlocked.map(_.id).contains("untouchable"))
   }
@@ -125,9 +127,29 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
     )
     assert(!unlocked.map(_.id).contains("untouchable"))
+  }
+
+  test("EnemyDefeated(wasElite = true) unlocks elite_hunter") {
+    val (_, unlocked) = AchievementChecker.checkEvents(
+      allDefs,
+      Set("first_blood"),
+      AchievementStats.empty,
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = true))
+    )
+    assert(unlocked.map(_.id).contains("elite_hunter"))
+  }
+
+  test("EnemyDefeated(wasElite = false) does not unlock elite_hunter") {
+    val (_, unlocked) = AchievementChecker.checkEvents(
+      allDefs,
+      Set("first_blood"),
+      AchievementStats.empty,
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+    )
+    assert(!unlocked.map(_.id).contains("elite_hunter"))
   }
 
   test("LeveledUp(5) unlocks level_5, LeveledUp(4) does not") {
@@ -435,7 +457,7 @@ class AchievementCheckerSuite extends FunSuite:
       Set.empty,
       AchievementStats.empty,
       List(
-        GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true),
+        GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false),
         GameEvent.LeveledUp(5)
       )
     )

@@ -52,18 +52,24 @@ object LootTable:
     * First checks `enemy.dropChance` (0–100) against a uniform roll. If the roll succeeds, picks a
     * typeId from the enemy's own loot table using weighted random. Returns None if the chance roll
     * fails or the loot table is empty / unresolvable.
+    *
+    * @param rarityFloorOverride
+    *   Same "only raises, never lowers, the item's own authored floor" semantics as
+    *   [[rollChest]]'s - used by [[CombatResolver.victory]] to guarantee at least Rare on an Elite
+    *   kill.
     */
   def rollEnemy(enemy: EnemyInstance,
                 itemDefs: Map[String, Item],
                 rng: Random,
-                difficulty: Difficulty = Difficulty.Normal
+                difficulty: Difficulty = Difficulty.Normal,
+                rarityFloorOverride: Option[Rarity] = None
   ): Option[Item] =
     if enemy.dropChance <= 0 || rng.nextInt(100) >= enemy.dropChance then None
     else
       val pool = enemy.lootTable.flatMap(
         e => itemDefs.get(e.typeId).map(item => item -> weightFor(item, e.weight, difficulty))
       )
-      pickWeighted(pool, rng).map(item => rollRarityAndScale(item, rng).withNewId)
+      pickWeighted(pool, rng).map(item => rollRarityAndScale(item, rng, rarityFloorOverride).withNewId)
 
   /** Apply the difficulty's rarity multiplier to a base weight, rounding to the nearest int. Below
     * 1.0 total the item is effectively removed from the pool.

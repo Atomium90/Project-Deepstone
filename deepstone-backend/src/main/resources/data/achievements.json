@@ -138,5 +138,12 @@
     "description": "Win a run with every kind of perk at least once.",
     "displayOrder": 19,
     "condition": { "type": "DistinctPerksWonWith", "count": 5 }
+  },
+  {
+    "id": "elite_hunter",
+    "label": "Elite Hunter",
+    "description": "Defeat your first Elite enemy.",
+    "displayOrder": 20,
+    "condition": { "type": "DefeatElite" }
   }
 ]

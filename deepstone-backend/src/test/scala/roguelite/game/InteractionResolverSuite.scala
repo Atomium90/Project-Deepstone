@@ -113,6 +113,44 @@ class InteractionResolverSuite extends FunSuite:
     val combat       = next.asInstanceOf[CombatState].combat
     assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.25).toInt)
 
+  test("CombatState enemy HP/attack scale by the Elite multiplier when the room entity is Elite"):
+    val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin", isElite = true)
+    val state        = explorationAt(3, 3, entities = List(enemy))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "e1")
+    val combat       = next.asInstanceOf[CombatState].combat
+    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.75).toInt)
+    assertEquals(combat.enemy.attack, math.round(goblinStats.attack * 1.75).toInt)
+    assert(combat.enemy.isElite)
+
+  test("Elite enemy defense and xpReward stay unscaled"):
+    val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin", isElite = true)
+    val state        = explorationAt(3, 3, entities = List(enemy))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "e1")
+    val combat       = next.asInstanceOf[CombatState].combat
+    assertEquals(combat.enemy.defense, goblinStats.defense)
+    assertEquals(combat.enemy.xpReward, goblinStats.xpReward)
+
+  test("Elite enemy dropChance is forced to 100 regardless of the authored value"):
+    val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin", isElite = true)
+    val state        = explorationAt(3, 3, entities = List(enemy))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "e1")
+    val combat       = next.asInstanceOf[CombatState].combat
+    assertEquals(combat.enemy.dropChance, 100)
+
+  test("a non-Elite enemy's dropChance is unaffected"):
+    val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin", isElite = false)
+    val state        = explorationAt(3, 3, entities = List(enemy))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "e1")
+    val combat       = next.asInstanceOf[CombatState].combat
+    assertEquals(combat.enemy.dropChance, goblinStats.dropChance)
+
+  test("Elite and difficulty multipliers stack on HP/attack"):
+    val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin", isElite = true)
+    val state        = explorationAt(3, 3, entities = List(enemy)).copy(difficulty = Difficulty.Hard)
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "e1")
+    val combat       = next.asInstanceOf[CombatState].combat
+    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.25 * 1.75).toInt)
+
   test("Interact with unknown enemy typeId stays in Exploration with error"):
     val badEnemy        = Enemy("e2", x = 3, y = 3, typeId = "dragon", label = "Dragon")
     val state           = explorationAt(3, 3, entities = List(badEnemy))

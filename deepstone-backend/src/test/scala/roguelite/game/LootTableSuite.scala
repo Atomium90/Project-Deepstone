@@ -178,6 +178,29 @@ class LootTableSuite extends FunSuite:
                s"expected at least Uncommon (its own floor), got ${item.rarity}"
         )
 
+  test("rarityFloorOverride raises the minimum eligible tier for rollEnemy (Elite kill hook)"):
+    val soleItem: Map[String, Item] = Map("iron_sword" -> itemDefs("iron_sword")) // Common floor
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))
+    val rng = Random(11)
+    (1 to 300).foreach:
+      _ =>
+        val item = LootTable.rollEnemy(enemy, soleItem, rng, rarityFloorOverride = Some(Rarity.Rare))
+          .getOrElse(fail("expected Some"))
+        assert(item.rarity.ordinal >= Rarity.Rare.ordinal, s"expected at least Rare with the override, got ${item.rarity}")
+
+  test("rarityFloorOverride on rollEnemy never pulls a roll below the item's own authored floor"):
+    val soleItem: Map[String, Item] = Map("steel_sword" -> itemDefs("steel_sword")) // Uncommon floor
+    val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("steel_sword", 100)))
+    val rng = Random(11)
+    (1 to 300).foreach:
+      _ =>
+        // An override of Common (lower than steel_sword's own Uncommon floor) must not pull it down.
+        val item = LootTable.rollEnemy(enemy, soleItem, rng, rarityFloorOverride = Some(Rarity.Common))
+          .getOrElse(fail("expected Some"))
+        assert(item.rarity.ordinal >= Rarity.Uncommon.ordinal,
+               s"expected at least Uncommon (its own floor), got ${item.rarity}"
+        )
+
   test("scaling under an override still uses the item's own authored floor as the baseline"):
     val soleItem: Map[String, Item] = Map("steel_sword" -> itemDefs("steel_sword")) // Uncommon floor, +7 ATK
     val rng = Random(3)

@@ -546,6 +546,37 @@
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
+        /* Cap to roughly 6 visible rows and scroll the rest, so a long catalog doesn't push the
+         * run perk cards below it out of view - a growing upgrade list previously pushed them
+         * further down every time a new upgrade shipped. flex-shrink: 0 keeps that cap reliable
+         * on a short viewport too - without it, the flex column shrinks this below max-height to
+         * make room instead of letting it scroll internally. */
+        max-height: 24rem;
+        overflow-y: auto;
+        flex-shrink: 0;
+        padding-right: 0.3rem;
+
+        /* The native scrollbar (full-width track, arrow buttons) clashes hard with the rest of
+         * this dark, borderless UI - a thin borderless thumb matches the row borders instead. */
+        scrollbar-width: thin;
+        scrollbar-color: #333 transparent;
+    }
+
+    .upgrade-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .upgrade-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .upgrade-list::-webkit-scrollbar-thumb {
+        background: #333;
+        border-radius: 3px;
+    }
+
+    .upgrade-list::-webkit-scrollbar-thumb:hover {
+        background: #444;
     }
 
     .upgrade-row {

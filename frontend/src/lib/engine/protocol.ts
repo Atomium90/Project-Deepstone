@@ -93,6 +93,9 @@ export interface EntityView {
   /** Atlas sprite key to draw (see public/atlas/entities.json). Only set for enemies - resolved
    * server-side from enemies.json, never a mapping the client needs to keep in sync itself. */
   spriteId?: string;
+  /** Only set for enemies. Rolled once per run at dungeon build time - unlike a trapped chest or
+   * secret door, Elite status is meant to be visible before the player engages, not a surprise. */
+  isElite?: boolean;
 }
 
 /** One line of NPC dialogue, shown in a transient overlay. Only present on the single
@@ -122,6 +125,9 @@ export interface CombatView {
   spriteId?: string;
   /** True if the current room is a boss room - drives boss music. */
   isBoss: boolean;
+  /** True if this enemy rolled Elite at dungeon build time - same value already seen on
+   * EntityView.isElite during exploration, just always present here instead of optional. */
+  isElite: boolean;
   /** The player's class ability cost, resolved through any active set/perk discount - the real
    * cost to check affordability against, not the static per-class value in StateUpdate.abilities.
    * Undefined only if the player's class has no loaded ability def. */

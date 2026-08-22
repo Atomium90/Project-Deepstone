@@ -48,6 +48,11 @@ export const COLOR_ENTITY_LABEL = "#ccc";
 /** Fallback color for entity kinds not explicitly mapped. */
 export const COLOR_ENTITY_FALLBACK = "#888";
 
+/** Same hex as COLOR_ENTITY_CHEST/COLOR_ACHIEVEMENT_GOLD - reuses the project's existing
+ * gold "special/notable" accent for Elite enemies rather than inventing a new hue. Used for
+ * both the exploration halo (Renderer.ts) and the combat HP bar tint (CombatScreen.svelte). */
+export const COLOR_ENTITY_ELITE = "#d4ac0d";
+
 // ---------------------------------------------
 // Colors - player
 // ---------------------------------------------
@@ -202,6 +207,19 @@ export const INTERACT_BADGE_BOUNCE_AMPLITUDE = 2;
 
 /** Period, in ms, of the badge's idle bounce - same divisor the old halo pulse used. */
 export const INTERACT_BADGE_BOUNCE_PERIOD = 300;
+
+// ---------------------------------------------
+// Elite enemy halo
+// ---------------------------------------------
+
+/** Stroke color of the ring drawn around an Elite enemy's sprite. */
+export const ELITE_HALO_COLOR = COLOR_ENTITY_ELITE;
+
+/** Stroke width of the Elite halo ring. */
+export const ELITE_HALO_WIDTH = 2;
+
+/** How far beyond the entity's normal draw radius the halo ring sits. */
+export const ELITE_HALO_OFFSET = 4;
 
 // ---------------------------------------------
 // Colors - Character screen

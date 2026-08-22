@@ -73,6 +73,28 @@ class ContentIntegritySuite extends CatsEffectSuite:
         }
         setId.foreach(id => assert(sets.contains(id), s"${item.typeId} references unknown setId '$id'"))
 
+  test("every enemy typeId placed in rooms.json exists in enemies.json"):
+    for
+      enemies <- EnemyLoader.loadAll()
+      rooms   <- RoomLoader.loadAll()
+    yield rooms.values.foreach:
+      room =>
+        room.entities.collect { case e: Enemy => e }.foreach:
+          e =>
+            assert(enemies.contains(e.typeId),
+                   s"room '${room.id}' places enemy '${e.id}' with unknown typeId '${e.typeId}'"
+            )
+
+  test("every npc id placed in rooms.json exists in npcs.json"):
+    for
+      npcs  <- NpcDialogueLoader.loadAll()
+      rooms <- RoomLoader.loadAll()
+    yield rooms.values.foreach:
+      room =>
+        room.entities.collect { case n: Npc => n }.foreach:
+          n =>
+            assert(npcs.contains(n.id), s"room '${room.id}' places npc '${n.id}' with no matching entry in npcs.json")
+
   test("every set has exactly 4 pieces: 1 weapon, 1 armor, 2 accessories"):
     for
       items <- ItemLoader.loadAll()

@@ -1,6 +1,6 @@
 package roguelite.game
 
-import roguelite.engine.Direction
+import roguelite.engine.{ Difficulty, Direction }
 
 import scala.util.Random
 
@@ -22,10 +22,11 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
    * @param totalRooms Total number of rooms including entrance and boss.
    *                   Must be at least 2 (entrance + boss). Clamped to the
    *                   number of available rooms if the pool is smaller.
+   * @param difficulty Drives the per-enemy Elite roll rate (see [[rollEliteEnemies]]).
    * @return A freshly assembled [[Dungeon]], or an error message if the
    *         pool does not contain the required room types.
    */
-  def build(totalRooms: Int = 4): Either[String, Dungeon] =
+  def build(totalRooms: Int = 4, difficulty: Difficulty = Difficulty.Normal): Either[String, Dungeon] =
     val count = totalRooms.max(2).min(pool.size)
 
     for
@@ -36,7 +37,7 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
       ordered     = entrance :: middle ::: List(boss)
       dungeon    <- wire(ordered)
       withVaults <- injectVaultRooms(dungeon)
-    yield withVaults
+    yield rollEliteEnemies(withVaults, difficulty)
 
 
   // ---------------------------------------------
@@ -111,3 +112,25 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
               .get(roomId)
               .toRight(s"LockedDoor references unknown room '$roomId'.")
               .map(room => d.copy(rooms = d.rooms.updated(roomId, room)))
+
+  /** Roll Elite status onto at most one enemy per non-boss room. Each hand-placed [[Enemy]] entity
+   * in a room rolls independently at `difficulty.eliteChance`; the roll stops being applied (but
+   * the loop keeps iterating) once one enemy in that room has already succeeded, capping at 1
+   * Elite per room. Boss rooms are excluded entirely - bosses stay unique/scripted, never Elite.
+   *
+   * Produces fresh Room/Enemy copies for the returned Dungeon only - never mutates the
+   * server-lifetime `pool` itself.
+   */
+  private def rollEliteEnemies(dungeon: Dungeon, difficulty: Difficulty): Dungeon =
+    val chance = difficulty.eliteChance
+    val updatedRooms = dungeon.rooms.map:
+      case (id, room) if room.roomType == RoomType.Boss => id -> room
+      case (id, room) =>
+        var alreadyElite = false
+        val newEntities = room.entities.map:
+          case e: Enemy if !alreadyElite && rng.nextDouble() < chance =>
+            alreadyElite = true
+            e.copy(isElite = true)
+          case other => other
+        id -> room.copy(entities = newEntities)
+    dungeon.copy(rooms = updatedRooms)

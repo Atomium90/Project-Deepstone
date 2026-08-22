@@ -137,7 +137,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       case None =>
         (exp, List(s"Unknown enemy type '${enemy.typeId}' — cannot start combat."))
       case Some(stats) =>
-        val instance = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty)
+        val instance = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty, enemy.isElite)
         val combat   = Combat(enemy = instance)
         val nextState = CombatState(exp.player,
                                     exp.dungeon,

@@ -198,27 +198,35 @@ class DungeonBuilderSuite extends FunSuite:
     "b1" -> makeRoom("b1", RoomType.Boss, entranceDoor() :: enemies("b1", bossEnemyCount))
   )
 
-  test("boss room enemies never roll Elite, even at Hard difficulty across many seeds"):
-    val trials = 300
-    val anyBossElite = (1 to trials).exists { seed =>
-      val dungeon = DungeonBuilder(eliteTestPool(), Random(seed.toLong))
-        .build(totalRooms = 2, difficulty = Difficulty.Hard)
-        .getOrElse(fail("build failed"))
-      val bossRoom = dungeon.rooms.values.find(_.roomType == RoomType.Boss).getOrElse(fail("no boss room"))
-      bossRoom.entities.collect { case e: Enemy => e }.exists(_.isElite)
-    }
-    assert(!anyBossElite, "no boss-room enemy should ever roll Elite")
+  // rollEliteEnemies matches Boss rooms and returns them unchanged before ever calling rng - no
+  // seed can make a boss-room enemy roll Elite, so one seed proves it as well as a thousand would.
+  // Seed 3 is picked because it also produces a real Elite in the combat room in the same build,
+  // showing the exclusion holds even while the roll is actively firing elsewhere.
+  test("boss room enemies never roll Elite, even while the combat room's own roll is active"):
+    val dungeon = DungeonBuilder(eliteTestPool(), Random(3L))
+      .build(totalRooms = 2, difficulty = Difficulty.Hard)
+      .getOrElse(fail("build failed"))
+    val combatRoom = dungeon.rooms.values.find(_.roomType == RoomType.Combat).getOrElse(fail("no combat room"))
+    val bossRoom    = dungeon.rooms.values.find(_.roomType == RoomType.Boss).getOrElse(fail("no boss room"))
+    assert(combatRoom.entities.collect { case e: Enemy => e }.exists(_.isElite),
+           "expected this seed to roll an Elite in the combat room"
+    )
+    assert(!bossRoom.entities.collect { case e: Enemy => e }.exists(_.isElite),
+           "no boss-room enemy should ever roll Elite"
+    )
 
+  // The cap (`alreadyElite` short-circuits every enemy after the first hit in a room) is
+  // unconditional, not a matter of luck - seed 1 with 20 enemies at Hard is just a seed where the
+  // roll fires at all, so the cap has something to actually cap.
   test("at most 1 enemy per room rolls Elite, even with many enemies at Hard difficulty"):
-    val trials = 300
-    val violatesCap = (1 to trials).exists { seed =>
-      val dungeon = DungeonBuilder(eliteTestPool(combatEnemyCount = 20), Random(seed.toLong))
-        .build(totalRooms = 2, difficulty = Difficulty.Hard)
-        .getOrElse(fail("build failed"))
-      val combatRoom = dungeon.rooms.values.find(_.roomType == RoomType.Combat).getOrElse(fail("no combat room"))
-      combatRoom.entities.collect { case e: Enemy => e }.count(_.isElite) > 1
-    }
-    assert(!violatesCap, "no room should ever end up with more than 1 Elite enemy")
+    val dungeon = DungeonBuilder(eliteTestPool(combatEnemyCount = 20), Random(1L))
+      .build(totalRooms = 2, difficulty = Difficulty.Hard)
+      .getOrElse(fail("build failed"))
+    val combatRoom = dungeon.rooms.values.find(_.roomType == RoomType.Combat).getOrElse(fail("no combat room"))
+    assertEquals(combatRoom.entities.collect { case e: Enemy => e }.count(_.isElite),
+                 1,
+                 "expected the cap to allow exactly 1 Elite, not 0 or more than 1"
+    )
 
   test("Hard difficulty rolls Elite enemies at least as often as Easy, same seeds"):
     val trials = 2000

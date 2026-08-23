@@ -538,6 +538,31 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(update.player.maxHp, 140) // base Warrior 120 (test fixture) + 20
   }
 
+  db.test("extra_slot grows the potion belt to 3 slots on the run started right after purchase") {
+    database =>
+      for
+        _       <- database.saveCurrency(60)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("extra_slot")))
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assertEquals(update.equipment.potionBelt.length, 3)
+  }
+
+  db.test("potion_start gives the player a Health Potion in the belt on the run started right after purchase") {
+    database =>
+      val potionItemDefs: Map[String, Item] = Map(
+        "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
+      )
+      for
+        _       <- database.saveCurrency(40)
+        session <- GameSession.create(sm, database, potionItemDefs, testUpgradeDefs, Map.empty, testAchievementDefs)
+        _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("potion_start")))
+        update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assert(update.equipment.potionBelt.flatten.exists(_.typeId == "health_potion"),
+                   s"expected a health potion in the belt: ${update.equipment.potionBelt}"
+      )
+  }
+
   // Note: like extra_potion_capacity above, warrior_kit's applyUpgradeEffect case is a no-op at
   // this level by design (the actual gating lives in StateMachine's StartRun case, which runs
   // before applyMetaBonuses ever sees the player - see StateMachineSuite's dedicated gating tests
@@ -687,6 +712,39 @@ class GameSessionSuite extends CatsEffectSuite:
         )
         assertEquals(afterNext.newlyUnlocked, Nil, "newlyUnlocked is transient, not re-sent")
         assert(unlockedInDb.contains("first_blood"))
+  }
+
+  db.test("using a potion in combat produces a heal-kind damageEvent") {
+    database =>
+      val itemDefs: Map[String, Item] = Map(
+        "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common,
+                                      ConsumableEffect.HealFixed(30)
+        )
+      )
+      // Tanky enough to survive the first Attack, and hits back hard enough to leave the player
+      // below max HP - unlike weakGoblinStats (1 HP, dies in one hit, no room for a follow-up
+      // Item action) or smWithTankyEnemy (attack = 0, never actually damages the player).
+      val smWithEnemyAndItems = StateMachine(achievementRoomPool,
+                                             Map("goblin" -> weakGoblinStats.copy(maxHp = 999, attack = 20)),
+                                             itemDefs,
+                                             testClassDefs,
+                                             testUpgradeDefs,
+                                             CombatResolver(Random(0L))
+      )
+      for
+        _       <- database.saveCurrency(40)
+        session <- GameSession.create(smWithEnemyAndItems, database, itemDefs, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, rng = Random(0L)
+                   )
+        _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("potion_start")))
+        afterStart <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        potionId = afterStart.equipment.potionBelt.flatten.head.id
+        _         <- session.handle(Interact("e1"))
+        _         <- session.handle(CombatAction(CombatActionType.Attack)) // takes a counter-hit, now below max HP
+        update <- session.handle(CombatAction(CombatActionType.Item, itemId = Some(potionId)))
+      yield assert(update.damageEvents.exists(e => e.kind == "heal" && e.targetIsPlayer),
+                   s"expected a heal-kind damageEvent: ${update.damageEvents}"
+      )
   }
 
   db.test("using a potion in combat persists its typeId to potionTypesUsed in the DB") {

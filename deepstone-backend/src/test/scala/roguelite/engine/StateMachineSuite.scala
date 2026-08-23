@@ -282,6 +282,30 @@ class StateMachineSuite extends FunSuite:
     assert(next.isInstanceOf[HubState])
     assert(log.nonEmpty)
 
+  test("StartRun with a classId missing from the loaded class catalog stays in Hub with an error"):
+    // ClassId itself is a closed 3-value enum, so this can only happen if classes.json is missing
+    // an entry at runtime - still worth covering the defensive branch directly.
+    val incompleteClassDefs = testClassDefs - ClassId.Archer
+    val incompleteSm = StateMachine(defaultRoomPool, enemyStatsMap, Map.empty, incompleteClassDefs, Map.empty, CombatResolver(Random(0L)))
+    val TransitionResult(next, log, _, _) =
+      incompleteSm.applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
+    assert(next.isInstanceOf[HubState])
+    assert(log.exists(_.contains("Unknown class")), s"expected an unknown-class message: $log")
+
+  test("BuyUpgrade reaching StateMachine directly is rejected as a safety net"):
+    // BuyUpgrade is normally intercepted by GameSession (needs DB access) before StateMachine ever
+    // sees it - this confirms the fallback match arm itself, in case that routing ever breaks.
+    val TransitionResult(next, log, _, _) =
+      sm().applyActionPure(HubState(hubPlayer), HubAction(HubActionType.BuyUpgrade, classId = Some(ClassId.Warrior)))
+    assert(next.isInstanceOf[HubState])
+    assert(log.exists(_.contains("GameSession")), s"expected a routing-safety-net message: $log")
+
+  test("StartRun with a room pool that can't build a dungeon stays in Hub with an error"):
+    val TransitionResult(next, log, _, _) =
+      sm(roomPool = Map.empty).applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+    assert(next.isInstanceOf[HubState])
+    assert(log.exists(_.contains("Failed to build dungeon")), s"expected a dungeon-build-failure message: $log")
+
   // --- Hub: perks ------------------------------------------------------------
 
   test("StartRun with an offered perk applies its effect and sets activePerkId"):
@@ -340,6 +364,10 @@ class StateMachineSuite extends FunSuite:
   test("Move Up decreases playerY"):
     val TransitionResult(next, _, _, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 2)
+
+  test("Move Left decreases playerX"):
+    val TransitionResult(next, _, _, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Left))
+    assertEquals(next.asInstanceOf[ExplorationState].playerX, 2)
 
   test("Move into wall is blocked"):
     val TransitionResult(next, _, _, _) = sm().applyActionPure(explorationAt(1, 1), Move(Direction.Up))

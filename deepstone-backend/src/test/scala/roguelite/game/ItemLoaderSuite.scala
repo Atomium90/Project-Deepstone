@@ -126,6 +126,14 @@ class ItemLoaderSuite extends CatsEffectSuite:
     val bad = """[{"typeId":"x","kind":"bogus","name":"X","rarity":"common"}]"""
     ItemLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
+  test("malformed top-level JSON fails to parse"):
+    ItemLoader.loadAllFromJson("not valid json").attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("an Epic-floor item parses to Rarity.Epic"):
+    val json = """[{"typeId":"x","kind":"weapon","name":"X","rarity":"epic","attackBonus":1}]"""
+    for items <- ItemLoader.loadAllFromJson(json)
+    yield assertEquals(items("x").rarity, Rarity.Epic)
+
   test("an unknown rarity fails to parse"):
     val bad = """[{"typeId":"x","kind":"weapon","name":"X","rarity":"mythic","attackBonus":1}]"""
     ItemLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
@@ -214,6 +222,16 @@ class ItemLoaderSuite extends CatsEffectSuite:
   test("Accessory.statLine combines multiple present bonuses"):
     val combo = Accessory("", "t", "Combo", Rarity.Common, hpBonus = Some(5), attackBonus = Some(3))
     assertEquals(combo.statLine, "+5 MAX HP, +3 ATK")
+
+  test("Consumable.statLine describes every ConsumableEffect variant"):
+    def line(effect: ConsumableEffect): String =
+      Consumable("", "t", "T", Rarity.Common, effect).statLine
+    assertEquals(line(ConsumableEffect.HealFixed(30)), "Heal 30 HP")
+    assertEquals(line(ConsumableEffect.HealPercent(25)), "Heal 25% HP")
+    assertEquals(line(ConsumableEffect.RestoreResource(15)), "Restore 15 Resource")
+    assertEquals(line(ConsumableEffect.AttackBuff(20, 3)), "+20% ATK for 3 turns")
+    assertEquals(line(ConsumableEffect.FlatDamage(40)), "Deal 40 damage")
+    assertEquals(line(ConsumableEffect.CritBuff(15, 2)), "+15% crit chance for 2 turns")
 
   // ---------------------------------------------
   // Item.effectiveStatLine (pure) - the affinity-doubled value shown to a specific player

@@ -23,6 +23,18 @@ function countEquippedSets(equipment: StateUpdate["equipment"] | undefined): Rec
 /** The latest StateUpdate received from the server. Null before first connection. */
 export const gameState = writable<StateUpdate | null>(null);
 
+/** Exposes the live state on `window` for e2e tests (Playwright) to poll directly - the same
+ * value every derived store and component reacts to, read the same way the UI itself does.
+ * Deliberately not gated behind an env flag: it's a read-only mirror nothing in production code
+ * consumes, and relying on WebSocket frame interception at the network level instead (the first
+ * approach tried) proved unreliable - it doesn't guarantee observing state in the same order or
+ * timing as the page's own reactivity. */
+if (typeof window !== "undefined") {
+    gameState.subscribe((s) => {
+        (window as unknown as { __DEEPSTONE_STATE__?: StateUpdate | null }).__DEEPSTONE_STATE__ = s;
+    });
+}
+
 /** Derived convenience: current game phase (or null if not yet connected). */
 export const gamePhase = derived(gameState, ($s) => $s?.phase ?? null);
 

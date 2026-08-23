@@ -8,6 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "generate-atlas": "node scripts/generate-atlas.mjs",
     "generate-atlas:pixelcrawler": "node scripts/generate-pixelcrawler-atlas.mjs"
   },
@@ -16,8 +19,12 @@
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^3.0.1",
+    "@testing-library/svelte": "^5.4.2",
+    "@vitest/coverage-v8": "^4.1.11",
+    "jsdom": "^29.1.1",
     "svelte-check": "^3.6.0",
     "typescript": "^5.3.3",
-    "vite": "^5.0.8"
+    "vite": "^5.0.8",
+    "vitest": "^4.1.11"
   }
 }

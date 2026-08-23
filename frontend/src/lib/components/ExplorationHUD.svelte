@@ -91,12 +91,20 @@
         renderer.start();
         window.addEventListener("keydown", handleKeyDown);
         window.addEventListener("keyup", handleKeyUp);
+        // e2e tests poll this directly to know when nearestInteractable() will actually find the
+        // entity they just walked up to, instead of guessing a settle delay after gameState changes.
+        (window as unknown as { __DEEPSTONE_RENDERER__?: Renderer }).__DEEPSTONE_RENDERER__ = renderer;
     });
 
     onDestroy(() => {
         renderer?.stop();
         window.removeEventListener("keydown", handleKeyDown);
         window.removeEventListener("keyup", handleKeyUp);
+        // Cleared (not just left stale) so e2e tests can tell "currently mounted" apart from a
+        // leftover reference to the previous instance during a COMBAT <-> EXPLORATION remount.
+        if ((window as unknown as { __DEEPSTONE_RENDERER__?: Renderer }).__DEEPSTONE_RENDERER__ === renderer) {
+            (window as unknown as { __DEEPSTONE_RENDERER__?: Renderer }).__DEEPSTONE_RENDERER__ = undefined;
+        }
     });
 
     // Reactively push new state to the renderer whenever the store updates

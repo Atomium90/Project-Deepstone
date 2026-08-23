@@ -16,6 +16,8 @@ node_modules/
 dist/
 .vite/
 coverage/
+test-results/
+playwright-report/
 
 # Logs
 *.log

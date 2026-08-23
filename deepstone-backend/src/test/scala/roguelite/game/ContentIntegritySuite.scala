@@ -38,26 +38,30 @@ class ContentIntegritySuite extends CatsEffectSuite:
                    s"${cd.classId} startingKit references unknown typeId '$typeId'"
             )
 
+  // Whether rollChest can return None depends only on whether its (ChestPool ∩ items.json) pool is
+  // non-empty - a static fact about the catalog, not something that varies by RNG draw (pickWeighted
+  // always succeeds once the pool's total weight is positive). One seeded call proves it as well as
+  // 200 would.
   test("rollChest never returns None against the real item catalog"):
     for items <- ItemLoader.loadAll()
-    yield
-      val rng = Random(0)
-      for _ <- 1 to 200 do
-        assert(LootTable.rollChest(items, rng, Difficulty.Normal).isDefined,
-               "rollChest returned None - a ChestPool typeId is likely missing from items.json"
-        )
+    yield assert(LootTable.rollChest(items, Random(0), Difficulty.Normal).isDefined,
+                 "rollChest returned None - a ChestPool typeId is likely missing from items.json"
+    )
 
+  // Same reasoning: with dropChance forced to 100, whether rollEnemy can produce a drop depends
+  // only on whether the enemy's own lootTable pool is non-empty against items.json - static per
+  // enemy, not RNG-dependent. One seeded call per enemy proves it as well as 50 would.
   test("every enemy with a positive dropChance can produce a drop against the real item catalog"):
     for
       items   <- ItemLoader.loadAll()
       enemies <- EnemyLoader.loadAll()
     yield enemies.values.filter(_.lootTable.nonEmpty).foreach:
       stats =>
-        val instance = EnemyInstance.fromStats("e1", stats, Difficulty.Normal)
+        val instance   = EnemyInstance.fromStats("e1", stats, Difficulty.Normal)
         val forcedDrop = instance.copy(dropChance = 100)
-        val rng = Random(0)
-        val gotADrop = (1 to 50).exists(_ => LootTable.rollEnemy(forcedDrop, items, rng, Difficulty.Normal).isDefined)
-        assert(gotADrop, s"${stats.typeId}'s lootTable never produced a drop - likely all typeIds are missing from items.json")
+        assert(LootTable.rollEnemy(forcedDrop, items, Random(0), Difficulty.Normal).isDefined,
+               s"${stats.typeId}'s lootTable never produced a drop - likely all typeIds are missing from items.json"
+        )
 
   test("every item's setId, when present, exists in sets.json"):
     for

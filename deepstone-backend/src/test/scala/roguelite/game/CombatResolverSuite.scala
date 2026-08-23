@@ -84,9 +84,11 @@ class CombatResolverSuite extends FunSuite:
 
   // --- calcDamage ----------------------------------------------------------
 
+  // jitter only ranges -2..+2 (see CombatResolver.calcDamage), and attack=1/defense=999 is already
+  // deep enough negative that no jitter value could keep it above the `.max(1)` floor - structural
+  // for any seed, not something 100 rolls could ever catch failing.
   test("calcDamage always returns at least 1"):
-    val r = resolver()
-    for _ <- 1 to 100 do assert(r.calcDamage(1, 999) >= 1)
+    assert(resolver().calcDamage(1, 999) >= 1)
 
   test("calcDamage scales with attack stat"):
     val r = resolver(42L)
@@ -99,17 +101,17 @@ class CombatResolverSuite extends FunSuite:
 
   // --- Crit chance -----------------------------------------------------------
 
+  // rollCrit short-circuits on `chancePercent > 0` before ever touching rng, so a non-positive
+  // chance can never crit regardless of the roll - structural, not a matter of luck.
   test("rollCrit never crits at 0% chance"):
-    val r = resolver()
-    for _ <- 1 to 100 do assert(!r.rollCrit(0))
+    assert(!resolver().rollCrit(0))
 
   test("rollCrit never crits at negative chance"):
-    val r = resolver()
-    for _ <- 1 to 100 do assert(!r.rollCrit(-5))
+    assert(!resolver().rollCrit(-5))
 
+  // rng.nextInt(100) always yields 0-99, so `< 100` can never be false - structural for any seed.
   test("rollCrit always crits at 100% chance"):
-    val r = resolver()
-    for _ <- 1 to 100 do assert(r.rollCrit(100))
+    assert(resolver().rollCrit(100))
 
   test("player critChance sums equipped accessories' critChanceBonus"):
     val critRing = Accessory("", "luck_clover", "Lucky Clover", Rarity.Common, critChanceBonus = Some(5))

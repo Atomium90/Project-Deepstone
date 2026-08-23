@@ -85,6 +85,30 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(_, _, _, events) = resolver().interact(state, d.id)
     assertEquals(events, List(GameEvent.DoorOpened))
 
+  test("Entering a room through a Right-facing door spawns near the west wall"):
+    val d     = Door("d", x = 4, y = 5, direction = Direction.Right, targetRoomId = "r2")
+    val state = explorationAt(3, 3, entities = List(d))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "d")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals((nextExp.playerX, nextExp.playerY), (1, nextExp.dungeon.currentRoom.height / 2))
+
+  test("Entering a room through a Left-facing door spawns near the east wall"):
+    val d     = Door("d", x = 4, y = 5, direction = Direction.Left, targetRoomId = "r2")
+    val state = explorationAt(3, 3, entities = List(d))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "d")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    val room    = nextExp.dungeon.currentRoom
+    assertEquals((nextExp.playerX, nextExp.playerY), (room.width - 2, room.height / 2))
+
+  test("Spawning at a blocked candidate tile falls back to (1, 1)"):
+    // A Down-facing door's spawn candidate is (width/2, 1) - force that exact tile to Wall.
+    val blockedR2 = roomWithWallAt("r2", wx = 4, wy = 1, entities = Nil)
+    val d         = door("r1", "r2")
+    val state     = explorationAt(3, 3, entities = List(d), extraRooms = Map("r2" -> blockedR2))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, d.id)
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals((nextExp.playerX, nextExp.playerY), (1, 1))
+
   test("Interact with unknown entity id returns error log"):
     val TransitionResult(next, log, _, _) = resolver().interact(explorationAt(3, 3), "ghost")
     assert(next.isInstanceOf[ExplorationState])
@@ -196,6 +220,15 @@ class InteractionResolverSuite extends FunSuite:
            s"expected no enemy on the player's tile: $spawned"
     )
 
+  test("A trapped chest with no eligible enemy type in the catalog spawns nothing"):
+    val noEnemiesResolver = InteractionResolver(enemyStats = Map.empty, itemDefs = Map.empty)
+    val chest = Chest("c1", x = 3, y = 3, trapped = true)
+    val state = explorationAt(3, 3, entities = List(chest))
+    val TransitionResult(next, log, _, _) = noEnemiesResolver.interact(state, "c1")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }, Nil)
+    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-happens message: $log")
+
   test("Non-trapped chest is unaffected by the trapped-chest path"):
     val chest        = Chest("c1", x = 3, y = 3, trapped = false)
     val state        = explorationAt(3, 3, entities = List(chest))
@@ -234,6 +267,39 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(nextExp.pendingEquipChoice.map(_.currentItems.keySet), Some(Set(EquipSlot.WeaponSlot)))
     assertEquals(events, Nil)
     assert(log.exists(_.toLowerCase.contains("choose")), s"expected a choice-prompt message: $log")
+
+  test("A chest that yields a key increments the player's key count instead of offering a choice"):
+    val itemDefs: Map[String, Item] = Map(
+      "rusty_key" -> Key("", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic)
+    )
+    val chest = Chest("c1", x = 3, y = 3)
+    val state = explorationAt(3, 3, entities = List(chest))
+    val TransitionResult(next, log, _, events) = resolver(itemDefs = itemDefs).interact(state, "c1")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.player.keyCounts.get(KeyKind.Generic), Some(1))
+    assertEquals(nextExp.pendingEquipChoice, None)
+    assert(log.exists(_.toLowerCase.contains("find")), s"expected a pickup message: $log")
+    events match
+      case List(GameEvent.ItemPickedUp(_, _, _, _, _)) => ()
+      case other                                        => fail(s"expected a single ItemPickedUp, got $other")
+
+  test("A chest pickup with a lower-or-equal rarity duplicate of an equipped item is discarded"):
+    // The existing copy is Epic (the highest tier), so the fresh roll can never beat it regardless
+    // of the rng seed used - deterministic without needing to force a specific roll.
+    val existingWeapon = Weapon("existing", "practice_sword", "Practice Sword", Rarity.Epic, attackBonus = 20)
+    val playerWithWeapon =
+      PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(existingWeapon))
+    val itemDefs: Map[String, Item] = Map(
+      "practice_sword" -> Weapon("", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 2)
+    )
+    val chest = Chest("c1", x = 3, y = 3)
+    val state = ExplorationState(playerWithWeapon, dungeonWith(entities = List(chest)), 3, 3)
+    val TransitionResult(next, log, _, events) = resolver(itemDefs = itemDefs).interact(state, "c1")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.player.equippedWeapon, Some(existingWeapon))
+    assertEquals(nextExp.pendingEquipChoice, None)
+    assertEquals(events, Nil)
+    assert(log.exists(_.toLowerCase.contains("already have a better")), s"expected a discard message: $log")
 
   test("An empty chest emits no events"):
     val chest    = Chest("c1", x = 3, y = 3)

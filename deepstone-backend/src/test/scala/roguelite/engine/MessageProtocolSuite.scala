@@ -109,6 +109,26 @@ class MessageProtocolSuite extends FunSuite:
         val encoded = slot.asJson
         assertEquals(encoded.as[EquipSlot], Right(slot), s"round-trip failed for $slot")
 
+  test("Direction/GamePhase/CombatActionType/HubActionType/Difficulty/UpgradeCategory encode/decode round-trip for every case"):
+    import MessageProtocol.given
+    import io.circe.syntax.*
+    Direction.values.foreach(v => assertEquals(v.asJson.as[Direction], Right(v), s"round-trip failed for $v"))
+    GamePhase.values.foreach(v => assertEquals(v.asJson.as[GamePhase], Right(v), s"round-trip failed for $v"))
+    CombatActionType.values.foreach(v => assertEquals(v.asJson.as[CombatActionType], Right(v), s"round-trip failed for $v"))
+    HubActionType.values.foreach(v => assertEquals(v.asJson.as[HubActionType], Right(v), s"round-trip failed for $v"))
+    Difficulty.values.foreach(v => assertEquals(v.asJson.as[Difficulty], Right(v), s"round-trip failed for $v"))
+    roguelite.game.UpgradeCategory.values.foreach(
+      v => assertEquals(v.asJson.as[roguelite.game.UpgradeCategory], Right(v), s"round-trip failed for $v")
+    )
+
+  test("decoding an unknown value for a plain-string enum codec returns Left"):
+    import MessageProtocol.given
+    import io.circe.Json
+    assert(Json.fromString("NORTHWEST").as[Direction].isLeft)
+    assert(Json.fromString("PAUSED").as[GamePhase].isLeft)
+    assert(Json.fromString("NIGHTMARE").as[Difficulty].isLeft)
+    assert(Json.fromString("epic").as[roguelite.game.UpgradeCategory].isLeft)
+
   test("decode unknown action type returns Left"):
     val json   = """{"type":"EXPLODE"}"""
     val result = MessageProtocol.decodeAction(json)

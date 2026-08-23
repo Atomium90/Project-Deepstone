@@ -321,6 +321,32 @@ class CombatResolverSuite extends FunSuite:
            s"expected ItemPickedUp(inventoryFull=true): $events"
     )
 
+  test("a kill that drops a key increments the player's key count instead of an equipment slot"):
+    val itemDefs: Map[String, Item] = Map(
+      "rusty_key" -> Key("", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic)
+    )
+    val enemy = weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("rusty_key", 100)))
+    val (next, log, events) =
+      CombatResolver(Random(0), itemDefs).resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
+    assertEquals(next.player.keyCounts.get(KeyKind.Generic), Some(1))
+    assert(log.exists(_.contains("dropped")), s"expected a drop message: $log")
+    assert(events.exists(_.isInstanceOf[GameEvent.ItemPickedUp]), s"expected ItemPickedUp: $events")
+
+  test("a kill that drops a lower-or-equal rarity duplicate of an equipped item is discarded"):
+    // The equipped copy is Epic (the highest tier), so the fresh drop can never beat it regardless
+    // of the rng seed used - deterministic without needing to force a specific roll.
+    val existingWeapon = Weapon("existing", "iron_sword", "Iron Sword", Rarity.Epic, attackBonus = 20)
+    val itemDefs: Map[String, Item] = Map(
+      "iron_sword" -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 2)
+    )
+    val enemy = weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))
+    val playerWithWeapon = fullHpPlayer().copy(equippedWeapon = Some(existingWeapon))
+    val (next, log, events) =
+      CombatResolver(Random(0), itemDefs).resolve(combatState(enemy, player = playerWithWeapon), CombatAction(CombatActionType.Attack))
+    assertEquals(next.player.equippedWeapon, Some(existingWeapon))
+    assert(log.exists(_.contains("already have a better")), s"expected a discard message: $log")
+    assert(!events.exists(_.isInstanceOf[GameEvent.ItemPickedUp]), s"discard should not emit ItemPickedUp: $events")
+
   // --- Item use ------------------------------------------------------------
 
   test("Item with no itemId returns 'no item selected'"):
@@ -475,6 +501,21 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) = resolver().resolve(withBuff, CombatAction(CombatActionType.Attack))
     assert(log.exists(_.contains("Critical hit!")), s"expected a guaranteed crit: $log")
     assert(next.isInstanceOf[CombatState])
+
+  test("an expiring CritChanceBonusPercent buff logs its own expiry message, distinct from AttackBonusPercent's"):
+    val buff  = TimedBuff(TimedBuffEffect.CritChanceBonusPercent(10), turnsRemaining = 1)
+    val state = combatState(weakEnemy(hp = 500))
+    val withBuff = state.copy(combat = state.combat.copy(activeBuffs = List(buff)))
+    val (_, log, _) = resolver().resolve(withBuff, CombatAction(CombatActionType.Defend))
+    assert(log.exists(_.contains("sharpened senses dull")), s"expected the crit-buff expiry message: $log")
+
+  // --- Enemy actions the resolver doesn't recognize ---------------------------
+
+  test("an enemy action type the resolver doesn't recognize makes it hesitate instead of crashing"):
+    val confusedEnemy = weakEnemy(hp = 500).copy(actions = List(EnemyActionWeight("ROAR", 100)))
+    val (next, log, _) = resolver().resolve(combatState(confusedEnemy), CombatAction(CombatActionType.Defend))
+    assert(log.exists(_.contains("hesitates")), s"expected a hesitation message: $log")
+    assert(next.asInstanceOf[CombatState].combat.isPlayerTurn, "turn should return to the player")
 
   // --- FlatDamage potion -------------------------------------------------------
 

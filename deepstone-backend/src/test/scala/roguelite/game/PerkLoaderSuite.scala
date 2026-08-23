@@ -41,6 +41,20 @@ class PerkLoaderSuite extends CatsEffectSuite:
     val bad = """[{"id":"x","label":"L","description":"d","icon":"i.png","effect":{"type":"NotReal"}}]"""
     PerkLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
+  test("malformed top-level JSON fails to parse"):
+    PerkLoader.loadAllFromJson("not valid json").attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("GuaranteedRarityFirstChest's minRarity resolves every rarity tier"):
+    val fixture =
+      """[
+        |  {"id":"c","label":"L","description":"d","icon":"i.png","effect":{"type":"GuaranteedRarityFirstChest","minRarity":"common"}},
+        |  {"id":"u","label":"L","description":"d","icon":"i.png","effect":{"type":"GuaranteedRarityFirstChest","minRarity":"uncommon"}}
+        |]""".stripMargin
+    for defs <- PerkLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(defs("c").effect, PerkEffect.GuaranteedRarityFirstChest(Rarity.Common))
+      assertEquals(defs("u").effect, PerkEffect.GuaranteedRarityFirstChest(Rarity.Uncommon))
+
   test("an unknown minRarity fails to parse"):
     val bad =
       """[{"id":"x","label":"L","description":"d","icon":"i.png","effect":{"type":"GuaranteedRarityFirstChest","minRarity":"mythic"}}]"""

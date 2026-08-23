@@ -161,6 +161,19 @@ class AbilitySuite extends FunSuite:
     assert(log.exists(_.contains("Not enough Rage")), s"missing error log: $log")
   }
 
+  test("Ability action for a class missing from the ability catalog degrades gracefully") {
+    // Should not happen with a valid abilities.json (every class has one entry), but the catalog
+    // lookup is still a plain Map.get - worth covering the defensive branch directly.
+    val resolver = CombatResolver(Random(42), abilityDefs = Map.empty)
+    val warrior   = makePlayer(ClassId.Warrior, resource = 100, resourceMax = 100)
+    val state     = makeCombatState(warrior)
+
+    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
+
+    assertEquals(nextState, state)
+    assert(log.exists(_.contains("No ability available")), s"missing error log: $log")
+  }
+
   test("DoubleNextAttack: damage is doubled on the following Attack and pending is cleared") {
     val resolver = freshResolver
     val warrior  = makePlayer(ClassId.Warrior, resource = 100, resourceMax = 100)

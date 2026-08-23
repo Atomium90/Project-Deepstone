@@ -36,4 +36,15 @@ describe("SettingsStore", () => {
         settings.set(updated);
         expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual(updated);
     });
+
+    test("a setting still works for the session even when localStorage can't be written to", async () => {
+        const { settings } = await import("./SettingsStore");
+        const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+            throw new Error("QuotaExceededError");
+        });
+        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90 };
+        expect(() => settings.set(updated)).not.toThrow();
+        expect(get(settings)).toEqual(updated);
+        setItemSpy.mockRestore();
+    });
 });

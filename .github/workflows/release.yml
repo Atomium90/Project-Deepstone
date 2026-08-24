@@ -1,0 +1,190 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and release (e.g. v0.6.0)"
+        required: true
+
+jobs:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Resolve the tag being released and sanity-check it against build.sbt's
+  # version, once, so both matrix legs below don't duplicate the check.
+  # ─────────────────────────────────────────────────────────────────────────
+  resolve:
+    name: Resolve tag and version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.check-version.outputs.tag }}
+      version: ${{ steps.check-version.outputs.version }}
+
+    steps:
+      - name: Determine tag
+        id: resolve-tag
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.inputs.tag }}"
+          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = "${{ github.ref_name }}" }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve-tag.outputs.tag }}
+
+      - name: Check build.sbt version matches the tag
+        id: check-version
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.resolve-tag.outputs.tag }}"
+          $expected = $tag -replace '^v', ''
+
+          $line = Select-String -Path deepstone-backend/build.sbt -Pattern 'ThisBuild\s*/\s*version\s*:=\s*"([^"]+)"'
+          if (-not $line) { throw "Could not find a ThisBuild / version line in deepstone-backend/build.sbt" }
+          $actual = $line.Matches[0].Groups[1].Value
+
+          if ($actual -ne $expected) {
+            throw "Tag $tag expects build.sbt version '$expected', but build.sbt has '$actual'. Bump the version and re-tag."
+          }
+
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$actual" >> $env:GITHUB_OUTPUT
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Build the self-contained (bundled-JRE) package on each platform.
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build (${{ matrix.platform }})
+    needs: resolve
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+          - os: ubuntu-latest
+            platform: linux
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.tag }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Install sbt
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbt
+
+      - name: Cache sbt
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.cache/coursier
+          key: sbt-${{ runner.os }}-${{ hashFiles('deepstone-backend/build.sbt', 'deepstone-backend/project/*.sbt') }}
+          restore-keys: sbt-${{ runner.os }}-
+
+      - name: Run backend tests
+        working-directory: deepstone-backend
+        run: sbt test
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # The two licensed asset packs (player sprites, boss music) are gitignored from the
+      # public repo - see CREDITS.md and .gitignore. Pull them from the private mirror so a
+      # packaged build has them, same files build-release.ps1 bakes in for a local build.
+      - name: Check out licensed assets
+        uses: actions/checkout@v4
+        with:
+          repository: Atomium90/deepstone-licensed-assets
+          token: ${{ secrets.LICENSED_ASSETS_PAT }}
+          path: licensed-assets
+
+      - name: Stage licensed assets into frontend/public
+        shell: pwsh
+        run: |
+          # hero_classes/ holds nothing but gitignored files, so it may not even exist yet on
+          # a fresh checkout - create every destination up front rather than assuming.
+          New-Item -ItemType Directory -Force -Path "frontend/public/audio/music" | Out-Null
+          New-Item -ItemType Directory -Force -Path "frontend/public/sprites/entities/hero_classes" | Out-Null
+          New-Item -ItemType Directory -Force -Path "frontend/public/sprites/items" | Out-Null
+
+          Copy-Item "licensed-assets/audio/music/*.ogg" "frontend/public/audio/music/" -Force
+          Copy-Item "licensed-assets/sprites/entities/hero_classes/*.png" "frontend/public/sprites/entities/hero_classes/" -Force
+          Copy-Item "licensed-assets/sprites/items/*.png" "frontend/public/sprites/items/" -Force
+
+      - name: Build release package
+        shell: pwsh
+        run: ./build-release.ps1
+
+      - name: Rename package for this platform
+        id: package
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem -Path "deepstone-backend/target/universal" -Filter "*.zip" |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $zip) { throw "No zip found under deepstone-backend/target/universal" }
+
+          $newName = "deepstone-backend-${{ needs.resolve.outputs.version }}-${{ matrix.platform }}.zip"
+          $newPath = Join-Path $zip.DirectoryName $newName
+          Rename-Item -Path $zip.FullName -NewName $newName
+          "path=$newPath" >> $env:GITHUB_OUTPUT
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.platform }}
+          path: ${{ steps.package.outputs.path }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Create (or update) a draft GitHub Release with both platform zips
+  # attached. Left as a draft deliberately - the narrative, player-facing
+  # release notes are still written by hand in the GitHub UI, same as every
+  # release so far (v0.2.0-v0.5.0); this job only automates the mechanical
+  # build+attach step.
+  # ─────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish draft release
+    needs: [resolve, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create or update the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.resolve.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip --repo "$REPO" --clobber
+          else
+            gh release create "$TAG" dist/*.zip --repo "$REPO" --draft --title "$TAG"
+          fi

@@ -6,12 +6,33 @@ val doobieVersion = "1.0.0-RC4"
 
 ThisBuild / scalaVersion := scala3Version
 ThisBuild / organization := "roguelite"
-ThisBuild / version      := "0.5.5"
+ThisBuild / version      := "0.5.6"
 
 lazy val root = (project in file("."))
-  .enablePlugins(JavaAppPackaging)
+  .enablePlugins(JavaAppPackaging, JlinkPlugin)
   .settings(
     name := "deepstone-backend",
+    jlinkOptions ++= Seq("--strip-debug", "--no-header-files", "--no-man-pages", "--compress=2"),
+    // jdeps flags these as missing because they're optional integrations none of our
+    // dependencies actually exercise at runtime (Servlet/SMTP/conditional-config appenders
+    // in Logback, Dropwizard/Micrometer/Prometheus/Hibernate/javassist paths in HikariCP,
+    // fs2's Unix-domain-socket backend, sqlite-jdbc's GraalVM native-image hook, and a
+    // self-referential Scala 3 quotes/macros false positive). Listed by exact prefix pair
+    // rather than a blanket ignore so a genuinely new missing dependency still fails the build.
+    jlinkIgnoreMissingDependency := JlinkIgnore.byPackagePrefix(
+      "ch.qos.logback"        -> "jakarta.servlet",
+      "ch.qos.logback"        -> "jakarta.mail",
+      "ch.qos.logback"        -> "org.codehaus.janino",
+      "ch.qos.logback"        -> "org.codehaus.commons.compiler",
+      "com.zaxxer.hikari"     -> "com.codahale.metrics",
+      "com.zaxxer.hikari"     -> "org.hibernate",
+      "com.zaxxer.hikari"     -> "io.micrometer.core.instrument",
+      "com.zaxxer.hikari"     -> "io.prometheus.client",
+      "com.zaxxer.hikari"     -> "javassist",
+      "fs2.io.net.unixsocket" -> "jnr.unixsocket",
+      "org.sqlite.nativeimage" -> "org.graalvm.nativeimage.hosted",
+      "scala.quoted"          -> "scala"
+    ),
     libraryDependencies ++= Seq(
       // HTTP + WebSocket server
       "org.http4s" %% "http4s-ember-server" % http4sVersion,

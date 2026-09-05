@@ -10,6 +10,7 @@ import roguelite.game.{
   KeyKind,
   MetaProgression,
   PendingEquipChoice,
+  PendingRewardChoice,
   PerkDef,
   RoomType,
   UpgradeDef,
@@ -70,6 +71,10 @@ private def pendingChoiceToView(pending: PendingEquipChoice, playerAffinityTags:
         EquipChoiceOptionView(slot, itemToView(item, playerAffinityTags, pending.stackCounts.get(slot)))
     }
   )
+
+/** Project a [[PendingRewardChoice]] into the client-facing [[PendingRewardChoiceView]]. */
+private def pendingRewardChoiceToView(pending: PendingRewardChoice, playerAffinityTags: Set[String]): PendingRewardChoiceView =
+  PendingRewardChoiceView(options = pending.options.map(itemToView(_, playerAffinityTags)))
 
 /** Project a player's equipment into the client-facing [[EquipmentView]]. */
 private def equipmentToView(player: Player): EquipmentView =
@@ -153,7 +158,8 @@ case class ExplorationState(player: Player,
                             playerY: Int,
                             difficulty: Difficulty = Difficulty.Normal,
                             enemyStats: Map[String, EnemyStats] = Map.empty,
-                            pendingEquipChoice: Option[PendingEquipChoice] = None
+                            pendingEquipChoice: Option[PendingEquipChoice] = None,
+                            pendingRewardChoice: Option[PendingRewardChoice] = None
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
@@ -162,6 +168,7 @@ case class ExplorationState(player: Player,
       room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
       equipment = equipmentToView(player),
       pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView(_, player.affinityTags)),
+      pendingRewardChoice = pendingRewardChoice.map(pendingRewardChoiceToView(_, player.affinityTags)),
       log = log,
       dialogue = dialogue
     )

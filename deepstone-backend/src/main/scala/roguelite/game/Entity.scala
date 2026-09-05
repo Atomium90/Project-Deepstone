@@ -157,3 +157,11 @@ case class Npc(
     lastShown: Option[(Long, String)] = None
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "npc", x = x, y = y, label = name)
+
+/** A reward marker left behind by a defeated [[RoomType.MiniBoss]] enemy (see
+  * [[CombatResolver.victory]]) - never authored in rooms.json, only ever created at runtime.
+  * Interacting with it rolls 3 candidate items and offers a choice (see
+  * [[roguelite.game.RewardChoiceResolver]]), unlike [[Chest]]'s single immediate-resolve drop.
+  */
+case class Shrine(id: String, x: Int, y: Int) extends Entity:
+  def toView: EntityView = EntityView(id = id, kind = "shrine", x = x, y = y, label = "Shrine")

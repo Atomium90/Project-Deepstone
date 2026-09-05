@@ -107,6 +107,12 @@ case class HubAction(
   */
 case class EquipChoice(targetSlot: Option[EquipSlot] = None) extends PlayerAction
 
+/** Resolve a pending Shrine reward choice (see [[PendingRewardChoiceView]]). `itemId = None` means
+  * "walk away, take nothing"; `Some(id)` picks that option, which must be one of the ids the
+  * pending choice actually offered.
+  */
+case class RewardChoice(itemId: Option[String] = None) extends PlayerAction
+
 // ---------------------------------------------
 // Server → Client: state views (read-only snapshots)
 // ---------------------------------------------
@@ -296,6 +302,13 @@ case class EquipChoiceOptionView(slot: EquipSlot, current: ItemView)
   */
 case class PendingEquipChoiceView(newItem: ItemView, options: List[EquipChoiceOptionView])
 
+/** A Shrine's 3 rolled reward candidates, awaiting a pick. Durable, same discipline as
+  * [[PendingEquipChoiceView]] - resolved with a [[RewardChoice]] action, picking by `options`
+  * entry's `id` (each already carries its own distinct instance id, unlike an equip choice's
+  * slot-keyed options).
+  */
+case class PendingRewardChoiceView(options: List[ItemView])
+
 /** Static description of one class's combat ability. Sent as a small catalog on every
   * [[StateUpdate]] (not just during combat) so the client never needs to hardcode ability names,
   * costs, or resource labels. See [[roguelite.engine.GameSession]].
@@ -349,6 +362,11 @@ case class StateUpdate(
       * [[PendingEquipChoiceView]]. Resolved with an [[EquipChoice]] action.
       */
     pendingEquipChoice: Option[PendingEquipChoiceView] = None,
+    /** A Shrine's 3 rolled reward candidates awaiting a pick. Durable, same discipline as
+      * `pendingEquipChoice` - see [[PendingRewardChoiceView]]. Resolved with a [[RewardChoice]]
+      * action.
+      */
+    pendingRewardChoice: Option[PendingRewardChoiceView] = None,
     abilities: List[AbilityView] = Nil,
     achievements: List[AchievementView] = Nil,
     sets: List[SetView] = Nil,
@@ -469,6 +487,8 @@ object MessageProtocol:
   given Decoder[HubAction]    = deriveDecoder
   given Encoder[EquipChoice]  = deriveEncoder
   given Decoder[EquipChoice]  = deriveDecoder
+  given Encoder[RewardChoice] = deriveEncoder
+  given Decoder[RewardChoice] = deriveDecoder
 
   /** Decode a raw JSON string into a PlayerAction. The JSON must include a "type" discriminator
     * field: { "type": "MOVE", "direction": "UP" }
@@ -484,6 +504,7 @@ object MessageProtocol:
         case "COMBAT_ACTION" => cursor.as[CombatAction].left.map(_.message)
         case "HUB_ACTION"    => cursor.as[HubAction].left.map(_.message)
         case "EQUIP_CHOICE"  => cursor.as[EquipChoice].left.map(_.message)
+        case "REWARD_CHOICE" => cursor.as[RewardChoice].left.map(_.message)
         case other           => Left(s"Unknown action type: $other")
       }
     yield action
@@ -502,6 +523,7 @@ object MessageProtocol:
   given Encoder[EquipmentView] = deriveEncoder
   given Encoder[EquipChoiceOptionView]   = deriveEncoder
   given Encoder[PendingEquipChoiceView]  = deriveEncoder
+  given Encoder[PendingRewardChoiceView] = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[SetView]         = deriveEncoder

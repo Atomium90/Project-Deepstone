@@ -125,6 +125,9 @@ export interface CombatView {
   spriteId?: string;
   /** True if the current room is a boss room - drives boss music. */
   isBoss: boolean;
+  /** True if the current room is a mini-boss checkpoint (a biome transition, not the run's final
+   * boss) - cosmetic only, never ends the run the way isBoss's room does. */
+  isMiniBoss: boolean;
   /** True if this enemy rolled Elite at dungeon build time - same value already seen on
    * EntityView.isElite during exploration, just always present here instead of optional. */
   isElite: boolean;

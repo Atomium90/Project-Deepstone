@@ -2,7 +2,9 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
     testDir: "./e2e",
-    timeout: 120_000,
+    // Bumped alongside full-run.spec.ts's iteration budget - Normal difficulty's dungeon grew
+    // substantially once biomes landed, so a full run now takes noticeably longer end to end.
+    timeout: 240_000,
     use: { baseURL: "http://localhost:5173", headless: true },
     reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
     webServer: [

@@ -100,7 +100,10 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
     let lootPickedUp = false;
     let previousPhase = state.phase;
 
-    for (let iteration = 0; iteration < 80 && state.phase !== "GAMEOVER"; iteration++) {
+    // Normal difficulty's dungeon grew substantially once biomes landed (entrance + 2 biomes of 4
+    // rooms each + a MiniBoss checkpoint + boss, vs. the old flat 4-room dungeon) - the old budget
+    // of 80 was sized for that smaller shape and no longer covers a full run reliably.
+    for (let iteration = 0; iteration < 300 && state.phase !== "GAMEOVER"; iteration++) {
         if (state.phase !== previousPhase) {
             // App.svelte re-keys the whole phase component on every transition ({#key $gamePhase},
             // a 220ms crossfade) - the outgoing instance (old listeners, old DOM elements) can

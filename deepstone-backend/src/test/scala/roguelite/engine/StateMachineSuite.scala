@@ -419,6 +419,16 @@ class StateMachineSuite extends FunSuite:
     assertEquals(nextExp.pendingEquipChoice, None)
     assert(events.nonEmpty, "expected an ItemPickedUp event")
 
+  test("RewardChoice action routes through to RewardChoiceResolver.resolve"):
+    val option  = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+    val pending = PendingRewardChoice(List(option))
+    val state   = explorationAt(3, 3).copy(pendingRewardChoice = Some(pending))
+    val TransitionResult(next, _, _, events) = sm().applyActionPure(state, RewardChoice(Some(option.id)))
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.player.equippedWeapon, Some(option))
+    assertEquals(nextExp.pendingRewardChoice, None)
+    assert(events.nonEmpty, "expected an ItemPickedUp event")
+
   // --- Combat routing -------------------------------------------------------
 
   test("CombatAction in CombatState is routed to resolver"):

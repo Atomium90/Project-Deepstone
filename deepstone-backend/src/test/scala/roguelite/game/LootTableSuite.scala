@@ -53,6 +53,23 @@ class LootTableSuite extends FunSuite:
     val item = LootTable.rollChest(itemDefs, Random(3)).getOrElse(fail("expected Some"))
     assertEquals(item.typeId, "rusty_key")
 
+  // --- Shrine reward-choice rolls --------------------------------------------
+
+  test("rollShrineChoices returns the requested count with a valid item def map"):
+    val options = LootTable.rollShrineChoices(itemDefs, Random(42))
+    assertEquals(options.length, 3)
+
+  test("rollShrineChoices respects a custom count"):
+    val options = LootTable.rollShrineChoices(itemDefs, Random(42), count = 5)
+    assertEquals(options.length, 5)
+
+  test("rollShrineChoices assigns each option its own distinct instance id"):
+    val options = LootTable.rollShrineChoices(itemDefs, Random(42))
+    assertEquals(options.map(_.id).toSet.size, options.size)
+
+  test("rollShrineChoices returns an empty list when itemDefs is empty"):
+    assertEquals(LootTable.rollShrineChoices(Map.empty[String, Item], Random(42)), Nil)
+
   // --- Enemy drops ---------------------------------------------------------
 
   // dropChance <= 0 short-circuits before rollEnemy ever calls rng (see LootTable.rollEnemy), so

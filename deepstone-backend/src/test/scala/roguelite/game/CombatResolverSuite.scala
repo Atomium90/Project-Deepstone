@@ -73,6 +73,21 @@ class CombatResolverSuite extends FunSuite:
       enemyEntityId = enemy.entityId
     )
 
+  def miniBossDungeon(enemies: List[Entity] = Nil): Dungeon =
+    val room =
+      Room("miniboss1", RoomType.MiniBoss, width = 8, height = 6, tiles = makeTiles(), entities = enemies)
+    Dungeon(rooms = Map("miniboss1" -> room), currentRoomId = "miniboss1")
+
+  def combatStateInMiniBossRoom(enemy: EnemyInstance, player: Player = fullHpPlayer()): CombatState =
+    CombatState(
+      player = player,
+      dungeon = miniBossDungeon(List(Enemy(enemy.entityId, 3, 3, enemy.typeId, enemy.label))),
+      playerX = 1,
+      playerY = 1,
+      combat = Combat(enemy = enemy),
+      enemyEntityId = enemy.entityId
+    )
+
   // --- Equipment helpers -----------------------------------------------------
 
   private def equipWeapon(player: Player, weapon: Weapon): Player = player.copy(equippedWeapon = Some(weapon))
@@ -220,6 +235,39 @@ class CombatResolverSuite extends FunSuite:
     next match
       case gameOver: GameOverState => assertEquals(gameOver.victory, false)
       case _                       => () // player may not have died this turn, inconclusive
+
+  // --- MiniBoss victory (Shrine spawn) ----------------------------------------
+
+  test("defeating a MiniBoss does not end the run"):
+    val itemDefs: Map[String, Item] = Map(
+      "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
+    )
+    val enemy = weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
+    val (next, _, _) =
+      CombatResolver(Random(0), itemDefs).resolve(combatStateInMiniBossRoom(enemy), CombatAction(CombatActionType.Attack))
+    assert(next.isInstanceOf[ExplorationState], s"expected ExplorationState, got $next")
+
+  test("defeating a MiniBoss spawns a Shrine at its position instead of the usual loot roll"):
+    val itemDefs: Map[String, Item] = Map(
+      "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
+    )
+    val enemy = weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
+    val (next, log, _) =
+      CombatResolver(Random(0), itemDefs).resolve(combatStateInMiniBossRoom(enemy), CombatAction(CombatActionType.Attack))
+    val exp = next.asInstanceOf[ExplorationState]
+    val shrine = exp.dungeon.currentRoom.entities.collectFirst { case s: Shrine => s }
+    assert(shrine.isDefined, "expected a Shrine to be spawned in the room")
+    assertEquals((shrine.get.x, shrine.get.y), (3, 3), "expected the Shrine at the defeated enemy's position")
+    assertEquals(exp.player.potionBelt.flatten.toList, Nil, "expected no normal loot drop on a MiniBoss kill")
+    assert(log.exists(_.toLowerCase.contains("shrine")), s"expected a shrine-related log line: $log")
+
+  test("MiniBoss victory emits EnemyDefeated(isBoss = false) - only the true final boss sets isBoss"):
+    val (_, _, events) =
+      resolver().resolve(combatStateInMiniBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false)),
+           s"expected EnemyDefeated(isBoss=false): $events"
+    )
+    assert(!events.exists(_.isInstanceOf[GameEvent.RunEnded]), s"unexpected RunEnded: $events")
 
   // --- GameEvent emission ----------------------------------------------------
 

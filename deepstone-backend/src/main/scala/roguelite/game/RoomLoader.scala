@@ -64,18 +64,24 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
 
       case "door" =>
         for
-          dirStr       <- ej.direction.toRight("Door entity is missing 'direction' field")
-          direction    <- parseDirection(dirStr)
-          targetRoomId <- ej.targetRoomId.toRight("Door entity is missing 'targetRoomId' field")
-          doorKind     <- parseDoorKind(ej.doorKind.getOrElse("normal"))
-        yield Door(id = ej.id,
-                   x = ej.x,
-                   y = ej.y,
-                   direction = direction,
-                   targetRoomId = targetRoomId,
-                   doorKind = doorKind,
-                   revealed = ej.revealed.getOrElse(doorKind != DoorKind.Secret)
-        )
+          dirStr    <- ej.direction.toRight("Door entity is missing 'direction' field")
+          direction <- parseDirection(dirStr)
+          roleStr   <- ej.role.toRight("Door entity is missing 'role' field")
+          role      <- ConnectorRole.fromString(roleStr)
+          doorKind  <- parseDoorKind(ej.doorKind.getOrElse("normal"))
+        yield
+          val link = ej.targetRoomId match {
+            case Some(roomId) => DoorLink.Resolved(role, branch = None, roomId = roomId)
+            case None         => DoorLink.Unresolved(role, branch = None)
+          }
+          Door(id = ej.id,
+               x = ej.x,
+               y = ej.y,
+               direction = direction,
+               link = link,
+               doorKind = doorKind,
+               revealed = ej.revealed.getOrElse(doorKind != DoorKind.Secret)
+          )
 
       case "locked_door" =>
         for
@@ -127,6 +133,7 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       typeId: Option[String] = None,
       label: Option[String] = None,
       direction: Option[String] = None,
+      role: Option[String] = None,
       targetRoomId: Option[String] = None,
       trapped: Option[Boolean] = None,
       doorKind: Option[String] = None,
@@ -155,13 +162,14 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
         typeId       <- c.get[Option[String]]("typeId")
         label        <- c.get[Option[String]]("label")
         direction    <- c.get[Option[String]]("direction")
+        role         <- c.get[Option[String]]("role")
         targetRoomId <- c.get[Option[String]]("targetRoomId")
         trapped      <- c.get[Option[Boolean]]("trapped")
         doorKind     <- c.get[Option[String]]("doorKind")
         revealed     <- c.get[Option[Boolean]]("revealed")
         doorTag      <- c.get[Option[String]]("doorTag")
         name         <- c.get[Option[String]]("name")
-      yield EntityJson(kind, id, x, y, typeId, label, direction, targetRoomId, trapped, doorKind, revealed, doorTag, name)
+      yield EntityJson(kind, id, x, y, typeId, label, direction, role, targetRoomId, trapped, doorKind, revealed, doorTag, name)
 
   private given Decoder[RoomJson] = Decoder.instance:
     (c: HCursor) =>

@@ -17,7 +17,7 @@
     "entities": [
       { "kind": "enemy", "id": "goblin_a", "x": 7, "y": 2, "label": "Goblin", "typeId": "goblin" },
       { "kind": "enemy", "id": "goblin_b", "x": 8, "y": 5, "label": "Goblin", "typeId": "goblin" },
-      { "kind": "door",  "id": "door_exit", "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_exit", "x": 5, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -39,9 +39,9 @@
       { "kind": "enemy", "id": "orc_a",    "x": 2,  "y": 3, "label": "Orc",    "typeId": "orc" },
       { "kind": "enemy", "id": "orc_b",    "x": 9,  "y": 2, "label": "Orc",    "typeId": "orc" },
       { "kind": "enemy", "id": "goblin_c", "x": 10, "y": 5, "label": "Goblin", "typeId": "goblin" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" },
-      { "kind": "door",  "id": "door_secret",   "x": 2, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT", "doorKind": "secret", "revealed": false }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 7, "direction": "DOWN", "role": "next" },
+      { "kind": "door",  "id": "door_secret",   "x": 2, "y": 7, "direction": "DOWN", "role": "next", "doorKind": "secret", "revealed": false }
     ]
   },
   {
@@ -64,8 +64,8 @@
     "entities": [
       { "kind": "enemy", "id": "skeleton_a", "x": 4, "y": 4, "label": "Skeleton", "typeId": "skeleton" },
       { "kind": "enemy", "id": "skeleton_b", "x": 8, "y": 6, "label": "Skeleton", "typeId": "skeleton" },
-      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 9, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 9, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -85,8 +85,8 @@
     ],
     "entities": [
       { "kind": "enemy", "id": "troll_a", "x": 5, "y": 3, "label": "Cave Troll", "typeId": "cave_troll" },
-      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -107,9 +107,9 @@
     "entities": [
       { "kind": "chest", "id": "chest_a", "x": 2, "y": 2 },
       { "kind": "chest", "id": "chest_b", "x": 6, "y": 5 },
-      { "kind": "door",  "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" },
-      { "kind": "door",  "id": "door_trap",     "x": 1, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT", "doorKind": "trapped" }
+      { "kind": "door",  "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "role": "next" },
+      { "kind": "door",  "id": "door_trap",     "x": 1, "y": 7, "direction": "DOWN", "role": "next", "doorKind": "trapped" }
     ]
   },
   {
@@ -131,8 +131,8 @@
       { "kind": "chest", "id": "chest_c", "x": 3, "y": 1 },
       { "kind": "chest", "id": "chest_d", "x": 7, "y": 6 },
       { "kind": "chest", "id": "chest_e", "x": 5, "y": 4, "trapped": true },
-      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -149,8 +149,8 @@
       ["wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "door", "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door", "id": "door_exit",     "x": 4, "y": 5, "direction": "DOWN", "targetRoomId": "NEXT" },
+      { "kind": "door", "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door", "id": "door_exit",     "x": 4, "y": 5, "direction": "DOWN", "role": "next" },
       { "kind": "npc",  "id": "wren", "x": 2, "y": 2, "name": "Wren" }
     ]
   },
@@ -172,8 +172,8 @@
     "entities": [
       { "kind": "enemy", "id": "bandit_a", "x": 3, "y": 2, "label": "Bandit", "typeId": "bandit" },
       { "kind": "enemy", "id": "bandit_b", "x": 7, "y": 5, "label": "Bandit", "typeId": "bandit" },
-      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -195,8 +195,8 @@
       { "kind": "enemy", "id": "dire_wolf_a", "x": 3, "y": 2, "label": "Dire Wolf", "typeId": "dire_wolf" },
       { "kind": "enemy", "id": "dire_wolf_b", "x": 9, "y": 5, "label": "Dire Wolf", "typeId": "dire_wolf" },
       { "kind": "enemy", "id": "goblin_a",    "x": 2, "y": 5, "label": "Goblin",    "typeId": "goblin" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -219,8 +219,8 @@
     "entities": [
       { "kind": "enemy", "id": "cultist_a", "x": 4, "y": 2, "label": "Cultist", "typeId": "cultist" },
       { "kind": "enemy", "id": "cultist_b", "x": 5, "y": 7, "label": "Cultist", "typeId": "cultist" },
-      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 9, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 9, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -241,8 +241,8 @@
     "entities": [
       { "kind": "enemy", "id": "orc_a",    "x": 3, "y": 2, "label": "Orc",    "typeId": "orc" },
       { "kind": "enemy", "id": "bandit_a", "x": 6, "y": 5, "label": "Bandit", "typeId": "bandit" },
-      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -266,8 +266,8 @@
       { "kind": "enemy", "id": "dire_wolf_a",  "x": 3, "y": 2, "label": "Dire Wolf",  "typeId": "dire_wolf" },
       { "kind": "enemy", "id": "dire_wolf_b",  "x": 8, "y": 7, "label": "Dire Wolf",  "typeId": "dire_wolf" },
       { "kind": "enemy", "id": "cave_troll_a", "x": 6, "y": 5, "label": "Cave Troll", "typeId": "cave_troll" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 9, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 9, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -289,8 +289,8 @@
       { "kind": "enemy", "id": "skeleton_a", "x": 3, "y": 2, "label": "Skeleton", "typeId": "skeleton" },
       { "kind": "enemy", "id": "skeleton_b", "x": 7, "y": 5, "label": "Skeleton", "typeId": "skeleton" },
       { "kind": "enemy", "id": "goblin_a",   "x": 6, "y": 2, "label": "Goblin",   "typeId": "goblin" },
-      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -314,8 +314,8 @@
       { "kind": "enemy", "id": "cultist_a", "x": 3, "y": 2, "label": "Cultist", "typeId": "cultist" },
       { "kind": "enemy", "id": "cultist_b", "x": 8, "y": 7, "label": "Cultist", "typeId": "cultist" },
       { "kind": "enemy", "id": "orc_a",     "x": 6, "y": 4, "label": "Orc",     "typeId": "orc" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 9, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 6, "y": 9, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -336,8 +336,8 @@
     "entities": [
       { "kind": "chest", "id": "chest_a", "x": 2, "y": 2 },
       { "kind": "chest", "id": "chest_b", "x": 5, "y": 5 },
-      { "kind": "door",  "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" },
+      { "kind": "door",  "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "role": "next" },
       { "kind": "locked_door", "id": "door_vault", "x": 7, "y": 4, "direction": "RIGHT", "targetRoomId": "vault_001" }
     ]
   },
@@ -360,8 +360,8 @@
       { "kind": "chest", "id": "chest_a", "x": 2, "y": 2 },
       { "kind": "chest", "id": "chest_b", "x": 7, "y": 3, "trapped": true },
       { "kind": "chest", "id": "chest_c", "x": 5, "y": 5 },
-      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 5, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -384,8 +384,8 @@
     "entities": [
       { "kind": "chest", "id": "chest_a", "x": 2, "y": 3 },
       { "kind": "chest", "id": "chest_b", "x": 5, "y": 6 },
-      { "kind": "door",  "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 9, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door",  "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door",  "id": "door_exit",     "x": 4, "y": 9, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -402,8 +402,8 @@
       ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "door", "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door", "id": "door_exit",     "x": 5, "y": 5, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door", "id": "door_entrance", "x": 5, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door", "id": "door_exit",     "x": 5, "y": 5, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -422,8 +422,8 @@
       ["wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall"]
     ],
     "entities": [
-      { "kind": "door", "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "targetRoomId": "PREV" },
-      { "kind": "door", "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "targetRoomId": "NEXT" }
+      { "kind": "door", "id": "door_entrance", "x": 4, "y": 0, "direction": "UP",   "role": "prev" },
+      { "kind": "door", "id": "door_exit",     "x": 4, "y": 7, "direction": "DOWN", "role": "next" }
     ]
   },
   {
@@ -447,7 +447,7 @@
     ],
     "entities": [
       { "kind": "enemy", "id": "boss_golem",  "x": 7, "y": 6, "label": "Stone Golem", "typeId": "stone_golem" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "role": "prev" }
     ]
   },
   {
@@ -471,7 +471,7 @@
     ],
     "entities": [
       { "kind": "enemy", "id": "boss_spider", "x": 6, "y": 5, "label": "Giant Spider", "typeId": "giant_spider" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "role": "prev" }
     ]
   },
   {
@@ -493,7 +493,7 @@
     ],
     "entities": [
       { "kind": "enemy", "id": "boss_troll_king", "x": 6, "y": 5, "label": "Troll King", "typeId": "troll_king" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "role": "prev" }
     ]
   },
   {
@@ -517,7 +517,7 @@
     ],
     "entities": [
       { "kind": "enemy", "id": "boss_wraith", "x": 6, "y": 5, "label": "Wraith", "typeId": "wraith" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "role": "prev" }
     ]
   },
   {
@@ -541,7 +541,7 @@
     ],
     "entities": [
       { "kind": "enemy", "id": "boss_lich", "x": 7, "y": 6, "label": "Lich", "typeId": "lich" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "role": "prev" }
     ]
   },
   {
@@ -563,7 +563,7 @@
     ],
     "entities": [
       { "kind": "enemy", "id": "boss_ogre_warlord", "x": 6, "y": 5, "label": "Ogre Warlord", "typeId": "ogre_warlord" },
-      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "targetRoomId": "PREV" }
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "role": "prev" }
     ]
   },
   {
@@ -581,7 +581,7 @@
     ],
     "entities": [
       { "kind": "chest", "id": "chest_vault", "x": 4, "y": 3 },
-      { "kind": "door",  "id": "door_return", "x": 0, "y": 2, "direction": "LEFT", "targetRoomId": "loot_003" }
+      { "kind": "door",  "id": "door_return", "x": 0, "y": 2, "direction": "LEFT", "role": "prev", "targetRoomId": "loot_003" }
     ]
   }
 ]

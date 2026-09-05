@@ -1,6 +1,6 @@
 package roguelite.game
 
-import roguelite.engine.{ Difficulty, Direction }
+import roguelite.engine.Difficulty
 
 import scala.util.Random
 
@@ -58,39 +58,30 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
 
   private val midTypes = Set(RoomType.Combat, RoomType.Loot, RoomType.Rest)
 
-  /** Wire the ordered room list into a Dungeon by replacing stub door targets
-   * with the actual ids of adjacent rooms.
-   *
-   * Convention: each room's "exit" is its first DOWN door;
-   * each room's "entrance" is its first UP door.
-   * Doors not matching these roles (e.g. side doors) are left unchanged.
+  /** Wire the ordered room list into a Dungeon by resolving every Unresolved [[Door]] link:
+   * each room's Next-role doors point forward to the next room in the list; the next room's
+   * Prev-role doors point back to it. Every door sharing a (role, branch) key in a room resolves
+   * to the same neighbor (a room can have more than one Next door - e.g. a secret or trapped
+   * alternate exit alongside the main one), not just the first match.
    */
   private def wire(rooms: List[Room]): Either[String, Dungeon] =
     if rooms.isEmpty then return Left("Cannot wire an empty room list.")
 
-    // For each consecutive pair (A, B): A's exit door points to B, B's entrance door points to A
+    // For each consecutive pair (A, B): A's Next doors point to B, B's Prev doors point to A
     val wired = rooms.sliding(2).foldLeft(rooms.map(r => r.id -> r).toMap):
       case (acc, List(a, b)) =>
-        val updatedA = replaceExitTarget(acc(a.id),  newTarget = b.id)
-        val updatedB = replaceEntranceTarget(acc(b.id), newTarget = a.id)
+        val updatedA = resolveLinks(acc(a.id), role = ConnectorRole.Next, branch = None, roomId = b.id)
+        val updatedB = resolveLinks(acc(b.id), role = ConnectorRole.Prev, branch = None, roomId = a.id)
         acc.updated(a.id, updatedA).updated(b.id, updatedB)
       case (acc, _) => acc
 
     Right(Dungeon(rooms = wired, currentRoomId = rooms.head.id))
 
-  /** Replace the target of the first DOWN door in a room with `newTarget`. */
-  private def replaceExitTarget(room: Room, newTarget: String): Room =
+  /** Resolve every Unresolved door in a room matching the given (role, branch) key to `roomId`. */
+  private def resolveLinks(room: Room, role: ConnectorRole, branch: Option[String], roomId: String): Room =
     val updated = room.entities.map:
-      case d: Door if d.direction == Direction.Down && d.targetRoomId == "NEXT" =>
-        d.copy(targetRoomId = newTarget)
-      case other => other
-    room.copy(entities = updated)
-
-  /** Replace the target of the first UP door in a room with `newTarget`. */
-  private def replaceEntranceTarget(room: Room, newTarget: String): Room =
-    val updated = room.entities.map:
-      case d: Door if d.direction == Direction.Up && d.targetRoomId == "PREV" =>
-        d.copy(targetRoomId = newTarget)
+      case d: Door if d.link == DoorLink.Unresolved(role, branch) =>
+        d.copy(link = DoorLink.Resolved(role, branch, roomId))
       case other => other
     room.copy(entities = updated)
 

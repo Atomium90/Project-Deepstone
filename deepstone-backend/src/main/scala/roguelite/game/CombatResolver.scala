@@ -483,8 +483,26 @@ class CombatResolver(rng: Random = Random(),
     val healLog   = if healedHp > 0 then List(s"The kill heals you for $healedHp HP.") else Nil
     val healEvent = if healedHp > 0 then List(GameEvent.Healed(healedHp)) else Nil
 
-    // Remove the defeated enemy
-    val updatedRoom = state.dungeon.currentRoom.removeEntity(deadEnemy.entityId)
+    // Capture the enemy's position before removing it - only needed for a MiniBoss kill's Shrine
+    // spawn below, but has to happen now since removeEntity doesn't hand back what it removed.
+    val deadEnemyPosition = state.dungeon.currentRoom.entityById(deadEnemy.entityId).map(e => (e.x, e.y))
+
+    // Known before resolving loot: a MiniBoss kill spawns a Shrine instead of the usual enemy
+    // drop (see the isMiniBossKill branch below) - checked against the room the enemy was
+    // actually in, same timing as isBossKill just below.
+    val isMiniBossKill = state.dungeon.currentRoom.roomType == RoomType.MiniBoss
+
+    // Remove the defeated enemy, and drop a Shrine in its place on a MiniBoss kill - a "grave"
+    // marking the checkpoint, offering a guaranteed 3-item choice instead of the usual single roll.
+    val roomAfterRemoval = state.dungeon.currentRoom.removeEntity(deadEnemy.entityId)
+    val updatedRoom =
+      if isMiniBossKill then
+        deadEnemyPosition match {
+          case Some((x, y)) =>
+            roomAfterRemoval.withEntities(List(Shrine(id = s"shrine_${deadEnemy.entityId}", x = x, y = y)))
+          case None => roomAfterRemoval
+        }
+      else roomAfterRemoval
     val updatedDungeon = state.dungeon.copy(
       rooms = state.dungeon.rooms.updated(updatedRoom.id, updatedRoom)
     )
@@ -505,43 +523,46 @@ class CombatResolver(rng: Random = Random(),
     val eliteFloor = if deadEnemy.isElite then Some(Rarity.Rare) else None
 
     val (playerAfterLoot, lootLog, lootEvents, pendingChoice) =
-      LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty, eliteFloor) match {
-        case None => (playerAfterHeal, Nil, Nil, None)
-        case Some(item) =>
-          EquipmentResolver.resolvePickup(playerAfterHeal, item, setDefs) match {
-            case PickupOutcome.Equipped(p) =>
-              (p,
-               List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
-               List(GameEvent.itemPickedUp(p, item, setDefs)),
-               None
-              )
-            case PickupOutcome.KeyCollected(p) =>
-              (p,
-               List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
-               List(GameEvent.itemPickedUp(p, item, setDefs)),
-               None
-              )
-            case PickupOutcome.ChoicePending(pending) if isBossKill =>
-              // No ExplorationState survives this kill to hold a pending choice - lost, not offered.
-              (playerAfterHeal,
-               List(s"${deadEnemy.label} dropped ${item.name}, but there's no time to decide - it's lost."),
-               Nil,
-               None
-              )
-            case PickupOutcome.ChoicePending(pending) =>
-              (playerAfterHeal,
-               List(s"${deadEnemy.label} dropped ${item.name}. Choose what to do with it."),
-               Nil,
-               Some(pending)
-              )
-            case PickupOutcome.Discarded(p) =>
-              (p,
-               List(s"${deadEnemy.label} dropped ${item.name}, but you already have a better one."),
-               Nil,
-               None
-              )
-          }
-      }
+      if isMiniBossKill then
+        (playerAfterHeal, List(s"${deadEnemy.label}'s defeat leaves a shrine behind."), Nil, None)
+      else
+        LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty, eliteFloor) match {
+          case None => (playerAfterHeal, Nil, Nil, None)
+          case Some(item) =>
+            EquipmentResolver.resolvePickup(playerAfterHeal, item, setDefs) match {
+              case PickupOutcome.Equipped(p) =>
+                (p,
+                 List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
+                 List(GameEvent.itemPickedUp(p, item, setDefs)),
+                 None
+                )
+              case PickupOutcome.KeyCollected(p) =>
+                (p,
+                 List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
+                 List(GameEvent.itemPickedUp(p, item, setDefs)),
+                 None
+                )
+              case PickupOutcome.ChoicePending(pending) if isBossKill =>
+                // No ExplorationState survives this kill to hold a pending choice - lost, not offered.
+                (playerAfterHeal,
+                 List(s"${deadEnemy.label} dropped ${item.name}, but there's no time to decide - it's lost."),
+                 Nil,
+                 None
+                )
+              case PickupOutcome.ChoicePending(pending) =>
+                (playerAfterHeal,
+                 List(s"${deadEnemy.label} dropped ${item.name}. Choose what to do with it."),
+                 Nil,
+                 Some(pending)
+                )
+              case PickupOutcome.Discarded(p) =>
+                (p,
+                 List(s"${deadEnemy.label} dropped ${item.name}, but you already have a better one."),
+                 Nil,
+                 None
+                )
+            }
+        }
 
     // Level-up after loot
     val startLevel                = playerAfterLoot.level

@@ -47,6 +47,20 @@ object LootTable:
     }
     pickWeighted(pool, rng).map(item => rollRarityAndScale(item, rng, rarityFloorOverride).withNewId)
 
+  /** Roll `count` independent reward candidates for a [[Shrine]] choice (see
+    * [[CombatResolver.victory]]'s MiniBoss-kill spawn). Each candidate is rolled exactly like a
+    * chest drop (same pool, same rarity curve, its own distinct instance id) - duplicates across
+    * the returned list are possible and not filtered out, same as any roguelite reward-choice
+    * screen. Returns fewer than `count` only if `rollChest` itself ever returns None (should not
+    * happen at runtime with a valid items.json).
+    */
+  def rollShrineChoices(itemDefs: Map[String, Item],
+                        rng: Random,
+                        count: Int = 3,
+                        difficulty: Difficulty = Difficulty.Normal
+  ): List[Item] =
+    (1 to count).flatMap(_ => rollChest(itemDefs, rng, difficulty)).toList
+
   /** Roll an enemy drop.
     *
     * First checks `enemy.dropChance` (0–100) against a uniform roll. If the roll succeeds, picks a

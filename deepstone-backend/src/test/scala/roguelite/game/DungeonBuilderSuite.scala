@@ -249,3 +249,154 @@ class DungeonBuilderSuite extends FunSuite:
       .build(totalRooms = 2, difficulty = Difficulty.Hard)
       .getOrElse(fail("build failed"))
     assert(dungeon.rooms.values.flatMap(_.entities).collect { case e: Enemy => e }.isEmpty)
+
+  // ---------------------------------------------
+  // Graph topology (fork/merge proof)
+  // ---------------------------------------------
+
+  /** A fixed entrance -> fork -> (branch "a" | branch "b") -> merge -> boss shape, proving the
+    * role+branch-keyed wiring primitive [[DungeonBuilder.buildFromTopology]] uses generalizes past
+    * a linear chain. Test-only dummy rooms - never touches real rooms.json content. A LockedDoor on
+    * the entrance references a Vault room to prove injectVaultRooms is unaffected by a graph-shaped
+    * chain.
+    */
+  def topologyPool(vaultTarget: String = "vault1"): Map[String, Room] = Map(
+    "entrance" -> makeRoom(
+      "entrance",
+      RoomType.Combat,
+      List(
+        Door("door_exit", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next)),
+        LockedDoor("ld1", x = 2, y = 2, direction = Direction.Right, targetRoomId = vaultTarget)
+      )
+    ),
+    "fork1" -> makeRoom(
+      "fork1",
+      RoomType.Combat,
+      List(
+        Door("door_prev", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev)),
+        Door("door_next_a",
+             x = 2,
+             y = 5,
+             direction = Direction.Down,
+             link = DoorLink.Unresolved(ConnectorRole.Next, Some("a"))
+        ),
+        Door("door_next_b",
+             x = 6,
+             y = 5,
+             direction = Direction.Down,
+             link = DoorLink.Unresolved(ConnectorRole.Next, Some("b"))
+        )
+      )
+    ),
+    "branchA" -> makeRoom(
+      "branchA",
+      RoomType.Combat,
+      List(
+        Door("door_prev", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev)),
+        Door("door_next", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
+      )
+    ),
+    "branchB" -> makeRoom(
+      "branchB",
+      RoomType.Combat,
+      List(
+        Door("door_prev", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev)),
+        Door("door_next", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
+      )
+    ),
+    "merge" -> makeRoom(
+      "merge",
+      RoomType.Combat,
+      List(
+        Door("door_prev_a",
+             x = 2,
+             y = 0,
+             direction = Direction.Up,
+             link = DoorLink.Unresolved(ConnectorRole.Prev, Some("a"))
+        ),
+        Door("door_prev_b",
+             x = 6,
+             y = 0,
+             direction = Direction.Up,
+             link = DoorLink.Unresolved(ConnectorRole.Prev, Some("b"))
+        ),
+        Door("door_next", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
+      )
+    ),
+    "boss" -> makeRoom(
+      "boss",
+      RoomType.Boss,
+      List(Door("door_prev", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev)))
+    ),
+    "vault1" -> makeRoom("vault1", RoomType.Vault, Nil)
+  )
+
+  /** Every edge wired both ways (A's Next -> B, B's Prev -> A), mirroring `wire`'s own convention
+    * for the linear case. */
+  def topologyEdges: List[TopologyEdge] = List(
+    TopologyEdge("entrance", ConnectorRole.Next, None, "fork1"),
+    TopologyEdge("fork1", ConnectorRole.Prev, None, "entrance"),
+    TopologyEdge("fork1", ConnectorRole.Next, Some("a"), "branchA"),
+    TopologyEdge("branchA", ConnectorRole.Prev, None, "fork1"),
+    TopologyEdge("fork1", ConnectorRole.Next, Some("b"), "branchB"),
+    TopologyEdge("branchB", ConnectorRole.Prev, None, "fork1"),
+    TopologyEdge("branchA", ConnectorRole.Next, None, "merge"),
+    TopologyEdge("merge", ConnectorRole.Prev, Some("a"), "branchA"),
+    TopologyEdge("branchB", ConnectorRole.Next, None, "merge"),
+    TopologyEdge("merge", ConnectorRole.Prev, Some("b"), "branchB"),
+    TopologyEdge("merge", ConnectorRole.Next, None, "boss"),
+    TopologyEdge("boss", ConnectorRole.Prev, None, "merge")
+  )
+
+  def topologyBuilder(pool: Map[String, Room] = topologyPool()): DungeonBuilder = DungeonBuilder(pool)
+
+  test("buildFromTopology succeeds for a fork/merge shape"):
+    assert(topologyBuilder().buildFromTopology(topologyEdges, entranceId = "entrance").isRight)
+
+  test("buildFromTopology's two branch rooms are distinct rooms"):
+    val dungeon =
+      topologyBuilder().buildFromTopology(topologyEdges, entranceId = "entrance").getOrElse(fail("build failed"))
+    assert(dungeon.rooms.contains("branchA"))
+    assert(dungeon.rooms.contains("branchB"))
+    assertNotEquals(dungeon.rooms("branchA").id, dungeon.rooms("branchB").id)
+
+  test("each branch's Next door resolves to the merge room"):
+    val dungeon =
+      topologyBuilder().buildFromTopology(topologyEdges, entranceId = "entrance").getOrElse(fail("build failed"))
+    def nextTarget(roomId: String): Option[String] =
+      dungeon
+        .rooms(roomId)
+        .entities
+        .collectFirst { case d: Door if d.link.role == ConnectorRole.Next => d.link }
+        .collect { case DoorLink.Resolved(_, _, target) => target }
+    assertEquals(nextTarget("branchA"), Some("merge"))
+    assertEquals(nextTarget("branchB"), Some("merge"))
+
+  test("the merge room's two Prev doors resolve back to the correct branch by matching branch tag"):
+    val dungeon =
+      topologyBuilder().buildFromTopology(topologyEdges, entranceId = "entrance").getOrElse(fail("build failed"))
+    val prevDoors = dungeon.rooms("merge").entities.collect { case d: Door if d.link.role == ConnectorRole.Prev => d }
+    val byBranch = prevDoors.flatMap { d =>
+      d.link match
+        case DoorLink.Resolved(_, branch, target) => branch.map(_ -> target)
+        case _                                     => None
+    }.toMap
+    assertEquals(byBranch.get("a"), Some("branchA"))
+    assertEquals(byBranch.get("b"), Some("branchB"))
+
+  test("buildFromTopology produces no repeated room id"):
+    val dungeon =
+      topologyBuilder().buildFromTopology(topologyEdges, entranceId = "entrance").getOrElse(fail("build failed"))
+    assertEquals(dungeon.rooms.size, dungeon.rooms.keys.toSet.size)
+
+  test("buildFromTopology still injects a Vault room referenced by a LockedDoor in a graph-shaped chain"):
+    val dungeon =
+      topologyBuilder().buildFromTopology(topologyEdges, entranceId = "entrance").getOrElse(fail("build failed"))
+    assert(dungeon.rooms.contains("vault1"), "expected vault room to be injected even in a graph-shaped dungeon")
+
+  test("buildFromTopology fails when an edge references an unknown room id"):
+    val badEdges = topologyEdges :+ TopologyEdge("entrance", ConnectorRole.Next, Some("ghost"), "nonexistent_room")
+    val result   = topologyBuilder().buildFromTopology(badEdges, entranceId = "entrance")
+    result match
+      case Left(err) => assert(err.toLowerCase.contains("unknown room"), s"expected clear error: $err")
+      case Right(_)  => fail("expected build to fail for an edge referencing an unknown room")

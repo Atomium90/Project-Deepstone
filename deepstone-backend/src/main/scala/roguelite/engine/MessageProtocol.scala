@@ -188,6 +188,11 @@ case class CombatView(
     isPlayerTurn: Boolean,
     spriteId: Option[String] = None,
     isBoss: Boolean = false,
+    /** True when the current room is a [[roguelite.game.RoomType.MiniBoss]] checkpoint. Resolved
+      * the same way as `isBoss` (from the room's type, not a per-enemy flag) - deliberately
+      * cosmetic only: unlike `isBoss`, this never drives run-ending logic, see
+      * [[roguelite.game.Dungeon.isAtBoss]]. */
+    isMiniBoss: Boolean = false,
     /** Mirrors [[roguelite.game.EnemyInstance.isElite]], resolved at
       * [[CombatState.toStateUpdate]] the same way `isBoss` is - always present once combat starts,
       * unlike the exploration-side [[EntityView.isElite]] which is optional. */

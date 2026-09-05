@@ -104,7 +104,8 @@ class StateMachine(roomPool: Map[String, Room],
             case (None, Some(classDef)) =>
               val difficulty = difficultyOpt.getOrElse(Difficulty.Normal)
 
-              DungeonBuilder(roomPool, rng).build(totalRooms = difficulty.totalRooms, difficulty = difficulty) match {
+              DungeonBuilder(roomPool, rng)
+                .build(totalRooms = difficulty.totalRooms, biomeCount = difficulty.biomeCount, difficulty = difficulty) match {
                 case Left(err) =>
                   (hub, List(s"Failed to build dungeon: $err"))
 

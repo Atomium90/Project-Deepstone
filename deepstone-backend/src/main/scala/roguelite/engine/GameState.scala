@@ -11,6 +11,7 @@ import roguelite.game.{
   MetaProgression,
   PendingEquipChoice,
   PerkDef,
+  RoomType,
   UpgradeDef,
   Weapon
 }
@@ -196,6 +197,7 @@ case class CombatState(player: Player,
                    isPlayerTurn = combat.isPlayerTurn,
                    spriteId = enemyStats.get(combat.enemy.typeId).map(_.spriteId),
                    isBoss = dungeon.isAtBoss,
+                   isMiniBoss = dungeon.currentRoom.roomType == RoomType.MiniBoss,
                    isElite = combat.enemy.isElite
         )
       ),

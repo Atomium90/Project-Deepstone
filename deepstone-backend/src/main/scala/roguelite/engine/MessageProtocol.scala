@@ -37,13 +37,25 @@ enum Difficulty:
     case Difficulty.Normal => 1.0
     case Difficulty.Hard   => 1.25
 
-  /** Total room count passed to [[roguelite.game.DungeonBuilder.build]]. Normal matches today's
-    * fixed baseline.
+  /** Room count *per biome* passed to [[roguelite.game.DungeonBuilder.build]] - the whole dungeon's
+    * middle-room count is `totalRooms * biomeCount`. Same field/values as before biomes existed
+    * (only the meaning changed, from a whole-dungeon count to a per-biome one).
     */
   def totalRooms: Int = this match
     case Difficulty.Easy   => 3
     case Difficulty.Normal => 4
     case Difficulty.Hard   => 6
+
+  /** Number of sequential biome segments in a run. Each biome beyond the first ends in a
+    * [[roguelite.game.RoomType.MiniBoss]] checkpoint before the next one starts; the final biome
+    * ends in the run's one true [[roguelite.game.RoomType.Boss]] room instead. Same per-difficulty
+    * scaling convention as [[eliteChance]]/[[totalRooms]] - harder means more content, not just
+    * tougher content.
+    */
+  def biomeCount: Int = this match
+    case Difficulty.Easy   => 1
+    case Difficulty.Normal => 2
+    case Difficulty.Hard   => 3
 
   /** Per-enemy probability of rolling Elite at dungeon build time (see
     * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties.
@@ -176,6 +188,11 @@ case class CombatView(
     isPlayerTurn: Boolean,
     spriteId: Option[String] = None,
     isBoss: Boolean = false,
+    /** True when the current room is a [[roguelite.game.RoomType.MiniBoss]] checkpoint. Resolved
+      * the same way as `isBoss` (from the room's type, not a per-enemy flag) - deliberately
+      * cosmetic only: unlike `isBoss`, this never drives run-ending logic, see
+      * [[roguelite.game.Dungeon.isAtBoss]]. */
+    isMiniBoss: Boolean = false,
     /** Mirrors [[roguelite.game.EnemyInstance.isElite]], resolved at
       * [[CombatState.toStateUpdate]] the same way `isBoss` is - always present once combat starts,
       * unlike the exploration-side [[EntityView.isElite]] which is optional. */

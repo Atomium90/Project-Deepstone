@@ -95,7 +95,10 @@ class AudioManager {
 
     gameState.subscribe((state) => {
       if (!state) return;
-      this.applyMusic(state.phase, state.combat?.isBoss ?? false, state.room?.roomId ?? null);
+      // A MiniBoss checkpoint reuses the boss music pool too - same cosmetic treatment, it just
+      // never ends the run the way a real Boss room does.
+      const isBossMusic = (state.combat?.isBoss ?? false) || (state.combat?.isMiniBoss ?? false);
+      this.applyMusic(state.phase, isBossMusic, state.room?.roomId ?? null);
     });
 
     combatDamageEvents.subscribe((events) => {

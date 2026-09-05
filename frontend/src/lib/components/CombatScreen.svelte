@@ -183,7 +183,7 @@
                     <Sprite spriteId={combat.spriteId} fallbackColor={COLOR_ENTITY_ENEMY} size={112} />
                 </div>
             {/if}
-            <p class="combatant-name">{combat?.isElite ? "Elite " : ""}{combat?.enemyLabel ?? "—"}</p>
+            <p class="combatant-name">{combat?.isElite ? "Elite " : combat?.isMiniBoss ? "Mini-Boss " : ""}{combat?.enemyLabel ?? "—"}</p>
 
             <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0}
                      color={combat?.isElite ? COLOR_ENTITY_ELITE : HP_BAR_COLOR} />

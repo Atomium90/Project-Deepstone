@@ -583,5 +583,50 @@
       { "kind": "chest", "id": "chest_vault", "x": 4, "y": 3 },
       { "kind": "door",  "id": "door_return", "x": 0, "y": 2, "direction": "LEFT", "role": "prev", "targetRoomId": "loot_003" }
     ]
+  },
+  {
+    "id": "miniboss_001",
+    "type": "miniboss",
+    "width": 10,
+    "height": 10,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "wall",  "wall",  "floor", "floor", "floor", "wall",  "floor", "wall"],
+      ["wall",  "floor", "wall",  "floor", "floor", "floor", "floor", "wall",  "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "wall",  "floor", "floor", "floor", "floor", "wall",  "floor", "wall"],
+      ["wall",  "floor", "wall",  "wall",  "floor", "floor", "floor", "wall",  "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "enemy", "id": "cave_troll_a", "x": 5, "y": 5, "label": "Cave Troll", "typeId": "cave_troll" },
+      { "kind": "door",  "id": "door_entrance", "x": 5, "y": 0, "direction": "UP", "role": "prev" },
+      { "kind": "door",  "id": "door_exit", "x": 5, "y": 9, "direction": "DOWN", "role": "next" }
+    ]
+  },
+  {
+    "id": "miniboss_002",
+    "type": "miniboss",
+    "width": 12,
+    "height": 8,
+    "tiles": [
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall",  "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "wall",  "wall",  "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall",  "wall",  "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall"],
+      ["wall",  "wall",  "wall",  "wall",  "wall",  "wall",  "floor", "wall",  "wall",  "wall",  "wall",  "wall"]
+    ],
+    "entities": [
+      { "kind": "enemy", "id": "orc_a", "x": 3, "y": 2, "label": "Orc", "typeId": "orc" },
+      { "kind": "enemy", "id": "orc_b", "x": 9, "y": 5, "label": "Orc", "typeId": "orc" },
+      { "kind": "door",  "id": "door_entrance", "x": 6, "y": 0, "direction": "UP", "role": "prev" },
+      { "kind": "door",  "id": "door_exit", "x": 6, "y": 7, "direction": "DOWN", "role": "next" }
+    ]
   }
 ]

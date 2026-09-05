@@ -11,10 +11,10 @@ case class TopologyEdge(from: String, role: ConnectorRole, branch: Option[String
 
 /** Assembles a [[Dungeon]] from a pool of hand-crafted rooms.
  *
- * The builder picks rooms randomly while enforcing a minimal structure:
- * one combat room as the entrance, a mix of combat and loot rooms in the
- * middle, and one boss room as the exit. Door connectivity between rooms
- * is wired automatically: the builder pairs the exit door of one room
+ * The builder picks rooms randomly while enforcing a minimal structure: one combat room as the
+ * entrance, one or more sequential biome segments of combat/loot/rest rooms (each ending in a
+ * [[RoomType.MiniBoss]] checkpoint except the last), and one boss room as the exit. Door
+ * connectivity between rooms is wired automatically: the builder pairs the exit door of one room
  * with the entrance door of the next.
  *
  * @param pool   All available rooms keyed by id.
@@ -22,27 +22,56 @@ case class TopologyEdge(from: String, role: ConnectorRole, branch: Option[String
  */
 class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
 
-  /** Build a dungeon with the given number of rooms.
+  /** Build a dungeon out of `biomeCount` sequential biome segments.
    *
-   * @param totalRooms Total number of rooms including entrance and boss.
-   *                   Must be at least 2 (entrance + boss). Clamped to the
-   *                   number of available rooms if the pool is smaller.
+   * @param totalRooms Middle-room count *per biome* (not the whole dungeon - see
+   *                   [[roguelite.engine.Difficulty.totalRooms]]'s own doc). Each biome's rooms
+   *                   are picked without repeating any room already used elsewhere in the run.
+   *                   Silently yields fewer than requested if the pool runs short (same
+   *                   graceful-truncation behavior [[pickMiddle]] already had).
+   * @param biomeCount Number of sequential biome segments, clamped to at least 1. Every biome
+   *                   but the last ends in a [[RoomType.MiniBoss]] checkpoint before the next
+   *                   one starts, when the pool has one available (see [[buildBiomeSegments]] -
+   *                   a missing MiniBoss room silently skips that one checkpoint rather than
+   *                   failing the build, same philosophy as the middle-room truncation above).
+   *                   The final biome always ends in the run's one [[RoomType.Boss]] room.
    * @param difficulty Drives the per-enemy Elite roll rate (see [[rollEliteEnemies]]).
-   * @return A freshly assembled [[Dungeon]], or an error message if the
-   *         pool does not contain the required room types.
+   * @return A freshly assembled [[Dungeon]], or an error message if the pool has no Combat room
+   *         for the entrance or no Boss room for the exit.
    */
-  def build(totalRooms: Int = 4, difficulty: Difficulty = Difficulty.Normal): Either[String, Dungeon] =
-    val count = totalRooms.max(2).min(pool.size)
-
+  def build(totalRooms: Int = 4, biomeCount: Int = 1, difficulty: Difficulty = Difficulty.Normal): Either[String, Dungeon] =
     for
       entrance   <- pickOne(RoomType.Combat, exclude = Set.empty)
       boss       <- pickOne(RoomType.Boss, exclude = Set(entrance.id))
-      midCount    = count - 2
-      middle     <- pickMiddle(midCount, exclude = Set(entrance.id, boss.id))
-      ordered     = entrance :: middle ::: List(boss)
+      biomeRooms  = buildBiomeSegments(biomeCount.max(1), totalRooms.max(0), Set(entrance.id, boss.id))
+      ordered     = entrance :: biomeRooms ::: List(boss)
       dungeon    <- wire(ordered)
       withVaults <- injectVaultRooms(dungeon)
     yield rollEliteEnemies(withVaults, difficulty)
+
+  /** Builds the room list between entrance and boss: `biomeCount` groups of `perBiome` middle
+   * rooms, each pair of consecutive biomes separated by a [[RoomType.MiniBoss]] room where the
+   * pool has one left to give - if not (including a pool with no MiniBoss room authored at all),
+   * that boundary is silently skipped and the two biomes' rooms simply run together as one longer
+   * stretch, rather than failing the whole build over missing optional structure. Mirrors
+   * [[pickMiddle]]'s own existing "degrade gracefully, don't fail" behavior for an under-sized
+   * middle-room pool. `exclude` accumulates across every biome and every MiniBoss pick, so nothing
+   * repeats anywhere in the run - still linear overall, no branching yet (that's later, separate
+   * work built on top of this same room-list shape).
+   */
+  private def buildBiomeSegments(biomeCount: Int, perBiome: Int, exclude: Set[String]): List[Room] =
+    @annotation.tailrec
+    def loop(biomesLeft: Int, exclude: Set[String], acc: List[Room]): List[Room] =
+      if biomesLeft <= 0 then acc
+      else
+        val biomeRooms = pickMiddle(perBiome, exclude).getOrElse(Nil)
+        val afterBiome = exclude ++ biomeRooms.map(_.id)
+        if biomesLeft == 1 then acc ::: biomeRooms
+        else
+          pickOne(RoomType.MiniBoss, afterBiome) match
+            case Left(_)         => loop(biomesLeft - 1, afterBiome, acc ::: biomeRooms)
+            case Right(miniBoss) => loop(biomesLeft - 1, afterBiome + miniBoss.id, acc ::: biomeRooms ::: List(miniBoss))
+    loop(biomeCount, exclude, Nil)
 
   /** Wire an explicit topology instead of `build`'s random linear-chain selection: every room id
    * mentioned in `edges` or `entranceId` is looked up in `pool`, then each edge resolves the
@@ -136,7 +165,8 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
   /** Roll Elite status onto at most one enemy per non-boss room. Each hand-placed [[Enemy]] entity
    * in a room rolls independently at `difficulty.eliteChance`; the roll stops being applied (but
    * the loop keeps iterating) once one enemy in that room has already succeeded, capping at 1
-   * Elite per room. Boss rooms are excluded entirely - bosses stay unique/scripted, never Elite.
+   * Elite per room. Boss and MiniBoss rooms are excluded entirely - their enemies are already
+   * scripted/unique checkpoints, never randomly Elite on top of that.
    *
    * Produces fresh Room/Enemy copies for the returned Dungeon only - never mutates the
    * server-lifetime `pool` itself.
@@ -144,7 +174,7 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
   private def rollEliteEnemies(dungeon: Dungeon, difficulty: Difficulty): Dungeon =
     val chance = difficulty.eliteChance
     val updatedRooms = dungeon.rooms.map:
-      case (id, room) if room.roomType == RoomType.Boss => id -> room
+      case (id, room) if room.roomType == RoomType.Boss || room.roomType == RoomType.MiniBoss => id -> room
       case (id, room) =>
         var alreadyElite = false
         val newEntities = room.entities.map:

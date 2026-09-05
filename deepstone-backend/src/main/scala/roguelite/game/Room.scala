@@ -28,18 +28,23 @@ object Tile:
   *
   * `Vault` is deliberately excluded from [[DungeonBuilder]]'s `midTypes`: it is never picked into
   * the random room chain, only reached via a [[LockedDoor]] that references it explicitly.
+  *
+  * `MiniBoss` is also excluded from `midTypes` - picked by its own dedicated step between biome
+  * segments, same reasoning as `Vault`. Unlike `Boss`, defeating a `MiniBoss` room's enemy never
+  * ends the run - see [[Dungeon.isAtBoss]], which deliberately checks `Boss` only.
   */
 enum RoomType:
-  case Combat, Loot, Rest, Boss, Vault
+  case Combat, Loot, Rest, Boss, Vault, MiniBoss
 
 object RoomType:
   def fromString(s: String): Either[String, RoomType] = s.toLowerCase match {
-    case "combat" => Right(RoomType.Combat)
-    case "loot"   => Right(RoomType.Loot)
-    case "rest"   => Right(RoomType.Rest)
-    case "boss"   => Right(RoomType.Boss)
-    case "vault"  => Right(RoomType.Vault)
-    case other    => Left(s"Unknown room type: '$other'")
+    case "combat"   => Right(RoomType.Combat)
+    case "loot"     => Right(RoomType.Loot)
+    case "rest"     => Right(RoomType.Rest)
+    case "boss"     => Right(RoomType.Boss)
+    case "vault"    => Right(RoomType.Vault)
+    case "miniboss" => Right(RoomType.MiniBoss)
+    case other      => Left(s"Unknown room type: '$other'")
   }
 
 // Room

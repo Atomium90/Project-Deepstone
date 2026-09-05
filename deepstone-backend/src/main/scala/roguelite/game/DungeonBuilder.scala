@@ -4,6 +4,11 @@ import roguelite.engine.Difficulty
 
 import scala.util.Random
 
+/** One edge in an explicit dungeon topology: the door on room `from` carrying the (`role`,
+  * `branch`) key resolves to room `to`. See [[DungeonBuilder.buildFromTopology]].
+  */
+case class TopologyEdge(from: String, role: ConnectorRole, branch: Option[String], to: String)
+
 /** Assembles a [[Dungeon]] from a pool of hand-crafted rooms.
  *
  * The builder picks rooms randomly while enforcing a minimal structure:
@@ -39,6 +44,30 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
       withVaults <- injectVaultRooms(dungeon)
     yield rollEliteEnemies(withVaults, difficulty)
 
+  /** Wire an explicit topology instead of `build`'s random linear-chain selection: every room id
+   * mentioned in `edges` or `entranceId` is looked up in `pool`, then each edge resolves the
+   * matching (role, branch) door on its `from` room to its `to` room, via the same [[resolveLinks]]
+   * primitive `wire` uses for the linear case.
+   *
+   * Proof-of-concept for Phase 4's branching dungeons (fork/merge rooms): demonstrates that
+   * primitive already generalizes to a non-linear shape without further changes, now that a room
+   * can carry more than one door per role (see [[roguelite.game.DoorLink]]'s `branch`). Not a
+   * general topology generator - real content-driven branching dungeons are later authoring work;
+   * this only proves the mechanism against a hardcoded shape in [[DungeonBuilderSuite]].
+   *
+   * @return A freshly assembled [[Dungeon]], or an error message if `entranceId` or any edge
+   *         references a room id absent from `pool`.
+   */
+  def buildFromTopology(edges: List[TopologyEdge], entranceId: String): Either[String, Dungeon] =
+    val referencedIds = edges.flatMap(e => List(e.from, e.to)).toSet + entranceId
+    referencedIds.find(id => !pool.contains(id)) match
+      case Some(missing) => Left(s"Topology references unknown room '$missing'.")
+      case None =>
+        val initial = referencedIds.map(id => id -> pool(id)).toMap
+        val wired = edges.foldLeft(initial):
+          case (acc, edge) =>
+            acc.updated(edge.from, resolveLinks(acc(edge.from), edge.role, edge.branch, edge.to))
+        injectVaultRooms(Dungeon(rooms = wired, currentRoomId = entranceId))
 
   // ---------------------------------------------
   // Private helpers

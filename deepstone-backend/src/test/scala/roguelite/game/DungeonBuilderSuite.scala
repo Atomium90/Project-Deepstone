@@ -35,14 +35,21 @@ class DungeonBuilderSuite extends FunSuite:
          entities = entities
     )
 
-  /** A minimal pool: 2 combat rooms, 1 loot room, 1 rest room, 2 boss rooms. */
+  /** A pool sized to comfortably support multi-biome builds without pool exhaustion: 3 combat, 2
+    * loot, 2 rest rooms (7 midType rooms, 6 available once one is consumed as the entrance), 2 boss
+    * rooms, and 2 MiniBoss rooms (enough for Hard's biomeCount = 3, which needs 2 checkpoints). */
   def testPool: Map[String, Room] = Map(
     "c1" -> makeRoom("c1", RoomType.Combat, List(exitDoor())),
     "c2" -> makeRoom("c2", RoomType.Combat, List(entranceDoor(), exitDoor())),
+    "c3" -> makeRoom("c3", RoomType.Combat, List(entranceDoor(), exitDoor())),
     "l1" -> makeRoom("l1", RoomType.Loot, List(entranceDoor(), exitDoor())),
+    "l2" -> makeRoom("l2", RoomType.Loot, List(entranceDoor(), exitDoor())),
     "r1" -> makeRoom("r1", RoomType.Rest, List(entranceDoor(), exitDoor())),
+    "r2" -> makeRoom("r2", RoomType.Rest, List(entranceDoor(), exitDoor())),
     "b1" -> makeRoom("b1", RoomType.Boss, List(entranceDoor())),
-    "b2" -> makeRoom("b2", RoomType.Boss, List(entranceDoor()))
+    "b2" -> makeRoom("b2", RoomType.Boss, List(entranceDoor())),
+    "mb1" -> makeRoom("mb1", RoomType.MiniBoss, List(entranceDoor(), exitDoor())),
+    "mb2" -> makeRoom("mb2", RoomType.MiniBoss, List(entranceDoor(), exitDoor()))
   )
 
   def builder(seed: Long = 42L): DungeonBuilder = DungeonBuilder(testPool, Random(seed))
@@ -52,48 +59,98 @@ class DungeonBuilderSuite extends FunSuite:
   // ---------------------------------------------
 
   test("build returns Right for a valid pool"):
-    assert(builder().build(totalRooms = 4).isRight)
+    assert(builder().build(totalRooms = 2).isRight)
 
-  test("built dungeon has the requested number of rooms"):
-    val dungeon = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
-    assertEquals(dungeon.rooms.size, 4)
+  test("built dungeon has the requested number of rooms (single biome)"):
+    val dungeon = builder().build(totalRooms = 2, biomeCount = 1).getOrElse(fail("build failed"))
+    assertEquals(dungeon.rooms.size, 4) // entrance + 2 middle + boss
+
+  test("built dungeon has the requested number of rooms across multiple biomes"):
+    val dungeon = builder().build(totalRooms = 2, biomeCount = 2).getOrElse(fail("build failed"))
+    assertEquals(dungeon.rooms.size, 7) // entrance + (2 middle + miniBoss) + 2 middle + boss
+
+  test("a multi-biome dungeon includes the requested number of MiniBoss checkpoints"):
+    val dungeon = builder().build(totalRooms = 2, biomeCount = 3).getOrElse(fail("build failed"))
+    assertEquals(dungeon.rooms.values.count(_.roomType == RoomType.MiniBoss), 2) // biomeCount - 1
 
   test("first room is a combat room"):
-    val dungeon     = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
+    val dungeon     = builder().build(totalRooms = 2).getOrElse(fail("build failed"))
     val currentRoom = dungeon.currentRoom
     assertEquals(currentRoom.roomType, RoomType.Combat)
 
   test("last room is a boss room"):
-    val dungeon    = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
+    val dungeon    = builder().build(totalRooms = 2).getOrElse(fail("build failed"))
     val bossRoomId = dungeon.rooms.values.find(_.roomType == RoomType.Boss).map(_.id)
     assert(bossRoomId.isDefined, "Expected a boss room in the dungeon")
 
-  test("build with totalRooms = 2 produces entrance + boss only"):
-    val dungeon = builder().build(totalRooms = 2).getOrElse(fail("build failed"))
+  test("build with totalRooms = 0 produces entrance + boss only"):
+    val dungeon = builder().build(totalRooms = 0).getOrElse(fail("build failed"))
     assertEquals(dungeon.rooms.size, 2)
     assert(dungeon.rooms.values.exists(_.roomType == RoomType.Boss))
 
-  test("no room id is repeated in the dungeon"):
-    val dungeon = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
+  test("no room id is repeated in the dungeon, even once the pool is fully exhausted"):
+    val dungeon = builder().build(totalRooms = 2, biomeCount = 3).getOrElse(fail("build failed"))
     assertEquals(dungeon.rooms.size, dungeon.rooms.keys.toSet.size)
+
+  /** Walks the resolved Next-role chain from the dungeon's entrance to its terminal room,
+    * returning each room's roomType in traversal order - proves biome segments and MiniBoss
+    * checkpoints are wired in the correct sequential order, not just present somewhere in the
+    * dungeon. */
+  def roomTypeSequence(dungeon: Dungeon): List[RoomType] =
+    def nextIdOf(room: Room): Option[String] =
+      room.entities
+        .collectFirst { case d: Door if d.link.role == ConnectorRole.Next => d.link }
+        .collect { case DoorLink.Resolved(_, _, target) => target }
+
+    @annotation.tailrec
+    def loop(currentId: String, acc: List[RoomType]): List[RoomType] =
+      val room       = dungeon.rooms(currentId)
+      val updatedAcc = acc :+ room.roomType
+      nextIdOf(room) match
+        case Some(nextId) => loop(nextId, updatedAcc)
+        case None         => updatedAcc
+
+    loop(dungeon.currentRoomId, Nil)
+
+  test("biome segments and MiniBoss checkpoints are wired in the correct sequential order"):
+    val dungeon  = builder().build(totalRooms = 2, biomeCount = 3).getOrElse(fail("build failed"))
+    val sequence = roomTypeSequence(dungeon)
+    // entrance + 2 (biome1) + miniBoss + 2 (biome2) + miniBoss + 2 (biome3) + boss = 10 rooms
+    assertEquals(sequence.length, 10)
+    assertEquals(sequence(3), RoomType.MiniBoss)
+    assertEquals(sequence(6), RoomType.MiniBoss)
+    assertEquals(sequence.last, RoomType.Boss)
+    assert(sequence.count(_ == RoomType.MiniBoss) == 2, "expected exactly 2 MiniBoss checkpoints, at the right spots")
+
+  test("build still succeeds, biomes simply running together, when biomeCount > 1 but the pool has no MiniBoss room"):
+    val poolWithoutMiniBoss = testPool.filterNot(_._2.roomType == RoomType.MiniBoss)
+    val dungeon = DungeonBuilder(poolWithoutMiniBoss, Random(42L))
+      .build(totalRooms = 2, biomeCount = 2)
+      .getOrElse(fail("build failed"))
+    assert(!dungeon.rooms.values.exists(_.roomType == RoomType.MiniBoss))
+    assertEquals(dungeon.rooms.size, 6) // entrance + 2 + 2 + boss, no checkpoint in between
 
   // ---------------------------------------------
   // Door wiring
   // ---------------------------------------------
 
-  test("Next-role doors are no longer Unresolved after wiring (except last room)"):
+  test("Next-role doors are no longer Unresolved after wiring (except the boss room)"):
     val dungeon     = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
-    val middleRooms = dungeon.rooms.values.toList.dropRight(1)
-    val middleDoors = middleRooms.flatMap(_.entities).collect {
+    // Identify the boss room by roomType, not by position in `dungeon.rooms.values` - Map
+    // iteration order isn't the chain order, so a positional dropRight(1) can drop the wrong room.
+    val nonBossRooms = dungeon.rooms.values.filterNot(_.roomType == RoomType.Boss).toList
+    val middleDoors = nonBossRooms.flatMap(_.entities).collect {
       case d: Door if d.link.role == ConnectorRole.Next => d
     }
     val unwired = middleDoors.filter(_.link.isInstanceOf[DoorLink.Unresolved])
     assert(unwired.isEmpty, s"Found unwired Next door: ${unwired.map(_.id).mkString(", ")}")
 
-  test("Prev-role doors are no longer Unresolved after wiring (except first room)"):
-    val dungeon     = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
-    val middleRooms = dungeon.rooms.values.toList.drop(1)
-    val middleDoors = middleRooms.flatMap(_.entities).collect {
+  test("Prev-role doors are no longer Unresolved after wiring (except the entrance room)"):
+    val dungeon = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
+    // Identify the entrance by `currentRoomId`, not by position in `dungeon.rooms.values` - same
+    // reasoning as the Next-role test above.
+    val nonEntranceRooms = dungeon.rooms.values.filterNot(_.id == dungeon.currentRoomId).toList
+    val middleDoors = nonEntranceRooms.flatMap(_.entities).collect {
       case d: Door if d.link.role == ConnectorRole.Prev => d
     }
     val unwired = middleDoors.filter(_.link.isInstanceOf[DoorLink.Unresolved])

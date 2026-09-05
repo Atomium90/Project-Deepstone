@@ -95,17 +95,26 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   private def handleDoor(exp: ExplorationState,
                          door: Door
   ): (GameState, List[String], List[GameEvent]) =
-    navigateThroughDoor(exp, door.targetRoomId, door.direction)
+    door.link match {
+      case DoorLink.Resolved(_, _, roomId) => navigateThroughDoor(exp, roomId, door.direction)
+      case DoorLink.Unresolved(_, _) =>
+        (exp, List(s"Door '${door.id}' is not connected to any room."), Nil)
+    }
 
-  /** Reuses the exact PREV-transition logic: find this room's entrance (Up) door and go there,
-    * ignoring the trapped door's own targetRoomId entirely. */
+  /** Reuses the exact Prev-transition logic: find this room's entrance (Prev-role) door and go
+    * there, ignoring the trapped door's own link entirely. */
   private def handleTrappedDoor(exp: ExplorationState, door: Door): (GameState, List[String]) =
-    exp.dungeon.currentRoom.entities.collectFirst { case d: Door if d.direction == Direction.Up => d } match {
+    exp.dungeon.currentRoom.entities.collectFirst { case d: Door if d.link.role == ConnectorRole.Prev => d } match {
       case None =>
         (exp, List("The trap triggers, but there's nowhere to be thrown back to."))
       case Some(entranceDoor) =>
-        val (state, _, _) = navigateThroughDoor(exp, entranceDoor.targetRoomId, entranceDoor.direction)
-        (state, List("A trap triggers! You are thrown back."))
+        entranceDoor.link match {
+          case DoorLink.Resolved(_, _, roomId) =>
+            val (state, _, _) = navigateThroughDoor(exp, roomId, entranceDoor.direction)
+            (state, List("A trap triggers! You are thrown back."))
+          case DoorLink.Unresolved(_, _) =>
+            (exp, List("The trap triggers, but there's nowhere to be thrown back to."))
+        }
     }
 
   private def handleLockedDoor(exp: ExplorationState,

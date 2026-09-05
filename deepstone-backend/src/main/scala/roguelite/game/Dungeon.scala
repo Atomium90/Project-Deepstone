@@ -3,8 +3,8 @@ package roguelite.game
 /** A dungeon is a set of rooms connected by doors.
   *
   * The dungeon tracks which room the player is currently in. Navigation happens by interacting with
-  * a [[Door]] entity: the door's `targetRoomId` is looked up in `rooms` to produce a new `Dungeon`
-  * with a different `currentRoomId`.
+  * a [[Door]] entity: its resolved target room id (see [[DoorLink]]) is looked up in `rooms` to
+  * produce a new `Dungeon` with a different `currentRoomId`.
   *
   * @param rooms
   *   All rooms in this dungeon, keyed by room id.

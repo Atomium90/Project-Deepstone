@@ -29,7 +29,12 @@ class InteractionResolverSuite extends FunSuite:
     Room(id, RoomType.Combat, 8, 6, tiles.updated(wy, tiles(wy).updated(wx, Tile.Wall)), entities)
 
   def door(from: String, to: String): Door =
-    Door(s"door_${from}_to_$to", x = 4, y = 5, direction = Direction.Down, targetRoomId = to)
+    Door(s"door_${from}_to_$to",
+         x = 4,
+         y = 5,
+         direction = Direction.Down,
+         link = DoorLink.Resolved(ConnectorRole.Next, branch = None, roomId = to)
+    )
 
   val goblinStats: EnemyStats = EnemyStats(
     typeId = "goblin",
@@ -86,14 +91,14 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(events, List(GameEvent.DoorOpened))
 
   test("Entering a room through a Right-facing door spawns near the west wall"):
-    val d     = Door("d", x = 4, y = 5, direction = Direction.Right, targetRoomId = "r2")
+    val d     = Door("d", x = 4, y = 5, direction = Direction.Right, link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"))
     val state = explorationAt(3, 3, entities = List(d))
     val TransitionResult(next, _, _, _) = resolver().interact(state, "d")
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals((nextExp.playerX, nextExp.playerY), (1, nextExp.dungeon.currentRoom.height / 2))
 
   test("Entering a room through a Left-facing door spawns near the east wall"):
-    val d     = Door("d", x = 4, y = 5, direction = Direction.Left, targetRoomId = "r2")
+    val d     = Door("d", x = 4, y = 5, direction = Direction.Left, link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"))
     val state = explorationAt(3, 3, entities = List(d))
     val TransitionResult(next, _, _, _) = resolver().interact(state, "d")
     val nextExp = next.asInstanceOf[ExplorationState]
@@ -475,12 +480,12 @@ class InteractionResolverSuite extends FunSuite:
   // --- Trapped door --------------------------------------------------------------
 
   test("Interact with a trapped door redirects to the entrance's resolved target"):
-    val entranceDoor = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, targetRoomId = "r2")
+    val entranceDoor = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Resolved(ConnectorRole.Prev, None, "r2"))
     val trapDoor = Door("door_trap",
                         x = 2,
                         y = 3,
                         direction = Direction.Down,
-                        targetRoomId = "unused",
+                        link = DoorLink.Resolved(ConnectorRole.Next, None, "unused"),
                         doorKind = DoorKind.Trapped
     )
     val state           = explorationAt(3, 3, entities = List(entranceDoor, trapDoor))
@@ -491,12 +496,12 @@ class InteractionResolverSuite extends FunSuite:
     assert(log.exists(_.toLowerCase.contains("trap")), s"expected trap message: $log")
 
   test("Interact with a trapped door emits no events"):
-    val entranceDoor = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, targetRoomId = "r2")
+    val entranceDoor = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Resolved(ConnectorRole.Prev, None, "r2"))
     val trapDoor = Door("door_trap",
                         x = 2,
                         y = 3,
                         direction = Direction.Down,
-                        targetRoomId = "unused",
+                        link = DoorLink.Resolved(ConnectorRole.Next, None, "unused"),
                         doorKind = DoorKind.Trapped
     )
     val state    = explorationAt(3, 3, entities = List(entranceDoor, trapDoor))
@@ -508,7 +513,7 @@ class InteractionResolverSuite extends FunSuite:
                         x = 2,
                         y = 3,
                         direction = Direction.Down,
-                        targetRoomId = "unused",
+                        link = DoorLink.Resolved(ConnectorRole.Next, None, "unused"),
                         doorKind = DoorKind.Trapped
     )
     val state           = explorationAt(3, 3, entities = List(trapDoor))
@@ -523,7 +528,7 @@ class InteractionResolverSuite extends FunSuite:
                           x = 5,
                           y = 3,
                           direction = Direction.Down,
-                          targetRoomId = "r2",
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
                           doorKind = DoorKind.Secret,
                           revealed = false
     )
@@ -537,7 +542,7 @@ class InteractionResolverSuite extends FunSuite:
                           x = 5,
                           y = 3,
                           direction = Direction.Down,
-                          targetRoomId = "r2",
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
                           doorKind = DoorKind.Secret,
                           revealed = true
     )
@@ -550,7 +555,7 @@ class InteractionResolverSuite extends FunSuite:
                           x = 5,
                           y = 3,
                           direction = Direction.Down,
-                          targetRoomId = "r2",
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
                           doorKind = DoorKind.Secret,
                           revealed = false
     )
@@ -567,7 +572,7 @@ class InteractionResolverSuite extends FunSuite:
                           x = 5,
                           y = 3,
                           direction = Direction.Down,
-                          targetRoomId = "r2",
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
                           doorKind = DoorKind.Secret,
                           revealed = false
     )

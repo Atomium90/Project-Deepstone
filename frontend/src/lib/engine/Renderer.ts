@@ -13,6 +13,7 @@ import {
     COLOR_ENTITY_DOOR,
     COLOR_ENTITY_LOCKED_DOOR,
     COLOR_ENTITY_NPC,
+    COLOR_ENTITY_SHRINE,
     COLOR_ENTITY_LABEL,
     COLOR_ENTITY_FALLBACK,
     PLAYER_CLASS_COLORS,
@@ -48,6 +49,7 @@ const ENTITY_COLORS: Record<string, string> = {
     door:  COLOR_ENTITY_DOOR,
     locked_door: COLOR_ENTITY_LOCKED_DOOR,
     npc: COLOR_ENTITY_NPC,
+    shrine: COLOR_ENTITY_SHRINE,
 };
 
 /** Atlas sprite per tile type. One fixed sprite per type, no autotiling in this pass. */

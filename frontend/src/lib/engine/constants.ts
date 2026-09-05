@@ -43,6 +43,9 @@ export const COLOR_ENTITY_CHEST = "#d4ac0d";
 export const COLOR_ENTITY_DOOR = "#5d6d7e";
 export const COLOR_ENTITY_LOCKED_DOOR = "#8a6d3b";
 export const COLOR_ENTITY_NPC = "#4f9d78";
+/** No dedicated sprite yet (spawned server-side, never authored art) - renders as a plain colored
+ * circle via Renderer.ts's existing sprite-fallback path, same as any kind with no atlas entry. */
+export const COLOR_ENTITY_SHRINE = "#9b59b6";
 export const COLOR_ENTITY_LABEL = "#ccc";
 
 /** Fallback color for entity kinds not explicitly mapped. */

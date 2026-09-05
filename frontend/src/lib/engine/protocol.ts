@@ -58,12 +58,20 @@ export interface EquipChoiceAction {
   targetSlot?: EquipSlot;
 }
 
+/** Resolve a pending Shrine reward choice. `itemId` omitted means "walk away, take nothing";
+ * otherwise it must be one of the item ids the choice actually offered. */
+export interface RewardChoiceAction {
+  type: "REWARD_CHOICE";
+  itemId?: string;
+}
+
 export type PlayerAction =
   | MoveAction
   | InteractAction
   | CombatAction
   | HubAction
-  | EquipChoiceAction;
+  | EquipChoiceAction
+  | RewardChoiceAction;
 
 // ---------------------------------------------
 // Server → Client views
@@ -86,7 +94,7 @@ export interface PlayerView {
 
 export interface EntityView {
   id: string;
-  kind: "enemy" | "chest" | "door" | "locked_door" | "npc";
+  kind: "enemy" | "chest" | "door" | "locked_door" | "npc" | "shrine";
   x: number;
   y: number;
   label: string;
@@ -236,6 +244,12 @@ export interface PendingEquipChoiceView {
   options: EquipChoiceOptionView[];
 }
 
+/** A Shrine's 3 rolled reward candidates awaiting a pick. Durable, same discipline as
+ * PendingEquipChoiceView - resolved with a RewardChoiceAction, picking by an option's own `id`. */
+export interface PendingRewardChoiceView {
+  options: ItemView[];
+}
+
 /** Static description of one class's combat ability, sent by the server so the client never
  * hardcodes ability names, costs, or resource labels. */
 export interface AbilityView {
@@ -280,6 +294,9 @@ export interface StateUpdate {
   /** A pickup awaiting a keep/replace decision. Durable, not transient - see
    * PendingEquipChoiceView. Resolved with an EquipChoiceAction. */
   pendingEquipChoice?: PendingEquipChoiceView;
+  /** A Shrine's 3 rolled reward candidates awaiting a pick. Durable, same discipline as
+   * pendingEquipChoice - see PendingRewardChoiceView. Resolved with a RewardChoiceAction. */
+  pendingRewardChoice?: PendingRewardChoiceView;
   /** Per-class ability catalog, always present, independent of game phase. */
   abilities: AbilityView[];
   /** Full achievement catalog (locked and unlocked), always present, independent of phase. */

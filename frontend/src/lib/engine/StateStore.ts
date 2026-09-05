@@ -64,6 +64,10 @@ export const soundEvents = derived(gameState, ($s) => $s?.soundEvents ?? []);
  * direct reflection of server state, not a one-shot signal. Drives EquipChoiceModal.svelte. */
 export const pendingEquipChoice = derived(gameState, ($s) => $s?.pendingEquipChoice ?? null);
 
+/** Derived convenience: a Shrine's 3 rolled reward candidates awaiting a pick, or null. Same
+ * durable-state discipline as `pendingEquipChoice` above. Drives RewardChoiceModal.svelte. */
+export const pendingRewardChoice = derived(gameState, ($s) => $s?.pendingRewardChoice ?? null);
+
 /** Derived convenience: how many equipped pieces carry each setId, keyed by setId. Drives the
  * set-bonus progress shown in ItemTooltip.svelte and the active-set badges in
  * EquipmentPanel.svelte. See `countEquippedSets` above for the counting rule. */

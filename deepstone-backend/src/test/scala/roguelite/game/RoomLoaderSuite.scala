@@ -22,9 +22,9 @@ class RoomLoaderSuite extends CatsEffectSuite:
       |    "entities":[
       |      {"kind":"enemy","id":"e1","x":1,"y":1,"typeId":"goblin","label":"Goblin"},
       |      {"kind":"chest","id":"c1","x":0,"y":0,"trapped":true},
-      |      {"kind":"door","id":"d1","x":2,"y":0,"direction":"up","targetRoomId":"NEXT","doorKind":"trapped"},
-      |      {"kind":"door","id":"d2","x":2,"y":1,"direction":"down","targetRoomId":"NEXT","doorKind":"secret","revealed":false},
-      |      {"kind":"door","id":"d3","x":1,"y":0,"direction":"left","targetRoomId":"PREV"},
+      |      {"kind":"door","id":"d1","x":2,"y":0,"direction":"up","role":"next","doorKind":"trapped"},
+      |      {"kind":"door","id":"d2","x":2,"y":1,"direction":"down","role":"next","doorKind":"secret","revealed":false},
+      |      {"kind":"door","id":"d3","x":1,"y":0,"direction":"left","role":"prev"},
       |      {"kind":"locked_door","id":"ld1","x":0,"y":1,"direction":"left","targetRoomId":"vault_test","doorTag":"gold"},
       |      {"kind":"npc","id":"n1","x":1,"y":1,"name":"Test Npc"}
       |    ]
@@ -50,14 +50,22 @@ class RoomLoaderSuite extends CatsEffectSuite:
     for rooms <- RoomLoader.loadAllFromJson(fixture)
     yield assert(rooms("test_room").entities.collectFirst { case c: Chest => c }.get.trapped)
 
-  test("door entity decodes direction, targetRoomId, and doorKind"):
+  test("door entity decodes direction, link, and doorKind"):
     for rooms <- RoomLoader.loadAllFromJson(fixture)
     yield
       val doors = rooms("test_room").entities.collect { case d: Door => d }
       val d1    = doors.find(_.id == "d1").get
       assertEquals(d1.direction, roguelite.engine.Direction.Up)
-      assertEquals(d1.targetRoomId, "NEXT")
+      assertEquals(d1.link, DoorLink.Unresolved(ConnectorRole.Next))
       assertEquals(d1.doorKind, DoorKind.Trapped)
+
+  test("a door's role is independent of its direction"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield
+      // d1 is direction "up" but role "next" - role no longer doubles as an implicit direction.
+      val d1 = rooms("test_room").entities.collect { case d: Door => d }.find(_.id == "d1").get
+      assertEquals(d1.direction, roguelite.engine.Direction.Up)
+      assertEquals(d1.link.role, ConnectorRole.Next)
 
   test("an omitted doorKind defaults to Normal, and an omitted revealed defaults from doorKind"):
     for rooms <- RoomLoader.loadAllFromJson(fixture)
@@ -100,10 +108,23 @@ class RoomLoaderSuite extends CatsEffectSuite:
       """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"enemy","id":"e1","x":0,"y":0,"label":"L"}]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
-  test("a door entity missing 'targetRoomId' fails to parse"):
+  test("a door entity missing 'role' fails to parse"):
     val bad =
       """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up"}]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("a door entity with an unknown 'role' fails to parse"):
+    val bad =
+      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up","role":"sideways"}]}]"""
+    RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("a door entity's role is resolved even without a targetRoomId (Unresolved stub)"):
+    val ok =
+      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up","role":"next"}]}]"""
+    for rooms <- RoomLoader.loadAllFromJson(ok)
+    yield
+      val d = rooms("x").entities.collectFirst { case d: Door => d }.get
+      assertEquals(d.link, DoorLink.Unresolved(ConnectorRole.Next))
 
   test("an npc entity missing 'name' fails to parse"):
     val bad = """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"npc","id":"n1","x":0,"y":0}]}]"""
@@ -152,7 +173,7 @@ class RoomLoaderSuite extends CatsEffectSuite:
           }
     }
 
-  test("doors have direction and targetRoomId"):
+  test("doors decode with a well-formed link (an Unresolved stub, or a Resolved non-empty target)"):
     for rooms <- RoomLoader.loadAll()
     yield rooms.values.foreach {
       r =>
@@ -162,7 +183,9 @@ class RoomLoaderSuite extends CatsEffectSuite:
           }
           .foreach {
             d =>
-              assert(d.targetRoomId.nonEmpty)
+              d.link match
+                case DoorLink.Unresolved(_, _)       => () // expected before DungeonBuilder wires it
+                case DoorLink.Resolved(_, _, roomId) => assert(roomId.nonEmpty)
           }
     }
 

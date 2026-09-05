@@ -17,10 +17,10 @@ class DungeonBuilderSuite extends FunSuite:
         if row == 0 || row == h - 1 || col == 0 || col == w - 1 then Tile.Wall else Tile.Floor
 
   def exitDoor(id: String = "door_exit"): Door =
-    Door(id = id, x = 4, y = 5, direction = Direction.Down, targetRoomId = "NEXT")
+    Door(id = id, x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
 
   def entranceDoor(id: String = "door_entrance"): Door =
-    Door(id = id, x = 4, y = 0, direction = Direction.Up, targetRoomId = "PREV")
+    Door(id = id, x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev))
 
   def makeRoom(
       id: String,
@@ -81,38 +81,36 @@ class DungeonBuilderSuite extends FunSuite:
   // Door wiring
   // ---------------------------------------------
 
-  test("exit doors no longer point to NEXT after wiring (except last room)"):
+  test("Next-role doors are no longer Unresolved after wiring (except last room)"):
     val dungeon     = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
     val middleRooms = dungeon.rooms.values.toList.dropRight(1)
     val middleDoors = middleRooms.flatMap(_.entities).collect {
-      case d: Door => d
+      case d: Door if d.link.role == ConnectorRole.Next => d
     }
-    assert(
-      middleDoors.forall(_.targetRoomId != "NEXT"),
-      s"Found unwired NEXT door: ${middleDoors.filter(_.targetRoomId == "NEXT").map(_.id).mkString(", ")}"
-    )
+    val unwired = middleDoors.filter(_.link.isInstanceOf[DoorLink.Unresolved])
+    assert(unwired.isEmpty, s"Found unwired Next door: ${unwired.map(_.id).mkString(", ")}")
 
-  test("entrance doors no longer point to PREV after wiring (except first room)"):
+  test("Prev-role doors are no longer Unresolved after wiring (except first room)"):
     val dungeon     = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
     val middleRooms = dungeon.rooms.values.toList.drop(1)
     val middleDoors = middleRooms.flatMap(_.entities).collect {
-      case d: Door => d
+      case d: Door if d.link.role == ConnectorRole.Prev => d
     }
-    assert(
-      middleDoors.forall(_.targetRoomId != "PREV"),
-      s"Found unwired PREV door: ${middleDoors.filter(_.targetRoomId == "PREV").map(_.id).mkString(", ")}"
-    )
+    val unwired = middleDoors.filter(_.link.isInstanceOf[DoorLink.Unresolved])
+    assert(unwired.isEmpty, s"Found unwired Prev door: ${unwired.map(_.id).mkString(", ")}")
 
   test("exit door of first room points to a room that exists in the dungeon"):
     val dungeon   = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
     val firstRoom = dungeon.currentRoom
     val exitDoors = firstRoom.entities.collect {
-      case d: Door if d.direction == Direction.Down => d
+      case d: Door if d.link.role == ConnectorRole.Next => d
     }
     assert(exitDoors.nonEmpty, "First room should have an exit door")
-    assert(dungeon.rooms.contains(exitDoors.head.targetRoomId),
-           "Exit door target should exist in dungeon"
-    )
+    exitDoors.head.link match
+      case DoorLink.Resolved(_, _, roomId) =>
+        assert(dungeon.rooms.contains(roomId), "Exit door target should exist in dungeon")
+      case DoorLink.Unresolved(_, _) =>
+        fail("Exit door should be resolved after wiring")
 
   // ---------------------------------------------
   // Error cases

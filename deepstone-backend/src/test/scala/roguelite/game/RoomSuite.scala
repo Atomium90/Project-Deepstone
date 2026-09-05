@@ -119,7 +119,7 @@ class RoomSuite extends FunSuite:
                           x = 2,
                           y = 2,
                           direction = Direction.Down,
-                          targetRoomId = "r2",
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
                           doorKind = DoorKind.Secret,
                           revealed = false
     )
@@ -131,7 +131,7 @@ class RoomSuite extends FunSuite:
                           x = 2,
                           y = 2,
                           direction = Direction.Down,
-                          targetRoomId = "r2",
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
                           doorKind = DoorKind.Secret,
                           revealed = true
     )

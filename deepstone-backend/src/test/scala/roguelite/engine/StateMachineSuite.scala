@@ -23,7 +23,12 @@ class StateMachineSuite extends FunSuite:
     Room(id, roomType, w, h, makeTiles(w, h), entities)
 
   def door(from: String, to: String): Door =
-    Door(s"door_${from}_to_$to", x = 4, y = 5, direction = Direction.Down, targetRoomId = to)
+    Door(s"door_${from}_to_$to",
+         x = 4,
+         y = 5,
+         direction = Direction.Down,
+         link = DoorLink.Resolved(ConnectorRole.Next, branch = None, roomId = to)
+    )
 
   val goblinStats: EnemyStats = EnemyStats(
     typeId = "goblin",
@@ -380,7 +385,7 @@ class StateMachineSuite extends FunSuite:
                           x = 4,
                           y = 2,
                           direction = Direction.Down,
-                          targetRoomId = "r2",
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
                           doorKind = DoorKind.Secret,
                           revealed = false
     )

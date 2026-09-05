@@ -793,8 +793,8 @@ class GameSessionSuite extends CatsEffectSuite:
       // totalRooms down to 2 regardless of difficulty (count = totalRooms.max(2).min(pool.size)),
       // so the entrance's exit door leads straight to the boss room - no middle rooms to navigate.
       val tiles         = makeTiles()
-      val doorToBoss    = Door("door_to_boss", x = 4, y = 5, direction = Direction.Down, targetRoomId = "NEXT")
-      val doorFromBoss  = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, targetRoomId = "PREV")
+      val doorToBoss    = Door("door_to_boss", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
+      val doorFromBoss  = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev))
       val entranceRoom  = Room("r1", RoomType.Combat, 8, 6, tiles, List(doorToBoss))
       val bossRoom = Room("boss",
                           RoomType.Boss,

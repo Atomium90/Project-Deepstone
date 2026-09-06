@@ -234,6 +234,37 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }, Nil)
     assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-happens message: $log")
 
+  // --- Shrine --------------------------------------------------------------------
+
+  test("Interact with Shrine removes it from room"):
+    val shrine = Shrine("s1", x = 3, y = 3)
+    val state  = explorationAt(3, 3, entities = List(shrine))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "s1")
+    assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoom.entityById("s1"), None)
+
+  test("Interact with Shrine rolls 3 reward options into pendingRewardChoice"):
+    val itemDefs: Map[String, Item] = Map(
+      "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
+    )
+    val shrine = Shrine("s1", x = 3, y = 3)
+    val state  = explorationAt(3, 3, entities = List(shrine))
+    val TransitionResult(next, log, _, _) = resolver(itemDefs = itemDefs).interact(state, "s1")
+    val exp = next.asInstanceOf[ExplorationState]
+    assertEquals(exp.pendingRewardChoice.map(_.options.length), Some(3))
+    assert(log.exists(_.toLowerCase.contains("shrine")), s"expected a shrine-related log line: $log")
+
+  test("Interact with Shrine with empty itemDefs still offers a choice, with 0 options"):
+    val shrine = Shrine("s1", x = 3, y = 3)
+    val state  = explorationAt(3, 3, entities = List(shrine))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "s1")
+    assertEquals(next.asInstanceOf[ExplorationState].pendingRewardChoice.map(_.options), Some(Nil))
+
+  test("Interact with Shrine emits no events"):
+    val shrine = Shrine("s1", x = 3, y = 3)
+    val state  = explorationAt(3, 3, entities = List(shrine))
+    val TransitionResult(_, _, _, events) = resolver().interact(state, "s1")
+    assertEquals(events, Nil)
+
   test("Non-trapped chest is unaffected by the trapped-chest path"):
     val chest        = Chest("c1", x = 3, y = 3, trapped = false)
     val state        = explorationAt(3, 3, entities = List(chest))

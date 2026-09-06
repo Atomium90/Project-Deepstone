@@ -64,6 +64,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       case Some(chest: Chest) =>
         liftEvents(handleChest(exp, chest))
 
+      case Some(shrine: Shrine) =>
+        lift(handleShrine(exp, shrine))
+
       case Some(npc: Npc) =>
         val (state, log, dialogue) = handleNpc(exp, npc)
         TransitionResult(state, log, dialogue)
@@ -219,6 +222,19 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
               )
           }
       }
+
+  /** Rolls 3 candidates and removes the Shrine from the room (one-shot, same as opening a
+    * [[Chest]]) - the actual pick is resolved later by [[RewardChoiceResolver]] once the player
+    * sends a `RewardChoice` action.
+    */
+  private def handleShrine(exp: ExplorationState, shrine: Shrine): (GameState, List[String]) =
+    val roomWithoutShrine = exp.dungeon.currentRoom.removeEntity(shrine.id)
+    val updatedDungeon    = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(roomWithoutShrine.id, roomWithoutShrine))
+    val options           = LootTable.rollShrineChoices(itemDefs, rng, difficulty = exp.difficulty)
+    val nextState = exp.copy(dungeon = updatedDungeon,
+                             pendingRewardChoice = Some(PendingRewardChoice(options))
+    )
+    (nextState, List("The shrine offers you a choice."))
 
   /** Show one line of dialogue. Never touches the narrative log (a chest/door produces "you
     * open..." style flavor text there, but dialogue rides only [[DialogueView]] so it doesn't get

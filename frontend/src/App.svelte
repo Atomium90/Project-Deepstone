@@ -11,6 +11,7 @@
     import AchievementToast from "./lib/components/AchievementToast.svelte";
     import CharacterScreen  from "./lib/components/CharacterScreen.svelte";
     import EquipChoiceModal from "./lib/components/EquipChoiceModal.svelte";
+    import RewardChoiceModal from "./lib/components/RewardChoiceModal.svelte";
 
     onMount(() => {
         connectToServer();
@@ -46,6 +47,7 @@
     <AchievementToast />
     <CharacterScreen />
     <EquipChoiceModal />
+    <RewardChoiceModal />
 </main>
 
 <style>

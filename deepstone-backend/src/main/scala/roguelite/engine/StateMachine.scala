@@ -14,6 +14,7 @@ import roguelite.game.{
   PerkEffect,
   PickupOutcome,
   Room,
+  RewardChoiceResolver,
   SetDef
 }
 
@@ -234,6 +235,10 @@ class StateMachine(roomPool: Map[String, Room],
 
       case (exp: ExplorationState, EquipChoice(targetSlot)) =>
         val (next, log, events) = EquipmentResolver.resolveChoice(exp, targetSlot, setDefs)
+        TransitionResult(next, log, events = events)
+
+      case (exp: ExplorationState, RewardChoice(itemId)) =>
+        val (next, log, events) = RewardChoiceResolver.resolve(exp, itemId, setDefs)
         TransitionResult(next, log, events = events)
 
       // -- Combat -----------------------------------------------------------

@@ -36,6 +36,12 @@ class RoomSuite extends FunSuite:
   test("isWalkable is false for wall tiles"):
     assert(!testRoom().isWalkable(0, 0))
 
+  test("isWalkable is false for a floor tile occupied by an entity"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val room  = testRoom(entities = List(enemy))
+    assert(!room.isWalkable(2, 2))
+    assert(room.isWalkable(1, 1)) // an unoccupied floor tile is unaffected
+
   // -- entity lookup ---------------------------------------------------------
 
   test("entityById finds an existing entity"):

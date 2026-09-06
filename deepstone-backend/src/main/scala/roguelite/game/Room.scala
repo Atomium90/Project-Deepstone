@@ -85,7 +85,7 @@ case class Room(
 
   /** Return true if the given tile is walkable (floor and no entity blocking it). */
   def isWalkable(x: Int, y: Int): Boolean =
-    tileAt(x, y) == Tile.Floor
+    tileAt(x, y) == Tile.Floor && entityAt(x, y).isEmpty
 
   /** Find an entity by id. */
   def entityById(id: String): Option[Entity] =
@@ -122,8 +122,9 @@ case class Room(
     val maxRadius = width.max(height)
     val found     = scala.collection.mutable.ListBuffer.empty[(Int, Int)]
 
+    // isWalkable already checks entity occupancy, so only `exclude` needs a separate check here.
     def isFree(tx: Int, ty: Int): Boolean =
-      isWalkable(tx, ty) && entityAt(tx, ty).isEmpty && !exclude.contains((tx, ty))
+      isWalkable(tx, ty) && !exclude.contains((tx, ty))
 
     var radius = 0
     while found.size < count && radius <= maxRadius do

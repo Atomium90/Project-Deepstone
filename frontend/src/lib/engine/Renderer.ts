@@ -32,16 +32,28 @@ import {
     INTERACT_BADGE_BOUNCE_AMPLITUDE,
     INTERACT_BADGE_BOUNCE_PERIOD,
     ELITE_OUTLINE_COLOR,
-    ELITE_OUTLINE_WIDTH
+    ELITE_OUTLINE_WIDTH,
+    SHRINE_BASE_SCALE,
+    SHRINE_ICON_SIZE_RATIO,
+    SHRINE_ICON_OVERLAP,
+    SHRINE_ICON_X_OFFSET,
+    SHRINE_OUTLINE_FAR_WIDTH,
+    SHRINE_OUTLINE_FAR_ALPHA,
+    SHRINE_OUTLINE_NEAR_WIDTH,
+    SHRINE_BASE_TRIM_WIDTH,
+    SHRINE_BASE_TRIM_HEIGHT
 } from "./constants";
 
-/** The 8 offsets (in pixels) the Elite outline pass draws the tinted sprite silhouette at,
- * surrounding the real sprite drawn on top - the visible fringe becomes the outline. */
-const ELITE_OUTLINE_OFFSETS: ReadonlyArray<readonly [number, number]> = [
-    [-ELITE_OUTLINE_WIDTH, -ELITE_OUTLINE_WIDTH], [0, -ELITE_OUTLINE_WIDTH], [ELITE_OUTLINE_WIDTH, -ELITE_OUTLINE_WIDTH],
-    [-ELITE_OUTLINE_WIDTH, 0],                                               [ELITE_OUTLINE_WIDTH, 0],
-    [-ELITE_OUTLINE_WIDTH, ELITE_OUTLINE_WIDTH],  [0, ELITE_OUTLINE_WIDTH],  [ELITE_OUTLINE_WIDTH, ELITE_OUTLINE_WIDTH],
-];
+/** The 8 offsets (in pixels) a silhouette-hugging outline pass draws its tinted copy at,
+ * surrounding the real sprite/icon drawn on top - the visible fringe becomes the outline. Shared
+ * by the Elite aura (drawEliteOutline) and the Shrine icon's two-ring glow (drawShrine). */
+function outlineOffsets(width: number): ReadonlyArray<readonly [number, number]> {
+    return [
+        [-width, -width], [0, -width], [width, -width],
+        [-width, 0],                    [width, 0],
+        [-width, width],  [0, width],  [width, width],
+    ];
+}
 
 const ENTITY_COLORS: Record<string, string> = {
     enemy: COLOR_ENTITY_ENEMY,
@@ -130,11 +142,12 @@ export class Renderer {
     /** ResizeObserver to react when the container changes size. */
     private resizeObserver: ResizeObserver;
 
-    /** Offscreen buffer reused every frame to build one Elite outline pass (draw the sprite, then
-     * source-in tint it solid gold) before compositing it onto the main canvas 8 times. Lazily
-     * created on first use - most rooms never contain an Elite. */
-    private eliteOutlineCanvas: HTMLCanvasElement | null = null;
-    private eliteOutlineCtx: CanvasRenderingContext2D | null = null;
+    /** Offscreen buffer reused to build one silhouette-recolor pass (draw the sprite/icon, then
+     * source-in tint it solid gold) before compositing it onto the main canvas as an outline -
+     * shared by the Elite aura and the Shrine icon's glow, resized to whatever each needs. Lazily
+     * created on first use - most rooms contain neither. */
+    private outlineCanvas: HTMLCanvasElement | null = null;
+    private outlineCtx: CanvasRenderingContext2D | null = null;
 
     constructor(canvas: HTMLCanvasElement) {
         const ctx = canvas.getContext("2d");
@@ -352,7 +365,9 @@ export class Renderer {
             const spriteKey = entity.kind === "enemy" ? entity.spriteId : ENTITY_SPRITES[entity.kind];
             const sprite = spriteKey ? this.assets.getSprite(spriteKey, fallbackColor, this.elapsed) : null;
 
-            if (sprite?.image && sprite.sourceRect) {
+            if (entity.kind === "shrine") {
+                this.drawShrine(cx, cy);
+            } else if (sprite?.image && sprite.sourceRect) {
                 const flip = entity.kind === "enemy" && shouldFlip(entity.id);
                 if (isElite) {
                     this.drawEliteOutline(sprite.image, sprite.sourceRect, flip, cx, cy);
@@ -385,25 +400,56 @@ export class Renderer {
             ctx.textAlign = "center";
             ctx.fillText(entity.label, cx, cy + radius + ENTITY_LABEL_OFFSET);
 
-            // Keycap badge above when nearby
+            // Keycap badge above when nearby - the Shrine's composite (base + overlapping icon +
+            // outline) is much taller than the generic per-entity circle radius every other kind
+            // uses here, so the badge needs its own, taller anchor or it renders on top of the gem.
             if (isNearby) {
-                this.drawInteractBadge(cx, cy - radius - INTERACT_BADGE_OFFSET);
+                const badgeTopOffset = entity.kind === "shrine" ? this.shrineTopOffset() : radius;
+                this.drawInteractBadge(cx, cy - badgeTopOffset - INTERACT_BADGE_OFFSET);
             }
         }
     }
 
-    /** Lazily creates the reusable offscreen buffer the Elite outline pass tints and composites
-     * from - most rooms never contain an Elite, so this never allocates in the common case. */
-    private getEliteOutlineBuffer(): CanvasRenderingContext2D {
-        if (!this.eliteOutlineCtx) {
-            this.eliteOutlineCanvas = document.createElement("canvas");
-            this.eliteOutlineCanvas.width = TILE_SIZE;
-            this.eliteOutlineCanvas.height = TILE_SIZE;
-            const ctx = this.eliteOutlineCanvas.getContext("2d");
-            if (!ctx) throw new Error("Could not get 2D context for the Elite outline buffer.");
-            this.eliteOutlineCtx = ctx;
+    /** Lazily creates (and resizes on demand) the reusable offscreen buffer a silhouette-recolor
+     * pass tints and composites from - most rooms contain neither an Elite nor a Shrine, so this
+     * never allocates in the common case. */
+    private getOutlineBuffer(size: number): CanvasRenderingContext2D {
+        if (!this.outlineCtx) {
+            this.outlineCanvas = document.createElement("canvas");
+            const ctx = this.outlineCanvas.getContext("2d");
+            if (!ctx) throw new Error("Could not get 2D context for the outline buffer.");
+            this.outlineCtx = ctx;
         }
-        return this.eliteOutlineCtx;
+        if (this.outlineCanvas!.width !== size || this.outlineCanvas!.height !== size) {
+            this.outlineCanvas!.width = size;
+            this.outlineCanvas!.height = size;
+        }
+        return this.outlineCtx;
+    }
+
+    /** Draws `image`'s `sourceRect` region (optionally flipped) into the shared outline buffer at
+     * `size`x`size`, recolors every non-transparent pixel solid `color` (keeping the source's own
+     * alpha shape), and returns the buffer's canvas - ready for the caller to composite as an
+     * offset outline. Shared by the Elite aura and the Shrine icon's glow. */
+    private tintedSilhouette(image: HTMLImageElement, sourceRect: SourceRect, flip: boolean, size: number, color: string): HTMLCanvasElement {
+        const off = this.getOutlineBuffer(size);
+        const { x: sx, y: sy, w: sw, h: sh } = sourceRect;
+
+        off.clearRect(0, 0, size, size);
+        off.save();
+        if (flip) {
+            off.translate(size, 0);
+            off.scale(-1, 1);
+        }
+        off.drawImage(image, sx, sy, sw, sh, 0, 0, size, size);
+        off.restore();
+
+        off.globalCompositeOperation = "source-in";
+        off.fillStyle = color;
+        off.fillRect(0, 0, size, size);
+        off.globalCompositeOperation = "source-over";
+
+        return off.canvas;
     }
 
     /** Draws a silhouette-hugging outline around an Elite enemy's sprite: the sprite's own pixels,
@@ -411,30 +457,75 @@ export class Renderer {
      * visible fringe follows the actual character silhouette (any pose, either facing) instead of
      * a generic shape laid on top. The real sprite is drawn afterward, on top, covering the center. */
     private drawEliteOutline(image: HTMLImageElement, sourceRect: SourceRect, flip: boolean, cx: number, cy: number): void {
-        const off = this.getEliteOutlineBuffer();
-        const { x: sx, y: sy, w: sw, h: sh } = sourceRect;
-
-        off.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
-        off.save();
-        if (flip) {
-            off.translate(TILE_SIZE, 0);
-            off.scale(-1, 1);
-        }
-        off.drawImage(image, sx, sy, sw, sh, 0, 0, TILE_SIZE, TILE_SIZE);
-        off.restore();
-
-        // Recolor every non-transparent pixel solid gold, keeping the sprite's own alpha shape.
-        off.globalCompositeOperation = "source-in";
-        off.fillStyle = ELITE_OUTLINE_COLOR;
-        off.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
-        off.globalCompositeOperation = "source-over";
-
+        const silhouette = this.tintedSilhouette(image, sourceRect, flip, TILE_SIZE, ELITE_OUTLINE_COLOR);
         const { ctx } = this;
         const originX = cx - TILE_SIZE / 2;
         const originY = cy - TILE_SIZE / 2;
-        for (const [dx, dy] of ELITE_OUTLINE_OFFSETS) {
-            ctx.drawImage(off.canvas, originX + dx, originY + dy);
+        for (const [dx, dy] of outlineOffsets(ELITE_OUTLINE_WIDTH)) {
+            ctx.drawImage(silhouette, originX + dx, originY + dy);
         }
+    }
+
+    /** Draws a Shrine: a stone base ("torch_no_flame", sans its flame) topped by a floating item
+     * icon, outlined with the same silhouette-recolor technique as the Elite aura (two rings this
+     * time - see SHRINE_OUTLINE_FAR_WIDTH's doc for why the draw order matters). Falls back to a
+     * plain circle if the base sprite hasn't resolved yet (atlas not loaded), same convention as
+     * every other entity kind. */
+    private drawShrine(cx: number, cy: number): void {
+        const { ctx } = this;
+        const base = this.assets.getSprite("torch_no_flame", COLOR_ENTITY_SHRINE, this.elapsed);
+        if (!base.image || !base.sourceRect) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, TILE_SIZE * ENTITY_RADIUS_RATIO, 0, Math.PI * 2);
+            ctx.fillStyle = COLOR_ENTITY_SHRINE;
+            ctx.fill();
+            return;
+        }
+
+        // torch_no_flame's declared atlas box is mostly transparent padding shared with the lit-
+        // torch animation frames - the actual visible holder is only this sub-region. Trimmed
+        // here, locally, rather than editing the shared atlas entry (real wall torches elsewhere
+        // still need the full box).
+        const trim = { x: base.sourceRect.x + 3, y: base.sourceRect.y + 8, w: SHRINE_BASE_TRIM_WIDTH, h: SHRINE_BASE_TRIM_HEIGHT };
+        const drawW = trim.w * SHRINE_BASE_SCALE;
+        const drawH = trim.h * SHRINE_BASE_SCALE;
+        const baseBottom = cy + TILE_SIZE / 2;
+        const baseTop = baseBottom - drawH;
+        ctx.drawImage(base.image, trim.x, trim.y, trim.w, trim.h, cx - drawW / 2, baseTop, drawW, drawH);
+
+        const gem = this.assets.getSprite("dark_gem", COLOR_ENTITY_SHRINE, this.elapsed);
+        if (!gem.image || !gem.sourceRect) return;
+
+        const iconSize = TILE_SIZE * SHRINE_ICON_SIZE_RATIO;
+        const iconX = cx - iconSize / 2 + SHRINE_ICON_X_OFFSET;
+        const iconY = baseTop + SHRINE_ICON_OVERLAP - iconSize;
+
+        const silhouette = this.tintedSilhouette(gem.image, gem.sourceRect, false, iconSize, ELITE_OUTLINE_COLOR);
+        const rings = [
+            { width: SHRINE_OUTLINE_FAR_WIDTH, alpha: SHRINE_OUTLINE_FAR_ALPHA }, // far, faded - drawn first
+            { width: SHRINE_OUTLINE_NEAR_WIDTH, alpha: 1.0 },                     // near, normal - drawn second, on top
+        ];
+        for (const ring of rings) {
+            ctx.globalAlpha = ring.alpha;
+            for (const [dx, dy] of outlineOffsets(ring.width)) {
+                ctx.drawImage(silhouette, iconX + dx, iconY + dy);
+            }
+        }
+        ctx.globalAlpha = 1.0;
+
+        const { x: gx, y: gy, w: gw, h: gh } = gem.sourceRect;
+        ctx.drawImage(gem.image, gx, gy, gw, gh, iconX, iconY, iconSize, iconSize);
+    }
+
+    /** How far above the entity's center point (cy) the Shrine's tallest visible pixel sits - the
+     * floating icon's top edge, plus its outline's far-ring extension. Mirrors drawShrine's own
+     * baseTop/iconY math so the two can never drift apart. Used to position the interact badge:
+     * the generic per-entity circle radius every other kind uses is far too small for this
+     * taller composite, and using it here put the badge right on top of the gem. */
+    private shrineTopOffset(): number {
+        const drawH = SHRINE_BASE_TRIM_HEIGHT * SHRINE_BASE_SCALE;
+        const iconSize = TILE_SIZE * SHRINE_ICON_SIZE_RATIO;
+        return drawH - TILE_SIZE / 2 - SHRINE_ICON_OVERLAP + iconSize + SHRINE_OUTLINE_FAR_WIDTH;
     }
 
     /** Draws a small dark keycap-style badge (like a keyboard key) with "E" centered in it, its

@@ -231,6 +231,46 @@ export const ELITE_OUTLINE_COLOR = COLOR_ENTITY_ELITE;
 export const ELITE_OUTLINE_WIDTH = 3;
 
 // ---------------------------------------------
+// Shrine visual (spawned on a MiniBoss kill - see CombatResolver.victory)
+// ---------------------------------------------
+//
+// A stone base (the 0x72 tileset's "torch_no_flame", sans its flame) topped by a floating item
+// icon (Kyrise's "dark_gem"), reusing the Elite outline's silhouette-recolor technique on the icon
+// - same gold "something significant here" language as Elites, not a separate new effect.
+
+/** Scale factor applied to torch_no_flame's native size when drawn as the shrine's base. */
+export const SHRINE_BASE_SCALE = 5;
+
+/** Size, in native atlas pixels, of torch_no_flame's actual visible sub-region (see drawShrine's
+ * own doc for why it's trimmed at all). Named here too, not just inlined in Renderer.ts, so the
+ * badge/label positioning below can derive the shrine's real visual height from the same values
+ * drawShrine itself uses, instead of a second hardcoded number that could drift out of sync. */
+export const SHRINE_BASE_TRIM_WIDTH = 8;
+export const SHRINE_BASE_TRIM_HEIGHT = 14;
+
+/** Icon size as a fraction of TILE_SIZE. */
+export const SHRINE_ICON_SIZE_RATIO = 0.4;
+
+/** How far, in pixels, the icon's bottom edge extends past the base's own top edge - the icon
+ * deliberately overlaps into the base (drawn after it, so it renders in front) rather than
+ * floating with a gap above it. */
+export const SHRINE_ICON_OVERLAP = 16;
+
+/** Horizontal offset, in pixels, of the icon from the base's center - dead-center read as
+ * slightly off during visual review, nudged right by this amount. */
+export const SHRINE_ICON_X_OFFSET = 1;
+
+/** The icon's outline is two rings of the same gold as ELITE_OUTLINE_COLOR: a far ring (this
+ * width) at reduced alpha, and a near ring (width - 1) at full alpha. Draw order matters - the
+ * far/faded ring must be drawn first and the near/normal ring second, on top. Layering a
+ * translucent ring over an already-opaque ring of the *identical* color is a no-op (alpha-
+ * blending a color over itself doesn't change it), so reversing this order makes the fade
+ * invisible - confirmed by hitting exactly that bug once during visual review. */
+export const SHRINE_OUTLINE_FAR_WIDTH = 2;
+export const SHRINE_OUTLINE_FAR_ALPHA = 0.35;
+export const SHRINE_OUTLINE_NEAR_WIDTH = 1;
+
+// ---------------------------------------------
 // Colors - Character screen
 // ---------------------------------------------
 

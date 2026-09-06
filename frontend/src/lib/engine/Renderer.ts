@@ -213,8 +213,8 @@ export class Renderer {
     // -------------------------------------------------------------------------
 
     /**
-     * Find the nearest entity within INTERACT_RANGE tiles of the player.
-     * Returns null if no entity is reachable.
+     * Find the nearest entity within INTERACT_RANGE tiles of the player, directly north/south/
+     * east/west - never diagonal. Returns null if no entity is reachable.
      *
      * Called by ExplorationHUD when the player presses E.
      */
@@ -228,8 +228,9 @@ export class Renderer {
         let nearestDist = Infinity;
 
         for (const entity of this.room.entities) {
-            const dist = chebyshevDist(px, py, entity.x, entity.y)
-            if (dist <= INTERACT_RANGE && dist < nearestDist) {
+            if (!isCardinalNeighbor(px, py, entity.x, entity.y)) continue;
+            const dist = chebyshevDist(px, py, entity.x, entity.y);
+            if (dist < nearestDist) {
                 nearest = entity;
                 nearestDist = dist;
             }
@@ -353,7 +354,7 @@ export class Renderer {
         for (const entity of room.entities) {
             const cx = entity.x * TILE_SIZE + TILE_SIZE / 2;
             const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
-            const isNearby = chebyshevDist(px, py, entity.x, entity.y) <= INTERACT_RANGE;
+            const isNearby = isCardinalNeighbor(px, py, entity.x, entity.y);
 
             // Elite aura: always visible (not gated by proximity like the interact badge below) -
             // the whole point is anticipation before the player approaches. Drawn behind the
@@ -622,6 +623,19 @@ function tileToPixelCenter(tileX: number, tileY: number): Vec2 {
  */
 function chebyshevDist(x1: number, y1: number, x2: number, y2: number): number {
     return Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+}
+
+/**
+ * True if (x2, y2) sits directly north/south/east/west of (x1, y1), within INTERACT_RANGE -
+ * never diagonal, never the same tile. Chebyshev distance alone (used elsewhere for the Elite
+ * aura, which has no directional meaning) treats a diagonal neighbor the same as a cardinal one,
+ * which reads wrong for something as directional as "press E to interact".
+ */
+function isCardinalNeighbor(x1: number, y1: number, x2: number, y2: number): boolean {
+    const sameRow = y1 === y2;
+    const sameCol = x1 === x2;
+    if (sameRow === sameCol) return false; // both true (same tile) or both false (diagonal)
+    return chebyshevDist(x1, y1, x2, y2) <= INTERACT_RANGE;
 }
 
 /** Deterministic hash of an entity id, used to decide a stable left/right mirror per enemy.

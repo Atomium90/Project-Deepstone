@@ -378,6 +378,27 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(next, _, _, _) = sm().applyActionPure(explorationAt(1, 1), Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 1)
 
+  test("Move into an entity's tile is blocked"):
+    val enemy = Enemy("e1", x = 3, y = 2, typeId = "goblin", label = "Goblin")
+    val state = explorationAt(3, 3, entities = List(enemy))
+    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
+
+  test("Move is blocked while a pending equip choice is unresolved"):
+    val newWeapon      = Weapon("w2", "steel_sword", "Steel Sword", Rarity.Uncommon, attackBonus = 7)
+    val existingWeapon = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+    val pending = PendingEquipChoice(newWeapon, Map(EquipSlot.WeaponSlot -> existingWeapon))
+    val state   = explorationAt(3, 3).copy(pendingEquipChoice = Some(pending))
+    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
+
+  test("Move is blocked while a pending reward choice is unresolved"):
+    val option  = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+    val pending = PendingRewardChoice(List(option))
+    val state   = explorationAt(3, 3).copy(pendingRewardChoice = Some(pending))
+    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
+
   /** Thorough revealSecretDoors behavior lives in InteractionResolverSuite. This test just confirms
     * the Move arm actually forwards InteractionResolver's events instead of dropping them. */
   test("Move that reveals a secret door forwards the SecretDoorRevealed event"):

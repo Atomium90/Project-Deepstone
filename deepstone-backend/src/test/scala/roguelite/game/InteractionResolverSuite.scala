@@ -220,7 +220,9 @@ class InteractionResolverSuite extends FunSuite:
     val nextExp      = next.asInstanceOf[ExplorationState]
     val spawned      = nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
     val room         = nextExp.dungeon.currentRoom
-    assert(spawned.forall(e => room.isWalkable(e.x, e.y)), s"expected walkable spawn tiles: $spawned")
+    // isWalkable now also checks entity occupancy (see Room.isWalkable), so it's always false
+    // for a spawned enemy's own tile once it's actually there - tileAt is what this test means.
+    assert(spawned.forall(e => room.tileAt(e.x, e.y) == Tile.Floor), s"expected floor spawn tiles: $spawned")
     assert(spawned.forall(e => (e.x, e.y) != (nextExp.playerX, nextExp.playerY)),
            s"expected no enemy on the player's tile: $spawned"
     )

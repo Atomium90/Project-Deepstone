@@ -207,6 +207,12 @@ class StateMachine(roomPool: Map[String, Room],
 
       // -- Exploration ------------------------------------------------------
 
+      case (exp: ExplorationState, Move(_))
+          if exp.pendingEquipChoice.isDefined || exp.pendingRewardChoice.isDefined =>
+        // A pending keep/replace or reward choice must be resolved before the player can move
+        // again - same "silently blocked" precedent as a wall/entity collision below.
+        TransitionResult(exp, Nil)
+
       case (exp: ExplorationState, Move(direction)) =>
         val (dx, dy) = direction match {
           case Direction.Up    => (0, -1)

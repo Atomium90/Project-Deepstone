@@ -36,14 +36,33 @@ function chebyshev(x1: number, y1: number, x2: number, y2: number): number {
     return Math.max(Math.abs(x1 - x2), Math.abs(y1 - y2));
 }
 
-/** 4-directional BFS from the player's tile to a walkable tile within Chebyshev distance 1 of
- * (targetX, targetY) - a door embedded in a wall isn't itself walkable, only adjacent to it is. */
+/** True only when (x2, y2) sits directly north/south/east/west of (x1, y1) - matches
+ * Renderer.ts's own isCardinalNeighbor, since interact (and this helper's BFS goal below) only
+ * succeeds on real cardinal adjacency, not any Chebyshev-distance-1 tile (diagonal included). */
+function isCardinalNeighbor(x1: number, y1: number, x2: number, y2: number): boolean {
+    const sameRow = y1 === y2;
+    const sameCol = x1 === x2;
+    if (sameRow === sameCol) return false; // same tile or diagonal
+    return chebyshev(x1, y1, x2, y2) <= 1;
+}
+
+/** 4-directional BFS from the player's tile to a walkable tile directly cardinal-adjacent to
+ * (targetX, targetY) - a door embedded in a wall isn't itself walkable, only adjacent to it is.
+ * A tile occupied by an entity doesn't count as walkable either, matching Room.isWalkable
+ * server-side - the target entity's own tile is naturally excluded from the path (only tiles
+ * *adjacent* to it are ever BFS goals), so this never needs to special-case the target itself. */
 function pathTo(room: NonNullable<StateUpdate["room"]>, targetX: number, targetY: number): Direction[] {
     const tiles = room.tiles;
-    const isFloor = (x: number, y: number) =>
-        y >= 0 && y < tiles.length && x >= 0 && x < tiles[y].length && tiles[y][x] === "floor";
+    const occupied = new Set(room.entities.map((e) => `${e.x},${e.y}`));
+    const isWalkable = (x: number, y: number) =>
+        y >= 0 &&
+        y < tiles.length &&
+        x >= 0 &&
+        x < tiles[y].length &&
+        tiles[y][x] === "floor" &&
+        !occupied.has(`${x},${y}`);
     const start = { x: room.playerX, y: room.playerY };
-    if (chebyshev(start.x, start.y, targetX, targetY) <= 1) return [];
+    if (isCardinalNeighbor(start.x, start.y, targetX, targetY)) return [];
 
     const steps: { dir: Direction; dx: number; dy: number }[] = [
         { dir: "UP", dx: 0, dy: -1 },
@@ -55,12 +74,12 @@ function pathTo(room: NonNullable<StateUpdate["room"]>, targetX: number, targetY
     const queue: { x: number; y: number; path: Direction[] }[] = [{ ...start, path: [] }];
     while (queue.length > 0) {
         const cur = queue.shift()!;
-        if (chebyshev(cur.x, cur.y, targetX, targetY) <= 1) return cur.path;
+        if (isCardinalNeighbor(cur.x, cur.y, targetX, targetY)) return cur.path;
         for (const s of steps) {
             const nx = cur.x + s.dx;
             const ny = cur.y + s.dy;
             const key = `${nx},${ny}`;
-            if (visited.has(key) || !isFloor(nx, ny)) continue;
+            if (visited.has(key) || !isWalkable(nx, ny)) continue;
             visited.add(key);
             queue.push({ x: nx, y: ny, path: [...cur.path, s.dir] });
         }
@@ -125,6 +144,20 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
             continue;
         }
 
+        // Movement is now blocked server-side while either modal is up (see StateMachine's Move
+        // case), so these have to be resolved before anything else - the simplest deterministic
+        // choice ("decline") always keeps the loop moving regardless of current loadout/gear.
+        if (state.pendingEquipChoice) {
+            await page.locator("button.keep-btn").click();
+            state = await waitForStateChange(page, state);
+            continue;
+        }
+        if (state.pendingRewardChoice) {
+            await page.locator("button.leave-btn").click();
+            state = await waitForStateChange(page, state);
+            continue;
+        }
+
         await page.waitForFunction(() => window.__DEEPSTONE_RENDERER__ != null, { timeout: 5000 });
 
         const room = state.room!;
@@ -138,9 +171,11 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
             // any walkable direction to trigger InteractionResolver's proximity reveal.
             const stepDirs: Direction[] = ["UP", "RIGHT", "DOWN", "LEFT"];
             const tiles = room.tiles;
-            const isFloor = (x: number, y: number) => y >= 0 && y < tiles.length && x >= 0 && x < tiles[y].length && tiles[y][x] === "floor";
+            const occupied = new Set(room.entities.map((e) => `${e.x},${e.y}`));
+            const isWalkable = (x: number, y: number) =>
+                y >= 0 && y < tiles.length && x >= 0 && x < tiles[y].length && tiles[y][x] === "floor" && !occupied.has(`${x},${y}`);
             const deltas: Record<Direction, [number, number]> = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] };
-            const dir = stepDirs.find((d) => isFloor(room.playerX + deltas[d][0], room.playerY + deltas[d][1]));
+            const dir = stepDirs.find((d) => isWalkable(room.playerX + deltas[d][0], room.playerY + deltas[d][1]));
             if (!dir) break; // truly stuck - let the assertions below report it clearly
             await page.keyboard.press(DIRECTION_KEY[dir]);
             state = await waitForStateChange(page, state);

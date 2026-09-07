@@ -32,9 +32,13 @@ object Tile:
   * `MiniBoss` is also excluded from `midTypes` - picked by its own dedicated step between biome
   * segments, same reasoning as `Vault`. Unlike `Boss`, defeating a `MiniBoss` room's enemy never
   * ends the run - see [[Dungeon.isAtBoss]], which deliberately checks `Boss` only.
+  *
+  * `Fork` is excluded from `midTypes` too, for the same reason: its two "next" doors carry
+  * distinct `branch` tags (see [[DoorLink]]) that plain linear wiring would never resolve, so it
+  * needs its own dedicated selection step (see `DungeonBuilder.insertFork`).
   */
 enum RoomType:
-  case Combat, Loot, Rest, Boss, Vault, MiniBoss
+  case Combat, Loot, Rest, Boss, Vault, MiniBoss, Fork
 
 object RoomType:
   def fromString(s: String): Either[String, RoomType] = s.toLowerCase match {
@@ -44,6 +48,7 @@ object RoomType:
     case "boss"     => Right(RoomType.Boss)
     case "vault"    => Right(RoomType.Vault)
     case "miniboss" => Right(RoomType.MiniBoss)
+    case "fork"     => Right(RoomType.Fork)
     case other      => Left(s"Unknown room type: '$other'")
   }
 

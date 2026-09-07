@@ -13,9 +13,11 @@ case class TopologyEdge(from: String, role: ConnectorRole, branch: Option[String
  *
  * The builder picks rooms randomly while enforcing a minimal structure: one combat room as the
  * entrance, one or more sequential biome segments of combat/loot/rest rooms (each ending in a
- * [[RoomType.MiniBoss]] checkpoint except the last), and one boss room as the exit. Door
- * connectivity between rooms is wired automatically: the builder pairs the exit door of one room
- * with the entrance door of the next.
+ * [[RoomType.MiniBoss]] checkpoint except the last), and one boss room as the exit. Each biome may
+ * also splice in one branching cluster - a [[RoomType.Fork]] room leading to 2 distinct rooms that
+ * both reconverge on whatever follows (see [[insertFork]]). Door connectivity is wired
+ * automatically by [[wireSegments]]: the builder pairs the exit door(s) of one segment with the
+ * entrance door of the next.
  *
  * @param pool   All available rooms keyed by id.
  * @param rng    Random instance: inject a seeded one for reproducible dungeons.
@@ -43,40 +45,66 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
     for
       entrance   <- pickOne(RoomType.Combat, exclude = Set.empty)
       boss       <- pickOne(RoomType.Boss, exclude = Set(entrance.id))
-      biomeRooms  = buildBiomeSegments(biomeCount.max(1), totalRooms.max(0), Set(entrance.id, boss.id))
-      ordered     = entrance :: biomeRooms ::: List(boss)
-      dungeon    <- wire(ordered)
+      biomeSegs   = buildBiomeSegments(biomeCount.max(1), totalRooms.max(0), Set(entrance.id, boss.id))
+      ordered     = Segment.Linear(entrance) :: biomeSegs ::: List(Segment.Linear(boss))
+      dungeon    <- wireSegments(ordered)
       withVaults <- injectVaultRooms(dungeon)
     yield rollEliteEnemies(withVaults, difficulty)
 
-  /** Builds the room list between entrance and boss: `biomeCount` groups of `perBiome` middle
+  /** Builds the segment list between entrance and boss: `biomeCount` groups of `perBiome` middle
    * rooms, each pair of consecutive biomes separated by a [[RoomType.MiniBoss]] room where the
    * pool has one left to give - if not (including a pool with no MiniBoss room authored at all),
    * that boundary is silently skipped and the two biomes' rooms simply run together as one longer
    * stretch, rather than failing the whole build over missing optional structure. Mirrors
    * [[pickMiddle]]'s own existing "degrade gracefully, don't fail" behavior for an under-sized
-   * middle-room pool. `exclude` accumulates across every biome and every MiniBoss pick, so nothing
-   * repeats anywhere in the run - still linear overall, no branching yet (that's later, separate
-   * work built on top of this same room-list shape).
+   * middle-room pool. `exclude` accumulates across every biome, every fork cluster, and every
+   * MiniBoss pick, so nothing repeats anywhere in the run.
    */
-  private def buildBiomeSegments(biomeCount: Int, perBiome: Int, exclude: Set[String]): List[Room] =
+  private def buildBiomeSegments(biomeCount: Int, perBiome: Int, exclude: Set[String]): List[Segment] =
     @annotation.tailrec
-    def loop(biomesLeft: Int, exclude: Set[String], acc: List[Room]): List[Room] =
+    def loop(biomesLeft: Int, exclude: Set[String], acc: List[Segment]): List[Segment] =
       if biomesLeft <= 0 then acc
       else
-        val biomeRooms = pickMiddle(perBiome, exclude).getOrElse(Nil)
-        val afterBiome = exclude ++ biomeRooms.map(_.id)
-        if biomesLeft == 1 then acc ::: biomeRooms
+        val biomeRooms                = pickMiddle(perBiome, exclude).getOrElse(Nil)
+        val afterBiome                = exclude ++ biomeRooms.map(_.id)
+        val (biomeSegments, afterFork) = insertFork(biomeRooms, afterBiome)
+        if biomesLeft == 1 then acc ::: biomeSegments
         else
-          pickOne(RoomType.MiniBoss, afterBiome) match
-            case Left(_)         => loop(biomesLeft - 1, afterBiome, acc ::: biomeRooms)
-            case Right(miniBoss) => loop(biomesLeft - 1, afterBiome + miniBoss.id, acc ::: biomeRooms ::: List(miniBoss))
+          pickOne(RoomType.MiniBoss, afterFork) match
+            case Left(_) => loop(biomesLeft - 1, afterFork, acc ::: biomeSegments)
+            case Right(miniBoss) =>
+              loop(biomesLeft - 1,
+                   afterFork + miniBoss.id,
+                   acc ::: biomeSegments ::: List(Segment.Linear(miniBoss))
+              )
     loop(biomeCount, exclude, Nil)
+
+  /** Try to splice one branching cluster into a random position of this biome's already-picked
+   * linear room list: a [[RoomType.Fork]] room plus 2 distinct branch rooms drawn from the same
+   * middle-room pool [[pickMiddle]] uses, none repeating any room already used elsewhere in the
+   * run. Falls back to a purely linear segment list (no branching this biome) if the pool can't
+   * support it - same "degrade gracefully, don't fail the whole build" philosophy as
+   * [[buildBiomeSegments]]'s own MiniBoss handling. No dedicated "merge" room content is needed:
+   * both branch rooms simply become this segment's `exitRooms`, wired forward to whatever
+   * ordinary room follows next by [[wireSegments]] - the room after the fork never needs to know
+   * which of the two branches the player actually came from.
+   */
+  private def insertFork(biomeRooms: List[Room], exclude: Set[String]): (List[Segment], Set[String]) =
+    val branches = pickMiddle(2, exclude).getOrElse(Nil)
+    (pickOne(RoomType.Fork, exclude).toOption, branches) match
+      case (Some(fork), List(branchA, branchB)) =>
+        val position        = rng.nextInt(biomeRooms.size + 1)
+        val (before, after) = biomeRooms.splitAt(position)
+        val segments =
+          before.map(Segment.Linear(_)) ::: List(Segment.Fork(fork, branchA, branchB)) ::: after.map(Segment.Linear(_))
+        (segments, exclude + fork.id + branchA.id + branchB.id)
+      case _ =>
+        (biomeRooms.map(Segment.Linear(_)), exclude)
 
   /** Wire an explicit topology instead of `build`'s random linear-chain selection: every room id
    * mentioned in `edges` or `entranceId` is looked up in `pool`, then each edge resolves the
    * matching (role, branch) door on its `from` room to its `to` room, via the same [[resolveLinks]]
-   * primitive `wire` uses for the linear case.
+   * primitive [[wireSegments]] uses for the linear case.
    *
    * Proof-of-concept for Phase 4's branching dungeons (fork/merge rooms): demonstrates that
    * primitive already generalizes to a non-linear shape without further changes, now that a room
@@ -116,24 +144,68 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
 
   private val midTypes = Set(RoomType.Combat, RoomType.Loot, RoomType.Rest)
 
-  /** Wire the ordered room list into a Dungeon by resolving every Unresolved [[Door]] link:
-   * each room's Next-role doors point forward to the next room in the list; the next room's
-   * Prev-role doors point back to it. Every door sharing a (role, branch) key in a room resolves
-   * to the same neighbor (a room can have more than one Next door - e.g. a secret or trapped
-   * alternate exit alongside the main one), not just the first match.
+  /** One node in the room sequence [[wireSegments]] connects end-to-end. A `Linear` segment
+   * behaves exactly like a single room in the old purely-linear chain; a `Fork` segment bundles a
+   * [[RoomType.Fork]] room with its two branch destinations - the fork room is this segment's
+   * single entry point (wired from whatever precedes it), and both branches are its exit points
+   * (each wired forward to whatever follows, converging on the same next room).
    */
-  private def wire(rooms: List[Room]): Either[String, Dungeon] =
-    if rooms.isEmpty then return Left("Cannot wire an empty room list.")
+  private enum Segment:
+    case Linear(room: Room)
+    case Fork(fork: Room, branchA: Room, branchB: Room)
 
-    // For each consecutive pair (A, B): A's Next doors point to B, B's Prev doors point to A
-    val wired = rooms.sliding(2).foldLeft(rooms.map(r => r.id -> r).toMap):
+    /** Every room belonging to this segment, used to seed the room map [[wireSegments]] mutates. */
+    def rooms: List[Room] = this match
+      case Linear(room)     => List(room)
+      case Fork(fork, a, b) => List(fork, a, b)
+
+    /** The single room whose Prev door(s) connect back to the previous segment. */
+    def entryRoom: Room = this match
+      case Linear(room)     => room
+      case Fork(fork, _, _) => fork
+
+    /** The room(s) whose Next door(s) connect forward to the next segment. */
+    def exitRooms: List[Room] = this match
+      case Linear(room)  => List(room)
+      case Fork(_, a, b) => List(a, b)
+
+  /** Wire an ordered sequence of segments into a Dungeon by resolving every Unresolved [[Door]]
+   * link. Generalizes the old purely-linear per-pair wiring to also handle a [[Segment.Fork]]'s
+   * branch-and-reconverge shape: first each Fork segment's own internal doors are wired (the fork
+   * room's two branch-tagged Next doors to its two branches, each branch's Prev door back to the
+   * fork room), then every consecutive pair of segments is wired exactly like the old linear case
+   * - for each of segment A's `exitRooms`, its Next door points to segment B's single `entryRoom`,
+   * and that door's Prev points back. When A has 2 exit rooms (a Fork segment), both attempt to
+   * set B's entryRoom's Prev door - only the first actually resolves it (see [[resolveLinks]]),
+   * the second is a harmless no-op. This means a room right after a fork cluster has a Prev door
+   * pointing at only one of the two branches, not both - accepted, since nothing reads "which
+   * branch did the player actually take" from that door once resolved (findSpawnPoint only cares
+   * about travel direction, not which room sent the player).
+   */
+  private def wireSegments(segments: List[Segment]): Either[String, Dungeon] =
+    if segments.isEmpty then return Left("Cannot wire an empty segment list.")
+
+    val initial = segments.flatMap(_.rooms).map(r => r.id -> r).toMap
+
+    val withForkInternals = segments.foldLeft(initial):
+      case (acc, Segment.Fork(fork, branchA, branchB)) =>
+        val wiredFork = List("a" -> branchA, "b" -> branchB).foldLeft(acc(fork.id)):
+          case (f, (branch, dest)) => resolveLinks(f, ConnectorRole.Next, Some(branch), dest.id)
+        val wiredA = resolveLinks(acc(branchA.id), ConnectorRole.Prev, None, fork.id)
+        val wiredB = resolveLinks(acc(branchB.id), ConnectorRole.Prev, None, fork.id)
+        acc.updated(fork.id, wiredFork).updated(branchA.id, wiredA).updated(branchB.id, wiredB)
+      case (acc, Segment.Linear(_)) => acc
+
+    val wired = segments.sliding(2).foldLeft(withForkInternals):
       case (acc, List(a, b)) =>
-        val updatedA = resolveLinks(acc(a.id), role = ConnectorRole.Next, branch = None, roomId = b.id)
-        val updatedB = resolveLinks(acc(b.id), role = ConnectorRole.Prev, branch = None, roomId = a.id)
-        acc.updated(a.id, updatedA).updated(b.id, updatedB)
+        a.exitRooms.foldLeft(acc):
+          case (acc2, exitRoom) =>
+            val updatedExit  = resolveLinks(acc2(exitRoom.id), ConnectorRole.Next, None, b.entryRoom.id)
+            val updatedEntry = resolveLinks(acc2(b.entryRoom.id), ConnectorRole.Prev, None, exitRoom.id)
+            acc2.updated(exitRoom.id, updatedExit).updated(b.entryRoom.id, updatedEntry)
       case (acc, _) => acc
 
-    Right(Dungeon(rooms = wired, currentRoomId = rooms.head.id))
+    Right(Dungeon(rooms = wired, currentRoomId = segments.head.entryRoom.id))
 
   /** Resolve every Unresolved door in a room matching the given (role, branch) key to `roomId`. */
   private def resolveLinks(room: Room, role: ConnectorRole, branch: Option[String], roomId: String): Room =

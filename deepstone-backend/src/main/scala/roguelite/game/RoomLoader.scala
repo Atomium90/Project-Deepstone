@@ -70,9 +70,11 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
           role      <- ConnectorRole.fromString(roleStr)
           doorKind  <- parseDoorKind(ej.doorKind.getOrElse("normal"))
         yield
+          // `branch` distinguishes multiple doors sharing the same role in one room - a Fork
+          // room's two "next" exits (see RoomType.Fork). None for every other door authored so far.
           val link = ej.targetRoomId match {
-            case Some(roomId) => DoorLink.Resolved(role, branch = None, roomId = roomId)
-            case None         => DoorLink.Unresolved(role, branch = None)
+            case Some(roomId) => DoorLink.Resolved(role, branch = ej.branch, roomId = roomId)
+            case None         => DoorLink.Unresolved(role, branch = ej.branch)
           }
           Door(id = ej.id,
                x = ej.x,
@@ -134,6 +136,7 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       label: Option[String] = None,
       direction: Option[String] = None,
       role: Option[String] = None,
+      branch: Option[String] = None,
       targetRoomId: Option[String] = None,
       trapped: Option[Boolean] = None,
       doorKind: Option[String] = None,
@@ -163,13 +166,14 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
         label        <- c.get[Option[String]]("label")
         direction    <- c.get[Option[String]]("direction")
         role         <- c.get[Option[String]]("role")
+        branch       <- c.get[Option[String]]("branch")
         targetRoomId <- c.get[Option[String]]("targetRoomId")
         trapped      <- c.get[Option[Boolean]]("trapped")
         doorKind     <- c.get[Option[String]]("doorKind")
         revealed     <- c.get[Option[Boolean]]("revealed")
         doorTag      <- c.get[Option[String]]("doorTag")
         name         <- c.get[Option[String]]("name")
-      yield EntityJson(kind, id, x, y, typeId, label, direction, role, targetRoomId, trapped, doorKind, revealed, doorTag, name)
+      yield EntityJson(kind, id, x, y, typeId, label, direction, role, branch, targetRoomId, trapped, doorKind, revealed, doorTag, name)
 
   private given Decoder[RoomJson] = Decoder.instance:
     (c: HCursor) =>

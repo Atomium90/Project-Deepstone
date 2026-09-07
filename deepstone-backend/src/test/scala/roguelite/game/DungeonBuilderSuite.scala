@@ -131,6 +131,90 @@ class DungeonBuilderSuite extends FunSuite:
     assertEquals(dungeon.rooms.size, 6) // entrance + 2 + 2 + boss, no checkpoint in between
 
   // ---------------------------------------------
+  // Fork branching
+  // ---------------------------------------------
+
+  def forkExitDoor(branch: String): Door =
+    Door(id = s"door_exit_$branch",
+         x = 4,
+         y = 5,
+         direction = Direction.Down,
+         link = DoorLink.Unresolved(ConnectorRole.Next, Some(branch))
+    )
+
+  /** 6 plain combat rooms (comfortably more than any single test here consumes: 1 entrance + up to
+    * 2 biome middle rooms + 2 fork branches, with room to spare), 1 boss room, and 1 Fork room with
+    * two branch-tagged exits - enough for `insertFork` to always succeed regardless of shuffle
+    * order. */
+  def forkTestPool: Map[String, Room] = Map(
+    "c1" -> makeRoom("c1", RoomType.Combat, List(exitDoor())),
+    "c2" -> makeRoom("c2", RoomType.Combat, List(entranceDoor(), exitDoor())),
+    "c3" -> makeRoom("c3", RoomType.Combat, List(entranceDoor(), exitDoor())),
+    "c4" -> makeRoom("c4", RoomType.Combat, List(entranceDoor(), exitDoor())),
+    "c5" -> makeRoom("c5", RoomType.Combat, List(entranceDoor(), exitDoor())),
+    "c6" -> makeRoom("c6", RoomType.Combat, List(entranceDoor(), exitDoor())),
+    "b1" -> makeRoom("b1", RoomType.Boss, List(entranceDoor())),
+    "f1" -> makeRoom("f1", RoomType.Fork, List(entranceDoor(), forkExitDoor("a"), forkExitDoor("b")))
+  )
+
+  /** Every Next-role door's (branch, resolved target) pair in a room - used to inspect a Fork
+    * room's two branch-tagged exits, or a branch room's single unbranched one. */
+  def resolvedNextTargets(room: Room): Map[Option[String], String] =
+    room.entities
+      .collect { case d: Door if d.link.role == ConnectorRole.Next => d.link }
+      .collect { case DoorLink.Resolved(_, branch, target) => branch -> target }
+      .toMap
+
+  def forkBuilder(seed: Long = 1L): DungeonBuilder = DungeonBuilder(forkTestPool, Random(seed))
+
+  test("a Fork room is spliced into the dungeon when the pool supports it"):
+    val dungeon = forkBuilder().build(totalRooms = 2, biomeCount = 1).getOrElse(fail("build failed"))
+    assert(dungeon.rooms.values.exists(_.roomType == RoomType.Fork), s"expected a Fork room: ${dungeon.rooms.keys}")
+
+  test("a fork cluster adds exactly 3 rooms (fork + 2 branches) on top of the biome's own middle rooms"):
+    val dungeon = forkBuilder().build(totalRooms = 2, biomeCount = 1).getOrElse(fail("build failed"))
+    assertEquals(dungeon.rooms.size, 7) // entrance + 2 middle + (fork + 2 branches) + boss
+
+  test("the fork's two branch-tagged Next doors resolve to two distinct rooms"):
+    val dungeon = forkBuilder().build(totalRooms = 2, biomeCount = 1).getOrElse(fail("build failed"))
+    val fork    = dungeon.rooms.values.find(_.roomType == RoomType.Fork).getOrElse(fail("expected a Fork room"))
+    val targets = resolvedNextTargets(fork)
+    assertEquals(targets.keySet, Set(Some("a"), Some("b")))
+    assertNotEquals(targets(Some("a")), targets(Some("b")))
+
+  test("both branch rooms' Prev doors resolve back to the fork room"):
+    val dungeon = forkBuilder().build(totalRooms = 2, biomeCount = 1).getOrElse(fail("build failed"))
+    val fork    = dungeon.rooms.values.find(_.roomType == RoomType.Fork).getOrElse(fail("expected a Fork room"))
+    val branchIds = resolvedNextTargets(fork).values.toSet
+    branchIds.foreach: id =>
+      val branchRoom = dungeon.rooms(id)
+      val prevTarget = branchRoom.entities
+        .collect { case d: Door if d.link.role == ConnectorRole.Prev => d.link }
+        .collectFirst { case DoorLink.Resolved(_, _, target) => target }
+      assertEquals(prevTarget, Some(fork.id), s"expected branch room $id to point back to the fork")
+
+  test("both branch rooms' Next doors converge on the same next room"):
+    val dungeon   = forkBuilder().build(totalRooms = 2, biomeCount = 1).getOrElse(fail("build failed"))
+    val fork      = dungeon.rooms.values.find(_.roomType == RoomType.Fork).getOrElse(fail("expected a Fork room"))
+    val branchIds = resolvedNextTargets(fork).values.toList
+    val nextTargets = branchIds.map: id =>
+      resolvedNextTargets(dungeon.rooms(id)).get(None)
+    assertEquals(nextTargets.distinct.size, 1, s"expected both branches to converge on one room: $nextTargets")
+    assert(nextTargets.head.isDefined, "expected the convergence target to actually be resolved")
+
+  test("no room id is repeated in a dungeon that includes a fork cluster"):
+    val dungeon = forkBuilder().build(totalRooms = 2, biomeCount = 1).getOrElse(fail("build failed"))
+    assertEquals(dungeon.rooms.size, dungeon.rooms.keys.toSet.size)
+
+  test("build still succeeds, no branching, when the pool has no Fork room"):
+    val poolWithoutFork = forkTestPool.filterNot(_._2.roomType == RoomType.Fork)
+    val dungeon = DungeonBuilder(poolWithoutFork, Random(1L))
+      .build(totalRooms = 2, biomeCount = 1)
+      .getOrElse(fail("build failed"))
+    assert(!dungeon.rooms.values.exists(_.roomType == RoomType.Fork))
+    assertEquals(dungeon.rooms.size, 4) // entrance + 2 middle + boss, no branching
+
+  // ---------------------------------------------
   // Door wiring
   // ---------------------------------------------
 

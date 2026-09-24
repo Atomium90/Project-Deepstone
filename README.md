@@ -75,6 +75,33 @@ User input
   → UI re-renders
 ```
 
+## Content authoring: previewing a Tiled room
+
+Rooms are authored in [Tiled](https://www.mapeditor.org/) and converted to `rooms.json` entries by
+`frontend/scripts/convert-tiled-room.mjs` (full setup instructions - map properties, layer names,
+tile/entity custom properties - are documented at the top of that script). Once you've built a
+room in Tiled, you can load it straight into a live session to check it before touching
+`rooms.json` at all:
+
+```bash
+cd frontend
+node scripts/convert-tiled-room.mjs path/to/your-room.tmx \
+  --id=your_room_id --roomType=combat --theme=dungeon \
+  --out=../deepstone-backend/debug-rooms/your_room_id.json
+```
+
+(Add `--placeholder-sprites` if you haven't finished assigning `sprite` properties to every tile
+yet and just want to check the room's geometry/doors/entities first.)
+
+With the backend running (`sbt run` / `run-dev.ps1`), the Hub screen shows a "⚠ Debug Rooms
+(dev only)" row listing every file currently in `deepstone-backend/debug-rooms/` - click one to
+drop straight into that single room, bypassing the normal dungeon generation entirely. The folder
+is read fresh on every click, so you can re-run the conversion command above and click the button
+again to see your latest changes with no server restart needed - convert a batch of rooms into
+that folder up front and switch between them freely while iterating. `debug-rooms/` is gitignored:
+it's a local scratch folder for previewing content, never real, shippable game data. Once a room
+is finished, delete its file from `debug-rooms/` and paste its JSON into `rooms.json` instead.
+
 ## Credits
 
 Third-party art assets and their licenses are listed in [CREDITS.md](CREDITS.md).

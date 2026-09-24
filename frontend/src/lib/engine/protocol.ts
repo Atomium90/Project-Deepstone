@@ -5,7 +5,7 @@
 export type Direction = "UP" | "DOWN" | "LEFT" | "RIGHT";
 export type GamePhase = "HUB" | "EXPLORATION" | "COMBAT" | "GAMEOVER";
 export type CombatActionType = "ATTACK" | "ABILITY" | "ITEM" | "DEFEND";
-export type HubActionType = "STARTRUN" | "BUYUPGRADE" | "RETURNTOHUB";
+export type HubActionType = "STARTRUN" | "BUYUPGRADE" | "RETURNTOHUB" | "DEBUGLOADROOM";
 export type ClassId = "warrior" | "archer" | "mage";
 export type Difficulty = "easy" | "normal" | "hard";
 export type UpgradeCategory = "stat" | "meta";
@@ -49,6 +49,8 @@ export interface HubAction {
   upgradeId?: string;
   difficulty?: Difficulty;
   perkId?: string;
+  /** Only meaningful for DEBUGLOADROOM - dev tooling only, see StateUpdate.debugRooms. */
+  debugRoomId?: string;
 }
 
 /** Resolve a pending equip choice. `targetSlot` omitted means "keep what's currently equipped,
@@ -337,4 +339,9 @@ export interface StateUpdate {
   /** Sound cue tags (e.g. "pickup", "door_open") produced by the action that generated this
    * update. Transient, same convention as `damageEvents`. */
   soundEvents: string[];
+  /** Dev tooling only: ids of hand-converted Tiled rooms available under the backend's
+   * `debug-rooms/` folder (see `frontend/scripts/convert-tiled-room.mjs`), offered as one-click
+   * "load this room" buttons in the hub. Only ever populated while `phase === "HUB"` - empty
+   * everywhere else, and empty in a packaged build where that folder doesn't exist at all. */
+  debugRooms: string[];
 }

@@ -79,6 +79,39 @@ object RoomType:
   *   Row-major tile grid. Invariant: tiles.length == height, tiles(n).length == width for all n.
   * @param entities
   *   All interactive objects currently present in the room.
+  * @param theme
+  *   Which sprite set the client should render this room with (e.g. "dungeon", "darkDungeon") -
+  *   purely a client-side rendering concern, never read by any server-side logic. Defaults to
+  *   "dungeon" so every room authored before this field existed keeps rendering exactly as before
+  *   without needing a `rooms.json` edit.
+  * @param floorSprite
+  *   Row-major grid the same shape as `tiles`, one optional explicit floor sprite override per
+  *   cell - meaningful for *every* cell regardless of `tiles(row)(col)`, since a wall cell still
+  *   has a floor drawn underneath it (see Renderer.ts's `drawTiles`: floor first, then the wall
+  *   sprite on top - many wall sprites have transparent padding specifically so the floor shows
+  *   through around them). `None` means "use the room's `theme` default floor" (the original,
+  *   pre-Tiled-pipeline behavior every hand-authored `rooms.json` room still relies on);
+  *   `Some(key)` names a specific atlas sprite. Defaults to an empty grid (not one sized to
+  *   `width`/`height` - a default parameter can't reference sibling parameters), equivalent to an
+  *   all-`None` grid for every purpose that reads it (every lookup is defensive against a short/
+  *   missing row) - [[RoomLoader]] always resolves this to a properly `width`x`height`-shaped grid
+  *   for real content, this default only matters for a `Room` built directly (tests, fixtures).
+  * @param wallSprite
+  *   Row-major grid the same shape as `tiles`, one optional explicit wall sprite override per
+  *   cell - only meaningful where `tiles(row)(col) == Tile.Wall` (ignored otherwise). `None` means
+  *   "use the room's `theme` default wall"; `Some(key)` names a specific atlas sprite that always
+  *   renders exactly as authored - a column, a torch-embedded wall segment, or any other cell the
+  *   author placed deliberately rather than letting the renderer infer it. Same empty-default
+  *   caveat as `floorSprite`.
+  * @param decoration
+  *   Row-major grid the same shape as `tiles`, one optional sprite drawn *in addition to*, on top
+  *   of, whatever `floorSprite`/`wallSprite`/the theme default already resolved for that cell -
+  *   never a replacement the way those are. For something that has to coexist with the real floor
+  *   or wall sprite underneath it, not swap it out (a column's top/bottom cap tapering into an
+  *   otherwise ordinary floor tile, say) - a single Tiled tile layer can only hold one tile per
+  *   cell, so this exists specifically for content authored on a second, sparser tile layer drawn
+  *   after the base one. Almost entirely `None` for a typical room. Same empty-default caveat as
+  *   `floorSprite` - real content always comes through [[RoomLoader]] properly shaped.
   */
 case class Room(
     id: String,
@@ -86,7 +119,11 @@ case class Room(
     width: Int,
     height: Int,
     tiles: Vector[Vector[Tile]],
-    entities: List[Entity]
+    entities: List[Entity],
+    theme: String = "dungeon",
+    floorSprite: Vector[Vector[Option[String]]] = Vector.empty,
+    wallSprite: Vector[Vector[Option[String]]] = Vector.empty,
+    decoration: Vector[Vector[Option[String]]] = Vector.empty
 ):
   /** Check whether a tile coordinate is within the room bounds. */
   def inBounds(x: Int, y: Int): Boolean =
@@ -175,6 +212,10 @@ case class Room(
       tiles = tiles.map(
         row => row.map(_.toProtocolString)
       ),
+      theme = theme,
+      floorSprite = floorSprite,
+      wallSprite = wallSprite,
+      decoration = decoration,
       entities = entities.filter(isVisible).map {
         case e: Enemy => e.toView.copy(spriteId = enemyStats.get(e.typeId).map(_.spriteId))
         case other    => other.toView

@@ -108,7 +108,7 @@ case class Door(
     revealed: Boolean = true
 ) extends Entity:
   def toView: EntityView =
-    EntityView(id = id, kind = "door", x = x, y = y, label = direction.toString)
+    EntityView(id = id, kind = "door", x = x, y = y, label = direction.toString, direction = Some(direction.toString.toUpperCase))
 
 /** A passage gated by a matching [[Key]] in the player's inventory. Once `unlocked`, behaves
   * exactly like a normal [[Door]].
@@ -126,7 +126,7 @@ case class LockedDoor(
     unlocked: Boolean = false
 ) extends Entity:
   def toView: EntityView =
-    EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString)
+    EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString, direction = Some(direction.toString.toUpperCase))
 
 /** A static, friendly character. Interacting with it shows one line of dialogue and advances to the
   * next on later interactions - see [[InteractionResolver]] for the cooldown/rotation rules.

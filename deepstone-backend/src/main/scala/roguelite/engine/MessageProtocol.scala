@@ -159,7 +159,13 @@ case class EntityView(
     y: Int,
     label: String, // display name shown in the UI
     spriteId: Option[String] = None,
-    isElite: Option[Boolean] = None
+    isElite: Option[Boolean] = None,
+    /** Only set for "door"/"locked_door" - "UP"/"DOWN"/"LEFT"/"RIGHT", which wall of the room
+      * this door sits on. The client needs this to orient its 2-tile door sprite correctly (the
+      * sprite's native art faces a top-wall door; every other wall rotates/flips it - see
+      * Renderer.ts's drawDoor).
+      */
+    direction: Option[String] = None
 )
 
 /** One line of NPC dialogue to show the player, produced by an [[Interact]] on an [[roguelite.game.Npc]].
@@ -167,12 +173,34 @@ case class EntityView(
   */
 case class DialogueView(npcName: String, line: String)
 
-/** The current room's layout and its entities. */
+/** The current room's layout and its entities.
+  *
+  * @param theme
+  *   Which client-side sprite set to render this room with (e.g. "dungeon", "darkDungeon") - see
+  *   [[roguelite.game.Room]]'s own doc.
+  * @param floorSprite
+  *   Same shape as `tiles`, one optional explicit floor sprite key per cell - meaningful
+  *   regardless of whether that cell is "floor" or "wall" (a wall cell still has a floor drawn
+  *   underneath it client-side). `None` means "use the room's `theme` default floor". See
+  *   [[roguelite.game.Room]]'s own doc for the full authoring picture.
+  * @param wallSprite
+  *   Same shape as `tiles`, one optional explicit wall sprite key per cell - only meaningful where
+  *   `tiles` is "wall". `None` means "use the room's `theme` default wall". See
+  *   [[roguelite.game.Room]]'s own doc.
+  * @param decoration
+  *   Same shape as `tiles` again, one optional sprite drawn *on top of* whatever `floorSprite`/
+  *   `wallSprite`/the theme default already resolved for that cell - never a replacement. See
+  *   [[roguelite.game.Room]]'s own doc.
+  */
 case class RoomView(
     roomId: String,
     width: Int,
     height: Int,
     tiles: Vector[Vector[String]], // "floor" | "wall"
+    theme: String,
+    floorSprite: Vector[Vector[Option[String]]],
+    wallSprite: Vector[Vector[Option[String]]],
+    decoration: Vector[Vector[Option[String]]],
     entities: List[EntityView],
     playerX: Int,
     playerY: Int

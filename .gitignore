@@ -36,6 +36,11 @@ playwright-report/
 # regenerated every build, never hand-edited.
 deepstone-backend/src/main/resources/static/
 
+# Debug rooms for the hub's "Debug Rooms" dev tool (frontend/scripts/convert-tiled-room.mjs
+# --out=... points here) - scratch files for previewing a room while authoring it, never real,
+# shippable content.
+deepstone-backend/debug-rooms/
+
 # Licensed files ignored for licensing reasons - see CREDITS.md
 frontend/public/audio/music/boss_soulrend_sovereign.ogg
 frontend/public/audio/music/boss_ruinlord_ascendant.ogg

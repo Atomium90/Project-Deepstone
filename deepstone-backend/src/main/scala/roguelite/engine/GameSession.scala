@@ -12,7 +12,10 @@ import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.PerkDef
+import roguelite.game.RoomLoader
 
+import java.nio.file.{ Files, Path }
+import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
 /** Represents one active player connection.
@@ -51,24 +54,28 @@ class GameSession private (
     */
   def handle(action: PlayerAction): IO[StateUpdate] =
     val result = action match
-      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _) =>
+      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _, _) =>
         handleBuyUpgrade(upgradeId)
+      case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId)) =>
+        handleDebugLoadRoom(roomId)
       case _ =>
         handleTransition(action)
     for
       update   <- result
       state    <- stateRef.get
       progress <- achievementRef.get
-    yield withAbilityCost(withAchievements(withCatalog(update), progress), state)
+      withDebug <- withDebugRooms(update, state)
+    yield withAbilityCost(withAchievements(withCatalog(withDebug), progress), state)
 
   /** Return the current state snapshot without changing anything. Useful for sending the initial
     * state right after connection.
     */
   def currentUpdate: IO[StateUpdate] =
     for
-      state    <- stateRef.get
-      progress <- achievementRef.get
-    yield withAbilityCost(withAchievements(withCatalog(state.toStateUpdate()), progress), state)
+      state     <- stateRef.get
+      progress  <- achievementRef.get
+      withDebug <- withDebugRooms(state.toStateUpdate(), state)
+    yield withAbilityCost(withAchievements(withCatalog(withDebug), progress), state)
 
   /** Resolve `CombatView.abilityCost` against the player's live set/perk discounts (see
     * [[roguelite.game.AbilityDef.effectiveCost]]) - a no-op outside combat, or if the player's
@@ -104,6 +111,16 @@ class GameSession private (
 
   private def toAchievementView(d: AchievementDef, unlocked: Boolean): AchievementView =
     AchievementView(id = d.id, label = d.label, description = d.description, unlocked = unlocked)
+
+  /** Dev tooling only: attaches the list of hand-converted Tiled rooms currently sitting in the
+    * backend's `debug-rooms/` folder, so the hub can offer one-click "load this room" buttons (see
+    * `handleDebugLoadRoom`). Only scanned while in the hub - irrelevant, and not worth an extra
+    * directory read, on every mid-run action.
+    */
+  private def withDebugRooms(update: StateUpdate, state: GameState): IO[StateUpdate] =
+    state match
+      case _: HubState => GameSession.listDebugRooms().map(ids => update.copy(debugRooms = ids))
+      case _            => IO.pure(update)
 
   // -----------------------------------------------------------------------
   // Internal: transition handling
@@ -269,6 +286,43 @@ class GameSession private (
           yield newState.toStateUpdate(List(s"$label purchased!")).copy(newlyUnlocked = newlyUnlocked)
     yield update
 
+  /** Dev tooling only: loads one hand-converted Tiled room from `debug-rooms/<roomId>.json` and
+    * drops the player straight into it, bypassing `DungeonBuilder` entirely - see
+    * `frontend/scripts/convert-tiled-room.mjs` for how that file gets produced. Reading the file
+    * needs IO, same reason `BuyUpgrade` is intercepted here rather than in the pure `StateMachine`.
+    * Only valid from the hub (mirrors `StartRun`'s own state gating); any failure (missing file,
+    * bad JSON, no room in it) is reported as a log message on the unchanged hub state rather than
+    * crashing the session, same discipline as an invalid upgrade purchase.
+    */
+  private def handleDebugLoadRoom(roomId: String): IO[StateUpdate] =
+    for
+      state <- stateRef.get
+      update <- state match
+        case hub: HubState =>
+          GameSession.readDebugRoomFile(roomId).attempt.flatMap {
+            case Left(err) =>
+              IO.pure(hub.toStateUpdate(List(s"Debug room \"$roomId\" not found (${err.getMessage}).")))
+            case Right(json) =>
+              RoomLoader.loadAllFromJson(s"[$json]").attempt.flatMap {
+                case Left(err) =>
+                  IO.pure(hub.toStateUpdate(List(s"Debug room \"$roomId\" failed to parse: ${err.getMessage}")))
+                case Right(rooms) =>
+                  rooms.values.headOption match
+                    case None =>
+                      IO.pure(hub.toStateUpdate(List(s"Debug room file \"$roomId\" contained no room.")))
+                    case Some(room) =>
+                      stateMachine.loadDebugRoom(hub.player, room) match
+                        case Left(err) =>
+                          IO.pure(hub.toStateUpdate(List(s"Debug room \"$roomId\" failed to load: $err")))
+                        case Right(nextState) =>
+                          stateRef.set(nextState) *>
+                            IO.pure(nextState.toStateUpdate(List(s"Loaded debug room \"$roomId\".")))
+              }
+          }
+        case _ =>
+          IO.pure(state.toStateUpdate(List("Debug rooms can only be loaded from the hub.")))
+    yield update
+
   /** Apply every unlocked upgrade's [[UpgradeEffect]] to the player at the start of a new run.
     *
     * Generic over the effect kind: adding a new upgrade only means adding an entry to
@@ -385,6 +439,33 @@ object GameSession:
 
   /** Number of perks offered per hub visit, out of the full catalog. */
   private val PerkOptionsCount = 3
+
+  /** Dev tooling only: where `frontend/scripts/convert-tiled-room.mjs --out=...` output is meant
+    * to be pointed at. Resolved relative to the backend's own working directory (`sbt run` /
+    * the packaged launcher both run from `deepstone-backend/`), gitignored - never real,
+    * shippable game content, just a local scratch folder for previewing a room while authoring it.
+    */
+  private val DebugRoomsDir: Path = Path.of("debug-rooms")
+
+  private def listDebugRooms(): IO[List[String]] =
+    IO.blocking {
+      if Files.isDirectory(DebugRoomsDir) then
+        val listing = Files.list(DebugRoomsDir)
+        try
+          listing
+            .iterator()
+            .asScala
+            .map(_.getFileName.toString)
+            .filter(_.endsWith(".json"))
+            .map(_.stripSuffix(".json"))
+            .toList
+            .sorted
+        finally listing.close()
+      else Nil
+    }.handleErrorWith(_ => IO.pure(Nil))
+
+  private def readDebugRoomFile(roomId: String): IO[String] =
+    IO.blocking(Files.readString(DebugRoomsDir.resolve(s"$roomId.json")))
 
   private def toAbilityView(a: AbilityDef): AbilityView =
     AbilityView(

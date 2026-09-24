@@ -19,7 +19,7 @@ enum CombatActionType:
   case Attack, Ability, Item, Defend
 
 enum HubActionType:
-  case StartRun, BuyUpgrade, ReturnToHub
+  case StartRun, BuyUpgrade, ReturnToHub, DebugLoadRoom
 
 enum ClassId:
   case Warrior, Archer, Mage
@@ -92,13 +92,21 @@ case class CombatAction(
     itemId: Option[String] = None
 ) extends PlayerAction
 
-/** Perform a hub action (start a run, buy an upgrade, or return to hub after game over). */
+/** Perform a hub action (start a run, buy an upgrade, return to hub after game over, or - dev
+  * tooling only - load a single hand-converted Tiled room for a live preview).
+  */
 case class HubAction(
     action: HubActionType,
     classId: Option[ClassId] = None,
     upgradeId: Option[String] = None,
     difficulty: Option[Difficulty] = None,
-    perkId: Option[String] = None
+    perkId: Option[String] = None,
+    /** Only meaningful for `DebugLoadRoom` - the id of a room file under the backend's
+      * `debug-rooms/` folder (see [[roguelite.engine.GameSession.handleDebugLoadRoom]]), without
+      * the `.json` extension. The available ids are advertised to the client via
+      * [[StateUpdate.debugRooms]].
+      */
+    debugRoomId: Option[String] = None
 ) extends PlayerAction
 
 /** Resolve a pending equip choice (see [[PendingEquipChoiceView]]). `targetSlot = None` means
@@ -419,7 +427,14 @@ case class StateUpdate(
       * update. Transient, same convention as [[damageEvents]]. Plain strings rather than a
       * wrapper view: there's no extra structure to carry, just a client-side sound lookup key.
       */
-    soundEvents: List[String] = Nil
+    soundEvents: List[String] = Nil,
+    /** Dev tooling only: ids of hand-converted Tiled rooms available under the backend's
+      * `debug-rooms/` folder, offered as one-click buttons in the hub (see
+      * [[roguelite.engine.GameSession.handleDebugLoadRoom]]). Only ever populated while
+      * `phase == Hub` - empty everywhere else, and empty in a packaged build where that folder
+      * doesn't exist at all.
+      */
+    debugRooms: List[String] = Nil
 )
 
 // ---------------------------------------------

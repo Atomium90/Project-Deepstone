@@ -104,6 +104,9 @@ export interface EntityView {
   /** Only set for enemies. Rolled once per run at dungeon build time - unlike a trapped chest or
    * secret door, Elite status is meant to be visible before the player engages, not a surprise. */
   isElite?: boolean;
+  /** Only set for "door"/"locked_door" - which wall of the room this door sits on. Used to
+   * orient the 2-tile door sprite (see Renderer.ts's drawDoor). */
+  direction?: "UP" | "DOWN" | "LEFT" | "RIGHT";
 }
 
 /** One line of NPC dialogue, shown in a transient overlay. Only present on the single
@@ -118,6 +121,21 @@ export interface RoomView {
   width: number;
   height: number;
   tiles: string[][]; // "floor" | "wall"
+  /** Which client-side sprite set to render this room with (e.g. "dungeon", "darkDungeon"). */
+  theme: string;
+  /** Same shape as `tiles` - meaningful for every cell regardless of `tiles`' own value, since a
+   * wall cell still has a floor drawn underneath it (many wall sprites have transparent padding
+   * so the floor shows through around them). `null` means "use `theme`'s default floor"; a string
+   * names an exact atlas sprite key. */
+  floorSprite: (string | null)[][];
+  /** Same shape as `tiles` - only meaningful where `tiles` is "wall". `null` means "use `theme`'s
+   * default wall"; a string names an exact atlas sprite key (a column, a torch wall, anything the
+   * room author placed deliberately). */
+  wallSprite: (string | null)[][];
+  /** Same shape as `tiles` again - a sprite drawn on top of whatever floorSprite/wallSprite/the
+   * theme default already resolved for that cell, never a replacement (a column's cap tapering
+   * into an ordinary floor tile underneath it, say). Almost entirely null for a typical room. */
+  decoration: (string | null)[][];
   entities: EntityView[];
   playerX: number;
   playerY: number;

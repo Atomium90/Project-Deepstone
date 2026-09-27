@@ -434,8 +434,12 @@ function requireField(obj, field, context) {
 
 function convertEntityObject(obj, tileWidth, tileHeight) {
     const p = propsOf(obj);
-    const x = Math.floor(obj.x / tileWidth);
-    const y = Math.floor(obj.y / tileHeight);
+    // Round, not floor: even with "snap to grid" on, Tiled routinely saves an object's position a
+    // fraction of a pixel short of the tile boundary it was actually dropped on (e.g. 207.507
+    // instead of 208) - floor would silently snap that down to the wrong tile every time, while
+    // round tolerates that real-world imprecision and resolves to the tile actually intended.
+    const x = Math.round(obj.x / tileWidth);
+    const y = Math.round(obj.y / tileHeight);
     const context = `entity object "${obj.name || obj.id}" at (${x}, ${y})`;
 
     // A blank 'id' auto-generates from the kind plus Tiled's own object id (always present,

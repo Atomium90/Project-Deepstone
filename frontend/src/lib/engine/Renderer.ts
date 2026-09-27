@@ -274,8 +274,10 @@ export class Renderer {
       // The Sanctuary has no E-key path at all - walking into it is the only way it ever
       // triggers (see StateMachine's Move handling), so it's never a valid E target here.
       if (entity.kind === "sanctuary") continue;
-      if (!isCardinalNeighbor(px, py, entity.x, entity.y)) continue;
-      const dist = chebyshevDist(px, py, entity.x, entity.y);
+
+      const tile = interactCheckTile(entity);
+      if (!isCardinalNeighbor(px, py, tile.x, tile.y)) continue;
+      const dist = chebyshevDist(px, py, tile.x, tile.y);
       if (dist < nearestDist) {
         nearest = entity;
         nearestDist = dist;
@@ -453,7 +455,13 @@ export class Renderer {
     for (const entity of room.entities) {
       const cx = entity.x * TILE_SIZE + TILE_SIZE / 2;
       const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
-      const isNearby = isCardinalNeighbor(px, py, entity.x, entity.y);
+      const interactTile = interactCheckTile(entity);
+      const isNearby = isCardinalNeighbor(
+        px,
+        py,
+        interactTile.x,
+        interactTile.y,
+      );
 
       // Elite aura: always visible (not gated by proximity like the interact badge below) -
       // the whole point is anticipation before the player approaches. Drawn behind the
@@ -719,18 +727,20 @@ export class Renderer {
     ctx.drawImage(gem.image, gx, gy, gw, gh, iconX, iconY, iconSize, iconSize);
   }
 
-  /** Draws a door/locked_door as its real 2x2-tile leaf sprite, oriented to the wall it sits on.
-   * DOOR_SPRITE's native art always renders arch/lintel-up, threshold-down - never flipped, so
-   * the arch stays visually upright on every wall. The box is always anchored directly at the
-   * object's own tile, expanding right and down (matching how the object is authored in Tiled -
-   * a plain top-left-anchored 2x2 rectangle, same for every direction - see
-   * convert-tiled-room.mjs); only the rotation differs per wall, to reorient the opening:
-   *   UP/DOWN - no rotation.
-   *   LEFT    - rotated -90 deg, so the opening faces right, into the room.
-   *   RIGHT   - rotated +90 deg, so the opening faces left, into the room.
-   * LEFT/RIGHT (including the darkDungeon offset direction below) are unverified against a real
-   * side-wall door so far - if one looks wrong, this is the function to fix. */
+  /** Draws a door/locked_door as its real 2x2-tile leaf sprite - UP/DOWN only. DOOR_SPRITE's
+   * native art already faces a top/bottom wall correctly (arch/lintel up, threshold down), so
+   * no rotation is needed. The box is always anchored directly at the object's own tile,
+   * expanding right and down (matching how the object is authored in Tiled - a plain
+   * top-left-anchored 2x2 rectangle - see convert-tiled-room.mjs).
+   * LEFT/RIGHT draw nothing at all (see the early return below) - DOOR_SPRITE was authored
+   * front-facing for a top/bottom wall, and rotating that same art 90 degrees for a side wall
+   * read wrong once tested against a real room. A side-wall passage is just the floor/wall tiles
+   * showing through underneath (still fully interactable via the usual "[E]" prompt) until a
+   * real side-on door sprite is sourced or drawn - a later art-pass decision, not a rendering bug
+   * to chase now. */
   private drawDoor(entity: EntityView, theme: string): void {
+    if (entity.direction === "LEFT" || entity.direction === "RIGHT") return;
+
     const { ctx } = this;
     const sprite = this.assets.getSprite(
       DOOR_SPRITE,
@@ -755,21 +765,13 @@ export class Renderer {
       return;
     }
 
-    let rotation = 0;
-    switch (entity.direction) {
-      case "LEFT":
-        rotation = -Math.PI / 2;
-        break;
-      case "RIGHT":
-        rotation = Math.PI / 2;
-        break;
-      // "UP"/"DOWN" (and anything unset) use no rotation.
-    }
-
+    // No rotation needed here anymore - only UP/DOWN ever reach this point (LEFT/RIGHT
+    // returned above), and DOOR_SPRITE's native orientation already faces a top/bottom wall
+    // correctly as-is. The translate still centers the two-piece darkDungeon math below on
+    // the box, independent of rotation.
     const { x: sx, y: sy, w: sw, h: sh } = sprite.sourceRect;
     ctx.save();
     ctx.translate(boxX + size / 2, boxY + size / 2);
-    if (rotation) ctx.rotate(rotation);
 
     if (theme === "darkDungeon") {
       // Renders the door as two pieces: the panel keeps its true, undistorted height and
@@ -985,6 +987,32 @@ function isCardinalNeighbor(
   const sameCol = x1 === x2;
   if (sameRow === sameCol) return false; // both true (same tile) or both false (diagonal)
   return chebyshevDist(x1, y1, x2, y2) <= INTERACT_RANGE;
+}
+
+/** A door/locked_door's 2-tile footprint is anchored top-left, always expanding toward +X/+Y
+ * regardless of wall (see drawDoor) - so which of the anchor/anchor+1 pair actually borders the
+ * room's walkable interior flips depending on the wall. UP/LEFT sit on the room's low-Y/low-X
+ * edge, so that +X/+Y expansion goes INTO the interior and the anchor itself is the outer/border
+ * tile - the interior-adjacent tile is one step further (anchor+1). DOWN/RIGHT sit on the high
+ * edge, so expansion goes away from the interior and the anchor is already the near tile. Only
+ * this resolved tile should ever count for interact-range purposes, never the raw entity.x/y. */
+function doorInteractTile(entity: EntityView): { x: number; y: number } {
+  switch (entity.direction) {
+    case "UP":
+      return { x: entity.x, y: entity.y + 1 };
+    case "LEFT":
+      return { x: entity.x + 1, y: entity.y };
+    default:
+      return { x: entity.x, y: entity.y }; // DOWN, RIGHT, unset
+  }
+}
+
+/** Resolves the tile that should be used for an entity's interact-range check - the door-specific
+ * correction above for door/locked_door, or the entity's own position unchanged otherwise. */
+function interactCheckTile(entity: EntityView): { x: number; y: number } {
+  return entity.kind === "door" || entity.kind === "locked_door"
+    ? doorInteractTile(entity)
+    : entity;
 }
 
 /** Deterministic hash of an entity id, used to decide a stable left/right mirror per enemy.

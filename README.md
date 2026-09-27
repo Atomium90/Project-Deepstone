@@ -90,8 +90,9 @@ node scripts/convert-tiled-room.mjs path/to/your-room.tmx \
   --out=../deepstone-backend/debug-rooms/your_room_id.json
 ```
 
-(Add `--placeholder-sprites` if you haven't finished assigning `sprite` properties to every tile
-yet and just want to check the room's geometry/doors/entities first.)
+(No sprites assigned yet? No flag needed for that - every cell's sprite key is derived
+automatically, and a tileset with no matching atlas just prints a warning and renders as a flat
+fallback color client-side, so you can check geometry/doors/entities right away regardless.)
 
 With the backend running (`sbt run` / `run-dev.ps1`), the Hub screen shows a "⚠ Debug Rooms
 (dev only)" row listing every file currently in `deepstone-backend/debug-rooms/` - click one to

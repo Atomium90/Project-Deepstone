@@ -103,6 +103,9 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
           name => Npc(id = ej.id, x = ej.x, y = ej.y, name = name)
         )
 
+      case "sanctuary" =>
+        Right(Sanctuary(id = ej.id, x = ej.x, y = ej.y))
+
       case other =>
         Left(s"Unknown entity kind: '$other'")
 

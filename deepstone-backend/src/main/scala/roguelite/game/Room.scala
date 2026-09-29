@@ -36,20 +36,24 @@ object Tile:
   * `Fork` is excluded from `midTypes` too, for the same reason: its two "next" doors carry
   * distinct `branch` tags (see [[DoorLink]]) that plain linear wiring would never resolve, so it
   * needs its own dedicated selection step (see `DungeonBuilder.insertFork`).
+  *
+  * `Sanctuary` is excluded from `midTypes` for the same reason `Boss` is: picked exactly once, via
+  * its own dedicated step, always the dungeon's last room.
   */
 enum RoomType:
-  case Combat, Loot, Rest, Boss, Vault, MiniBoss, Fork
+  case Combat, Loot, Rest, Boss, Vault, MiniBoss, Fork, Sanctuary
 
 object RoomType:
   def fromString(s: String): Either[String, RoomType] = s.toLowerCase match {
-    case "combat"   => Right(RoomType.Combat)
-    case "loot"     => Right(RoomType.Loot)
-    case "rest"     => Right(RoomType.Rest)
-    case "boss"     => Right(RoomType.Boss)
-    case "vault"    => Right(RoomType.Vault)
-    case "miniboss" => Right(RoomType.MiniBoss)
-    case "fork"     => Right(RoomType.Fork)
-    case other      => Left(s"Unknown room type: '$other'")
+    case "combat"    => Right(RoomType.Combat)
+    case "loot"      => Right(RoomType.Loot)
+    case "rest"      => Right(RoomType.Rest)
+    case "boss"      => Right(RoomType.Boss)
+    case "vault"     => Right(RoomType.Vault)
+    case "miniboss"  => Right(RoomType.MiniBoss)
+    case "fork"      => Right(RoomType.Fork)
+    case "sanctuary" => Right(RoomType.Sanctuary)
+    case other       => Left(s"Unknown room type: '$other'")
   }
 
 // Room

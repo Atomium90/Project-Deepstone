@@ -154,7 +154,7 @@ case class PlayerView(
   */
 case class EntityView(
     id: String,
-    kind: String, // "enemy" | "chest" | "door" | "locked_door" | "npc"
+    kind: String, // "enemy" | "chest" | "door" | "locked_door" | "npc" | "shrine" | "sanctuary"
     x: Int,
     y: Int,
     label: String, // display name shown in the UI

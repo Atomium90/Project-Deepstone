@@ -158,6 +158,15 @@ case class Npc(
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "npc", x = x, y = y, label = name)
 
+/** The dungeon's one true ending marker, authored directly in rooms.json (mirrors [[Npc]], not
+  * runtime-spawned like [[Shrine]] below) - exactly one per dungeon, always in the [[RoomType.Sanctuary]]
+  * room that [[DungeonBuilder]] places as the run's final segment. Interacting with it ends the run
+  * in victory (see [[InteractionResolver.handleSanctuary]]) - deliberately not triggered by the
+  * final boss kill itself, so the win has a beat to land in before any narrative payoff plays.
+  */
+case class Sanctuary(id: String, x: Int, y: Int) extends Entity:
+  def toView: EntityView = EntityView(id = id, kind = "sanctuary", x = x, y = y, label = "Sanctuary")
+
 /** A reward marker left behind by a defeated [[RoomType.MiniBoss]] enemy (see
   * [[CombatResolver.victory]]) - never authored in rooms.json, only ever created at runtime.
   * Interacting with it rolls 3 candidate items and offers a choice (see

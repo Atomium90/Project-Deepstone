@@ -26,7 +26,8 @@ class RoomLoaderSuite extends CatsEffectSuite:
       |      {"kind":"door","id":"d2","x":2,"y":1,"direction":"down","role":"next","doorKind":"secret","revealed":false},
       |      {"kind":"door","id":"d3","x":1,"y":0,"direction":"left","role":"prev"},
       |      {"kind":"locked_door","id":"ld1","x":0,"y":1,"direction":"left","targetRoomId":"vault_test","doorTag":"gold"},
-      |      {"kind":"npc","id":"n1","x":1,"y":1,"name":"Test Npc"}
+      |      {"kind":"npc","id":"n1","x":1,"y":1,"name":"Test Npc"},
+      |      {"kind":"sanctuary","id":"s1","x":2,"y":1}
       |    ]
       |  }
       |]""".stripMargin
@@ -89,6 +90,13 @@ class RoomLoaderSuite extends CatsEffectSuite:
   test("npc entity decodes its name"):
     for rooms <- RoomLoader.loadAllFromJson(fixture)
     yield assertEquals(rooms("test_room").entities.collectFirst { case n: Npc => n }.get.name, "Test Npc")
+
+  test("sanctuary entity decodes its position"):
+    for rooms <- RoomLoader.loadAllFromJson(fixture)
+    yield
+      val s = rooms("test_room").entities.collectFirst { case s: Sanctuary => s }.get
+      assertEquals(s.x, 2)
+      assertEquals(s.y, 1)
 
   test("an unknown tile character fails to parse"):
     val bad = """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["lava"]],"entities":[]}]"""

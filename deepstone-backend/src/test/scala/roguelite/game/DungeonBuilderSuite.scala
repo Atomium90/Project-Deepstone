@@ -253,6 +253,26 @@ class DungeonBuilderSuite extends FunSuite:
     val unwired = middleDoors.filter(_.link.isInstanceOf[DoorLink.Unresolved])
     assert(unwired.isEmpty, s"Found unwired Prev door: ${unwired.map(_.id).mkString(", ")}")
 
+  test("the entrance's own leftover Prev door is stripped, not left dangling Unresolved"):
+    // A pool with a single Combat room guarantees it's picked as the entrance regardless of seed -
+    // c2 is authored with both an entranceDoor() (Prev, never wired to anything) and an exitDoor()
+    // (Next, wired below), same shared-pool shape a real mid-chain Combat room has.
+    val pool    = Map("c2" -> testPool("c2"), "b1" -> testPool("b1"), "sanctuary" -> testPool("sanctuary"))
+    val dungeon = DungeonBuilder(pool).build(totalRooms = 0).getOrElse(fail("build failed"))
+    val entrance = dungeon.currentRoom
+    assertEquals(entrance.id, "c2")
+    val prevDoors = entrance.entities.collect { case d: Door if d.link.role == ConnectorRole.Prev => d }
+    assert(prevDoors.isEmpty, s"expected the entrance's Prev door to be stripped, found: ${prevDoors.map(_.id)}")
+
+  test("the entrance's own wired Next door survives the cleanup pass untouched"):
+    val pool    = Map("c2" -> testPool("c2"), "b1" -> testPool("b1"), "sanctuary" -> testPool("sanctuary"))
+    val dungeon = DungeonBuilder(pool).build(totalRooms = 0).getOrElse(fail("build failed"))
+    val nextDoors = dungeon.currentRoom.entities.collect { case d: Door if d.link.role == ConnectorRole.Next => d }
+    assertEquals(nextDoors.size, 1, "expected the entrance's own exit door to still be present")
+    nextDoors.head.link match
+      case DoorLink.Resolved(_, _, roomId) => assertEquals(roomId, "b1")
+      case DoorLink.Unresolved(_, _)       => fail("expected the entrance's Next door to be resolved")
+
   test("exit door of first room points to a room that exists in the dungeon"):
     val dungeon   = builder().build(totalRooms = 4).getOrElse(fail("build failed"))
     val firstRoom = dungeon.currentRoom

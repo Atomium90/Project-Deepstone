@@ -6,7 +6,6 @@ import {
     LERP_SNAP_THRESHOLD,
     PLAYER_RADIUS_RATIO,
     ENTITY_RADIUS_RATIO,
-    ENTITY_LABEL_OFFSET,
     COLOR_TILE_GRID_WIDTH,
     COLOR_ENTITY_ENEMY,
     COLOR_ENTITY_CHEST,
@@ -15,7 +14,6 @@ import {
     COLOR_ENTITY_NPC,
     COLOR_ENTITY_SHRINE,
     COLOR_ENTITY_SANCTUARY,
-    COLOR_ENTITY_LABEL,
     COLOR_ENTITY_FALLBACK,
     PLAYER_CLASS_COLORS,
     COLOR_PLAYER_OUTLINE,
@@ -79,7 +77,13 @@ const ENTITY_SPRITES: Record<string, string> = {
     door: "door_closed",
     locked_door: "door_closed",
     npc: "npc_sage",
+    sanctuary: "sanctuary_halo_gold",
 };
+
+/** The Sanctuary renders at a 2x2 tile footprint (its native 32x32 art is already authored at
+ * double the usual 16x16 tile size), centered on its own single logical tile like every other
+ * entity's cx/cy anchor - see drawSanctuary. */
+const SANCTUARY_DRAW_SIZE = TILE_SIZE * 2;
 
 /** Distance in tiles within which an entity is considered reachable (E key). */
 const INTERACT_RANGE = 1;
@@ -230,6 +234,9 @@ export class Renderer {
         let nearestDist = Infinity;
 
         for (const entity of this.room.entities) {
+            // The Sanctuary has no E-key path at all - walking into it is the only way it ever
+            // triggers (see StateMachine's Move handling), so it's never a valid E target here.
+            if (entity.kind === "sanctuary") continue;
             if (!isCardinalNeighbor(px, py, entity.x, entity.y)) continue;
             const dist = chebyshevDist(px, py, entity.x, entity.y);
             if (dist < nearestDist) {
@@ -370,6 +377,8 @@ export class Renderer {
 
             if (entity.kind === "shrine") {
                 this.drawShrine(cx, cy);
+            } else if (entity.kind === "sanctuary" && sprite?.image && sprite.sourceRect) {
+                this.drawSanctuary(sprite.image, sprite.sourceRect, cx, cy);
             } else if (sprite?.image && sprite.sourceRect) {
                 const flip = entity.kind === "enemy" && shouldFlip(entity.id);
                 if (isElite) {
@@ -397,16 +406,12 @@ export class Renderer {
                 ctx.fill();
             }
 
-            // Label below
-            ctx.fillStyle = COLOR_ENTITY_LABEL;
-            ctx.font = "10px monospace";
-            ctx.textAlign = "center";
-            ctx.fillText(entity.label, cx, cy + radius + ENTITY_LABEL_OFFSET);
-
             // Keycap badge above when nearby - the Shrine's composite (base + overlapping icon +
             // outline) is much taller than the generic per-entity circle radius every other kind
             // uses here, so the badge needs its own, taller anchor or it renders on top of the gem.
-            if (isNearby) {
+            // The Sanctuary never shows one at all - walking into it is the only way to trigger it,
+            // there's no E-key path to advertise (see nearestInteractable's matching exclusion).
+            if (isNearby && entity.kind !== "sanctuary") {
                 const badgeTopOffset = entity.kind === "shrine" ? this.shrineTopOffset() : radius;
                 this.drawInteractBadge(cx, cy - badgeTopOffset - INTERACT_BADGE_OFFSET);
             }
@@ -467,6 +472,18 @@ export class Renderer {
         for (const [dx, dy] of outlineOffsets(ELITE_OUTLINE_WIDTH)) {
             ctx.drawImage(silhouette, originX + dx, originY + dy);
         }
+    }
+
+    /** Draws the Sanctuary's halo at a 2x2 tile footprint instead of the usual single tile - its
+     * art is already authored at double size (32x32 native, vs. every other entity's 16x16), so
+     * this just draws it at SANCTUARY_DRAW_SIZE instead of TILE_SIZE, centered on the entity's
+     * cx/cy like everything else. Animation (the rising-light frames) is already resolved by the
+     * caller's ordinary getSprite call, same as any other animated entry - nothing bespoke here. */
+    private drawSanctuary(image: HTMLImageElement, sourceRect: SourceRect, cx: number, cy: number): void {
+        const { x: sx, y: sy, w: sw, h: sh } = sourceRect;
+        this.ctx.drawImage(image, sx, sy, sw, sh,
+            cx - SANCTUARY_DRAW_SIZE / 2, cy - SANCTUARY_DRAW_SIZE / 2, SANCTUARY_DRAW_SIZE, SANCTUARY_DRAW_SIZE
+        );
     }
 
     /** Draws a Shrine: a stone base ("torch_no_flame", sans its flame) topped by a floating item

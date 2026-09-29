@@ -216,13 +216,17 @@ class GameSessionSuite extends CatsEffectSuite:
     )
   )
 
-  /** Room pool for DungeonBuilder, needs at least one Combat (entrance) and one Boss room. */
+  /** Room pool for DungeonBuilder, needs at least one Combat (entrance), one Sanctuary (the
+    * dungeon's real final room), and one Boss room *per biome* - every test here uses the default
+    * Normal difficulty (biomeCount = 2), so 2 Boss rooms is the minimum, not 1. */
   def testRoomPool: Map[String, Room] =
     val tiles = makeTiles()
     val r1    = Room("r1", RoomType.Combat, 8, 6, tiles, Nil)
     val r2    = Room("r2", RoomType.Loot, 8, 6, tiles, Nil)
     val r3    = Room("r3", RoomType.Boss, 8, 6, tiles, Nil)
-    Map("r1" -> r1, "r2" -> r2, "r3" -> r3)
+    val r4    = Room("r4", RoomType.Boss, 8, 6, tiles, Nil)
+    val s1    = Room("s1", RoomType.Sanctuary, 8, 6, tiles, Nil)
+    Map("r1" -> r1, "r2" -> r2, "r3" -> r3, "r4" -> r4, "s1" -> s1)
 
   def sm: StateMachine =
     StateMachine(testRoomPool,
@@ -239,11 +243,13 @@ class GameSessionSuite extends CatsEffectSuite:
     * without needing to know where DungeonBuilder actually put the player.
     */
   def achievementRoomPool: Map[String, Room] =
-    val tiles = makeTiles()
-    val enemy = Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin")
-    val r1    = Room("r1", RoomType.Combat, 8, 6, tiles, List(enemy))
-    val boss  = Room("boss", RoomType.Boss, 8, 6, tiles, Nil)
-    Map("r1" -> r1, "boss" -> boss)
+    val tiles  = makeTiles()
+    val enemy  = Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin")
+    val r1     = Room("r1", RoomType.Combat, 8, 6, tiles, List(enemy))
+    val boss1  = Room("boss1", RoomType.Boss, 8, 6, tiles, Nil)
+    val boss2  = Room("boss2", RoomType.Boss, 8, 6, tiles, Nil)
+    val s1     = Room("s1", RoomType.Sanctuary, 8, 6, tiles, Nil)
+    Map("r1" -> r1, "boss1" -> boss1, "boss2" -> boss2, "s1" -> s1)
 
   val weakGoblinStats: EnemyStats = EnemyStats(
     typeId = "goblin",
@@ -629,16 +635,19 @@ class GameSessionSuite extends CatsEffectSuite:
                                       ConsumableEffect.HealFixed(30)
         )
       )
-      val tiles     = makeTiles()
-      val chestRoom = Room("r1", RoomType.Combat, 8, 6, tiles, List(Chest("c1", x = 2, y = 1)))
-      val bossRoom  = Room("boss", RoomType.Boss, 8, 6, tiles, Nil)
-      val smWithChest = StateMachine(Map("r1" -> chestRoom, "boss" -> bossRoom),
-                                     Map.empty,
-                                     chestItemDefs,
-                                     testClassDefs,
-                                     testUpgradeDefs,
-                                     CombatResolver(Random(0L)),
-                                     rng = Random(0L)
+      val tiles      = makeTiles()
+      val chestRoom  = Room("r1", RoomType.Combat, 8, 6, tiles, List(Chest("c1", x = 2, y = 1)))
+      val bossRoom1  = Room("boss1", RoomType.Boss, 8, 6, tiles, Nil)
+      val bossRoom2  = Room("boss2", RoomType.Boss, 8, 6, tiles, Nil)
+      val sanctuary  = Room("s1", RoomType.Sanctuary, 8, 6, tiles, Nil)
+      val smWithChest = StateMachine(
+        Map("r1" -> chestRoom, "boss1" -> bossRoom1, "boss2" -> bossRoom2, "s1" -> sanctuary),
+        Map.empty,
+        chestItemDefs,
+        testClassDefs,
+        testUpgradeDefs,
+        CombatResolver(Random(0L)),
+        rng = Random(0L)
       )
       for
         _       <- database.saveCurrency(110)
@@ -789,9 +798,11 @@ class GameSessionSuite extends CatsEffectSuite:
       val heavyHand = PerkDef("heavy_hand", "Heavy Hand", "test", icon = "*",
                               effect = PerkEffect.FlatDamageBonus(1)
       )
-      // A 2-room pool (exactly 1 Combat + 1 Boss room, nothing else) clamps DungeonBuilder's
-      // totalRooms down to 2 regardless of difficulty (count = totalRooms.max(2).min(pool.size)),
-      // so the entrance's exit door leads straight to the boss room - no middle rooms to navigate.
+      // A minimal pool (1 Combat + 1 Boss + 1 Sanctuary room, nothing else), with the run forced to
+      // Easy (biomeCount = 1) so a single Boss room is enough - Boss is required once per biome
+      // now, so a pool sized for this test's actual focus (perk persistence on a boss kill) doesn't
+      // need a 2nd Boss room just to satisfy Normal's default biomeCount = 2. The entrance's exit
+      // door leads straight to the boss room - no middle rooms to navigate.
       val tiles         = makeTiles()
       val doorToBoss    = Door("door_to_boss", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
       val doorFromBoss  = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev))
@@ -803,12 +814,14 @@ class GameSessionSuite extends CatsEffectSuite:
                           tiles,
                           List(doorFromBoss, Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin"))
       )
-      val smWithBoss = StateMachine(Map("r1" -> entranceRoom, "boss" -> bossRoom),
-                                    Map("goblin" -> weakGoblinStats),
-                                    Map.empty,
-                                    testClassDefs,
-                                    testUpgradeDefs,
-                                    CombatResolver(Random(0L))
+      val sanctuaryRoom = Room("s1", RoomType.Sanctuary, 8, 6, tiles, Nil)
+      val smWithBoss = StateMachine(
+        Map("r1" -> entranceRoom, "boss" -> bossRoom, "s1" -> sanctuaryRoom),
+        Map("goblin" -> weakGoblinStats),
+        Map.empty,
+        testClassDefs,
+        testUpgradeDefs,
+        CombatResolver(Random(0L))
       )
       for
         session <- GameSession.create(smWithBoss, database, Map.empty, testUpgradeDefs, Map.empty,
@@ -816,6 +829,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                       rng = Random(0L)
                    )
         _         <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                              difficulty = Some(Difficulty.Easy),
                                               perkId = Some("heavy_hand")
                       ))
         _         <- session.handle(Interact("door_to_boss"))

@@ -95,13 +95,18 @@ class StateMachineSuite extends FunSuite:
     val r2 = makeRoom("r2")
     Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
 
-  /** Minimal pool for DungeonBuilder: one entrance (Combat) and one boss room. Used only by
+  /** Minimal pool for DungeonBuilder: one entrance (Combat), one Sanctuary (the dungeon's real
+    * final room), and 3 Boss rooms (Boss is now required once per biome - 3 covers Hard's
+    * biomeCount = 3, the worst case across every difficulty this suite exercises). Used only by
     * StartRun; every other test builds its own state directly via `explorationAt`/`simpleDungeon`
     * and never touches this pool.
     */
   def defaultRoomPool: Map[String, Room] =
-    Map("entrance" -> makeRoom("entrance", roomType = RoomType.Combat),
-        "boss"     -> makeRoom("boss", roomType = RoomType.Boss)
+    Map("entrance"   -> makeRoom("entrance", roomType = RoomType.Combat),
+        "sanctuary"  -> makeRoom("sanctuary", roomType = RoomType.Sanctuary),
+        "boss1"      -> makeRoom("boss1", roomType = RoomType.Boss),
+        "boss2"      -> makeRoom("boss2", roomType = RoomType.Boss),
+        "boss3"      -> makeRoom("boss3", roomType = RoomType.Boss)
     )
 
   def sm(roomPool: Map[String, Room] = defaultRoomPool,

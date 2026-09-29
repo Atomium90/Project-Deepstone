@@ -12,12 +12,15 @@ case class TopologyEdge(from: String, role: ConnectorRole, branch: Option[String
 /** Assembles a [[Dungeon]] from a pool of hand-crafted rooms.
  *
  * The builder picks rooms randomly while enforcing a minimal structure: one combat room as the
- * entrance, one or more sequential biome segments of combat/loot/rest rooms (each ending in a
- * [[RoomType.MiniBoss]] checkpoint except the last), and one boss room as the exit. Each biome may
- * also splice in one branching cluster - a [[RoomType.Fork]] room leading to 2 distinct rooms that
- * both reconverge on whatever follows (see [[insertFork]]). Door connectivity is wired
- * automatically by [[wireSegments]]: the builder pairs the exit door(s) of one segment with the
- * entrance door of the next.
+ * entrance, one or more sequential biome segments of combat/loot/rest rooms (each ending in its
+ * own [[RoomType.Boss]] room, with a [[RoomType.MiniBoss]] checkpoint between consecutive biomes
+ * where the pool has one to give), and one [[RoomType.Sanctuary]] room as the dungeon's true final
+ * segment - defeating a biome's Boss never ends the run by itself, only interacting with the
+ * Sanctuary does (see `InteractionResolver.handleSanctuary`). Each biome may also splice in one
+ * branching cluster - a [[RoomType.Fork]] room leading to 2 distinct rooms that both reconverge on
+ * whatever follows (see [[insertFork]]). Door connectivity is wired automatically by
+ * [[wireSegments]]: the builder pairs the exit door(s) of one segment with the entrance door of
+ * the next.
  *
  * @param pool   All available rooms keyed by id.
  * @param rng    Random instance: inject a seeded one for reproducible dungeons.
@@ -32,51 +35,69 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
    *                   Silently yields fewer than requested if the pool runs short (same
    *                   graceful-truncation behavior [[pickMiddle]] already had).
    * @param biomeCount Number of sequential biome segments, clamped to at least 1. Every biome
-   *                   but the last ends in a [[RoomType.MiniBoss]] checkpoint before the next
-   *                   one starts, when the pool has one available (see [[buildBiomeSegments]] -
-   *                   a missing MiniBoss room silently skips that one checkpoint rather than
-   *                   failing the build, same philosophy as the middle-room truncation above).
-   *                   The final biome always ends in the run's one [[RoomType.Boss]] room.
+   *                   ends in its own [[RoomType.Boss]] room (required - the whole build fails
+   *                   if any biome can't get one). Every biome but the last is *also* followed by
+   *                   a [[RoomType.MiniBoss]] checkpoint before the next one starts, when the pool
+   *                   has one available (see [[buildBiomeSegments]] - a missing MiniBoss room
+   *                   silently skips that one checkpoint rather than failing the build, same
+   *                   philosophy as the middle-room truncation above).
    * @param difficulty Drives the per-enemy Elite roll rate (see [[rollEliteEnemies]]).
    * @return A freshly assembled [[Dungeon]], or an error message if the pool has no Combat room
-   *         for the entrance or no Boss room for the exit.
+   *         for the entrance, no Sanctuary room for the dungeon's true final segment, or any biome
+   *         can't get its own Boss room.
    */
   def build(totalRooms: Int = 4, biomeCount: Int = 1, difficulty: Difficulty = Difficulty.Normal): Either[String, Dungeon] =
     for
       entrance   <- pickOne(RoomType.Combat, exclude = Set.empty)
-      boss       <- pickOne(RoomType.Boss, exclude = Set(entrance.id))
-      biomeSegs   = buildBiomeSegments(biomeCount.max(1), totalRooms.max(0), Set(entrance.id, boss.id))
-      ordered     = Segment.Linear(entrance) :: biomeSegs ::: List(Segment.Linear(boss))
+      sanctuary  <- pickOne(RoomType.Sanctuary, exclude = Set(entrance.id))
+      biomeSegs  <- buildBiomeSegments(biomeCount.max(1), totalRooms.max(0), Set(entrance.id, sanctuary.id))
+      ordered     = Segment.Linear(entrance) :: biomeSegs ::: List(Segment.Linear(sanctuary))
       dungeon    <- wireSegments(ordered)
-      withVaults <- injectVaultRooms(dungeon)
+      // The entrance's Prev door and the Sanctuary's Next door are never wired by anything (there's
+      // nothing before the entrance or after the Sanctuary) - both rooms may still have one
+      // authored, since their pool is shared with rooms that normally do need it (Combat rooms
+      // mid-chain; Sanctuary is commonly authored by copying a Rest room's layout). Strip whichever
+      // is left Unresolved rather than leaving a dead, non-functional door in place.
+      cleaned     = removeUnresolvedDoors(
+                      removeUnresolvedDoors(dungeon, entrance.id, ConnectorRole.Prev),
+                      sanctuary.id,
+                      ConnectorRole.Next
+                    )
+      withVaults <- injectVaultRooms(cleaned)
     yield rollEliteEnemies(withVaults, difficulty)
 
-  /** Builds the segment list between entrance and boss: `biomeCount` groups of `perBiome` middle
-   * rooms, each pair of consecutive biomes separated by a [[RoomType.MiniBoss]] room where the
-   * pool has one left to give - if not (including a pool with no MiniBoss room authored at all),
-   * that boundary is silently skipped and the two biomes' rooms simply run together as one longer
-   * stretch, rather than failing the whole build over missing optional structure. Mirrors
-   * [[pickMiddle]]'s own existing "degrade gracefully, don't fail" behavior for an under-sized
-   * middle-room pool. `exclude` accumulates across every biome, every fork cluster, and every
-   * MiniBoss pick, so nothing repeats anywhere in the run.
+  /** Builds the segment list between entrance and Sanctuary: `biomeCount` groups of `perBiome`
+   * middle rooms, each ending in its own [[RoomType.Boss]] room (required per biome - see `build`'s
+   * own doc), and each pair of consecutive biomes further separated by a [[RoomType.MiniBoss]]
+   * room where the pool has one left to give - if not (including a pool with no MiniBoss room
+   * authored at all), that boundary is silently skipped and the two biomes simply run together as
+   * one longer stretch, rather than failing the whole build over missing optional structure.
+   * Mirrors [[pickMiddle]]'s own existing "degrade gracefully, don't fail" behavior for an
+   * under-sized middle-room pool. `exclude` accumulates across every biome, every fork cluster,
+   * every Boss pick, and every MiniBoss pick, so nothing repeats anywhere in the run.
    */
-  private def buildBiomeSegments(biomeCount: Int, perBiome: Int, exclude: Set[String]): List[Segment] =
+  private def buildBiomeSegments(biomeCount: Int, perBiome: Int, exclude: Set[String]): Either[String, List[Segment]] =
     @annotation.tailrec
-    def loop(biomesLeft: Int, exclude: Set[String], acc: List[Segment]): List[Segment] =
-      if biomesLeft <= 0 then acc
+    def loop(biomesLeft: Int, exclude: Set[String], acc: List[Segment]): Either[String, List[Segment]] =
+      if biomesLeft <= 0 then Right(acc)
       else
-        val biomeRooms                = pickMiddle(perBiome, exclude).getOrElse(Nil)
-        val afterBiome                = exclude ++ biomeRooms.map(_.id)
+        val biomeRooms                 = pickMiddle(perBiome, exclude).getOrElse(Nil)
+        val afterBiome                 = exclude ++ biomeRooms.map(_.id)
         val (biomeSegments, afterFork) = insertFork(biomeRooms, afterBiome)
-        if biomesLeft == 1 then acc ::: biomeSegments
-        else
-          pickOne(RoomType.MiniBoss, afterFork) match
-            case Left(_) => loop(biomesLeft - 1, afterFork, acc ::: biomeSegments)
-            case Right(miniBoss) =>
-              loop(biomesLeft - 1,
-                   afterFork + miniBoss.id,
-                   acc ::: biomeSegments ::: List(Segment.Linear(miniBoss))
-              )
+        pickOne(RoomType.Boss, afterFork) match
+          case Left(err) => Left(err)
+          case Right(boss) =>
+            val afterBoss        = afterFork + boss.id
+            val segmentsWithBoss = biomeSegments ::: List(Segment.Linear(boss))
+            if biomesLeft == 1 then Right(acc ::: segmentsWithBoss)
+            else
+              pickOne(RoomType.MiniBoss, afterBoss) match
+                case Left(_) => loop(biomesLeft - 1, afterBoss, acc ::: segmentsWithBoss)
+                case Right(miniBoss) =>
+                  loop(biomesLeft - 1,
+                       afterBoss + miniBoss.id,
+                       acc ::: segmentsWithBoss ::: List(Segment.Linear(miniBoss))
+                  )
     loop(biomeCount, exclude, Nil)
 
   /** Try to splice one branching cluster into a random position of this biome's already-picked
@@ -214,6 +235,23 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
         d.copy(link = DoorLink.Resolved(role, branch, roomId))
       case other => other
     room.copy(entities = updated)
+
+  /** Removes every [[Door]] in room `roomId` whose link is still `Unresolved` for the given role,
+   * regardless of branch - used on a room known to be a structural endpoint (the dungeon's entrance
+   * or its Sanctuary) where an authored-but-never-wired door would otherwise sit forever
+   * Unresolved and interactable-but-broken, rather than failing (a door is optional content, unlike
+   * a missing room type). `LockedDoor` is untouched - it has no `Unresolved` concept, always
+   * pre-resolved to its `targetRoomId`.
+   */
+  private def removeUnresolvedDoors(dungeon: Dungeon, roomId: String, role: ConnectorRole): Dungeon =
+    val room = dungeon.rooms(roomId)
+    val cleaned = room.entities.filterNot:
+      case d: Door =>
+        d.link match
+          case DoorLink.Unresolved(r, _) => r == role
+          case _                          => false
+      case _ => false
+    dungeon.copy(rooms = dungeon.rooms.updated(roomId, room.copy(entities = cleaned)))
 
   /** Merge any Vault room referenced by a [[LockedDoor]] in the wired chain into the dungeon,
    * looked up from the full pool (Vault rooms are deliberately excluded from random selection,

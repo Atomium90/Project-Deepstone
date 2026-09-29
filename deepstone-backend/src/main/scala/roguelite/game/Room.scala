@@ -30,15 +30,19 @@ object Tile:
   * the random room chain, only reached via a [[LockedDoor]] that references it explicitly.
   *
   * `MiniBoss` is also excluded from `midTypes` - picked by its own dedicated step between biome
-  * segments, same reasoning as `Vault`. Unlike `Boss`, defeating a `MiniBoss` room's enemy never
-  * ends the run - see [[Dungeon.isAtBoss]], which deliberately checks `Boss` only.
+  * segments, same reasoning as `Vault`.
   *
   * `Fork` is excluded from `midTypes` too, for the same reason: its two "next" doors carry
   * distinct `branch` tags (see [[DoorLink]]) that plain linear wiring would never resolve, so it
   * needs its own dedicated selection step (see `DungeonBuilder.insertFork`).
   *
-  * `Sanctuary` is excluded from `midTypes` for the same reason `Boss` is: picked exactly once, via
-  * its own dedicated step, always the dungeon's last room.
+  * `Boss` is excluded from `midTypes` too - picked once per biome via its own dedicated step (see
+  * `DungeonBuilder.buildBiomeSegments`), never randomly mixed in with Combat/Loot/Rest. Defeating a
+  * biome's Boss never ends the run by itself - only interacting with the dungeon's one `Sanctuary`
+  * room does (see `InteractionResolver.handleSanctuary`).
+  *
+  * `Sanctuary` is excluded from `midTypes` for the same reason `Boss` is: picked via its own
+  * dedicated step - but unlike `Boss`, exactly once, always the dungeon's true final room.
   */
 enum RoomType:
   case Combat, Loot, Rest, Boss, Vault, MiniBoss, Fork, Sanctuary

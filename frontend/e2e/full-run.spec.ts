@@ -163,8 +163,13 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
         const room = state.room!;
         const chest = room.entities.find((e) => e.kind === "chest");
         const enemy = room.entities.find((e) => e.kind === "enemy");
+        // The Sanctuary is the only thing that ends the run now (a Boss kill no longer does) - it
+        // has to outrank the door fallback below, or the loop would just walk back out through the
+        // room's one entrance door forever once it reaches sanctuary_001.
+        const sanctuary = room.entities.find((e) => e.kind === "sanctuary");
         const doors = room.entities.filter((e) => e.kind === "door" || e.kind === "locked_door");
-        const target: EntityView | undefined = chest ?? enemy ?? (doors.length > 0 ? pickDoor(room, doors) : undefined);
+        const target: EntityView | undefined =
+            chest ?? enemy ?? sanctuary ?? (doors.length > 0 ? pickDoor(room, doors) : undefined);
 
         if (!target) {
             // Nothing visible to interact with (e.g. an unrevealed secret door) - take a step in

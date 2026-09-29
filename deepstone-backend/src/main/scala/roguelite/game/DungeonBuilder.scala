@@ -53,16 +53,13 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
       biomeSegs  <- buildBiomeSegments(biomeCount.max(1), totalRooms.max(0), Set(entrance.id, sanctuary.id))
       ordered     = Segment.Linear(entrance) :: biomeSegs ::: List(Segment.Linear(sanctuary))
       dungeon    <- wireSegments(ordered)
-      // The entrance's Prev door and the Sanctuary's Next door are never wired by anything (there's
-      // nothing before the entrance or after the Sanctuary) - both rooms may still have one
-      // authored, since their pool is shared with rooms that normally do need it (Combat rooms
-      // mid-chain; Sanctuary is commonly authored by copying a Rest room's layout). Strip whichever
-      // is left Unresolved rather than leaving a dead, non-functional door in place.
-      cleaned     = removeUnresolvedDoors(
-                      removeUnresolvedDoors(dungeon, entrance.id, ConnectorRole.Prev),
-                      sanctuary.id,
-                      ConnectorRole.Next
-                    )
+      // The entrance's Prev door is never wired by anything (there's nothing before the entrance) -
+      // it may still be authored, since Combat rooms are a shared pool with mid-chain rooms that
+      // normally do need one. Strip it rather than leaving a dead, non-functional door in place.
+      // The Sanctuary needs no equivalent cleanup: unlike Combat, it's never reused as a mid-chain
+      // room, so it's authored with only its own single Prev door in the first place - there's
+      // nothing left Unresolved to strip.
+      cleaned     = removeUnresolvedDoors(dungeon, entrance.id, ConnectorRole.Prev)
       withVaults <- injectVaultRooms(cleaned)
     yield rollEliteEnemies(withVaults, difficulty)
 
@@ -237,11 +234,12 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
     room.copy(entities = updated)
 
   /** Removes every [[Door]] in room `roomId` whose link is still `Unresolved` for the given role,
-   * regardless of branch - used on a room known to be a structural endpoint (the dungeon's entrance
-   * or its Sanctuary) where an authored-but-never-wired door would otherwise sit forever
-   * Unresolved and interactable-but-broken, rather than failing (a door is optional content, unlike
-   * a missing room type). `LockedDoor` is untouched - it has no `Unresolved` concept, always
-   * pre-resolved to its `targetRoomId`.
+   * regardless of branch - used on the dungeon's entrance, whose Prev door is never wired by
+   * anything (there's nothing before it) but may still be authored, since Combat rooms are a
+   * shared pool with mid-chain rooms that normally do need one. Rather than failing (a door is
+   * optional content, unlike a missing room type), the dead door is stripped instead of left
+   * Unresolved and interactable-but-broken. `LockedDoor` is untouched - it has no `Unresolved`
+   * concept, always pre-resolved to its `targetRoomId`.
    */
   private def removeUnresolvedDoors(dungeon: Dungeon, roomId: String, role: ConnectorRole): Dungeon =
     val room = dungeon.rooms(roomId)

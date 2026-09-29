@@ -19,6 +19,11 @@ Third-party art and audio assets used by Deepstone, and their licenses.
 - **High Quality 16-bit RPG Music** by HydroGene (https://hydrogene.itch.io/high-quality-16-bit-music)
   Used for: hub, combat, and exploration background music.
 
+## AI-generated (no third-party pack/license)
+
+- **Sanctuary halo** (`lightHalo_anim`, gold variant) - AI-generated, 4-frame animation.
+  Used for: the Sanctuary entity's exploration-view visual (the dungeon's true final room).
+
 ## Credited, kept out of the public repo
 
 - **Fantasy Boss Battle Music Pack Vol. 2** by AlkaKrab (https://alkakrab.itch.io/fantasy-boss-battle-music-pack-vol-2) - boss music.

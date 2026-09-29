@@ -267,6 +267,30 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(_, _, _, events) = resolver().interact(state, "s1")
     assertEquals(events, Nil)
 
+  // --- Sanctuary -------------------------------------------------------------------
+
+  test("Interact with Sanctuary ends the run in victory"):
+    val sanctuary = Sanctuary("s1", x = 3, y = 3)
+    val state     = explorationAt(3, 3, entities = List(sanctuary))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "s1")
+    assert(next.isInstanceOf[GameOverState], s"expected GameOverState, got $next")
+    assertEquals(next.asInstanceOf[GameOverState].victory, true)
+
+  test("Interact with Sanctuary emits RunEnded(victory = true) with the run's difficulty and active perk"):
+    val sanctuary = Sanctuary("s1", x = 3, y = 3)
+    val player    = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(activePerkId = Some("lucky_find"))
+    val state     = ExplorationState(player, dungeonWith(List(sanctuary)), 3, 3, difficulty = Difficulty.Hard)
+    val TransitionResult(_, _, _, events) = resolver().interact(state, "s1")
+    assertEquals(events,
+                 List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard, activePerkId = Some("lucky_find")))
+    )
+
+  test("Interact with Sanctuary logs a completion message"):
+    val sanctuary = Sanctuary("s1", x = 3, y = 3)
+    val state     = explorationAt(3, 3, entities = List(sanctuary))
+    val TransitionResult(_, log, _, _) = resolver().interact(state, "s1")
+    assert(log.nonEmpty, "expected a completion log line")
+
   test("Non-trapped chest is unaffected by the trapped-chest path"):
     val chest        = Chest("c1", x = 3, y = 3, trapped = false)
     val state        = explorationAt(3, 3, entities = List(chest))

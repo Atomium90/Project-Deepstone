@@ -1,6 +1,6 @@
 package roguelite.game
 
-import roguelite.engine.{ CombatState, DialogueView, Direction, ExplorationState, GameState, Player, TransitionResult }
+import roguelite.engine.{ CombatState, DialogueView, Direction, ExplorationState, GameOverState, GameState, Player, TransitionResult }
 
 import scala.util.Random
 
@@ -66,6 +66,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
       case Some(shrine: Shrine) =>
         lift(handleShrine(exp, shrine))
+
+      case Some(sanctuary: Sanctuary) =>
+        liftEvents(handleSanctuary(exp, sanctuary))
 
       case Some(npc: Npc) =>
         val (state, log, dialogue) = handleNpc(exp, npc)
@@ -235,6 +238,17 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                              pendingRewardChoice = Some(PendingRewardChoice(options))
     )
     (nextState, List("The shrine offers you a choice."))
+
+  /** The dungeon's one true ending: transitions straight to `GameOverState(victory = true)` and
+    * emits `RunEnded`, exactly what a boss kill used to do directly in `CombatResolver.victory`
+    * before that responsibility moved here - see [[roguelite.game.Sanctuary]]'s own doc for why the
+    * win is deliberately gated behind an explicit Interact rather than firing on the killing blow.
+    */
+  private def handleSanctuary(exp: ExplorationState, sanctuary: Sanctuary): (GameState, List[String], List[GameEvent]) =
+    (GameOverState(exp.player, victory = true),
+     List("You step into the sanctuary. Your journey ends here - victory is yours."),
+     List(GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId))
+    )
 
   /** Show one line of dialogue. Never touches the narrative log (a chest/door produces "you
     * open..." style flavor text there, but dialogue rides only [[DialogueView]] so it doesn't get

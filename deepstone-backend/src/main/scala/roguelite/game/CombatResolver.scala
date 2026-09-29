@@ -512,8 +512,9 @@ class CombatResolver(rng: Random = Random(),
       s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
     ) ++ healLog
 
-    // Known before resolving loot: a boss kill ends the run into GameOverState, which has no
-    // room to hold a pending equip choice - see the ChoicePending branch below.
+    // Still computed for the EnemyDefeated event below (drives the "defeat a boss" achievement) -
+    // a boss kill no longer ends the run by itself, only interacting with the dungeon's Sanctuary
+    // does (see InteractionResolver.handleSanctuary).
     val isBossKill = updatedDungeon.isAtBoss
 
     // Elite kills guarantee at least Rare - no other enemy-kill-side floor source exists today
@@ -542,13 +543,6 @@ class CombatResolver(rng: Random = Random(),
                  List(GameEvent.itemPickedUp(p, item, setDefs)),
                  None
                 )
-              case PickupOutcome.ChoicePending(pending) if isBossKill =>
-                // No ExplorationState survives this kill to hold a pending choice - lost, not offered.
-                (playerAfterHeal,
-                 List(s"${deadEnemy.label} dropped ${item.name}, but there's no time to decide - it's lost."),
-                 Nil,
-                 None
-                )
               case PickupOutcome.ChoicePending(pending) =>
                 (playerAfterHeal,
                  List(s"${deadEnemy.label} dropped ${item.name}. Choose what to do with it."),
@@ -575,30 +569,17 @@ class CombatResolver(rng: Random = Random(),
                               wasElite = deadEnemy.isElite
       )
 
-    if isBossKill then
-      val runCompleteLog = List("You have vanquished the dungeon's guardian! Victory is yours.")
-      val events =
-        enemyDefeatedEvent :: healEvent ::: lootEvents ::: levelUpEvents :::
-          List(GameEvent.RunEnded(victory = true,
-                                  difficulty = state.difficulty,
-                                  activePerkId = finalPlayer.activePerkId
-          ))
-      (GameOverState(finalPlayer, victory = true),
-       victoryLog ++ lootLog ++ levelUpLog ++ runCompleteLog,
-       events
-      )
-    else
-      val nextState = ExplorationState(
-        player = finalPlayer,
-        dungeon = updatedDungeon,
-        playerX = state.playerX,
-        playerY = state.playerY,
-        difficulty = state.difficulty,
-        enemyStats = state.enemyStats,
-        pendingEquipChoice = pendingChoice
-      )
-      val events = enemyDefeatedEvent :: healEvent ::: lootEvents ::: levelUpEvents
-      (nextState, victoryLog ++ lootLog ++ levelUpLog, events)
+    val nextState = ExplorationState(
+      player = finalPlayer,
+      dungeon = updatedDungeon,
+      playerX = state.playerX,
+      playerY = state.playerY,
+      difficulty = state.difficulty,
+      enemyStats = state.enemyStats,
+      pendingEquipChoice = pendingChoice
+    )
+    val events = enemyDefeatedEvent :: healEvent ::: lootEvents ::: levelUpEvents
+    (nextState, victoryLog ++ lootLog ++ levelUpLog, events)
   }
 
   /** Player loses: transition to GameOver, preserve meta-currency. */

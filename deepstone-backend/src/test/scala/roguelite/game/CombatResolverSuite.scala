@@ -220,13 +220,12 @@ class CombatResolverSuite extends FunSuite:
 
   // --- Boss victory ----------------------------------------------------------
 
-  test("defeating the last enemy in the boss room ends the run in victory"):
+  test("defeating the last enemy in the boss room returns to exploration - the Sanctuary ends the run now, not a boss kill"):
     val (next, log, _) = resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)),
                                          CombatAction(CombatActionType.Attack)
     )
-    assert(next.isInstanceOf[GameOverState], s"expected GameOverState, got $next")
-    assertEquals(next.asInstanceOf[GameOverState].victory, true)
-    assert(log.exists(_.toLowerCase.contains("victory")), s"expected victory message in log: $log")
+    assert(next.isInstanceOf[ExplorationState], s"expected ExplorationState, got $next")
+    assert(log.exists(_.toLowerCase.contains("defeated")), s"expected a defeat message in log: $log")
 
   test("player death in the boss room is still a defeat, not a victory"):
     val (next, _, _) = resolver().resolve(combatStateInBossRoom(strongEnemy(), player = lowHpPlayer),
@@ -271,15 +270,13 @@ class CombatResolverSuite extends FunSuite:
 
   // --- GameEvent emission ----------------------------------------------------
 
-  test("boss victory emits EnemyDefeated(isBoss = true) and RunEnded(victory = true)"):
+  test("boss victory emits EnemyDefeated(isBoss = true) but no RunEnded - the Sanctuary emits that now, not a boss kill"):
     val (_, _, events) =
       resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false)),
            s"expected EnemyDefeated(isBoss=true, tookNoDamage=true): $events"
     )
-    assert(events.exists { case GameEvent.RunEnded(victory, _, _) => victory; case _ => false },
-           s"expected RunEnded(true): $events"
-    )
+    assert(!events.exists(_.isInstanceOf[GameEvent.RunEnded]), s"unexpected RunEnded: $events")
 
   test("non-boss victory emits EnemyDefeated(isBoss = false) and no RunEnded"):
     val (_, _, events) =
@@ -665,7 +662,7 @@ class CombatResolverSuite extends FunSuite:
            s"no ItemPickedUp should fire until the choice is resolved: $events"
     )
 
-  test("a boss-kill loot collision is lost silently, never offered as a choice"):
+  test("a boss-kill loot collision is offered as a normal choice, like any other kill"):
     val existingWeapon = Weapon("existing", "hunters_bow", "Hunter's Bow", Rarity.Common, attackBonus = 5)
     val itemDefs: Map[String, Item] = Map(
       "iron_sword" -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
@@ -674,9 +671,12 @@ class CombatResolverSuite extends FunSuite:
     val playerWithWeapon = fullHpPlayer().copy(equippedWeapon = Some(existingWeapon))
     val (next, log, _) = CombatResolver(Random(0), itemDefs)
       .resolve(combatStateInBossRoom(enemy, playerWithWeapon), CombatAction(CombatActionType.Attack))
-    assert(next.isInstanceOf[GameOverState], s"expected GameOverState, got $next")
+    assert(next.isInstanceOf[ExplorationState], s"expected ExplorationState, got $next")
+    assert(next.asInstanceOf[ExplorationState].pendingEquipChoice.isDefined,
+           "expected a pending equip choice to be offered, same as a non-boss kill"
+    )
     assertEquals(next.player.equippedWeapon, Some(existingWeapon))
-    assert(log.exists(_.toLowerCase.contains("no time to decide")), s"expected the boss-kill-loss message: $log")
+    assert(log.exists(_.toLowerCase.contains("choose what to do")), s"expected the normal choice-offered message: $log")
 
   // --- Damage/heal event emission ------------------------------------------
 

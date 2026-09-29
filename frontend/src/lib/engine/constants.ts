@@ -46,6 +46,9 @@ export const COLOR_ENTITY_NPC = "#4f9d78";
 /** No dedicated sprite yet (spawned server-side, never authored art) - renders as a plain colored
  * circle via Renderer.ts's existing sprite-fallback path, same as any kind with no atlas entry. */
 export const COLOR_ENTITY_SHRINE = "#9b59b6";
+/** Placeholder only: real art is still being sourced. Renders as a plain colored circle in the meantime,
+ * same fallback path as COLOR_ENTITY_SHRINE above. */
+export const COLOR_ENTITY_SANCTUARY = "#5dade2";
 export const COLOR_ENTITY_LABEL = "#ccc";
 
 /** Fallback color for entity kinds not explicitly mapped. */

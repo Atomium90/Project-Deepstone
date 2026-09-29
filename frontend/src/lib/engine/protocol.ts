@@ -94,7 +94,7 @@ export interface PlayerView {
 
 export interface EntityView {
   id: string;
-  kind: "enemy" | "chest" | "door" | "locked_door" | "npc" | "shrine";
+  kind: "enemy" | "chest" | "door" | "locked_door" | "npc" | "shrine" | "sanctuary";
   x: number;
   y: number;
   label: string;

@@ -144,11 +144,16 @@
 </script>
 
 <!--
-  Layout: the canvas fills all available space, the stats panel has a fixed
-  width and sits alongside it. Both stretch to 100% height so the HUD always
-  occupies the full viewport.
+  Layout: a single row - the combat log has a fixed width on the left (previously a bottom band;
+  moved here to give the canvas its full vertical height back, which a room taller than ~10 tiles
+  needs), the canvas fills all remaining space, and the stats panel has a fixed width on the right.
+  All three stretch to 100% height so the HUD always occupies the full viewport.
 -->
 <div class="hud-root">
+    <div class="exploration-log">
+        <CombatLog log={$combatLog} />
+    </div>
+
     <div class="hud-main" bind:this={hudMainEl}>
         <canvas class="game-canvas" bind:this={canvasEl} />
 
@@ -203,16 +208,12 @@
             </aside>
         {/if}
     </div>
-
-    <div class="exploration-log">
-        <CombatLog log={$combatLog} />
-    </div>
 </div>
 
 <style>
     .hud-root {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         width: 100%;
         height: 100%;
         overflow: hidden;
@@ -222,6 +223,7 @@
         position: relative;
         display: flex;
         flex: 1 1 0;
+        min-width: 0;
         min-height: 0;
     }
 
@@ -236,10 +238,10 @@
     }
 
     .exploration-log {
-        flex: 0 0 110px;
-        padding: 0.6rem 1rem;
+        flex: 0 0 220px;
+        padding: 1.25rem 1rem;
         background: #161616;
-        border-top: 1px solid #2a2a2a;
+        border-right: 1px solid #2a2a2a;
         font-family: monospace;
     }
 

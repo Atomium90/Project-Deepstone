@@ -550,3 +550,28 @@ class StateMachineSuite extends FunSuite:
     assertEquals(update.equipment.weapon.flatMap(_.typeTag), Some("heavy"))
     assertEquals(update.equipment.armor.map(_.statLine), Some("+4 DEF [ranged]"))
     assertEquals(update.player.affinityTags, List("heavy"))
+
+  // --- Debug room loading (dev tooling) -------------------------------------
+
+  test("loadDebugRoom spawns in the room's largest connected walkable region, not a smaller disconnected pocket"):
+    // 5x5 room (width x height): center (2, 2) is a wall, forcing the fallback. A 1-tile floor
+    // pocket sits at (4, 0), disconnected from everything else; the real interior is an 8-tile
+    // ring at rows/cols 1-3 (the center cell itself is the wall forcing the fallback).
+    val W = Tile.Wall
+    val F = Tile.Floor
+    val tiles = Vector(
+      Vector(W, W, W, W, F), // row 0: an isolated 1-tile floor pocket at (4, 0)
+      Vector(W, F, F, F, W), // row 1
+      Vector(W, F, W, F, W), // row 2: center (2, 2 in x,y - here row index 2, col 2) is a wall
+      Vector(W, F, F, F, W), // row 3
+      Vector(W, W, W, W, W)  // row 4
+    )
+    val room   = Room("debug_room", RoomType.Combat, width = 5, height = 5, tiles = tiles, entities = Nil)
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior)
+    sm().loadDebugRoom(player, room) match
+      case Left(err) => fail(s"expected Right, got Left($err)")
+      case Right(exp) =>
+        // Must land inside the connected 3x3 interior (rows 1-3, cols 1-3), never at the
+        // disconnected pocket (4, 0).
+        assert(exp.playerX >= 1 && exp.playerX <= 3, s"expected playerX in [1,3], got ${exp.playerX}")
+        assert(exp.playerY >= 1 && exp.playerY <= 3, s"expected playerY in [1,3], got ${exp.playerY}")

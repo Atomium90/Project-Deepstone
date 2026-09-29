@@ -28,7 +28,8 @@
 //    Can't be bothered setting these before a quick test conversion? Pass --id=/--roomType=/
 //    --theme= on the command line instead - see USAGE below.
 //
-// 3. 3-4 tile/object layers, bottom to top - floor, walls, an optional floor_2, then entities.
+// 3. 3-5 tile/object layers, bottom to top - floor, walls, an optional floor_2 and/or wall_2, then
+//    entities.
 //    Matches how the source art itself is authored: most wall tiles have a transparent background
 //    specifically so a floor tile shows through wherever the wall art doesn't fully cover its
 //    cell (a wall glued to one side, floor on the rest) - Renderer.ts composites the same way,
@@ -43,15 +44,20 @@
 //      under a cell that's genuinely always fully covered anyway (an outer border wall, say).
 //      A walkable (non-wall) cell always needs one; leaving one unpainted fails the conversion
 //      loudly (a genuine hole in the room, not a stylistic choice).
-//      walls layer (name contains "wall") - PARTIAL coverage: paint a wall tile only where a wall
-//      actually is, and leave every other cell empty. An empty cell here simply means "floor
-//      shows through, nothing on top" - it's not an error, it's the normal case.
+//      walls layer (name contains "wall", but not "2") - PARTIAL coverage: paint a wall tile only
+//      where a wall actually is, and leave every other cell empty. An empty cell here simply means
+//      "floor shows through, nothing on top" - it's not an error, it's the normal case.
 //      floor_2 layer (name contains both "floor" and "2") - OPTIONAL, sparse. For a sprite that
 //      has to sit on top of the real floor/wall tile rather than replace it (a Tiled tile layer
 //      only holds one tile per cell, so something like a column's top/bottom cap - which needs
 //      the ordinary floor tile to stay visible underneath it - can't be painted directly onto
 //      "floor" without destroying it). Leave every cell empty except the few that genuinely need
 //      this; most rooms won't need this layer at all, and it's fine to not create it.
+//      wall_2 layer (name contains both "wall" and "2") - OPTIONAL, sparse. For a cell that needs
+//      to become a *real* wall (blocks movement) but isn't part of the primary walls layer's own
+//      shape - e.g. an obstacle whose art overlaps into a neighboring cell for perspective reasons,
+//      where that neighboring cell needs actual collision, not just a floor_2 sprite drawn on top
+//      of walkable floor. The primary walls layer wins if a cell is somehow painted on both.
 //
 // 4. Nothing to do here anymore for a plain painted tile - its sprite key is derived
 //    automatically as "{tilesetName}_{localId}" (the tileset's own `name` attribute plus Tiled's
@@ -376,11 +382,19 @@ function findLayer(map, type, matches) {
 function convertFloorAndWallsLayers(map, lookupTile, usedTilesets) {
     const floorLayer = findLayer(map, "tilelayer", (n) => n.includes("floor") && !n.includes("2"));
     if (!floorLayer) fail('no "floor" tile layer found (a tile layer whose name contains "floor" - see the setup notes at the top of this script).');
-    const wallsLayer = findLayer(map, "tilelayer", (n) => n.includes("wall"));
+    const wallsLayer = findLayer(map, "tilelayer", (n) => n.includes("wall") && !n.includes("2"));
     if (!wallsLayer) fail('no "walls" tile layer found (a tile layer whose name contains "wall" - see the setup notes at the top of this script).');
     // Optional - a sparse extra tile layer for anything that has to sit on top of the real floor/
     // wall tile rather than replace it (see the setup notes' point 3 for why).
     const decorationLayer = findLayer(map, "tilelayer", (n) => n.includes("floor") && n.includes("2"));
+    // Optional - a second, sparse wall layer for a cell that needs real collision (blocks movement)
+    // but whose sprite has to sit on top of the primary wall/floor tile rather than replace it - the
+    // same "composite, don't replace" need decorationLayer already solves, just for a cell that also
+    // needs to become a wall. A wall_2 cell always counts as a wall for collision (even where the
+    // primary walls layer has nothing painted); its sprite feeds into `decoration` below rather than
+    // `wallSprite`, so it renders as an overlay on top of whatever the primary walls layer resolved
+    // there, not instead of it.
+    const walls2Layer = findLayer(map, "tilelayer", (n) => n.includes("wall") && n.includes("2"));
 
     const { width, height } = floorLayer;
     const tiles = [];
@@ -395,6 +409,7 @@ function convertFloorAndWallsLayers(map, lookupTile, usedTilesets) {
         const decorationRow = [];
         for (let x = 0; x < width; x++) {
             const wallTile = lookupTile(wallsLayer.data[y * width + x]);
+            const wall2Tile = walls2Layer ? lookupTile(walls2Layer.data[y * width + x]) : null;
             const floorTile = lookupTile(floorLayer.data[y * width + x]);
 
             // The floor layer is captured at every cell, wall or not - a wall cell still has a
@@ -404,9 +419,23 @@ function convertFloorAndWallsLayers(map, lookupTile, usedTilesets) {
             // allowed to have nothing painted on the floor layer (an outer border wall, say, where
             // nothing will ever be visible underneath the always-opaque border art anyway) - only
             // a non-wall cell requires one, since that's a genuine hole in the room otherwise.
+            //
+            // wall_2 plays two different roles depending on whether the primary walls layer also
+            // has something at this cell: if it does, wall_2 is an overlay on top of that real wall
+            // (goes to decoration below, not wallRow - a null wallRow override already means "use
+            // the theme's default wall", not "nothing painted", so it must never overwrite a real
+            // wallTile). If the primary layer has nothing here, wall_2 *is* the wall - its own
+            // sprite gets promoted into wallRow directly, not decoration, so it renders as its own
+            // (correctly themed) tile instead of falling back to Renderer.ts's theme-unaware default
+            // wall sprite with wall_2's sprite floating on top of that mismatched fallback.
+            let wall2AsDecoration = null;
             if (wallTile) {
                 tileRow.push("wall");
                 wallRow.push(spriteOf(wallTile, usedTilesets));
+                wall2AsDecoration = wall2Tile;
+            } else if (wall2Tile) {
+                tileRow.push("wall");
+                wallRow.push(spriteOf(wall2Tile, usedTilesets));
             } else {
                 if (!floorTile) fail(`cell (${x}, ${y}) has neither a wall tile nor a floor tile - looks like a genuine hole in the room, not a stylistic choice. Paint one or the other there.`);
                 tileRow.push("floor");
@@ -414,7 +443,11 @@ function convertFloorAndWallsLayers(map, lookupTile, usedTilesets) {
             }
             floorRow.push(floorTile ? spriteOf(floorTile, usedTilesets) : null);
 
-            const decorationTile = decorationLayer ? lookupTile(decorationLayer.data[y * width + x]) : null;
+            // decoration composites on top of whatever floor/wall the cell already resolved to. The
+            // primary decoration source (floor_2) wins if a cell somehow has both that and a wall_2
+            // overlay; the two are for different purposes and shouldn't normally collide.
+            const decorationTile =
+                (decorationLayer ? lookupTile(decorationLayer.data[y * width + x]) : null) ?? wall2AsDecoration;
             decorationRow.push(decorationTile ? spriteOf(decorationTile, usedTilesets) : null);
         }
         tiles.push(tileRow);

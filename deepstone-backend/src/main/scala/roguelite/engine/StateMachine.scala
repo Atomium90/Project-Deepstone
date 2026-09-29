@@ -15,6 +15,7 @@ import roguelite.game.{
   PickupOutcome,
   Room,
   RewardChoiceResolver,
+  Sanctuary,
   SetDef
 }
 
@@ -224,8 +225,14 @@ class StateMachine(roomPool: Map[String, Room],
         val newX = exp.playerX + dx
         val newY = exp.playerY + dy
 
-        if !exp.dungeon.currentRoom.isWalkable(newX, newY)
-        then TransitionResult(exp, Nil) // Silently blocked
+        if !exp.dungeon.currentRoom.isWalkable(newX, newY) then
+          // Walking into the Sanctuary is the only way it ever triggers - the client deliberately
+          // never offers an E-key path to it (no keycap badge, no fallback), so this reuses the
+          // same `interact` entry point Interact(targetId) normally goes through. Every other
+          // blocking entity keeps the plain silent-block behavior.
+          exp.dungeon.currentRoom.entityAt(newX, newY) match
+            case Some(sanctuary: Sanctuary) => interactionResolver.interact(exp, sanctuary.id)
+            case _                          => TransitionResult(exp, Nil) // Silently blocked
         else
           val (revealedRoom, revealLog, revealEvents) =
             interactionResolver.revealSecretDoors(exp.dungeon.currentRoom, newX, newY)

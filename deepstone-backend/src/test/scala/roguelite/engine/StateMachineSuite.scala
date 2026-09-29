@@ -389,6 +389,14 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
 
+  test("Move into a Sanctuary's tile triggers its interact instead of a silent block"):
+    val sanctuary = Sanctuary("sanct_1", x = 3, y = 2)
+    val state     = explorationAt(3, 3, entities = List(sanctuary))
+    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    next match
+      case gameOver: GameOverState => assertEquals(gameOver.victory, true)
+      case other                   => fail(s"expected GameOverState(victory = true), got $other")
+
   test("Move is blocked while a pending equip choice is unresolved"):
     val newWeapon      = Weapon("w2", "steel_sword", "Steel Sword", Rarity.Uncommon, attackBonus = 7)
     val existingWeapon = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)

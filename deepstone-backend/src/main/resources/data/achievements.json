@@ -7,11 +7,11 @@
     "condition": { "type": "FirstKill" }
   },
   {
-    "id": "boss_slayer",
-    "label": "Boss Slayer",
-    "description": "Defeat a dungeon boss.",
+    "id": "dungeon_slayer",
+    "label": "Dungeon Slayer",
+    "description": "Complete the dungeon.",
     "displayOrder": 1,
-    "condition": { "type": "DefeatBoss" }
+    "condition": { "type": "RunsWon", "count": 1 }
   },
   {
     "id": "level_5",
@@ -145,5 +145,12 @@
     "description": "Defeat your first Elite enemy.",
     "displayOrder": 20,
     "condition": { "type": "DefeatElite" }
+  },
+  {
+    "id": "boss_slayer",
+    "label": "Boss Slayer",
+    "description": "Defeat a dungeon boss.",
+    "displayOrder": 21,
+    "condition": { "type": "DefeatBoss" }
   }
 ]

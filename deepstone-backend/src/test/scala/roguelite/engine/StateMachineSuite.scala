@@ -95,13 +95,18 @@ class StateMachineSuite extends FunSuite:
     val r2 = makeRoom("r2")
     Dungeon(Map("r1" -> r1, "r2" -> r2), "r1")
 
-  /** Minimal pool for DungeonBuilder: one entrance (Combat) and one boss room. Used only by
+  /** Minimal pool for DungeonBuilder: one entrance (Combat), one Sanctuary (the dungeon's real
+    * final room), and 3 Boss rooms (Boss is now required once per biome - 3 covers Hard's
+    * biomeCount = 3, the worst case across every difficulty this suite exercises). Used only by
     * StartRun; every other test builds its own state directly via `explorationAt`/`simpleDungeon`
     * and never touches this pool.
     */
   def defaultRoomPool: Map[String, Room] =
-    Map("entrance" -> makeRoom("entrance", roomType = RoomType.Combat),
-        "boss"     -> makeRoom("boss", roomType = RoomType.Boss)
+    Map("entrance"   -> makeRoom("entrance", roomType = RoomType.Combat),
+        "sanctuary"  -> makeRoom("sanctuary", roomType = RoomType.Sanctuary),
+        "boss1"      -> makeRoom("boss1", roomType = RoomType.Boss),
+        "boss2"      -> makeRoom("boss2", roomType = RoomType.Boss),
+        "boss3"      -> makeRoom("boss3", roomType = RoomType.Boss)
     )
 
   def sm(roomPool: Map[String, Room] = defaultRoomPool,
@@ -383,6 +388,14 @@ class StateMachineSuite extends FunSuite:
     val state = explorationAt(3, 3, entities = List(enemy))
     val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
+
+  test("Move into a Sanctuary's tile triggers its interact instead of a silent block"):
+    val sanctuary = Sanctuary("sanct_1", x = 3, y = 2)
+    val state     = explorationAt(3, 3, entities = List(sanctuary))
+    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    next match
+      case gameOver: GameOverState => assertEquals(gameOver.victory, true)
+      case other                   => fail(s"expected GameOverState(victory = true), got $other")
 
   test("Move is blocked while a pending equip choice is unresolved"):
     val newWeapon      = Weapon("w2", "steel_sword", "Steel Sword", Rarity.Uncommon, attackBonus = 7)

@@ -22,9 +22,6 @@ export const ENTITY_RADIUS_RATIO = 0.3;
 /** Default ms/frame for an animated atlas sprite when its entry omits frameDuration. */
 export const DEFAULT_FRAME_DURATION_MS = 150;
 
-/** Offset in pixels below an entity circle where its label is drawn. */
-export const ENTITY_LABEL_OFFSET = 12;
-
 // ---------------------------------------------
 // Colors - tile
 // ---------------------------------------------
@@ -46,7 +43,10 @@ export const COLOR_ENTITY_NPC = "#4f9d78";
 /** No dedicated sprite yet (spawned server-side, never authored art) - renders as a plain colored
  * circle via Renderer.ts's existing sprite-fallback path, same as any kind with no atlas entry. */
 export const COLOR_ENTITY_SHRINE = "#9b59b6";
-export const COLOR_ENTITY_LABEL = "#ccc";
+/** Fallback only, for the gap before the halo sprite finishes loading (has real art now - the
+ * gold-tinted lightHalo atlas entry, see Renderer.ts's ENTITY_SPRITES) - same fallback path every
+ * other entity kind's color also exists for. Matches the halo's own gold tint. */
+export const COLOR_ENTITY_SANCTUARY = "#e0b84f";
 
 /** Fallback color for entity kinds not explicitly mapped. */
 export const COLOR_ENTITY_FALLBACK = "#888";

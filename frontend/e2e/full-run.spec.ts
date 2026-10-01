@@ -87,6 +87,14 @@ function pathTo(room: NonNullable<StateUpdate["room"]>, targetX: number, targetY
     return [];
 }
 
+/** The cardinal direction from (x1,y1) to an adjacent (x2,y2) - callers only ever pass points
+ * already known to be cardinal-adjacent (e.g. the tile pathTo just walked next to). */
+function directionBetween(x1: number, y1: number, x2: number, y2: number): Direction {
+    if (x2 > x1) return "RIGHT";
+    if (x2 < x1) return "LEFT";
+    return y2 > y1 ? "DOWN" : "UP";
+}
+
 /** Prefers the door farthest from the player's current position. InteractionResolver.findSpawnPoint
  * always spawns the player on the wall opposite their direction of travel, so the door they just
  * came through is always the nearest one - the farthest door is the way forward, not back. */
@@ -163,8 +171,13 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
         const room = state.room!;
         const chest = room.entities.find((e) => e.kind === "chest");
         const enemy = room.entities.find((e) => e.kind === "enemy");
+        // The Sanctuary is the only thing that ends the run now (a Boss kill no longer does) - it
+        // has to outrank the door fallback below, or the loop would just walk back out through the
+        // room's one entrance door forever once it reaches sanctuary_001.
+        const sanctuary = room.entities.find((e) => e.kind === "sanctuary");
         const doors = room.entities.filter((e) => e.kind === "door" || e.kind === "locked_door");
-        const target: EntityView | undefined = chest ?? enemy ?? (doors.length > 0 ? pickDoor(room, doors) : undefined);
+        const target: EntityView | undefined =
+            chest ?? enemy ?? sanctuary ?? (doors.length > 0 ? pickDoor(room, doors) : undefined);
 
         if (!target) {
             // Nothing visible to interact with (e.g. an unrevealed secret door) - take a step in
@@ -185,6 +198,16 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
         for (const dir of pathTo(room, target.x, target.y)) {
             await page.keyboard.press(DIRECTION_KEY[dir]);
             state = await waitForStateChange(page, state);
+        }
+
+        if (target.kind === "sanctuary") {
+            // No E-key path to the Sanctuary at all (see nearestInteractable's own exclusion) -
+            // walking directly into its tile is what triggers it server-side (StateMachine's Move
+            // handling), so this sends one more Move instead of falling into the 'e' block below.
+            const dir = directionBetween(state.room!.playerX, state.room!.playerY, target.x, target.y);
+            await page.keyboard.press(DIRECTION_KEY[dir]);
+            state = await waitForStateChange(page, state);
+            continue;
         }
 
         // nearestInteractable() (what the 'e' key handler actually checks) reads the renderer's

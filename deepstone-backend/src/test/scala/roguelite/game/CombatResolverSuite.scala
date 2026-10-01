@@ -218,15 +218,14 @@ class CombatResolverSuite extends FunSuite:
     )
     assert(next.isInstanceOf[GameOverState] || next.isInstanceOf[ExplorationState])
 
-  // --- Boss victory ----------------------------------------------------------
+  // --- Boss victory (Shrine spawn) --------------------------------------------
 
-  test("defeating the last enemy in the boss room ends the run in victory"):
+  test("defeating the last enemy in the boss room returns to exploration - the Sanctuary ends the run now, not a boss kill"):
     val (next, log, _) = resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)),
                                          CombatAction(CombatActionType.Attack)
     )
-    assert(next.isInstanceOf[GameOverState], s"expected GameOverState, got $next")
-    assertEquals(next.asInstanceOf[GameOverState].victory, true)
-    assert(log.exists(_.toLowerCase.contains("victory")), s"expected victory message in log: $log")
+    assert(next.isInstanceOf[ExplorationState], s"expected ExplorationState, got $next")
+    assert(log.exists(_.toLowerCase.contains("defeated")), s"expected a defeat message in log: $log")
 
   test("player death in the boss room is still a defeat, not a victory"):
     val (next, _, _) = resolver().resolve(combatStateInBossRoom(strongEnemy(), player = lowHpPlayer),
@@ -236,7 +235,21 @@ class CombatResolverSuite extends FunSuite:
       case gameOver: GameOverState => assertEquals(gameOver.victory, false)
       case _                       => () // player may not have died this turn, inconclusive
 
-  // --- MiniBoss victory (Shrine spawn) ----------------------------------------
+  test("defeating a Boss spawns a Shrine at its position instead of the usual loot roll"):
+    val itemDefs: Map[String, Item] = Map(
+      "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
+    )
+    val enemy = weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("health_potion", 100)))
+    val (next, log, _) =
+      CombatResolver(Random(0), itemDefs).resolve(combatStateInBossRoom(enemy), CombatAction(CombatActionType.Attack))
+    val exp = next.asInstanceOf[ExplorationState]
+    val shrine = exp.dungeon.currentRoom.entities.collectFirst { case s: Shrine => s }
+    assert(shrine.isDefined, "expected a Shrine to be spawned in the room")
+    assertEquals((shrine.get.x, shrine.get.y), (3, 3), "expected the Shrine at the defeated enemy's position")
+    assertEquals(exp.player.potionBelt.flatten.toList, Nil, "expected no normal loot drop on a Boss kill")
+    assert(log.exists(_.toLowerCase.contains("shrine")), s"expected a shrine-related log line: $log")
+
+  // --- MiniBoss victory (Chest spawn) ----------------------------------------
 
   test("defeating a MiniBoss does not end the run"):
     val itemDefs: Map[String, Item] = Map(
@@ -247,7 +260,7 @@ class CombatResolverSuite extends FunSuite:
       CombatResolver(Random(0), itemDefs).resolve(combatStateInMiniBossRoom(enemy), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState], s"expected ExplorationState, got $next")
 
-  test("defeating a MiniBoss spawns a Shrine at its position instead of the usual loot roll"):
+  test("defeating a MiniBoss spawns a Chest at its position instead of the usual loot roll"):
     val itemDefs: Map[String, Item] = Map(
       "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
     )
@@ -255,13 +268,14 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) =
       CombatResolver(Random(0), itemDefs).resolve(combatStateInMiniBossRoom(enemy), CombatAction(CombatActionType.Attack))
     val exp = next.asInstanceOf[ExplorationState]
-    val shrine = exp.dungeon.currentRoom.entities.collectFirst { case s: Shrine => s }
-    assert(shrine.isDefined, "expected a Shrine to be spawned in the room")
-    assertEquals((shrine.get.x, shrine.get.y), (3, 3), "expected the Shrine at the defeated enemy's position")
+    val chest = exp.dungeon.currentRoom.entities.collectFirst { case c: Chest => c }
+    assert(chest.isDefined, "expected a Chest to be spawned in the room")
+    assertEquals((chest.get.x, chest.get.y), (3, 3), "expected the Chest at the defeated enemy's position")
+    assertEquals(chest.get.trapped, false, "expected the spawned Chest to never be trapped")
     assertEquals(exp.player.potionBelt.flatten.toList, Nil, "expected no normal loot drop on a MiniBoss kill")
-    assert(log.exists(_.toLowerCase.contains("shrine")), s"expected a shrine-related log line: $log")
+    assert(log.exists(_.toLowerCase.contains("chest")), s"expected a chest-related log line: $log")
 
-  test("MiniBoss victory emits EnemyDefeated(isBoss = false) - only the true final boss sets isBoss"):
+  test("MiniBoss victory emits EnemyDefeated(isBoss = false) - only a section's real Boss kill sets isBoss"):
     val (_, _, events) =
       resolver().resolve(combatStateInMiniBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false)),
@@ -271,15 +285,13 @@ class CombatResolverSuite extends FunSuite:
 
   // --- GameEvent emission ----------------------------------------------------
 
-  test("boss victory emits EnemyDefeated(isBoss = true) and RunEnded(victory = true)"):
+  test("boss victory emits EnemyDefeated(isBoss = true) but no RunEnded - the Sanctuary emits that now, not any boss kill"):
     val (_, _, events) =
       resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false)),
            s"expected EnemyDefeated(isBoss=true, tookNoDamage=true): $events"
     )
-    assert(events.exists { case GameEvent.RunEnded(victory, _, _) => victory; case _ => false },
-           s"expected RunEnded(true): $events"
-    )
+    assert(!events.exists(_.isInstanceOf[GameEvent.RunEnded]), s"unexpected RunEnded: $events")
 
   test("non-boss victory emits EnemyDefeated(isBoss = false) and no RunEnded"):
     val (_, _, events) =
@@ -664,19 +676,6 @@ class CombatResolverSuite extends FunSuite:
     assert(!events.exists(_.isInstanceOf[GameEvent.ItemPickedUp]),
            s"no ItemPickedUp should fire until the choice is resolved: $events"
     )
-
-  test("a boss-kill loot collision is lost silently, never offered as a choice"):
-    val existingWeapon = Weapon("existing", "hunters_bow", "Hunter's Bow", Rarity.Common, attackBonus = 5)
-    val itemDefs: Map[String, Item] = Map(
-      "iron_sword" -> Weapon("", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
-    )
-    val enemy = weakEnemy(hp = 1).copy(dropChance = 100, lootTable = List(LootEntry("iron_sword", 100)))
-    val playerWithWeapon = fullHpPlayer().copy(equippedWeapon = Some(existingWeapon))
-    val (next, log, _) = CombatResolver(Random(0), itemDefs)
-      .resolve(combatStateInBossRoom(enemy, playerWithWeapon), CombatAction(CombatActionType.Attack))
-    assert(next.isInstanceOf[GameOverState], s"expected GameOverState, got $next")
-    assertEquals(next.player.equippedWeapon, Some(existingWeapon))
-    assert(log.exists(_.toLowerCase.contains("no time to decide")), s"expected the boss-kill-loss message: $log")
 
   // --- Damage/heal event emission ------------------------------------------
 

@@ -20,13 +20,13 @@ class InteractionResolverSuite extends FunSuite:
                roomType: RoomType = RoomType.Combat,
                entities: List[Entity] = Nil
   ): Room =
-    Room(id, roomType, w, h, makeTiles(w, h), entities)
+    Room(id, roomType, "dungeon", w, h, makeTiles(w, h), entities)
 
   /** Same as makeRoom, but with a single interior tile forced to Wall, used to verify that
     * reveal/unlock actually flips a tile rather than assuming it was already Floor. */
   def roomWithWallAt(id: String, wx: Int, wy: Int, entities: List[Entity]): Room =
     val tiles = makeTiles()
-    Room(id, RoomType.Combat, 8, 6, tiles.updated(wy, tiles(wy).updated(wx, Tile.Wall)), entities)
+    Room(id, RoomType.Combat, "dungeon", 8, 6, tiles.updated(wy, tiles(wy).updated(wx, Tile.Wall)), entities)
 
   def door(from: String, to: String): Door =
     Door(s"door_${from}_to_$to",

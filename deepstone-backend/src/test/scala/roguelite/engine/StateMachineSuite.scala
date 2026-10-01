@@ -20,7 +20,7 @@ class StateMachineSuite extends FunSuite:
                roomType: RoomType = RoomType.Combat,
                entities: List[Entity] = Nil
   ): Room =
-    Room(id, roomType, w, h, makeTiles(w, h), entities)
+    Room(id, roomType, "dungeon", w, h, makeTiles(w, h), entities)
 
   def door(from: String, to: String): Door =
     Door(s"door_${from}_to_$to",
@@ -256,7 +256,9 @@ class StateMachineSuite extends FunSuite:
 
   // --- Hub: difficulty -----------------------------------------------------
 
-  /** Pool with enough middle rooms for Easy/Normal/Hard's totalRooms to actually differ. */
+  /** Pool with enough Combat rooms that Easy/Normal/Hard's differing section counts actually
+    * produce differently-sized dungeons (more sections draw on more of this pool's lead-in/
+    * reconverge Combat slots, even with no Loot/Rest/Fork content to fill their own slots). */
   def richRoomPool: Map[String, Room] =
     val middles = (1 to 6).map(i => s"middle$i" -> makeRoom(s"middle$i")).toMap
     middles ++ defaultRoomPool

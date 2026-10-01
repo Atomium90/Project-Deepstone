@@ -17,7 +17,7 @@ class GameStateSuite extends FunSuite:
         if row == 0 || row == h - 1 || col == 0 || col == w - 1 then Tile.Wall else Tile.Floor
 
   def makeRoom(id: String, entities: List[Entity] = Nil): Room =
-    Room(id, RoomType.Combat, 8, 6, makeTiles(), entities)
+    Room(id, RoomType.Combat, "dungeon", 8, 6, makeTiles(), entities)
 
   def dungeon: Dungeon = Dungeon(Map("r1" -> makeRoom("r1")), "r1")
 

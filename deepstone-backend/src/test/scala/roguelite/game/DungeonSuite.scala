@@ -7,7 +7,7 @@ class DungeonSuite extends FunSuite:
   def makeRoom(id: String, roomType: RoomType = RoomType.Combat, entities: List[Entity] = Nil): Room =
     val tiles = Vector.tabulate(6, 8): (row, col) =>
       if row == 0 || row == 5 || col == 0 || col == 7 then Tile.Wall else Tile.Floor
-    Room(id = id, roomType = roomType, width = 8, height = 6, tiles = tiles, entities = entities)
+    Room(id = id, roomType = roomType, theme = "dungeon", width = 8, height = 6, tiles = tiles, entities = entities)
 
   def simpleDungeon: Dungeon =
     val r1 = makeRoom("r1")

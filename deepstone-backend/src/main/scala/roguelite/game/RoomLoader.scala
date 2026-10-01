@@ -36,6 +36,7 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
     yield Room(
       id = rj.id,
       roomType = roomType,
+      theme = rj.theme,
       width = rj.width,
       height = rj.height,
       tiles = tiles,
@@ -151,6 +152,7 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
   private case class RoomJson(
       id: String,
       `type`: String,
+      theme: String,
       width: Int,
       height: Int,
       tiles: List[List[String]],
@@ -183,8 +185,9 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       for
         id       <- c.get[String]("id")
         roomType <- c.get[String]("type")
+        theme    <- c.get[String]("theme")
         width    <- c.get[Int]("width")
         height   <- c.get[Int]("height")
         tiles    <- c.get[List[List[String]]]("tiles")
         entities <- c.get[List[EntityJson]]("entities")
-      yield RoomJson(id, roomType, width, height, tiles, entities)
+      yield RoomJson(id, roomType, theme, width, height, tiles, entities)

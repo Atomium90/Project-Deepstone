@@ -79,13 +79,14 @@ class DungeonBuilderSuite extends FunSuite:
 
   test("a fully-populated section (no fork cluster available) produces the expected room count"):
     val dungeon = builder().build()(biomeCount = 1).getOrElse(fail("build failed"))
-    // entrance + (2 lead-in Combat + 1 reconverge Combat + 1 reconverge Loot + 1 Boss) + sanctuary
-    assertEquals(dungeon.rooms.size, 7)
+    // (2 lead-in Combat + 1 reconverge Combat + 1 reconverge Loot + 1 Boss) + sanctuary - no
+    // separately-tracked entrance anymore, section 1's own first room doubles as the start
+    assertEquals(dungeon.rooms.size, 6)
 
   test("built dungeon has the requested room count across multiple sections"):
     val dungeon = builder().build()(biomeCount = 2).getOrElse(fail("build failed"))
-    // entrance + section(5) + rest + section(5) + sanctuary
-    assertEquals(dungeon.rooms.size, 13)
+    // section(5) + rest + section(5) + sanctuary
+    assertEquals(dungeon.rooms.size, 12)
 
   test("first room is a combat room"):
     val dungeon = builder().build()().getOrElse(fail("build failed"))
@@ -139,21 +140,82 @@ class DungeonBuilderSuite extends FunSuite:
   test("a section's fixed template is wired in the correct order, with Rest between sections"):
     val dungeon  = builder().build()(biomeCount = 2).getOrElse(fail("build failed"))
     val sequence = roomTypeSequence(dungeon)
-    // entrance, 2 lead-in Combat, reconverge Combat, reconverge Loot, Boss, Rest, (section 2
-    // repeats the same 5-room shape without its own entrance), Sanctuary
-    assertEquals(sequence.length, 13)
-    assertEquals(sequence.take(6),
-                 List(RoomType.Combat, RoomType.Combat, RoomType.Combat, RoomType.Combat, RoomType.Loot, RoomType.Boss)
-    )
-    assertEquals(sequence(6), RoomType.Rest)
-    assertEquals(sequence.slice(7, 12), List(RoomType.Combat, RoomType.Combat, RoomType.Combat, RoomType.Loot, RoomType.Boss))
+    // section 1 (2 lead-in Combat, reconverge Combat, reconverge Loot, Boss - no separately-tracked
+    // entrance, section 1's own first room doubles as the start), Rest, section 2 (same 5-room
+    // shape), Sanctuary
+    assertEquals(sequence.length, 12)
+    assertEquals(sequence.take(5), List(RoomType.Combat, RoomType.Combat, RoomType.Combat, RoomType.Loot, RoomType.Boss))
+    assertEquals(sequence(5), RoomType.Rest)
+    assertEquals(sequence.slice(6, 11), List(RoomType.Combat, RoomType.Combat, RoomType.Combat, RoomType.Loot, RoomType.Boss))
     assertEquals(sequence.last, RoomType.Sanctuary)
 
   test("build still succeeds, sections simply running together, when biomeCount > 1 but the pool has no Rest room"):
     val poolWithoutRest = testPool.filterNot(_._2.roomType == RoomType.Rest)
     val dungeon = DungeonBuilder(poolWithoutRest, Random(42L)).build()(biomeCount = 2).getOrElse(fail("build failed"))
     assert(!dungeon.rooms.values.exists(_.roomType == RoomType.Rest))
-    assertEquals(dungeon.rooms.size, 12) // entrance + section(5) + section(5) + sanctuary, no rest between
+    assertEquals(dungeon.rooms.size, 11) // section(5) + section(5) + sanctuary, no rest between
+
+  // ---------------------------------------------
+  // Theme-aware generation
+  // ---------------------------------------------
+
+  /** A second theme ("other"), sized like a slimmed-down testPool with no Fork/MiniBoss content -
+    * fork testing stays isolated to forkTestPool below, this is only for theme-matching/selection
+    * behavior. Has its own Sanctuary room too, same as "dungeon" does, so a test isn't at the mercy
+    * of which theme a given seed happens to pick for the last section (see the hard Sanctuary/theme
+    * match requirement - a theme with no Sanctuary at all is its own, separately-tested failure
+    * mode, not something every other theme-matching test should risk tripping over by accident). */
+  def otherThemeRooms: Map[String, Room] =
+    (midRooms("oc", RoomType.Combat, 4) :::
+      midRooms("ol", RoomType.Loot, 3) :::
+      midRooms("ob", RoomType.Boss, 2) :::
+      midRooms("or", RoomType.Rest, 2) :::
+      List("other_sanctuary" -> makeRoom("other_sanctuary", RoomType.Sanctuary, List(entranceDoor())))
+    ).map { case (id, room) => id -> room.copy(theme = "other") }.toMap
+
+  def multiThemePool: Map[String, Room] = testPool ++ otherThemeRooms
+
+  /** Same traversal as [[roomTypeSequence]], but returns each room's theme instead of its type -
+    * only meaningful against a fork-less pool, same caveat as roomTypeSequence's own doc. */
+  def roomThemeSequence(dungeon: Dungeon): List[String] =
+    def nextIdOf(room: Room): Option[String] =
+      room.entities
+        .collectFirst { case d: Door if d.link.role == ConnectorRole.Next => d.link }
+        .collect { case DoorLink.Resolved(_, _, target) => target }
+
+    @annotation.tailrec
+    def loop(currentId: String, acc: List[String]): List[String] =
+      val room       = dungeon.rooms(currentId)
+      val updatedAcc = acc :+ room.theme
+      nextIdOf(room) match
+        case Some(nextId) => loop(nextId, updatedAcc)
+        case None         => updatedAcc
+
+    loop(dungeon.currentRoomId, Nil)
+
+  test("every room in a section is drawn from the same theme"):
+    val dungeon = DungeonBuilder(multiThemePool, Random(1L)).build()(biomeCount = 1).getOrElse(fail("build failed"))
+    val themesUsed = dungeon.rooms.values.filterNot(_.roomType == RoomType.Sanctuary).map(_.theme).toSet
+    assertEquals(themesUsed.size, 1, s"expected a single section to use exactly one theme, found: $themesUsed")
+
+  test("pickNextTheme exhausts every theme at least once before any theme repeats"):
+    // 2 themes, 2 sections - the exhaust-first policy guarantees both get used, regardless of seed,
+    // rather than leaving "other" completely unused while "dungeon" repeats.
+    val dungeon = DungeonBuilder(multiThemePool, Random(5L)).build()(biomeCount = 2).getOrElse(fail("build failed"))
+    val sequence = roomThemeSequence(dungeon)
+    assertEquals(Set(sequence(4), sequence(10)), Set("dungeon", "other"), s"expected both themes used: $sequence")
+
+  test("a Rest room matches the theme of the section that just ended, not the one about to start"):
+    val dungeon  = DungeonBuilder(multiThemePool, Random(5L)).build()(biomeCount = 2).getOrElse(fail("build failed"))
+    val sequence = roomThemeSequence(dungeon)
+    // index 4 = section 1's own Boss (last room of section 1), index 5 = the Rest right after it
+    assertEquals(sequence(5), sequence(4), s"expected Rest to match section 1's theme: $sequence")
+
+  test("the Sanctuary matches the last section's theme"):
+    val dungeon  = DungeonBuilder(multiThemePool, Random(5L)).build()(biomeCount = 2).getOrElse(fail("build failed"))
+    val sequence = roomThemeSequence(dungeon)
+    // index 10 = section 2's own Boss (last room of section 2), last = the Sanctuary
+    assertEquals(sequence.last, sequence(10), s"expected the Sanctuary to match section 2's theme: $sequence")
 
   // ---------------------------------------------
   // Fork branching
@@ -185,8 +247,8 @@ class DungeonBuilderSuite extends FunSuite:
 
   test("a fork cluster adds exactly 5 rooms (fork + 2-room branch A + 2-room branch B)"):
     val dungeon = forkBuilder().build()(biomeCount = 1).getOrElse(fail("build failed"))
-    // entrance + (2 lead-in + fork cluster(5) + reconverge(2) + boss) + sanctuary
-    assertEquals(dungeon.rooms.size, 12)
+    // (2 lead-in + fork cluster(5) + reconverge(2) + boss) + sanctuary
+    assertEquals(dungeon.rooms.size, 11)
 
   test("the fork's two branch-tagged Next doors resolve to each branch's first room"):
     val dungeon = forkBuilder().build()(biomeCount = 1).getOrElse(fail("build failed"))
@@ -318,10 +380,15 @@ class DungeonBuilderSuite extends FunSuite:
   // Error cases
   // ---------------------------------------------
 
-  test("build returns Left when pool has no combat room"):
+  test("build still succeeds, degrading every Combat-dependent slot, when the pool has no combat room"):
+    // Combat is no longer a hard requirement anywhere - there's no separately-tracked entrance to
+    // need one for anymore (see the class doc). Every lead-in/reconverge Combat slot just degrades
+    // gracefully like any other optional slot; Loot/Boss/Sanctuary are untouched by its absence.
     val noCombatPool = testPool.filterNot(_._2.roomType == RoomType.Combat)
-    val result       = DungeonBuilder(noCombatPool).build()()
-    assert(result.isLeft)
+    val dungeon       = DungeonBuilder(noCombatPool).build()().getOrElse(fail("build failed"))
+    assert(!dungeon.rooms.values.exists(_.roomType == RoomType.Combat))
+    assert(dungeon.rooms.values.exists(_.roomType == RoomType.Boss))
+    assert(dungeon.rooms.values.exists(_.roomType == RoomType.Sanctuary))
 
   test("build returns Left when pool has no boss room"):
     val noBossPool = testPool.filterNot(_._2.roomType == RoomType.Boss)
@@ -333,12 +400,33 @@ class DungeonBuilderSuite extends FunSuite:
     val result           = DungeonBuilder(noSanctuaryPool).build()()
     assert(result.isLeft)
 
-  test("build returns Left when a section can't get its own boss room (pool exhausted by an earlier section)"):
-    // Only 1 Boss room total, but biomeCount = 2 needs one per section - the 2nd section's Boss
-    // pick must fail loudly, not silently degrade the way every other optional slot does.
-    val singleBossPool = testPool.filterNot(_._2.roomType == RoomType.Boss) + ("b1" -> makeRoom("b1", RoomType.Boss, List(entranceDoor(), exitDoor())))
-    val result          = DungeonBuilder(singleBossPool).build()(biomeCount = 2)
+  test("build returns Left when one of several themes has no boss room of its own"):
+    // "dungeon" (testPool) has Boss rooms; "other" doesn't. With exactly 2 themes and 2 sections,
+    // pickNextTheme's exhaust-first policy guarantees both themes get used exactly once, so
+    // whichever section lands on "other" fails its Boss pick regardless of seed - a theme's own
+    // Boss supply matters, not just whether *some* theme in the pool has one. Replaces an older
+    // test here that checked a single theme's Boss pool running out across sections - no longer a
+    // real failure mode once the same room can safely be reused across sections (see
+    // deduplicateRoomIds and the "same room reused" test below).
+    val otherThemeNoBoss = Map(
+      "other_c1" -> makeRoom("other_c1", RoomType.Combat, theme = "other"),
+      "other_l1" -> makeRoom("other_l1", RoomType.Loot, theme = "other")
+    )
+    val result = DungeonBuilder(testPool ++ otherThemeNoBoss).build()(biomeCount = 2)
     assert(result.isLeft)
+
+  test("the same room can be reused across different sections without corrupting the dungeon"):
+    // Only 1 Boss room total, but biomeCount = 2 - both sections independently pick it (exclude
+    // resets per section), so deduplicateRoomIds must give the second placement its own runtime id
+    // rather than letting the two collide into a single Dungeon.rooms entry.
+    val singleBossPool = testPool.filterNot(_._2.roomType == RoomType.Boss) +
+      ("b1" -> makeRoom("b1", RoomType.Boss, List(entranceDoor(), exitDoor())))
+    val dungeon   = DungeonBuilder(singleBossPool, Random(1L)).build()(biomeCount = 2).getOrElse(fail("build failed"))
+    val bossRooms = dungeon.rooms.values.filter(_.roomType == RoomType.Boss).toList
+    assertEquals(bossRooms.size, 2, "expected 2 distinct Boss room placements")
+    assertEquals(bossRooms.map(_.id).toSet.size, 2, "expected 2 distinct ids, not a collision")
+    assert(bossRooms.exists(_.id == "b1"), "expected the first placement to keep its original id")
+    assert(bossRooms.exists(_.id == "b1#2"), "expected the second placement to get a synthetic runtime id")
 
   // ---------------------------------------------
   // Reproducibility

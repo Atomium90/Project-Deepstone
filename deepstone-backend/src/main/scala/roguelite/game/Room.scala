@@ -71,6 +71,12 @@ object RoomType:
   *   Unique identifier matching the rooms.json entry.
   * @param roomType
   *   Determines loot, enemy density, and special behavior.
+  * @param theme
+  *   Which content set this room belongs to (e.g. "dungeon", "darkDungeon") - required, not
+  *   optional, so a newly-authored room can never silently fall through un-themed. Read by
+  *   [[DungeonBuilder]] to keep a section's rooms drawn from a single theme (see
+  *   [[DungeonBuilder.buildSection]]). Not yet exposed on [[RoomView]] - no client-side consumer
+  *   needs it until the matching theme-aware renderer work lands separately.
   * @param width
   *   Number of tiles horizontally.
   * @param height
@@ -83,6 +89,7 @@ object RoomType:
 case class Room(
     id: String,
     roomType: RoomType,
+    theme: String,
     width: Int,
     height: Int,
     tiles: Vector[Vector[Tile]],

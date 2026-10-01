@@ -33,10 +33,12 @@ class DungeonBuilderSuite extends FunSuite:
   def makeRoom(
       id: String,
       roomType: RoomType,
-      entities: List[Entity] = Nil
+      entities: List[Entity] = Nil,
+      theme: String = "dungeon"
   ): Room =
     Room(id = id,
          roomType = roomType,
+         theme = theme,
          width = 8,
          height = 6,
          tiles = makeTiles(),

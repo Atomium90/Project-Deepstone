@@ -14,7 +14,7 @@ class EquipmentResolverSuite extends FunSuite:
   private def player: Player = PlayerFixtures.startingPlayer(ClassId.Warrior)
 
   private def testDungeon: Dungeon =
-    Dungeon(rooms = Map("r1" -> Room("r1", RoomType.Combat, 4, 4, Vector.fill(4)(Vector.fill(4)(Tile.Floor)), Nil)),
+    Dungeon(rooms = Map("r1" -> Room("r1", RoomType.Combat, "dungeon", 4, 4, Vector.fill(4)(Vector.fill(4)(Tile.Floor)), Nil)),
             currentRoomId = "r1"
     )
 

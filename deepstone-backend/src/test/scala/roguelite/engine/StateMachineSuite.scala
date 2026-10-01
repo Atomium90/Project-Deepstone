@@ -20,7 +20,7 @@ class StateMachineSuite extends FunSuite:
                roomType: RoomType = RoomType.Combat,
                entities: List[Entity] = Nil
   ): Room =
-    Room(id, roomType, w, h, makeTiles(w, h), entities)
+    Room(id, roomType, "dungeon", w, h, makeTiles(w, h), entities)
 
   def door(from: String, to: String): Door =
     Door(s"door_${from}_to_$to",

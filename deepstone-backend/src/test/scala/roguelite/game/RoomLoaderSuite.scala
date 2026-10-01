@@ -16,6 +16,7 @@ class RoomLoaderSuite extends CatsEffectSuite:
       |  {
       |    "id":"test_room",
       |    "type":"combat",
+      |    "theme":"dungeon",
       |    "width":3,
       |    "height":2,
       |    "tiles":[["wall","floor","wall"],["floor","floor","floor"]],
@@ -99,43 +100,47 @@ class RoomLoaderSuite extends CatsEffectSuite:
       assertEquals(s.y, 1)
 
   test("an unknown tile character fails to parse"):
-    val bad = """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["lava"]],"entities":[]}]"""
+    val bad = """[{"id":"x","type":"combat","theme":"dungeon","width":1,"height":1,"tiles":[["lava"]],"entities":[]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   test("an unknown room type fails to parse"):
-    val bad = """[{"id":"x","type":"bogus","width":1,"height":1,"tiles":[["wall"]],"entities":[]}]"""
+    val bad = """[{"id":"x","type":"bogus","theme":"dungeon","width":1,"height":1,"tiles":[["wall"]],"entities":[]}]"""
+    RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  test("a room missing 'theme' fails to parse"):
+    val bad = """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["wall"]],"entities":[]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   test("an unknown entity kind fails to parse"):
     val bad =
-      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"bogus","id":"e1","x":0,"y":0}]}]"""
+      """[{"id":"x","type":"combat","theme":"dungeon","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"bogus","id":"e1","x":0,"y":0}]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   test("an enemy entity missing 'typeId' fails to parse"):
     val bad =
-      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"enemy","id":"e1","x":0,"y":0,"label":"L"}]}]"""
+      """[{"id":"x","type":"combat","theme":"dungeon","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"enemy","id":"e1","x":0,"y":0,"label":"L"}]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   test("a door entity missing 'role' fails to parse"):
     val bad =
-      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up"}]}]"""
+      """[{"id":"x","type":"combat","theme":"dungeon","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up"}]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   test("a door entity with an unknown 'role' fails to parse"):
     val bad =
-      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up","role":"sideways"}]}]"""
+      """[{"id":"x","type":"combat","theme":"dungeon","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up","role":"sideways"}]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   test("a door entity's role is resolved even without a targetRoomId (Unresolved stub)"):
     val ok =
-      """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up","role":"next"}]}]"""
+      """[{"id":"x","type":"combat","theme":"dungeon","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"door","id":"d1","x":0,"y":0,"direction":"up","role":"next"}]}]"""
     for rooms <- RoomLoader.loadAllFromJson(ok)
     yield
       val d = rooms("x").entities.collectFirst { case d: Door => d }.get
       assertEquals(d.link, DoorLink.Unresolved(ConnectorRole.Next))
 
   test("an npc entity missing 'name' fails to parse"):
-    val bad = """[{"id":"x","type":"combat","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"npc","id":"n1","x":0,"y":0}]}]"""
+    val bad = """[{"id":"x","type":"combat","theme":"dungeon","width":1,"height":1,"tiles":[["floor"]],"entities":[{"kind":"npc","id":"n1","x":0,"y":0}]}]"""
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   // ---------------------------------------------

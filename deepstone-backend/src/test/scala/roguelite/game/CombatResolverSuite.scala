@@ -18,7 +18,7 @@ class CombatResolverSuite extends FunSuite:
 
   def testDungeon(enemies: List[Entity] = Nil): Dungeon =
     val room =
-      Room("r1", RoomType.Combat, width = 8, height = 6, tiles = makeTiles(), entities = enemies)
+      Room("r1", RoomType.Combat, theme = "dungeon", width = 8, height = 6, tiles = makeTiles(), entities = enemies)
     Dungeon(rooms = Map("r1" -> room), currentRoomId = "r1")
 
   def weakEnemy(entityId: String = "e1", hp: Int = 1): EnemyInstance =
@@ -60,7 +60,7 @@ class CombatResolverSuite extends FunSuite:
 
   def bossDungeon(enemies: List[Entity] = Nil): Dungeon =
     val room =
-      Room("boss1", RoomType.Boss, width = 8, height = 6, tiles = makeTiles(), entities = enemies)
+      Room("boss1", RoomType.Boss, theme = "dungeon", width = 8, height = 6, tiles = makeTiles(), entities = enemies)
     Dungeon(rooms = Map("boss1" -> room), currentRoomId = "boss1")
 
   def combatStateInBossRoom(enemy: EnemyInstance, player: Player = fullHpPlayer()): CombatState =
@@ -75,7 +75,7 @@ class CombatResolverSuite extends FunSuite:
 
   def miniBossDungeon(enemies: List[Entity] = Nil): Dungeon =
     val room =
-      Room("miniboss1", RoomType.MiniBoss, width = 8, height = 6, tiles = makeTiles(), entities = enemies)
+      Room("miniboss1", RoomType.MiniBoss, theme = "dungeon", width = 8, height = 6, tiles = makeTiles(), entities = enemies)
     Dungeon(rooms = Map("miniboss1" -> room), currentRoomId = "miniboss1")
 
   def combatStateInMiniBossRoom(enemy: EnemyInstance, player: Player = fullHpPlayer()): CombatState =

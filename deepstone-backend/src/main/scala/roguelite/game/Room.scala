@@ -142,10 +142,11 @@ case class Room(
   def entityById(id: String): Option[Entity] =
     entities.find(_.id == id)
 
-  /** Find an entity occupying the given tile position. */
+  /** Find an entity occupying the given tile position - see [[Entity.occupiedTiles]] for the
+    * (usually single-tile) footprint each kind actually checks against. */
   def entityAt(x: Int, y: Int): Option[Entity] =
     entities.find(
-      e => e.x == x && e.y == y
+      e => e.occupiedTiles.contains((x, y))
     )
 
   /** Remove an entity from the room (e.g. after a chest is looted). */

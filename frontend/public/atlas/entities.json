@@ -705,9 +705,9 @@
     "sanctuary_halo_gold": {
       "sheet": "/sprites/entities/sanctuary/lightHalo_sheet.png",
       "x": 0,
-      "y": 32,
-      "w": 32,
-      "h": 32,
+      "y": 24,
+      "w": 24,
+      "h": 24,
       "frameCount": 4,
       "frameDuration": 125
     }

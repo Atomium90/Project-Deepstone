@@ -115,10 +115,15 @@ const DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT_COMPRESSED = 12;
  * on screen). */
 const DARK_DUNGEON_DOOR_NATIVE_Y_OFFSET = 6;
 
-/** The Sanctuary renders at a 2x2 tile footprint (its native 32x32 art is already authored at
- * double the usual 16x16 tile size), centered on its own single logical tile like every other
- * entity's cx/cy anchor - see drawSanctuary. */
+/** The Sanctuary renders at a 2x2 tile footprint (its native 24x24-per-frame art is already
+ * authored at double the usual 16x16 tile size), centered on its own single logical tile like
+ * every other entity's cx/cy anchor - see drawSanctuary. */
 const SANCTUARY_DRAW_SIZE = TILE_SIZE * 2;
+
+/** Fine alignment nudge for the halo against the room grid, in native (pre-scale) pixels - tuned
+ * by eye, not derived from anything. See drawSanctuary for the native-to-screen conversion. */
+const SANCTUARY_OFFSET_X = 6.5;
+const SANCTUARY_OFFSET_Y = 4;
 
 /** Distance in tiles within which an entity is considered reachable (E key). */
 const INTERACT_RANGE = 1;
@@ -623,10 +628,15 @@ export class Renderer {
   }
 
   /** Draws the Sanctuary's halo at a 2x2 tile footprint instead of the usual single tile - its
-   * art is already authored at double size (32x32 native, vs. every other entity's 16x16), so
-   * this just draws it at SANCTUARY_DRAW_SIZE instead of TILE_SIZE, centered on the entity's
-   * cx/cy like everything else. Animation (the rising-light frames) is already resolved by the
-   * caller's ordinary getSprite call, same as any other animated entry - nothing bespoke here. */
+   * art is already authored at double size (24x24 native per frame, vs. every other entity's
+   * 16x16), so this just draws it at SANCTUARY_DRAW_SIZE instead of TILE_SIZE, centered on the
+   * entity's cx/cy like everything else, then nudged by SANCTUARY_OFFSET_X/Y (tuned by eye
+   * against the room grid). Same pre-scaling convention as drawDoor's nativeToScreen: the offset
+   * constants are native (pre-scale) pixels, converted here using the source crop's own width -
+   * not TILE_SIZE/16 like drawDoor, since this asset isn't on the usual 16px native grid - so the
+   * nudge stays correct if the sprite sheet is ever re-cropped to a different native size again.
+   * Animation (the rising-light frames) is already resolved by the caller's ordinary getSprite
+   * call, same as any other animated entry - nothing bespoke here. */
   private drawSanctuary(
     image: HTMLImageElement,
     sourceRect: SourceRect,
@@ -634,14 +644,15 @@ export class Renderer {
     cy: number,
   ): void {
     const { x: sx, y: sy, w: sw, h: sh } = sourceRect;
+    const nativeToScreen = SANCTUARY_DRAW_SIZE / sw;
     this.ctx.drawImage(
       image,
       sx,
       sy,
       sw,
       sh,
-      cx - SANCTUARY_DRAW_SIZE / 2,
-      cy - SANCTUARY_DRAW_SIZE / 2,
+      cx - SANCTUARY_DRAW_SIZE / 2 + SANCTUARY_OFFSET_X * nativeToScreen,
+      cy - SANCTUARY_DRAW_SIZE / 2 + SANCTUARY_OFFSET_Y * nativeToScreen,
       SANCTUARY_DRAW_SIZE,
       SANCTUARY_DRAW_SIZE,
     );

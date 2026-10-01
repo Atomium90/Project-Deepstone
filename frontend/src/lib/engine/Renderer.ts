@@ -275,7 +275,7 @@ export class Renderer {
       // triggers (see StateMachine's Move handling), so it's never a valid E target here.
       if (entity.kind === "sanctuary") continue;
 
-      const tile = interactCheckTile(entity);
+      const tile = interactCheckTile(entity, this.room.theme);
       if (!isCardinalNeighbor(px, py, tile.x, tile.y)) continue;
       const dist = chebyshevDist(px, py, tile.x, tile.y);
       if (dist < nearestDist) {
@@ -455,7 +455,7 @@ export class Renderer {
     for (const entity of room.entities) {
       const cx = entity.x * TILE_SIZE + TILE_SIZE / 2;
       const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
-      const interactTile = interactCheckTile(entity);
+      const interactTile = interactCheckTile(entity, room.theme);
       const isNearby = isCardinalNeighbor(
         px,
         py,
@@ -989,19 +989,29 @@ function isCardinalNeighbor(
   return chebyshevDist(x1, y1, x2, y2) <= INTERACT_RANGE;
 }
 
-/** A door/locked_door's 2-tile footprint is anchored top-left, always expanding toward +X/+Y
- * regardless of wall (see drawDoor) - so which of the anchor/anchor+1 pair actually borders the
- * room's walkable interior flips depending on the wall. UP/LEFT sit on the room's low-Y/low-X
- * edge, so that +X/+Y expansion goes INTO the interior and the anchor itself is the outer/border
- * tile - the interior-adjacent tile is one step further (anchor+1). DOWN/RIGHT sit on the high
- * edge, so expansion goes away from the interior and the anchor is already the near tile. Only
- * this resolved tile should ever count for interact-range purposes, never the raw entity.x/y. */
-function doorInteractTile(entity: EntityView): { x: number; y: number } {
+/** UP and LEFT need different handling, confirmed empirically against the real tile grids of every
+ * converted room rather than assumed from the old "dungeon" convention alone:
+ *   - UP's correction is universal, not theme-gated. Every room checked (old "dungeon" and new
+ *     darkDungeon alike) has at least one solid wall row between a UP door's raw entity.y and the
+ *     first real floor row - one row in "dungeon" (y+1 already lands on that floor row directly),
+ *     two rows in darkDungeon (y+1 lands on the second wall row, not floor - but that's still fine,
+ *     since isCardinalNeighbor checks the *player's* position against this resolved tile, not
+ *     whether this tile itself is floor: y+2, one further step in, is y+1's own cardinal neighbor
+ *     and the first real floor row either way). +1 reliably resolves to a tile whose interior-side
+ *     neighbor is real floor, regardless of exactly how thick the wall band above it is.
+ *   - LEFT has no such universal row count to lean on: "dungeon"'s own two LEFT doors are already
+ *     floor-anchored same as darkDungeon's are, yet still rely on the existing +1 shift for their
+ *     current (shipped, tested) interact distance - so unlike UP, correctness here isn't "the same
+ *     formula happens to keep working at any thickness", it's "this specific content already
+ *     depends on this specific shift". Gated to "dungeon" specifically so newer themes (which
+ *     don't share that dependency - their LEFT doors sit directly on the real gap, no shift wanted)
+ *     default to the correct, uncorrected behavior instead of inheriting it by accident. */
+function doorInteractTile(entity: EntityView, theme: string): { x: number; y: number } {
   switch (entity.direction) {
     case "UP":
       return { x: entity.x, y: entity.y + 1 };
     case "LEFT":
-      return { x: entity.x + 1, y: entity.y };
+      return theme === "dungeon" ? { x: entity.x + 1, y: entity.y } : { x: entity.x, y: entity.y };
     default:
       return { x: entity.x, y: entity.y }; // DOWN, RIGHT, unset
   }
@@ -1009,9 +1019,9 @@ function doorInteractTile(entity: EntityView): { x: number; y: number } {
 
 /** Resolves the tile that should be used for an entity's interact-range check - the door-specific
  * correction above for door/locked_door, or the entity's own position unchanged otherwise. */
-function interactCheckTile(entity: EntityView): { x: number; y: number } {
+function interactCheckTile(entity: EntityView, theme: string): { x: number; y: number } {
   return entity.kind === "door" || entity.kind === "locked_door"
-    ? doorInteractTile(entity)
+    ? doorInteractTile(entity, theme)
     : entity;
 }
 

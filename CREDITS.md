@@ -12,6 +12,11 @@ Third-party art and audio assets used by Deepstone, and their licenses.
 
 - **16x16 Dungeon Tileset** by 0x72 (https://0x72.itch.io/16x16-dungeon-tileset)
   Used for: dungeon tiles, doors, chests, NPCs, decorative sprites.
+- **DungeonTileset II** by 0x72 (https://0x72.itch.io/dungeontileset-ii)
+  Used for: hand-authored Tiled rooms' dungeon-theme tiles (see `frontend/scripts/
+  generate-tiled-tileset-atlas.mjs`), master sheet imported into Tiled for precise autotiling.
+- **16x16 Dark Dungeon Tileset** by Kosinaz (https://kosinaz.itch.io/16x16-dark-dungeon-tileset)
+  Based on 0x72's DungeonTileset II. Used for: hand-authored Tiled rooms' darkDungeon theme.
 - **Pixel Crawler** pack
   Used for: player and enemy character sprites.
 - **UI Pack**, **UI Pack (RPG Expansion)**, **Game Icons**, **Game Icons (Expansion)** by Kenney (https://kenney.nl)

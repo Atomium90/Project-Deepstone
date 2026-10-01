@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Atlas Viewer (dev tool)</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#111; color:#ccc; font-family: ui-monospace, Consolas, monospace; margin:0; padding:18px; }
+  h1 { font-size: 14px; letter-spacing: 0.08em; color:#888; text-transform: uppercase; margin: 0 0 4px; }
+  .subtitle { font-size: 12px; color:#555; margin-bottom: 16px; }
+  .controls { display:flex; gap:14px; align-items:center; margin-bottom: 18px; font-size: 13px; flex-wrap: wrap; }
+  select, input[type=number], button {
+    background:#1a1a1a; color:#ccc; border:1px solid #333; padding:3px 7px; font-family: inherit; font-size: 12px;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: #666; }
+  .sheet-block { margin-bottom: 30px; }
+  .sheet-title { font-size: 12px; color:#777; margin-bottom: 6px; }
+  .canvas-wrap { position: relative; display: inline-block; }
+  canvas { image-rendering: pixelated; border: 1px solid #333; display:block; cursor: crosshair; }
+  .tooltip {
+    position: fixed; pointer-events: none; background:#000; color:#e8c34a; border:1px solid #e8c34a;
+    padding: 3px 8px; font-size: 12px; display:none; z-index: 10; white-space: nowrap;
+  }
+  .stats { color:#555; font-size: 11px; margin-top: 5px; }
+  .status { color:#e07070; font-size: 13px; }
+</style>
+</head>
+<body>
+  <h1>Atlas Viewer</h1>
+  <div class="subtitle">Dev tool only, not shipped as game content - visually check a generated atlas's slicing (grid should line up cleanly with the art, no half-tile offsets). Hover a tile for its exact key.</div>
+  <div class="controls">
+    <label>Atlas
+      <select id="atlasSelect">
+        <option value="dungeon_tiles">dungeon_tiles</option>
+        <option value="darkDungeon_tiles">darkDungeon_tiles</option>
+        <option value="tiles">tiles</option>
+        <option value="entities">entities</option>
+        <option value="items">items</option>
+      </select>
+    </label>
+    <label>Zoom <input id="zoom" type="number" value="3" min="1" max="8" style="width:3.5em"></label>
+    <button id="reload">Reload</button>
+    <span id="status" class="status"></span>
+  </div>
+  <div id="sheets"></div>
+  <div id="tooltip" class="tooltip"></div>
+
+<script>
+const select = document.getElementById("atlasSelect");
+const zoomInput = document.getElementById("zoom");
+const tooltip = document.getElementById("tooltip");
+const statusEl = document.getElementById("status");
+const sheetsEl = document.getElementById("sheets");
+
+const params = new URLSearchParams(location.search);
+if (params.get("atlas")) select.value = params.get("atlas");
+if (params.get("zoom")) zoomInput.value = params.get("zoom");
+
+function loadImage(src) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(img); // resolve anyway - naturalWidth stays 0, handled below
+        img.src = src;
+    });
+}
+
+async function render() {
+    statusEl.textContent = "";
+    const name = select.value;
+    const zoom = Math.max(1, Number(zoomInput.value) || 3);
+
+    const url = new URL(location.href);
+    url.searchParams.set("atlas", name);
+    url.searchParams.set("zoom", String(zoom));
+    history.replaceState(null, "", url);
+
+    let data;
+    try {
+        const res = await fetch(`/atlas/${name}.json`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        data = await res.json();
+    } catch (e) {
+        statusEl.textContent = `Failed to load /atlas/${name}.json (${e.message}) - is the Vite dev server running?`;
+        sheetsEl.innerHTML = "";
+        return;
+    }
+
+    const bySheet = new Map();
+    for (const [key, sprite] of Object.entries(data.sprites)) {
+        if (!bySheet.has(sprite.sheet)) bySheet.set(sprite.sheet, []);
+        bySheet.get(sprite.sheet).push([key, sprite]);
+    }
+
+    sheetsEl.innerHTML = "";
+
+    for (const [sheetUrl, entries] of bySheet) {
+        const block = document.createElement("div");
+        block.className = "sheet-block";
+        const title = document.createElement("div");
+        title.className = "sheet-title";
+        title.textContent = `${sheetUrl}  (${entries.length} sprite${entries.length === 1 ? "" : "s"})`;
+        block.appendChild(title);
+
+        const img = await loadImage(sheetUrl);
+        if (img.naturalWidth === 0) {
+            const empty = document.createElement("div");
+            empty.className = "status";
+            empty.textContent = `Could not load image ${sheetUrl}`;
+            block.appendChild(empty);
+            sheetsEl.appendChild(block);
+            continue;
+        }
+
+        const wrap = document.createElement("div");
+        wrap.className = "canvas-wrap";
+        const canvas = document.createElement("canvas");
+        canvas.width = img.naturalWidth * zoom;
+        canvas.height = img.naturalHeight * zoom;
+        const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = "rgba(255, 0, 255, 0.55)";
+        ctx.lineWidth = 1;
+        for (const [, sprite] of entries) {
+            ctx.strokeRect(sprite.x * zoom + 0.5, sprite.y * zoom + 0.5, sprite.w * zoom - 1, sprite.h * zoom - 1);
+        }
+
+        canvas.addEventListener("mousemove", (ev) => {
+            const rect = canvas.getBoundingClientRect();
+            const px = (ev.clientX - rect.left) / zoom;
+            const py = (ev.clientY - rect.top) / zoom;
+            const hit = entries.find(([, s]) => px >= s.x && px < s.x + s.w && py >= s.y && py < s.y + s.h);
+            if (hit) {
+                tooltip.style.display = "block";
+                tooltip.style.left = `${ev.clientX + 14}px`;
+                tooltip.style.top = `${ev.clientY + 14}px`;
+                tooltip.textContent = `${hit[0]}  (${hit[1].x}, ${hit[1].y}, ${hit[1].w}x${hit[1].h})`;
+            } else {
+                tooltip.style.display = "none";
+            }
+        });
+        canvas.addEventListener("mouseleave", () => { tooltip.style.display = "none"; });
+
+        wrap.appendChild(canvas);
+        block.appendChild(wrap);
+        const stats = document.createElement("div");
+        stats.className = "stats";
+        stats.textContent = `sheet ${img.naturalWidth}x${img.naturalHeight}px, drawn at ${zoom}x`;
+        block.appendChild(stats);
+        sheetsEl.appendChild(block);
+    }
+}
+
+select.addEventListener("change", render);
+document.getElementById("reload").addEventListener("click", render);
+zoomInput.addEventListener("change", render);
+render();
+</script>
+</body>
+</html>

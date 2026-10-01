@@ -1,0 +1,1012 @@
+{
+  "sprites": {
+    "darkDungeon_0": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_1": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_2": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_3": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_4": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_5": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_6": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_7": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_8": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_9": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_10": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_11": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_12": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_13": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_14": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_15": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_16": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_17": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_18": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_19": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_20": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_21": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_22": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_23": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_24": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_25": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_26": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_27": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_28": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_29": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_30": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_31": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_32": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_33": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_34": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_35": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_36": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_37": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_38": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_39": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_40": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_41": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_42": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_43": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_44": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_45": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_46": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_47": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_48": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_49": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_50": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_51": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_52": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_53": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_54": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_55": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_56": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_57": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_58": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_59": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_60": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_61": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_62": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_63": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_64": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_65": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_66": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_67": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_68": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_69": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_70": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_71": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_72": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_73": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_74": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_75": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_76": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_77": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_78": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_79": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_80": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_81": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_82": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_83": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_84": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_85": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_86": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_87": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_88": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_89": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_90": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_91": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_92": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_93": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_94": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_95": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_96": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_97": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_98": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_99": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_100": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_101": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_102": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_103": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_104": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_105": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_106": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_107": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_108": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_109": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_110": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_111": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_112": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_113": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_114": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_115": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_116": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_117": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_118": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_119": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_120": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_121": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_122": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_123": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_124": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_125": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_126": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_127": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_128": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_129": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_130": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_131": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_132": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_133": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_134": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_135": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 0,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_136": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 16,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_137": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 32,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_138": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 48,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_139": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 64,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_140": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 80,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_141": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 96,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_142": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 112,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "darkDungeon_143": {
+      "sheet": "/sprites/tiles/DarkDungeon.png",
+      "x": 128,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    }
+  }
+}

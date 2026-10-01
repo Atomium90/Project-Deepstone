@@ -15,7 +15,9 @@ export class GameClient {
   private errorCallback: ErrorCallback | null = null;
   private readonly url: string;
 
-  constructor(url: string = "ws://localhost:8080/ws") {
+  // 127.0.0.1, not "localhost": the backend binds IPv4 only, and Windows can resolve "localhost"
+  // to IPv6 first, silently breaking the WebSocket connection.
+  constructor(url: string = "ws://127.0.0.1:8080/ws") {
     this.url = url;
   }
 

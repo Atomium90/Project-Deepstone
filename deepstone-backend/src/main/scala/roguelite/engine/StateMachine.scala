@@ -4,6 +4,7 @@ import cats.effect.IO
 import roguelite.game.{
   ClassDef,
   CombatResolver,
+  Dungeon,
   DungeonBuilder,
   EnemyStats,
   EquipmentResolver,
@@ -70,6 +71,25 @@ class StateMachine(roomPool: Map[String, Room],
   private val interactionResolver =
     InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs, setDefs = setDefs, perkDefs = perkDefs)
 
+  /** Dev tooling only: builds an `ExplorationState` containing just the given single room,
+    * bypassing `DungeonBuilder` entirely - used by the Tiled room-authoring debug tool (see
+    * `GameSession.handleDebugLoadRoom`) to preview one hand-converted room without a full run.
+    * Reuses whichever player is already active rather than minting a fresh one, so switching
+    * between a few debug rooms in a row keeps whatever HP/gear you were just looking at.
+    */
+  def loadDebugRoom(player: Player, room: Room): Either[String, ExplorationState] =
+    Dungeon.fromRooms(List(room)).map {
+      dungeon =>
+        val (x, y) = StateMachine.findAnyWalkableTile(room)
+        ExplorationState(player,
+                         dungeon,
+                         playerX = x,
+                         playerY = y,
+                         difficulty = Difficulty.Normal,
+                         enemyStats = enemyStats
+        )
+    }
+
   /** Lifts a plain (state, log) transition result into the richer type `applyActionPure` returns,
     * so every action that never produces dialogue (everything except Interact on an Npc) can keep
     * its existing shape untouched. */
@@ -84,7 +104,7 @@ class StateMachine(roomPool: Map[String, Room],
 
       // -- Hub --------------------------------------------------------------
 
-      case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt, perkIdOpt)) =>
+      case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt, perkIdOpt, _)) =>
         lift({
           val lockedBehind = upgradeDefs.values.find {
             u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
@@ -181,12 +201,17 @@ class StateMachine(roomPool: Map[String, Room],
           }
         })
 
-      case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _, _)) =>
+      case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _, _, _)) =>
         // BuyUpgrade is intercepted by GameSession (needs DB access); reject here as a safety net
         lift((hub, List("Upgrade purchases must be routed through GameSession.")))
 
+      case (hub: HubState, HubAction(HubActionType.DebugLoadRoom, _, _, _, _, _)) =>
+        // DebugLoadRoom is intercepted by GameSession (needs IO to read the room file); reject
+        // here as a safety net, same precedent as BuyUpgrade above.
+        lift((hub, List("Debug room loading must be routed through GameSession.")))
+
       // Return to hub after death: GameSession enriches the HubState with real meta
-      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _, _)) =>
+      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _, _, _)) =>
         // Placeholder: class is re-chosen on next StartRun
         val hubPlayer = Player(
           classId = ClassId.Warrior,
@@ -269,3 +294,45 @@ class StateMachine(roomPool: Map[String, Room],
            )
           )
         )
+
+object StateMachine:
+
+  /** Dev tooling only (see `loadDebugRoom`): a freshly-converted room has no natural "spawn from
+    * this door" context the way a real dungeon transition does, so this just picks the room's own
+    * center, falling back to a tile in the room's largest connected walkable region if the center
+    * itself is a wall. Falling back to the first walkable cell found by raster order (the original
+    * approach) could land the player in a small, disconnected floor pocket - a stray tile with no
+    * path to the room's real interior - which reads as "spawned outside the room". Picking from the
+    * largest connected region, closest to center, avoids that regardless of the room's shape. */
+  private def findAnyWalkableTile(room: Room): (Int, Int) =
+    val center = (room.width / 2, room.height / 2)
+    if room.isWalkable(center._1, center._2) then center
+    else largestConnectedWalkableRegion(room).minByOption(manhattanDistance(_, center)).getOrElse((0, 0))
+
+  /** Every walkable tile in `room`, grouped into 4-directionally-connected regions (BFS), returning
+    * the largest one. */
+  private def largestConnectedWalkableRegion(room: Room): List[(Int, Int)] =
+    val visited    = scala.collection.mutable.Set.empty[(Int, Int)]
+    val components = scala.collection.mutable.ListBuffer.empty[List[(Int, Int)]]
+    for
+      y <- 0 until room.height
+      x <- 0 until room.width
+      if room.isWalkable(x, y) && !visited.contains((x, y))
+    do
+      val queue     = scala.collection.mutable.Queue((x, y))
+      val component = scala.collection.mutable.ListBuffer.empty[(Int, Int)]
+      visited += ((x, y))
+      while queue.nonEmpty do
+        val (cx, cy) = queue.dequeue()
+        component += ((cx, cy))
+        for
+          neighbor @ (nx, ny) <- List((cx + 1, cy), (cx - 1, cy), (cx, cy + 1), (cx, cy - 1))
+          if room.isWalkable(nx, ny) && !visited.contains(neighbor)
+        do
+          visited += neighbor
+          queue.enqueue(neighbor)
+      components += component.toList
+    components.maxByOption(_.size).getOrElse(Nil)
+
+  private def manhattanDistance(a: (Int, Int), b: (Int, Int)): Int =
+    math.abs(a._1 - b._1) + math.abs(a._2 - b._2)

@@ -1,0 +1,7172 @@
+{
+  "sprites": {
+    "dungeon_0": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_2": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_3": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_4": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_5": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_6": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_7": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_8": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_9": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_10": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_11": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_12": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_13": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_14": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_15": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_16": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_17": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_18": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_19": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_20": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_21": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_22": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_23": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_24": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_25": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_26": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_27": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_28": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_29": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_30": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_31": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_32": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_33": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_34": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_35": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_36": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_37": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_38": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_39": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_40": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_41": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_42": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_43": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_44": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_45": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_46": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_47": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_48": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_49": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_50": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_51": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_52": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_53": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_54": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_55": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_56": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_57": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_58": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_59": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_60": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_61": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_62": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_63": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_64": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_65": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_66": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_67": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_68": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_69": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_70": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_71": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_72": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_73": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_74": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_75": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_76": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_77": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_78": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_79": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_80": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_81": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_82": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_83": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_84": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_85": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_86": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_87": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_88": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_89": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_90": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_91": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_92": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_93": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_94": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_95": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_96": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_97": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_98": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_99": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_100": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_101": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_102": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_103": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_104": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_105": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_106": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_107": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_108": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_109": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_110": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_111": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_112": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_113": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_114": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_115": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_116": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_117": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_118": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_119": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_120": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_121": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_122": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_123": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_124": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_125": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_126": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_127": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_128": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_129": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_130": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_131": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_132": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_133": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_134": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_135": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_136": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_137": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_138": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_139": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_140": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_141": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_142": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_143": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_144": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_145": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_146": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_147": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_148": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_149": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_150": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_151": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_152": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_153": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_154": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_155": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_156": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_157": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_158": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_159": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 64,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_160": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_161": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_162": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_163": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_164": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_165": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_166": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_167": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_168": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_169": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_170": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_171": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_172": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_173": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_174": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_175": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_176": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_177": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_178": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_179": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_180": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_181": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_182": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_183": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_184": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_185": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_186": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_187": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_188": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_189": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_190": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_191": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 80,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_192": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_193": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_194": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_195": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_196": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_197": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_198": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_199": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_200": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_201": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_202": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_203": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_204": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_205": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_206": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_207": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_208": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_209": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_210": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_211": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_212": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_213": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_214": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_215": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_216": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_217": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_218": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_219": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_220": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_221": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_222": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_223": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 96,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_224": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_225": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_226": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_227": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_228": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_229": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_230": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_231": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_232": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_233": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_234": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_235": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_236": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_237": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_238": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_239": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_240": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_241": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_242": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_243": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_244": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_245": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_246": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_247": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_248": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_249": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_250": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_251": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_252": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_253": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_254": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_255": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 112,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_256": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_257": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_258": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_259": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_260": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_261": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_262": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_263": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_264": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_265": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_266": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_267": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_268": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_269": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_270": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_271": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_272": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_273": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_274": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_275": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_276": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_277": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_278": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_279": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_280": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_281": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_282": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_283": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_284": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_285": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_286": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_287": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 128,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_288": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_289": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_290": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_291": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_292": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_293": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_294": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_295": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_296": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_297": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_298": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_299": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_300": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_301": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_302": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_303": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_304": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_305": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_306": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_307": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_308": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_309": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_310": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_311": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_312": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_313": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_314": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_315": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_316": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_317": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_318": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_319": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 144,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_320": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_321": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_322": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_323": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_324": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_325": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_326": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_327": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_328": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_329": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_330": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_331": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_332": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_333": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_334": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_335": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_336": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_337": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_338": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_339": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_340": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_341": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_342": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_343": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_344": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_345": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_346": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_347": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_348": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_349": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_350": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_351": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 160,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_352": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_353": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_354": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_355": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_356": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_357": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_358": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_359": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_360": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_361": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_362": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_363": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_364": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_365": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_366": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_367": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_368": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_369": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_370": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_371": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_372": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_373": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_374": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_375": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_376": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_377": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_378": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_379": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_380": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_381": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_382": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_383": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 176,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_384": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_385": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_386": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_387": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_388": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_389": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_390": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_391": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_392": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_393": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_394": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_395": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_396": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_397": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_398": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_399": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_400": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_401": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_402": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_403": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_404": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_405": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_406": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_407": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_408": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_409": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_410": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_411": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_412": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_413": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_414": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_415": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 192,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_416": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_417": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_418": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_419": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_420": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_421": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_422": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_423": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_424": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_425": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_426": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_427": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_428": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_429": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_430": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_431": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_432": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_433": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_434": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_435": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_436": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_437": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_438": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_439": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_440": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_441": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_442": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_443": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_444": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_445": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_446": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_447": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 208,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_448": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_449": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_450": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_451": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_452": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_453": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_454": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_455": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_456": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_457": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_458": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_459": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_460": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_461": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_462": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_463": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_464": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_465": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_466": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_467": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_468": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_469": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_470": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_471": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_472": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_473": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_474": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_475": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_476": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_477": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_478": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_479": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 224,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_480": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_481": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_482": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_483": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_484": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_485": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_486": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_487": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_488": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_489": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_490": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_491": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_492": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_493": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_494": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_495": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_496": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_497": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_498": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_499": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_500": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_501": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_502": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_503": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_504": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_505": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_506": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_507": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_508": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_509": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_510": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_511": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 240,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_512": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_513": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_514": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_515": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_516": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_517": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_518": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_519": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_520": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_521": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_522": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_523": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_524": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_525": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_526": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_527": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_528": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_529": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_530": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_531": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_532": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_533": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_534": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_535": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_536": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_537": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_538": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_539": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_540": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_541": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_542": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_543": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 256,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_544": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_545": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_546": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_547": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_548": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_549": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_550": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_551": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_552": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_553": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_554": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_555": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_556": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_557": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_558": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_559": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_560": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_561": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_562": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_563": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_564": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_565": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_566": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_567": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_568": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_569": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_570": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_571": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_572": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_573": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_574": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_575": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 272,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_576": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_577": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_578": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_579": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_580": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_581": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_582": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_583": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_584": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_585": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_586": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_587": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_588": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_589": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_590": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_591": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_592": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_593": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_594": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_595": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_596": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_597": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_598": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_599": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_600": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_601": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_602": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_603": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_604": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_605": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_606": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_607": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 288,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_608": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_609": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_610": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_611": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_612": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_613": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_614": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_615": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_616": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_617": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_618": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_619": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_620": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_621": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_622": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_623": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_624": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_625": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_626": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_627": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_628": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_629": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_630": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_631": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_632": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_633": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_634": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_635": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_636": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_637": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_638": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_639": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 304,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_640": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_641": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_642": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_643": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_644": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_645": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_646": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_647": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_648": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_649": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_650": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_651": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_652": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_653": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_654": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_655": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_656": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_657": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_658": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_659": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_660": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_661": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_662": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_663": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_664": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_665": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_666": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_667": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_668": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_669": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_670": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_671": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 320,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_672": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_673": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_674": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_675": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_676": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_677": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_678": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_679": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_680": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_681": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_682": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_683": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_684": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_685": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_686": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_687": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_688": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_689": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_690": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_691": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_692": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_693": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_694": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_695": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_696": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_697": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_698": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_699": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_700": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_701": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_702": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_703": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 336,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_704": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_705": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_706": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_707": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_708": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_709": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_710": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_711": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_712": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_713": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_714": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_715": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_716": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_717": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_718": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_719": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_720": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_721": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_722": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_723": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_724": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_725": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_726": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_727": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_728": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_729": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_730": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_731": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_732": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_733": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_734": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_735": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 352,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_736": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_737": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_738": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_739": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_740": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_741": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_742": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_743": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_744": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_745": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_746": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_747": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_748": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_749": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_750": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_751": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_752": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_753": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_754": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_755": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_756": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_757": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_758": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_759": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_760": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_761": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_762": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_763": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_764": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_765": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_766": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_767": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 368,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_768": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_769": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_770": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_771": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_772": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_773": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_774": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_775": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_776": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_777": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_778": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_779": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_780": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_781": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_782": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_783": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_784": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_785": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_786": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_787": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_788": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_789": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_790": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_791": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_792": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_793": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_794": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_795": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_796": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_797": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_798": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_799": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 384,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_800": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_801": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_802": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_803": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_804": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_805": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_806": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_807": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_808": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_809": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_810": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_811": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_812": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_813": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_814": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_815": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_816": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_817": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_818": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_819": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_820": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_821": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_822": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_823": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_824": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_825": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_826": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_827": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_828": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_829": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_830": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_831": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 400,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_832": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_833": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_834": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_835": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_836": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_837": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_838": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_839": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_840": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_841": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_842": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_843": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_844": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_845": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_846": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_847": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_848": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_849": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_850": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_851": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_852": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_853": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_854": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_855": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_856": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_857": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_858": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_859": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_860": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_861": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_862": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_863": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 416,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_864": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_865": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_866": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_867": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_868": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_869": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_870": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_871": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_872": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_873": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_874": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_875": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_876": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_877": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_878": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_879": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_880": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_881": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_882": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_883": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_884": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_885": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_886": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_887": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_888": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_889": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_890": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_891": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_892": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_893": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_894": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_895": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 432,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_896": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_897": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_898": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_899": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_900": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_901": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_902": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_903": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_904": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_905": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_906": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_907": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_908": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_909": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_910": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_911": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_912": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_913": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_914": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_915": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_916": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_917": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_918": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_919": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_920": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_921": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_922": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_923": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_924": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_925": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_926": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_927": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 448,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_928": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_929": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_930": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_931": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_932": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_933": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_934": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_935": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_936": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_937": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_938": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_939": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_940": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_941": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_942": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_943": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_944": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_945": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_946": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_947": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_948": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_949": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_950": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_951": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_952": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_953": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_954": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_955": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_956": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_957": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_958": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_959": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 464,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_960": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_961": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_962": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_963": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_964": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_965": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_966": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_967": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_968": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_969": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_970": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_971": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_972": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_973": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_974": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_975": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_976": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_977": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_978": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_979": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_980": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_981": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_982": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_983": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_984": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_985": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_986": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_987": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_988": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_989": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_990": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_991": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 480,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_992": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 0,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_993": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 16,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_994": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 32,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_995": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 48,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_996": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 64,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_997": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 80,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_998": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 96,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_999": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 112,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1000": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 128,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1001": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 144,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1002": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 160,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1003": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 176,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1004": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 192,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1005": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 208,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1006": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 224,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1007": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 240,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1008": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 256,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1009": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 272,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1010": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 288,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1011": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1012": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 320,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1013": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1014": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 352,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1015": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 368,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1016": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 384,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1017": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 400,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1018": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 416,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1019": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 432,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1020": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 448,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1021": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 464,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1022": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 480,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    },
+    "dungeon_1023": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 496,
+      "y": 496,
+      "w": 16,
+      "h": 16
+    }
+  }
+}

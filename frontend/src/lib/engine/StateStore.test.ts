@@ -44,6 +44,7 @@ function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
         newlyUnlocked: [],
         damageEvents: [],
         soundEvents: [],
+        debugRooms: [],
         ...overrides,
     };
 }

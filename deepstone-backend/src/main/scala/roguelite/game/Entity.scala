@@ -12,6 +12,11 @@ sealed trait Entity:
   def x: Int
   def y: Int
 
+  /** Every tile this entity blocks movement onto / can be interacted with from - a single tile
+    * for every kind except [[Sanctuary]], which overrides this to a 2x2 block matching its larger
+    * rendered footprint (see [[Room.entityAt]], the only place this is read). */
+  def occupiedTiles: List[(Int, Int)] = List((x, y))
+
   /** Project to the lightweight view sent to the client. */
   def toView: EntityView
 
@@ -108,7 +113,7 @@ case class Door(
     revealed: Boolean = true
 ) extends Entity:
   def toView: EntityView =
-    EntityView(id = id, kind = "door", x = x, y = y, label = direction.toString)
+    EntityView(id = id, kind = "door", x = x, y = y, label = direction.toString, direction = Some(direction.toString.toUpperCase))
 
 /** A passage gated by a matching [[Key]] in the player's inventory. Once `unlocked`, behaves
   * exactly like a normal [[Door]].
@@ -126,7 +131,7 @@ case class LockedDoor(
     unlocked: Boolean = false
 ) extends Entity:
   def toView: EntityView =
-    EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString)
+    EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString, direction = Some(direction.toString.toUpperCase))
 
 /** A static, friendly character. Interacting with it shows one line of dialogue and advances to the
   * next on later interactions - see [[InteractionResolver]] for the cooldown/rotation rules.
@@ -165,6 +170,11 @@ case class Npc(
   * final boss kill itself, so the win has a beat to land in before any narrative payoff plays.
   */
 case class Sanctuary(id: String, x: Int, y: Int) extends Entity:
+  // Matches Renderer.ts's SANCTUARY_DRAW_SIZE (2x2 tiles, centered on x/y) - the whole visually
+  // glowing area blocks movement and triggers the ending, not just the single anchor tile,
+  // anchored top-left/expanding down-right for a simple, grid-aligned zone rather than trying to
+  // replicate the centered sprite's uneven (and much fiddlier) pixel overlap tile-for-tile.
+  override def occupiedTiles: List[(Int, Int)] = List((x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1))
   def toView: EntityView = EntityView(id = id, kind = "sanctuary", x = x, y = y, label = "Sanctuary")
 
 /** A reward marker left behind by a defeated [[RoomType.MiniBoss]] enemy (see

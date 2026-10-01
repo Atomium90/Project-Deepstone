@@ -75,8 +75,8 @@ object RoomType:
   *   Which content set this room belongs to (e.g. "dungeon", "darkDungeon") - required, not
   *   optional, so a newly-authored room can never silently fall through un-themed. Read by
   *   [[DungeonBuilder]] to keep a section's rooms drawn from a single theme (see
-  *   [[DungeonBuilder.buildSection]]). Not yet exposed on [[RoomView]] - no client-side consumer
-  *   needs it until the matching theme-aware renderer work lands separately.
+  *   [[DungeonBuilder.buildSection]]), and exposed on [[RoomView]] so the client can pick the
+  *   matching sprite set to render the room with.
   * @param width
   *   Number of tiles horizontally.
   * @param height
@@ -85,6 +85,34 @@ object RoomType:
   *   Row-major tile grid. Invariant: tiles.length == height, tiles(n).length == width for all n.
   * @param entities
   *   All interactive objects currently present in the room.
+  * @param floorSprite
+  *   Row-major grid the same shape as `tiles`, one optional explicit floor sprite override per
+  *   cell - meaningful for *every* cell regardless of `tiles(row)(col)`, since a wall cell still
+  *   has a floor drawn underneath it (see Renderer.ts's `drawTiles`: floor first, then the wall
+  *   sprite on top - many wall sprites have transparent padding specifically so the floor shows
+  *   through around them). `None` means "use the room's `theme` default floor" (the original,
+  *   pre-Tiled-pipeline behavior every hand-authored `rooms.json` room still relies on);
+  *   `Some(key)` names a specific atlas sprite. Defaults to an empty grid (not one sized to
+  *   `width`/`height` - a default parameter can't reference sibling parameters), equivalent to an
+  *   all-`None` grid for every purpose that reads it (every lookup is defensive against a short/
+  *   missing row) - [[RoomLoader]] always resolves this to a properly `width`x`height`-shaped grid
+  *   for real content, this default only matters for a `Room` built directly (tests, fixtures).
+  * @param wallSprite
+  *   Row-major grid the same shape as `tiles`, one optional explicit wall sprite override per
+  *   cell - only meaningful where `tiles(row)(col) == Tile.Wall` (ignored otherwise). `None` means
+  *   "use the room's `theme` default wall"; `Some(key)` names a specific atlas sprite that always
+  *   renders exactly as authored - a column, a torch-embedded wall segment, or any other cell the
+  *   author placed deliberately rather than letting the renderer infer it. Same empty-default
+  *   caveat as `floorSprite`.
+  * @param decoration
+  *   Row-major grid the same shape as `tiles`, one optional sprite drawn *in addition to*, on top
+  *   of, whatever `floorSprite`/`wallSprite`/the theme default already resolved for that cell -
+  *   never a replacement the way those are. For something that has to coexist with the real floor
+  *   or wall sprite underneath it, not swap it out (a column's top/bottom cap tapering into an
+  *   otherwise ordinary floor tile, say) - a single Tiled tile layer can only hold one tile per
+  *   cell, so this exists specifically for content authored on a second, sparser tile layer drawn
+  *   after the base one. Almost entirely `None` for a typical room. Same empty-default caveat as
+  *   `floorSprite` - real content always comes through [[RoomLoader]] properly shaped.
   */
 case class Room(
     id: String,
@@ -93,7 +121,10 @@ case class Room(
     width: Int,
     height: Int,
     tiles: Vector[Vector[Tile]],
-    entities: List[Entity]
+    entities: List[Entity],
+    floorSprite: Vector[Vector[Option[String]]] = Vector.empty,
+    wallSprite: Vector[Vector[Option[String]]] = Vector.empty,
+    decoration: Vector[Vector[Option[String]]] = Vector.empty
 ):
   /** Check whether a tile coordinate is within the room bounds. */
   def inBounds(x: Int, y: Int): Boolean =
@@ -111,10 +142,11 @@ case class Room(
   def entityById(id: String): Option[Entity] =
     entities.find(_.id == id)
 
-  /** Find an entity occupying the given tile position. */
+  /** Find an entity occupying the given tile position - see [[Entity.occupiedTiles]] for the
+    * (usually single-tile) footprint each kind actually checks against. */
   def entityAt(x: Int, y: Int): Option[Entity] =
     entities.find(
-      e => e.x == x && e.y == y
+      e => e.occupiedTiles.contains((x, y))
     )
 
   /** Remove an entity from the room (e.g. after a chest is looted). */
@@ -182,6 +214,10 @@ case class Room(
       tiles = tiles.map(
         row => row.map(_.toProtocolString)
       ),
+      theme = theme,
+      floorSprite = floorSprite,
+      wallSprite = wallSprite,
+      decoration = decoration,
       entities = entities.filter(isVisible).map {
         case e: Enemy => e.toView.copy(spriteId = enemyStats.get(e.typeId).map(_.spriteId))
         case other    => other.toView

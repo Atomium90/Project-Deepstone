@@ -39,6 +39,10 @@
         selectedUpgradeTab === "all" ? upgrades : upgrades.filter((u) => u.category === selectedUpgradeTab);
     $: perks    = $gameState?.hub?.perks ?? [];
     $: shards   = player?.metaCurrency ?? 0;
+    // Dev tooling only - hand-converted Tiled rooms sitting in the backend's debug-rooms/ folder
+    // (see frontend/scripts/convert-tiled-room.mjs). Empty (section hidden) unless that folder
+    // exists and has something in it, so this never shows up for an actual player.
+    $: debugRooms = $gameState?.debugRooms ?? [];
 
     const classes: ClassId[] = ["warrior", "archer", "mage"];
     const difficulties: Difficulty[] = ["easy", "normal", "hard"];
@@ -78,6 +82,10 @@
     function buyUpgrade(u: UpgradeView): void {
         if (u.unlocked || shards < u.cost) return;
         client.send({ type: "HUB_ACTION", action: "BUYUPGRADE", upgradeId: u.id });
+    }
+
+    function loadDebugRoom(id: string): void {
+        client.send({ type: "HUB_ACTION", action: "DEBUGLOADROOM", debugRoomId: id });
     }
 
     /**
@@ -243,6 +251,19 @@
 
     </div>
 
+    {#if debugRooms.length > 0}
+        <section class="debug-rooms">
+            <p class="debug-rooms-label">⚠ Debug Rooms (dev only)</p>
+            <div class="debug-rooms-list">
+                {#each debugRooms as id}
+                    <button class="debug-room-btn" on:click={() => loadDebugRoom(id)}>
+                        {id}
+                    </button>
+                {/each}
+            </div>
+        </section>
+    {/if}
+
     <footer class="hub-footer">
         <button class="footer-nav-btn" on:click={() => characterTab.set("equipment")}>
             <span class="footer-nav-icon">🎒</span>
@@ -268,6 +289,45 @@
         background: #111;
         font-family: monospace;
         overflow: hidden;
+    }
+
+    /* ── Debug rooms (dev tooling only) ── */
+
+    .debug-rooms {
+        flex-shrink: 0;
+        padding: 0.6rem 2rem;
+        border-top: 1px dashed #4a3a1a;
+        background: #1a150a;
+    }
+
+    .debug-rooms-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #b8860b;
+        margin-bottom: 0.5rem;
+    }
+
+    .debug-rooms-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .debug-room-btn {
+        padding: 0.3rem 0.7rem;
+        background: #241c0a;
+        border: 1px dashed #6a531f;
+        color: #d4ac0d;
+        font-family: monospace;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: background 0.1s, border-color 0.1s;
+    }
+
+    .debug-room-btn:hover {
+        background: #332810;
+        border-color: #d4ac0d;
     }
 
     /* ── Footer nav ── */

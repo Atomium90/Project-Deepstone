@@ -30,9 +30,12 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
 
   private def toRoom(rj: RoomJson): Either[String, Room] =
     for
-      roomType <- RoomType.fromString(rj.`type`)
-      tiles    <- parseTiles(rj.tiles)
-      entities <- rj.entities.traverse(toEntity)
+      roomType    <- RoomType.fromString(rj.`type`)
+      tiles       <- parseTiles(rj.tiles)
+      floorSprite <- parseSpriteGrid(rj.floorSprites, field = "floorSprites", width = rj.width, height = rj.height)
+      wallSprite  <- parseSpriteGrid(rj.wallSprites, field = "wallSprites", width = rj.width, height = rj.height)
+      decoration  <- parseSpriteGrid(rj.decorations, field = "decorations", width = rj.width, height = rj.height)
+      entities    <- rj.entities.traverse(toEntity)
     yield Room(
       id = rj.id,
       roomType = roomType,
@@ -40,7 +43,10 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       width = rj.width,
       height = rj.height,
       tiles = tiles,
-      entities = entities
+      entities = entities,
+      floorSprite = floorSprite,
+      wallSprite = wallSprite,
+      decoration = decoration
     )
 
   private def parseTiles(raw: List[List[String]]): Either[String, Vector[Vector[Tile]]] =
@@ -51,6 +57,25 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       .map(
         rows => rows.map(_.toVector).toVector
       )
+
+  /** Shared by `floorSprites`, `wallSprites`, and `decorations` - each is a grid the same shape
+    * as `tiles`, one optional sprite key per cell. Absent entirely (every room authored before
+    * these fields existed) resolves to an all-`None` grid - no overrides, same visual result as
+    * today. When present, its shape must match `tiles` exactly, since [[Room]]'s own invariant
+    * assumes every one of its grids is addressed by the same (x, y).
+    */
+  private def parseSpriteGrid(
+      raw: Option[List[List[Option[String]]]],
+      field: String,
+      width: Int,
+      height: Int
+  ): Either[String, Vector[Vector[Option[String]]]] =
+    raw match
+      case None => Right(Vector.fill(height)(Vector.fill(width)(None)))
+      case Some(rows) =>
+        if rows.length != height || rows.exists(_.length != width)
+        then Left(s"'$field' must be exactly ${width}x$height (one entry per tile), matching 'tiles'.")
+        else Right(rows.map(_.toVector).toVector)
 
   private def toEntity(ej: EntityJson): Either[String, Entity] =
     ej.kind.toLowerCase match
@@ -156,7 +181,10 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       width: Int,
       height: Int,
       tiles: List[List[String]],
-      entities: List[EntityJson]
+      entities: List[EntityJson],
+      floorSprites: Option[List[List[Option[String]]]] = None,
+      wallSprites: Option[List[List[Option[String]]]] = None,
+      decorations: Option[List[List[Option[String]]]] = None
   )
 
   // Circe decoders
@@ -183,11 +211,14 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
   private given Decoder[RoomJson] = Decoder.instance:
     (c: HCursor) =>
       for
-        id       <- c.get[String]("id")
-        roomType <- c.get[String]("type")
-        theme    <- c.get[String]("theme")
-        width    <- c.get[Int]("width")
-        height   <- c.get[Int]("height")
-        tiles    <- c.get[List[List[String]]]("tiles")
-        entities <- c.get[List[EntityJson]]("entities")
-      yield RoomJson(id, roomType, theme, width, height, tiles, entities)
+        id           <- c.get[String]("id")
+        roomType     <- c.get[String]("type")
+        theme        <- c.get[String]("theme")
+        width        <- c.get[Int]("width")
+        height       <- c.get[Int]("height")
+        tiles        <- c.get[List[List[String]]]("tiles")
+        entities     <- c.get[List[EntityJson]]("entities")
+        floorSprites <- c.get[Option[List[List[Option[String]]]]]("floorSprites")
+        wallSprites  <- c.get[Option[List[List[Option[String]]]]]("wallSprites")
+        decorations  <- c.get[Option[List[List[Option[String]]]]]("decorations")
+      yield RoomJson(id, roomType, theme, width, height, tiles, entities, floorSprites, wallSprites, decorations)

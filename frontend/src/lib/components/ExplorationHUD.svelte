@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { fly } from "svelte/transition";
-    import { gameState, client, combatLog, npcDialogue } from "../engine/StateStore";
+    import { gameState, client, combatLog, npcDialogue, debugRoomsCache } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
     import { Renderer } from "../engine/Renderer";
     import { RESOURCE_BAR_COLORS, HP_BAR_COLOR, COLOR_ENTITY_FALLBACK } from "../engine/constants";
@@ -53,7 +53,30 @@
     // Track which keys are currently held to avoid key repeat spam
     const heldKeys = new Set<string>();
 
+    /** Dev tooling only: jumps straight to the next/previous room in the debug-rooms list
+     * (`ç`/`à`), wrapping around at either end - a no-op if the current room isn't a debug room
+     * at all (indexOf returns -1), so it's safe to leave wired up unconditionally rather than
+     * needing its own "is this a debug room" flag. Lets you flip through every converted Tiled
+     * room without a round trip back to the hub's button list each time. */
+    function cycleDebugRoom(step: 1 | -1): void {
+        const rooms = $debugRoomsCache;
+        const currentId = $gameState?.room?.roomId;
+        if (currentId === undefined) return;
+        const index = rooms.indexOf(currentId);
+        if (index === -1) return;
+        const next = rooms[(index + step + rooms.length) % rooms.length];
+        client.send({ type: "HUB_ACTION", action: "DEBUGLOADROOM", debugRoomId: next });
+    }
+
     function handleKeyDown(e: KeyboardEvent): void {
+        // Debug rooms: next/prev (ç/à - the unshifted AZERTY 9/0 keys)
+        if ((e.key === "ç" || e.key === "à") && !heldKeys.has(e.key)) {
+            e.preventDefault();
+            heldKeys.add(e.key);
+            cycleDebugRoom(e.key === "à" ? 1 : -1);
+            return;
+        }
+
         // Movement
         const direction = KEY_MAP[e.key];
         if (direction && !heldKeys.has(e.key)) {
@@ -140,15 +163,24 @@
         ? [equipment.weapon, equipment.armor, ...equipment.accessories, ...equipment.potionBelt]
         : [];
 
+    // Dev tooling only: only true while the current room is actually one of the cached debug
+    // rooms, so the [/] hint never shows up for an actual player mid-run.
+    $: isDebugRoom = $gameState?.room?.roomId !== undefined && $debugRoomsCache.includes($gameState.room.roomId);
+
     $: keyCount = equipment?.keys.reduce((sum, k) => sum + k.count, 0) ?? 0;
 </script>
 
 <!--
-  Layout: the canvas fills all available space, the stats panel has a fixed
-  width and sits alongside it. Both stretch to 100% height so the HUD always
-  occupies the full viewport.
+  Layout: a single row - the combat log has a fixed width on the left (previously a bottom band;
+  moved here to give the canvas its full vertical height back, which a room taller than ~10 tiles
+  needs), the canvas fills all remaining space, and the stats panel has a fixed width on the right.
+  All three stretch to 100% height so the HUD always occupies the full viewport.
 -->
 <div class="hud-root">
+    <div class="exploration-log">
+        <CombatLog log={$combatLog} />
+    </div>
+
     <div class="hud-main" bind:this={hudMainEl}>
         <canvas class="game-canvas" bind:this={canvasEl} />
 
@@ -199,20 +231,16 @@
                     {/if}
                 </div>
 
-                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E<br />Equipment: I</p>
+                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E<br />Equipment: I{#if isDebugRoom}<br />Debug room: ç / à{/if}</p>
             </aside>
         {/if}
-    </div>
-
-    <div class="exploration-log">
-        <CombatLog log={$combatLog} />
     </div>
 </div>
 
 <style>
     .hud-root {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         width: 100%;
         height: 100%;
         overflow: hidden;
@@ -222,6 +250,7 @@
         position: relative;
         display: flex;
         flex: 1 1 0;
+        min-width: 0;
         min-height: 0;
     }
 
@@ -236,10 +265,10 @@
     }
 
     .exploration-log {
-        flex: 0 0 110px;
-        padding: 0.6rem 1rem;
+        flex: 0 0 220px;
+        padding: 1.25rem 1rem;
         background: #161616;
-        border-top: 1px solid #2a2a2a;
+        border-right: 1px solid #2a2a2a;
         font-family: monospace;
     }
 

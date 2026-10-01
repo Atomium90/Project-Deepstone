@@ -23,6 +23,15 @@ function countEquippedSets(equipment: StateUpdate["equipment"] | undefined): Rec
 /** The latest StateUpdate received from the server. Null before first connection. */
 export const gameState = writable<StateUpdate | null>(null);
 
+/** Dev tooling only: `StateUpdate.debugRooms` is only populated while in the hub (not worth a
+ * directory read on every mid-run action - see GameSession.withDebugRooms), so it's cached here
+ * on the way through rather than re-read live - lets ExplorationHUD's next/prev debug-room
+ * shortcut still know the full list after leaving the hub. */
+export const debugRoomsCache = writable<string[]>([]);
+gameState.subscribe(($s) => {
+    if ($s && $s.debugRooms.length > 0) debugRoomsCache.set($s.debugRooms);
+});
+
 /** Exposes the live state on `window` for e2e tests (Playwright) to poll directly - the same
  * value every derived store and component reacts to, read the same way the UI itself does.
  * Deliberately not gated behind an env flag: it's a read-only mirror nothing in production code

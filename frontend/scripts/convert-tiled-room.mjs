@@ -22,8 +22,11 @@
 //    Format, only relevant if you've changed it to Base64/gzip).
 //
 // 2. Map > Map Properties, add 3 custom properties (Map Properties panel, not per-layer/per-tile):
-//      id        (string)  e.g. "dungeon_combat_012"
-//      roomType  (string)  one of: combat, loot, rest, boss, vault, miniboss, fork
+//      id        (string)  just the part that's unique within this theme+roomType, e.g. "012" -
+//                           the real rooms.json id is built as "{theme}_{roomType}_{id}"
+//                           (e.g. "dungeon_combat_012"). An already-full id (already starting with
+//                           that exact prefix) is also accepted unchanged, for older rooms.
+//      roomType  (string)  one of: combat, loot, rest, boss, vault, miniboss, fork, sanctuary
 //      theme     (string)  e.g. "dungeon", "darkDungeon"
 //    Can't be bothered setting these before a quick test conversion? Pass --id=/--roomType=/
 //    --theme= on the command line instead - see USAGE below.
@@ -70,14 +73,18 @@
 // 5. Exactly one object layer named "entities" (case-insensitive substring, see point 3). One
 //    object per door, chest, enemy, NPC, locked door - anything the player presses E on, or that
 //    structurally wires two rooms together. A door/chest/enemy/etc's own visual appearance in
-//    Tiled doesn't matter at all (the real game never looks at it) - a plain rectangle is fine.
-//    Use the Insert Rectangle (or Insert Point) tool with "snap to grid" on, click once per
-//    object so it lands cleanly on one tile - the object's top-left pixel corner is what gets
-//    divided by the tile size to find its (x, y).
+//    Tiled doesn't matter at all (the real game never looks at it).
+//    Either the Insert Point tool (recommended - one click per object, no dragging) or Insert
+//    Rectangle sized to exactly one tile both resolve to the correct (x, y) with "snap to grid"
+//    on - the two tools snap to different anchors (a Point to the cell's center, a Rectangle to
+//    its corner), and this script accounts for both correctly. Don't drag a Rectangle to some
+//    other size "to see it better" - an arbitrarily-sized rectangle's corner no longer reliably
+//    lands on a tile boundary, which is exactly the kind of mistake Point avoids entirely.
 //
 //    Recommended: set up a Custom Type (View > Custom Types Editor) per kind - "door", "enemy",
-//    "chest", "locked_door", "npc", plus "boss" (an organizational alias for "enemy" - see below)
-//    - each pre-populated with that kind's own fields below. Assign the right Class to each object
+//    "chest", "locked_door", "npc", "sanctuary", plus "boss"/"mini_boss"/"lightHalo" (aliases that
+//    normalize to a real kind - see ENTITY_KIND_ALIASES below) - each pre-populated with that
+//    kind's own fields below. Assign the right Class to each object
 //    (the dropdown at the top of the Properties panel) and its fields show up ready to fill in,
 //    instead of adding every property by hand each time. The script reads `kind` straight from
 //    the object's Class - no separate 'kind' property needed once you're using Custom Types
@@ -93,9 +100,7 @@
 //        enemy:        typeId (string), label (string) - both OPTIONAL, left as a "TODO"
 //                      placeholder (with a warning) if you haven't decided the monster yet. Not
 //                      real game content until filled in for real, but fine to leave for later.
-//        boss:         same fields as enemy - not a real entity kind, purely for your own
-//                      organization while placing objects in a boss room. Normalized to "enemy"
-//                      automatically.
+//        boss, mini_boss: same fields as enemy - aliases, not real entity kinds (see above).
 //        chest:        trapped (bool, optional, default false) - there's no "random trapped
 //                      roll" mechanic today, only this fixed authored flag; leave it unset for an
 //                      always-safe chest.
@@ -104,36 +109,51 @@
 //        locked_door:  direction, targetRoomId (required), doorTag (string, optional)
 //        npc:          name (string, OPTIONAL - "TODO" placeholder + warning if left blank, must
 //                      eventually match a name in npcs.json for dialogue to resolve)
+//        sanctuary:    no extra fields - id/x/y only. The single object a Sanctuary room needs is
+//                      typically the halo sprite's own placement - see "lightHalo" above.
 //
 // ============================================================================================
 // USAGE
 // ============================================================================================
 //   node scripts/convert-tiled-room.mjs path/to/map.tmx
 //   node scripts/convert-tiled-room.mjs path/to/map.tmx --out=path/to/room.json
-//   node scripts/convert-tiled-room.mjs path/to/map.tmx --id=dungeon_combat_012 --theme=dungeon
+//   node scripts/convert-tiled-room.mjs path/to/map.tmx --id=012 --theme=dungeon
 //
-// Without --out, prints the room JSON to stdout - review it, then paste it into rooms.json's
-// array yourself (this script never touches rooms.json directly, on purpose: it's hand-curated
-// content, not a build artifact to overwrite). --id/--roomType/--theme override whatever the
-// map's own Map Properties say, mainly useful for a quick test conversion before you've set
-// those up. Prints one warning per tileset used in the room that doesn't have a matching
-// public/atlas/{tilesetName}_tiles.json yet (see step 0 above) - the room still converts (every
-// cell still gets its derived sprite key), it just won't render as anything but a fallback color
-// client-side until that atlas exists.
+// Without --out, writes to deepstone-backend/debug-rooms/<map's own filename>.json (creating that
+// folder if needed) - the hub's "Debug Rooms" dev tool reads straight out of there, so a plain
+// conversion is immediately loadable in a live session. This script never touches rooms.json
+// directly, on purpose: it's hand-curated content, not a build artifact to overwrite - once a
+// debug-rooms preview looks right, paste it into rooms.json's array yourself. --id/--roomType/
+// --theme override whatever the map's own Map Properties say, mainly useful for a quick test
+// conversion before you've set those up. Prints one warning per tileset used in the room that
+// doesn't have a matching public/atlas/{tilesetName}_tiles.json yet (see step 0 above) - the room
+// still converts (every cell still gets its derived sprite key), it just won't render as anything
+// but a fallback color client-side until that atlas exists.
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { dirname, resolve, extname, join } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { dirname, resolve, extname, join, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseXmlDoc, readPropertiesEl } from "./lib/tiled-xml.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const publicAtlasDir = join(__dirname, "..", "public", "atlas");
+const defaultDebugRoomsDir = join(__dirname, "..", "..", "deepstone-backend", "debug-rooms");
 
-const VALID_ROOM_TYPES = new Set(["combat", "loot", "rest", "boss", "vault", "miniboss", "fork"]);
-const VALID_ENTITY_KINDS = new Set(["enemy", "chest", "door", "locked_door", "npc"]);
+const VALID_ROOM_TYPES = new Set(["combat", "loot", "rest", "boss", "vault", "miniboss", "fork", "sanctuary"]);
+const VALID_ENTITY_KINDS = new Set(["enemy", "chest", "door", "locked_door", "npc", "sanctuary"]);
 const VALID_DIRECTIONS = new Set(["UP", "DOWN", "LEFT", "RIGHT"]);
 const VALID_ROLES = new Set(["prev", "next"]);
 const VALID_DOOR_KINDS = new Set(["normal", "trapped", "secret"]);
+
+// Not real entity kinds in their own right - purely organizational Tiled Classes that normalize
+// to a real kind. "boss"/"mini_boss" are just an enemy with a scarier typeId/label (what actually
+// makes a room a boss/miniboss room is the room's own roomType, not the entity) - a separate Class
+// is still useful while placing objects, rather than reusing the plain "Enemy" class every time.
+// "lightHalo" is the Sanctuary's own halo sprite sheet's filename (see
+// public/sprites/entities/sanctuary/lightHalo_sheet.png) - naming the object after the asset it
+// visually marks reads naturally in Tiled, even though the one object placed there is the actual
+// Sanctuary trigger entity itself, not a separate decoration.
+const ENTITY_KIND_ALIASES = { boss: "enemy", mini_boss: "enemy", lightHalo: "sanctuary" };
 
 // Tiled sets the top 3 bits of a cell's raw gid to flag horizontal/vertical/diagonal flipping.
 // A top-down dungeon room's structure layer should never use these, but a raw gid still needs
@@ -274,6 +294,12 @@ function flattenTmxLayers(parentEl) {
                 class: obj.getAttribute("type") ?? "",
                 x: Number(obj.getAttribute("x")),
                 y: Number(obj.getAttribute("y")),
+                // A Point-tool object has no width/height attribute at all in Tiled's XML (as
+                // opposed to a Rectangle sized to 0, which doesn't happen via the UI) - defaulting
+                // to 0 here reproduces that same "no size" shape for the point-vs-rectangle check
+                // in convertEntityObject below.
+                width: Number(obj.getAttribute("width") ?? 0),
+                height: Number(obj.getAttribute("height") ?? 0),
                 properties: readPropertiesEl(obj.querySelector(":scope > properties")),
             }));
             out.push({ type: "objectgroup", name, objects });
@@ -467,12 +493,23 @@ function requireField(obj, field, context) {
 
 function convertEntityObject(obj, tileWidth, tileHeight) {
     const p = propsOf(obj);
-    // Round, not floor: even with "snap to grid" on, Tiled routinely saves an object's position a
-    // fraction of a pixel short of the tile boundary it was actually dropped on (e.g. 207.507
-    // instead of 208) - floor would silently snap that down to the wrong tile every time, while
-    // round tolerates that real-world imprecision and resolves to the tile actually intended.
-    const x = Math.round(obj.x / tileWidth);
-    const y = Math.round(obj.y / tileHeight);
+    // One rule, regardless of tool or size: find the object's own center, then floor that onto
+    // the tile grid. A Point has no width/height (Tiled never writes them for this tool), so its
+    // "center" is just its own x/y - and Tiled already snaps a Point to the center of whichever
+    // cell it marks, not a corner, so dividing by the tile size lands just past a ".5" every time
+    // (e.g. a point centered on column 5 saves as roughly x=88, i.e. 5.5 tiles) - floor recovers
+    // the cell the point actually marks. A Rectangle's center is x + width/2 - this is exactly
+    // what makes the same floor-the-center formula correct regardless of size: a 1-tile door
+    // (center lands mid-tile, same ".5" shape as a Point) and a multi-tile object like the
+    // Sanctuary's halo marker (center lands wherever the rectangle was actually centered,
+    // whichever tile that happens to fall in) both resolve correctly with no special-casing - a
+    // plain corner-anchored read, which is what this looked like before this was unified, only
+    // ever worked by coincidence for an exactly-1-tile rectangle, and silently gave the wrong
+    // tile for anything bigger.
+    const centerX = obj.x + obj.width / 2;
+    const centerY = obj.y + obj.height / 2;
+    const x = Math.floor(centerX / tileWidth);
+    const y = Math.floor(centerY / tileHeight);
     const context = `entity object "${obj.name || obj.id}" at (${x}, ${y})`;
 
     // A blank 'id' auto-generates from the kind plus Tiled's own object id (always present,
@@ -485,13 +522,11 @@ function convertEntityObject(obj, tileWidth, tileHeight) {
     // to a plain 'kind' custom property for anyone not using Custom Types.
     const rawKind = obj.class || p.kind;
     if (!rawKind) fail(`${context} has no kind - assign it a Custom Type (Class), or set a 'kind' property.`);
-    // "boss" isn't a real entity kind - a boss is just an enemy with a scarier typeId/label. What
-    // actually makes a room a boss room is the room's own roomType, not the entity. A separate
-    // "Boss" Tiled Class is still useful for your own organization while placing objects, so it's
-    // accepted here and normalized to "enemy" rather than forcing you to reuse the plain "Enemy"
-    // class for every boss placement.
-    const kind = rawKind === "boss" ? "enemy" : rawKind;
-    if (!VALID_ENTITY_KINDS.has(kind)) fail(`${context}: kind must be one of ${[...VALID_ENTITY_KINDS].join(", ")} (or "boss"), got "${rawKind}".`);
+    const kind = ENTITY_KIND_ALIASES[rawKind] ?? rawKind;
+    if (!VALID_ENTITY_KINDS.has(kind)) {
+        const aliases = Object.keys(ENTITY_KIND_ALIASES).map((a) => `"${a}"`).join("/");
+        fail(`${context}: kind must be one of ${[...VALID_ENTITY_KINDS].join(", ")} (or ${aliases}), got "${rawKind}".`);
+    }
 
     const entity = { kind, id, x, y };
 
@@ -567,13 +602,20 @@ function main() {
     const map = loadMap(mapPath);
     const mapProps = propsOf(map);
 
-    const id = flags.id ?? mapProps.id;
+    const idProp = flags.id ?? mapProps.id;
     const roomType = flags.roomType ?? mapProps.roomType;
     const theme = flags.theme ?? mapProps.theme;
-    if (!id) fail("room 'id' not found - set it as a Map Property in Tiled, or pass --id=...");
+    if (!idProp) fail("room 'id' not found - set it as a Map Property in Tiled, or pass --id=...");
     if (!roomType) fail("room 'roomType' not found - set it as a Map Property in Tiled, or pass --roomType=...");
     if (!VALID_ROOM_TYPES.has(roomType)) fail(`roomType must be one of ${[...VALID_ROOM_TYPES].join(", ")}, got "${roomType}".`);
     if (!theme) fail("room 'theme' not found - set it as a Map Property in Tiled, or pass --theme=...");
+
+    // 'id' only needs to be whatever is unique within this theme+roomType (e.g. "001") - the full,
+    // globally-unique rooms.json id is built here as "{theme}_{roomType}_{id}". Still accepts an
+    // already-full id unchanged (if it already starts with that exact prefix) so older rooms
+    // authored before this convention don't need their Tiled file edited to keep converting.
+    const idPrefix = `${theme}_${roomType}_`;
+    const id = idProp.startsWith(idPrefix) ? idProp : `${idPrefix}${idProp}`;
 
     const lookupTile = buildTileLookup(map);
     const usedTilesets = new Set();
@@ -590,12 +632,14 @@ function main() {
     const room = { id, type: roomType, width, height, theme, tiles, floorSprites: floorSprite, wallSprites: wallSprite, decorations: decoration, entities };
 
     const json = JSON.stringify(room, null, 2);
-    if (flags.out) {
-        writeFileSync(flags.out, json + "\n");
-        console.error(`Wrote ${flags.out}`);
-    } else {
-        console.log(json);
-    }
+    // Defaults to deepstone-backend/debug-rooms/<same name as the source map> - the hub's "Debug
+    // Rooms" dev tool (see README.md) reads straight out of that folder, so converting a map and
+    // previewing it in a live session needs no --out bookkeeping for the common case. --out still
+    // overrides this for a one-off custom destination.
+    const outPath = flags.out ?? join(defaultDebugRoomsDir, `${basename(mapPath, extname(mapPath))}.json`);
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, json + "\n");
+    console.error(`Wrote ${outPath}`);
 }
 
 main();

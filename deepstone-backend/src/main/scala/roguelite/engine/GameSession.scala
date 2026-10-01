@@ -290,37 +290,39 @@ class GameSession private (
     * drops the player straight into it, bypassing `DungeonBuilder` entirely - see
     * `frontend/scripts/convert-tiled-room.mjs` for how that file gets produced. Reading the file
     * needs IO, same reason `BuyUpgrade` is intercepted here rather than in the pure `StateMachine`.
-    * Only valid from the hub (mirrors `StartRun`'s own state gating); any failure (missing file,
-    * bad JSON, no room in it) is reported as a log message on the unchanged hub state rather than
-    * crashing the session, same discipline as an invalid upgrade purchase.
+    * Valid from the hub or while already exploring a debug room (the latter is what powers
+    * ExplorationHUD's next/prev debug-room shortcut - jumping straight to a different room without
+    * a round trip back to the hub's button list); any failure (missing file, bad JSON, no room in
+    * it) is reported as a log message on the unchanged state rather than crashing the session, same
+    * discipline as an invalid upgrade purchase.
     */
   private def handleDebugLoadRoom(roomId: String): IO[StateUpdate] =
     for
       state <- stateRef.get
       update <- state match
-        case hub: HubState =>
+        case _: HubState | _: ExplorationState =>
           GameSession.readDebugRoomFile(roomId).attempt.flatMap {
             case Left(err) =>
-              IO.pure(hub.toStateUpdate(List(s"Debug room \"$roomId\" not found (${err.getMessage}).")))
+              IO.pure(state.toStateUpdate(List(s"Debug room \"$roomId\" not found (${err.getMessage}).")))
             case Right(json) =>
               RoomLoader.loadAllFromJson(s"[$json]").attempt.flatMap {
                 case Left(err) =>
-                  IO.pure(hub.toStateUpdate(List(s"Debug room \"$roomId\" failed to parse: ${err.getMessage}")))
+                  IO.pure(state.toStateUpdate(List(s"Debug room \"$roomId\" failed to parse: ${err.getMessage}")))
                 case Right(rooms) =>
                   rooms.values.headOption match
                     case None =>
-                      IO.pure(hub.toStateUpdate(List(s"Debug room file \"$roomId\" contained no room.")))
+                      IO.pure(state.toStateUpdate(List(s"Debug room file \"$roomId\" contained no room.")))
                     case Some(room) =>
-                      stateMachine.loadDebugRoom(hub.player, room) match
+                      stateMachine.loadDebugRoom(state.player, room) match
                         case Left(err) =>
-                          IO.pure(hub.toStateUpdate(List(s"Debug room \"$roomId\" failed to load: $err")))
+                          IO.pure(state.toStateUpdate(List(s"Debug room \"$roomId\" failed to load: $err")))
                         case Right(nextState) =>
                           stateRef.set(nextState) *>
                             IO.pure(nextState.toStateUpdate(List(s"Loaded debug room \"$roomId\".")))
               }
           }
         case _ =>
-          IO.pure(state.toStateUpdate(List("Debug rooms can only be loaded from the hub.")))
+          IO.pure(state.toStateUpdate(List("Debug rooms can only be loaded from the hub or while exploring a debug room.")))
     yield update
 
   /** Apply every unlocked upgrade's [[UpgradeEffect]] to the player at the start of a new run.

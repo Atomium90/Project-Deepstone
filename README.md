@@ -85,9 +85,7 @@ room in Tiled, you can load it straight into a live session to check it before t
 
 ```bash
 cd frontend
-node scripts/convert-tiled-room.mjs path/to/your-room.tmx \
-  --id=your_room_id --roomType=combat --theme=dungeon \
-  --out=../deepstone-backend/debug-rooms/your_room_id.json
+node scripts/convert-tiled-room.mjs path/to/your-room.tmx
 ```
 
 (No sprites assigned yet? No flag needed for that - every cell's sprite key is derived

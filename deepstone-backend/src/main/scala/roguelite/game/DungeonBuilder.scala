@@ -114,7 +114,9 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
         val position        = rng.nextInt(biomeRooms.size + 1)
         val (before, after) = biomeRooms.splitAt(position)
         val segments =
-          before.map(Segment.Linear(_)) ::: List(Segment.Fork(fork, branchA, branchB)) ::: after.map(Segment.Linear(_))
+          before.map(Segment.Linear(_)) :::
+            List(Segment.Fork(fork, List(branchA), List(branchB))) :::
+            after.map(Segment.Linear(_))
         (segments, exclude + fork.id + branchA.id + branchB.id)
       case _ =>
         (biomeRooms.map(Segment.Linear(_)), exclude)
@@ -165,53 +167,71 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
   /** One node in the room sequence [[wireSegments]] connects end-to-end. A `Linear` segment
    * behaves exactly like a single room in the old purely-linear chain; a `Fork` segment bundles a
    * [[RoomType.Fork]] room with its two branch destinations - the fork room is this segment's
-   * single entry point (wired from whatever precedes it), and both branches are its exit points
-   * (each wired forward to whatever follows, converging on the same next room).
+   * single entry point (wired from whatever precedes it), and the last room of each branch is an
+   * exit point (each wired forward to whatever follows, converging on the same next room). Each
+   * branch is a room *list*, not a single room - a branch can be more than 1 room deep, wired as an
+   * ordinary internal linear chain (see [[wireSegments]]).
    */
   private enum Segment:
     case Linear(room: Room)
-    case Fork(fork: Room, branchA: Room, branchB: Room)
+    case Fork(fork: Room, branchA: List[Room], branchB: List[Room])
 
     /** Every room belonging to this segment, used to seed the room map [[wireSegments]] mutates. */
     def rooms: List[Room] = this match
       case Linear(room)     => List(room)
-      case Fork(fork, a, b) => List(fork, a, b)
+      case Fork(fork, a, b) => fork :: a ::: b
 
     /** The single room whose Prev door(s) connect back to the previous segment. */
     def entryRoom: Room = this match
       case Linear(room)     => room
       case Fork(fork, _, _) => fork
 
-    /** The room(s) whose Next door(s) connect forward to the next segment. */
+    /** The room(s) whose Next door(s) connect forward to the next segment - the last room of each
+     * branch for a Fork segment, not the fork room itself. */
     def exitRooms: List[Room] = this match
       case Linear(room)  => List(room)
-      case Fork(_, a, b) => List(a, b)
+      case Fork(_, a, b) => List(a.last, b.last)
 
   /** Wire an ordered sequence of segments into a Dungeon by resolving every Unresolved [[Door]]
    * link. Generalizes the old purely-linear per-pair wiring to also handle a [[Segment.Fork]]'s
    * branch-and-reconverge shape: first each Fork segment's own internal doors are wired (the fork
-   * room's two branch-tagged Next doors to its two branches, each branch's Prev door back to the
-   * fork room), then every consecutive pair of segments is wired exactly like the old linear case
-   * - for each of segment A's `exitRooms`, its Next door points to segment B's single `entryRoom`,
-   * and that door's Prev points back. When A has 2 exit rooms (a Fork segment), both attempt to
-   * set B's entryRoom's Prev door - only the first actually resolves it (see [[resolveLinks]]),
-   * the second is a harmless no-op. This means a room right after a fork cluster has a Prev door
-   * pointing at only one of the two branches, not both - accepted, since nothing reads "which
-   * branch did the player actually take" from that door once resolved (findSpawnPoint only cares
-   * about travel direction, not which room sent the player).
+   * room's two branch-tagged Next doors to the *first* room of each branch, then each branch's own
+   * room list wires internally as an ordinary linear chain, reusing the same pairwise
+   * [[resolveLinks]] calls segment-to-segment wiring already does), then every consecutive pair of
+   * segments is wired exactly like the old linear case - for each of segment A's `exitRooms` (the
+   * *last* room of each branch for a Fork segment), its Next door points to segment B's single
+   * `entryRoom`, and that door's Prev points back. When A has 2 exit rooms (a Fork segment), both
+   * attempt to set B's entryRoom's Prev door - only the first actually resolves it (see
+   * [[resolveLinks]]), the second is a harmless no-op. This means a room right after a fork cluster
+   * has a Prev door pointing at only one of the two branches, not both - accepted, since nothing
+   * reads "which branch did the player actually take" from that door once resolved
+   * (findSpawnPoint only cares about travel direction, not which room sent the player).
    */
   private def wireSegments(segments: List[Segment]): Either[String, Dungeon] =
     if segments.isEmpty then return Left("Cannot wire an empty segment list.")
 
     val initial = segments.flatMap(_.rooms).map(r => r.id -> r).toMap
 
+    /** Wires one branch's own room list as an ordinary internal linear chain - a no-op for a
+     * single-room branch (nothing to wire internally), same pairwise pattern as top-level
+     * segment-to-segment wiring below. */
+    def wireBranchChain(acc: Map[String, Room], branch: List[Room]): Map[String, Room] =
+      branch.sliding(2).foldLeft(acc):
+        case (acc2, List(r1, r2)) =>
+          val updated1 = resolveLinks(acc2(r1.id), ConnectorRole.Next, None, r2.id)
+          val updated2 = resolveLinks(acc2(r2.id), ConnectorRole.Prev, None, r1.id)
+          acc2.updated(r1.id, updated1).updated(r2.id, updated2)
+        case (acc2, _) => acc2
+
     val withForkInternals = segments.foldLeft(initial):
       case (acc, Segment.Fork(fork, branchA, branchB)) =>
-        val wiredFork = List("a" -> branchA, "b" -> branchB).foldLeft(acc(fork.id)):
+        val wiredFork = List("a" -> branchA.head, "b" -> branchB.head).foldLeft(acc(fork.id)):
           case (f, (branch, dest)) => resolveLinks(f, ConnectorRole.Next, Some(branch), dest.id)
-        val wiredA = resolveLinks(acc(branchA.id), ConnectorRole.Prev, None, fork.id)
-        val wiredB = resolveLinks(acc(branchB.id), ConnectorRole.Prev, None, fork.id)
-        acc.updated(fork.id, wiredFork).updated(branchA.id, wiredA).updated(branchB.id, wiredB)
+        val wiredA = resolveLinks(acc(branchA.head.id), ConnectorRole.Prev, None, fork.id)
+        val wiredB = resolveLinks(acc(branchB.head.id), ConnectorRole.Prev, None, fork.id)
+        val afterEntries =
+          acc.updated(fork.id, wiredFork).updated(branchA.head.id, wiredA).updated(branchB.head.id, wiredB)
+        wireBranchChain(wireBranchChain(afterEntries, branchA), branchB)
       case (acc, Segment.Linear(_)) => acc
 
     val wired = segments.sliding(2).foldLeft(withForkInternals):

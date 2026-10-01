@@ -71,6 +71,12 @@ object RoomType:
   *   Unique identifier matching the rooms.json entry.
   * @param roomType
   *   Determines loot, enemy density, and special behavior.
+  * @param theme
+  *   Which content set this room belongs to (e.g. "dungeon", "darkDungeon") - required, not
+  *   optional, so a newly-authored room can never silently fall through un-themed. Read by
+  *   [[DungeonBuilder]] to keep a section's rooms drawn from a single theme (see
+  *   [[DungeonBuilder.buildSection]]), and exposed on [[RoomView]] so the client can pick the
+  *   matching sprite set to render the room with.
   * @param width
   *   Number of tiles horizontally.
   * @param height
@@ -79,11 +85,6 @@ object RoomType:
   *   Row-major tile grid. Invariant: tiles.length == height, tiles(n).length == width for all n.
   * @param entities
   *   All interactive objects currently present in the room.
-  * @param theme
-  *   Which sprite set the client should render this room with (e.g. "dungeon", "darkDungeon") -
-  *   purely a client-side rendering concern, never read by any server-side logic. Defaults to
-  *   "dungeon" so every room authored before this field existed keeps rendering exactly as before
-  *   without needing a `rooms.json` edit.
   * @param floorSprite
   *   Row-major grid the same shape as `tiles`, one optional explicit floor sprite override per
   *   cell - meaningful for *every* cell regardless of `tiles(row)(col)`, since a wall cell still
@@ -116,11 +117,11 @@ object RoomType:
 case class Room(
     id: String,
     roomType: RoomType,
+    theme: String,
     width: Int,
     height: Int,
     tiles: Vector[Vector[Tile]],
     entities: List[Entity],
-    theme: String = "dungeon",
     floorSprite: Vector[Vector[Option[String]]] = Vector.empty,
     wallSprite: Vector[Vector[Option[String]]] = Vector.empty,
     decoration: Vector[Vector[Option[String]]] = Vector.empty

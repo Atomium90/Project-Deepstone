@@ -2,6 +2,7 @@
   {
     "id": "combat_001",
     "type": "combat",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -23,6 +24,7 @@
   {
     "id": "combat_002",
     "type": "combat",
+    "theme": "dungeon",
     "width": 12,
     "height": 8,
     "tiles": [
@@ -47,6 +49,7 @@
   {
     "id": "combat_003",
     "type": "combat",
+    "theme": "dungeon",
     "width": 10,
     "height": 10,
     "tiles": [
@@ -71,6 +74,7 @@
   {
     "id": "combat_004",
     "type": "combat",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -92,6 +96,7 @@
   {
     "id": "loot_001",
     "type": "loot",
+    "theme": "dungeon",
     "width": 8,
     "height": 8,
     "tiles": [
@@ -115,6 +120,7 @@
   {
     "id": "loot_002",
     "type": "loot",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -138,6 +144,7 @@
   {
     "id": "rest_001",
     "type": "rest",
+    "theme": "dungeon",
     "width": 8,
     "height": 6,
     "tiles": [
@@ -157,6 +164,7 @@
   {
     "id": "combat_005",
     "type": "combat",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -179,6 +187,7 @@
   {
     "id": "combat_006",
     "type": "combat",
+    "theme": "dungeon",
     "width": 12,
     "height": 8,
     "tiles": [
@@ -202,6 +211,7 @@
   {
     "id": "combat_007",
     "type": "combat",
+    "theme": "dungeon",
     "width": 10,
     "height": 10,
     "tiles": [
@@ -226,6 +236,7 @@
   {
     "id": "combat_008",
     "type": "combat",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -248,6 +259,7 @@
   {
     "id": "combat_009",
     "type": "combat",
+    "theme": "dungeon",
     "width": 12,
     "height": 10,
     "tiles": [
@@ -273,6 +285,7 @@
   {
     "id": "combat_010",
     "type": "combat",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -296,6 +309,7 @@
   {
     "id": "combat_011",
     "type": "combat",
+    "theme": "dungeon",
     "width": 12,
     "height": 10,
     "tiles": [
@@ -321,6 +335,7 @@
   {
     "id": "loot_003",
     "type": "loot",
+    "theme": "dungeon",
     "width": 8,
     "height": 8,
     "tiles": [
@@ -344,6 +359,7 @@
   {
     "id": "loot_004",
     "type": "loot",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -367,6 +383,7 @@
   {
     "id": "loot_005",
     "type": "loot",
+    "theme": "dungeon",
     "width": 8,
     "height": 10,
     "tiles": [
@@ -391,6 +408,7 @@
   {
     "id": "rest_002",
     "type": "rest",
+    "theme": "dungeon",
     "width": 10,
     "height": 6,
     "tiles": [
@@ -409,6 +427,7 @@
   {
     "id": "rest_003",
     "type": "rest",
+    "theme": "dungeon",
     "width": 8,
     "height": 8,
     "tiles": [
@@ -429,6 +448,7 @@
   {
     "id": "boss_001",
     "type": "boss",
+    "theme": "dungeon",
     "width": 14,
     "height": 12,
     "tiles": [
@@ -454,6 +474,7 @@
   {
     "id": "boss_002",
     "type": "boss",
+    "theme": "dungeon",
     "width": 12,
     "height": 12,
     "tiles": [
@@ -479,6 +500,7 @@
   {
     "id": "boss_003",
     "type": "boss",
+    "theme": "dungeon",
     "width": 12,
     "height": 10,
     "tiles": [
@@ -502,6 +524,7 @@
   {
     "id": "boss_004",
     "type": "boss",
+    "theme": "dungeon",
     "width": 12,
     "height": 12,
     "tiles": [
@@ -527,6 +550,7 @@
   {
     "id": "boss_005",
     "type": "boss",
+    "theme": "dungeon",
     "width": 14,
     "height": 12,
     "tiles": [
@@ -552,6 +576,7 @@
   {
     "id": "boss_006",
     "type": "boss",
+    "theme": "dungeon",
     "width": 12,
     "height": 10,
     "tiles": [
@@ -575,6 +600,7 @@
   {
     "id": "vault_001",
     "type": "vault",
+    "theme": "dungeon",
     "width": 6,
     "height": 6,
     "tiles": [
@@ -593,6 +619,7 @@
   {
     "id": "miniboss_001",
     "type": "miniboss",
+    "theme": "dungeon",
     "width": 10,
     "height": 10,
     "tiles": [
@@ -616,6 +643,7 @@
   {
     "id": "miniboss_002",
     "type": "miniboss",
+    "theme": "dungeon",
     "width": 12,
     "height": 8,
     "tiles": [
@@ -638,6 +666,7 @@
   {
     "id": "fork_001",
     "type": "fork",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -661,6 +690,7 @@
   {
     "id": "fork_002",
     "type": "fork",
+    "theme": "dungeon",
     "width": 10,
     "height": 8,
     "tiles": [
@@ -684,6 +714,7 @@
   {
     "id": "fork_003",
     "type": "fork",
+    "theme": "dungeon",
     "width": 12,
     "height": 8,
     "tiles": [
@@ -707,6 +738,7 @@
   {
     "id": "sanctuary_001",
     "type": "sanctuary",
+    "theme": "dungeon",
     "width": 8,
     "height": 6,
     "tiles": [

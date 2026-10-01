@@ -11,113 +11,180 @@ case class TopologyEdge(from: String, role: ConnectorRole, branch: Option[String
 
 /** Assembles a [[Dungeon]] from a pool of hand-crafted rooms.
  *
- * The builder picks rooms randomly while enforcing a minimal structure: one combat room as the
- * entrance, one or more sequential biome segments of combat/loot/rest rooms (each ending in its
- * own [[RoomType.Boss]] room, with a [[RoomType.MiniBoss]] checkpoint between consecutive biomes
- * where the pool has one to give), and one [[RoomType.Sanctuary]] room as the dungeon's true final
- * segment - defeating a biome's Boss never ends the run by itself, only interacting with the
- * Sanctuary does (see `InteractionResolver.handleSanctuary`). Each biome may also splice in one
- * branching cluster - a [[RoomType.Fork]] room leading to 2 distinct rooms that both reconverge on
- * whatever follows (see [[insertFork]]). Door connectivity is wired automatically by
- * [[wireSegments]]: the builder pairs the exit door(s) of one segment with the entrance door of
- * the next.
+ * The builder picks rooms randomly while enforcing a minimal structure: one or more sequential
+ * sections, each drawn entirely from a single [[Room.theme]] (see [[pickNextTheme]]) and following
+ * the same fixed room template (see [[buildSection]]), ending in its own [[RoomType.Boss]] room,
+ * and one [[RoomType.Sanctuary]] room - matched to the *last* section's theme - as the dungeon's
+ * true final segment. Defeating a section's Boss never ends the run by itself, only interacting
+ * with the Sanctuary does (see `InteractionResolver.handleSanctuary`). Every section but the last
+ * is followed by a guaranteed [[RoomType.Rest]] room, matched to the section that just ended, before
+ * the next section starts. There is no separately-tracked "entrance" room: the dungeon's starting
+ * room is simply whichever room ends up first in section 1 (see `build`'s own doc for what that
+ * means when section 1's own lead-in rooms can't be found). Door connectivity is wired
+ * automatically by [[wireSegments]]: the builder pairs the exit door(s) of one segment with the
+ * entrance door of the next.
  *
  * @param pool   All available rooms keyed by id.
  * @param rng    Random instance: inject a seeded one for reproducible dungeons.
  */
 class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
 
-  /** Build a dungeon out of `biomeCount` sequential biome segments.
+  /** Build a dungeon out of `biomeCount` sequential sections.
    *
-   * @param totalRooms Middle-room count *per biome* (not the whole dungeon - see
-   *                   [[roguelite.engine.Difficulty.totalRooms]]'s own doc). Each biome's rooms
-   *                   are picked without repeating any room already used elsewhere in the run.
-   *                   Silently yields fewer than requested if the pool runs short (same
-   *                   graceful-truncation behavior [[pickMiddle]] already had).
-   * @param biomeCount Number of sequential biome segments, clamped to at least 1. Every biome
-   *                   ends in its own [[RoomType.Boss]] room (required - the whole build fails
-   *                   if any biome can't get one). Every biome but the last is *also* followed by
-   *                   a [[RoomType.MiniBoss]] checkpoint before the next one starts, when the pool
-   *                   has one available (see [[buildBiomeSegments]] - a missing MiniBoss room
-   *                   silently skips that one checkpoint rather than failing the build, same
-   *                   philosophy as the middle-room truncation above).
-   * @param difficulty Drives the per-enemy Elite roll rate (see [[rollEliteEnemies]]).
-   * @return A freshly assembled [[Dungeon]], or an error message if the pool has no Combat room
-   *         for the entrance, no Sanctuary room for the dungeon's true final segment, or any biome
-   *         can't get its own Boss room.
+   * @param difficulty Drives the per-enemy Elite roll rate (see [[rollEliteEnemies]]) and
+   *                   `biomeCount`'s own default below.
+   * @param biomeCount Number of sequential sections, clamped to at least 1. Defaults to
+   *                   `difficulty.biomeCount` - a bare default of e.g. `1` here, independent of
+   *                   `difficulty`'s own default, would silently desync the moment either default
+   *                   changed on its own. Every section ends in its own [[RoomType.Boss]] room
+   *                   (required - the whole build fails if any section can't get one, in its
+   *                   section's own theme). Every section but the last is followed by a guaranteed
+   *                   [[RoomType.Rest]] room where the pool has one available in that section's own
+   *                   theme (see [[buildSections]] - a missing Rest room silently skips that one
+   *                   slot rather than failing the build, same philosophy as every other optional
+   *                   template slot).
+   * @return A freshly assembled [[Dungeon]], or an error message if the pool has no room of any
+   *         theme at all, no Sanctuary room matching the last section's theme, or any section
+   *         can't get its own Boss room in its theme.
    */
-  def build(totalRooms: Int = 4, biomeCount: Int = 1, difficulty: Difficulty = Difficulty.Normal): Either[String, Dungeon] =
+  def build(difficulty: Difficulty = Difficulty.Normal)(biomeCount: Int = difficulty.biomeCount): Either[String, Dungeon] =
     for
-      entrance   <- pickOne(RoomType.Combat, exclude = Set.empty)
-      sanctuary  <- pickOne(RoomType.Sanctuary, exclude = Set(entrance.id))
-      biomeSegs  <- buildBiomeSegments(biomeCount.max(1), totalRooms.max(0), Set(entrance.id, sanctuary.id))
-      ordered     = Segment.Linear(entrance) :: biomeSegs ::: List(Segment.Linear(sanctuary))
-      dungeon    <- wireSegments(ordered)
-      // The entrance's Prev door is never wired by anything (there's nothing before the entrance) -
-      // it may still be authored, since Combat rooms are a shared pool with mid-chain rooms that
-      // normally do need one. Strip it rather than leaving a dead, non-functional door in place.
-      // The Sanctuary needs no equivalent cleanup: unlike Combat, it's never reused as a mid-chain
-      // room, so it's authored with only its own single Prev door in the first place - there's
-      // nothing left Unresolved to strip.
-      cleaned     = removeUnresolvedDoors(dungeon, entrance.id, ConnectorRole.Prev)
-      withVaults <- injectVaultRooms(cleaned)
+      sectionsResult        <- buildSections(biomeCount.max(1))
+      (sections, lastTheme)  = sectionsResult
+      sanctuary             <- pickOne(RoomType.Sanctuary, lastTheme, exclude = Set.empty)
+      rawOrdered             = sections ::: List(Segment.Linear(sanctuary))
+      // Two different sections can independently pick the same authored room (exclude resets per
+      // section - see buildSections's own doc for why) - give every placement after the first a
+      // fresh runtime id before wiring, or the two placements would collide into a single entry in
+      // Dungeon.rooms and silently corrupt each other's door links.
+      ordered                = deduplicateRoomIds(rawOrdered)
+      dungeon                <- wireSegments(ordered)
+      // Whatever room ends up first (section 1's own first segment - see the class doc) has a Prev
+      // door that's never wired by anything, same reasoning as the old dedicated-entrance pick
+      // used to need: it may still be authored, since these rooms are a shared pool with mid-chain
+      // rooms that normally do need one. Strip it rather than leaving a dead, non-functional door
+      // in place. The Sanctuary needs no equivalent cleanup - see removeUnresolvedDoors's own doc.
+      cleaned                = removeUnresolvedDoors(dungeon, dungeon.currentRoomId, ConnectorRole.Prev)
+      withVaults             <- injectVaultRooms(cleaned)
     yield rollEliteEnemies(withVaults, difficulty)
 
-  /** Builds the segment list between entrance and Sanctuary: `biomeCount` groups of `perBiome`
-   * middle rooms, each ending in its own [[RoomType.Boss]] room (required per biome - see `build`'s
-   * own doc), and each pair of consecutive biomes further separated by a [[RoomType.MiniBoss]]
-   * room where the pool has one left to give - if not (including a pool with no MiniBoss room
-   * authored at all), that boundary is silently skipped and the two biomes simply run together as
-   * one longer stretch, rather than failing the whole build over missing optional structure.
-   * Mirrors [[pickMiddle]]'s own existing "degrade gracefully, don't fail" behavior for an
-   * under-sized middle-room pool. `exclude` accumulates across every biome, every fork cluster,
-   * every Boss pick, and every MiniBoss pick, so nothing repeats anywhere in the run.
+  /** Builds the segment list up to (not including) the Sanctuary: `sectionCount` sections (see
+   * [[buildSection]]), each pair of consecutive sections further separated by a guaranteed
+   * [[RoomType.Rest]] room, matched to the section that just ended, where the pool has one left to
+   * give - if not, that boundary is silently skipped and the two sections simply run together as
+   * one longer stretch, rather than failing the whole build over missing optional structure. Each
+   * section picks its own theme fresh via [[pickNextTheme]] and rebuilds its own `exclude` set from
+   * scratch - *not* threaded across sections, deliberately: a room reused in a later section is
+   * acceptable (sections are independent, visually and mechanically - [[deduplicateRoomIds]] is
+   * what actually makes a literal repeat safe, called once after every section is built, not here).
+   * Returns the last section's theme alongside the segment list, so `build` can match the Sanctuary
+   * pick to it.
    */
-  private def buildBiomeSegments(biomeCount: Int, perBiome: Int, exclude: Set[String]): Either[String, List[Segment]] =
-    @annotation.tailrec
-    def loop(biomesLeft: Int, exclude: Set[String], acc: List[Segment]): Either[String, List[Segment]] =
-      if biomesLeft <= 0 then Right(acc)
-      else
-        val biomeRooms                 = pickMiddle(perBiome, exclude).getOrElse(Nil)
-        val afterBiome                 = exclude ++ biomeRooms.map(_.id)
-        val (biomeSegments, afterFork) = insertFork(biomeRooms, afterBiome)
-        pickOne(RoomType.Boss, afterFork) match
+  private def buildSections(sectionCount: Int): Either[String, (List[Segment], String)] =
+    val availableThemes = pool.values.map(_.theme).toList.distinct
+    if availableThemes.isEmpty then Left("No rooms available in the pool (no themes found).")
+    else
+      @annotation.tailrec
+      def loop(sectionsLeft: Int, usedThemes: List[String], acc: List[Segment]): Either[String, (List[Segment], String)] =
+        val theme = pickNextTheme(usedThemes, availableThemes)
+        buildSection(theme) match
           case Left(err) => Left(err)
-          case Right(boss) =>
-            val afterBoss        = afterFork + boss.id
-            val segmentsWithBoss = biomeSegments ::: List(Segment.Linear(boss))
-            if biomesLeft == 1 then Right(acc ::: segmentsWithBoss)
+          case Right(segments) =>
+            if sectionsLeft <= 1 then Right((acc ::: segments, theme))
             else
-              pickOne(RoomType.MiniBoss, afterBoss) match
-                case Left(_) => loop(biomesLeft - 1, afterBoss, acc ::: segmentsWithBoss)
-                case Right(miniBoss) =>
-                  loop(biomesLeft - 1,
-                       afterBoss + miniBoss.id,
-                       acc ::: segmentsWithBoss ::: List(Segment.Linear(miniBoss))
-                  )
-    loop(biomeCount, exclude, Nil)
+              pickOne(RoomType.Rest, theme, exclude = Set.empty) match
+                case Left(_)     => loop(sectionsLeft - 1, usedThemes :+ theme, acc ::: segments)
+                case Right(rest) => loop(sectionsLeft - 1, usedThemes :+ theme, acc ::: segments ::: List(Segment.Linear(rest)))
+      loop(sectionCount, Nil, Nil)
 
-  /** Try to splice one branching cluster into a random position of this biome's already-picked
-   * linear room list: a [[RoomType.Fork]] room plus 2 distinct branch rooms drawn from the same
-   * middle-room pool [[pickMiddle]] uses, none repeating any room already used elsewhere in the
-   * run. Falls back to a purely linear segment list (no branching this biome) if the pool can't
-   * support it - same "degrade gracefully, don't fail the whole build" philosophy as
-   * [[buildBiomeSegments]]'s own MiniBoss handling. No dedicated "merge" room content is needed:
-   * both branch rooms simply become this segment's `exitRooms`, wired forward to whatever
-   * ordinary room follows next by [[wireSegments]] - the room after the fork never needs to know
-   * which of the two branches the player actually came from.
+  /** Picks the theme for the next section. Current policy: prefer a theme not yet used anywhere
+   * this run, picked at random among whichever themes qualify - only once every theme has been
+   * used at least once does a repeat become eligible at all, and even then the immediately-previous
+   * section's theme is excluded first (so two consecutive sections never look the same), unless
+   * there's genuinely only one theme available, in which case that one theme is reused rather than
+   * this picking nothing at all. Maximizes variety across a run instead of allowing an early repeat
+   * while another theme sits completely unused (e.g. with themes A/B/C, a sequence like A, B, A
+   * would waste C's own variety for no reason - this policy always finds C first). Deliberately
+   * kept small and isolated, not inlined into [[buildSections]]'s loop: a future ordering rule (a
+   * fixed sequence, or per-position eligibility like "these themes only ever open a run") only
+   * needs to replace this one method, nothing else in this class needs to change to support it.
    */
-  private def insertFork(biomeRooms: List[Room], exclude: Set[String]): (List[Segment], Set[String]) =
-    val branches = pickMiddle(2, exclude).getOrElse(Nil)
-    (pickOne(RoomType.Fork, exclude).toOption, branches) match
-      case (Some(fork), List(branchA, branchB)) =>
-        val position        = rng.nextInt(biomeRooms.size + 1)
-        val (before, after) = biomeRooms.splitAt(position)
+  private def pickNextTheme(usedThemes: List[String], availableThemes: List[String]): String =
+    val unused = availableThemes.filterNot(usedThemes.contains)
+    val candidates =
+      if unused.nonEmpty then unused
+      else
+        usedThemes.lastOption match
+          case Some(prev) if availableThemes.sizeIs > 1 => availableThemes.filterNot(_ == prev)
+          case _                                        => availableThemes
+    candidates(rng.nextInt(candidates.size))
+
+  /** Builds one section's segment list, following a fixed room template, every room drawn from
+   * `theme`: 2 lead-in Combat rooms, one optional branching cluster (see
+   * [[buildFixedForkCluster]]), 2 reconverging rooms (Combat then Loot), and a required terminal
+   * [[RoomType.Boss]] room. Every slot except the Fork cluster and the Boss degrades gracefully
+   * (that slot is simply skipped) if the pool has nothing left to give in this theme - same
+   * philosophy as every other optional slot in this builder. The Boss stays a hard requirement,
+   * same as `build`'s own doc describes. `exclude` starts fresh here, scoped to this section only -
+   * see [[buildSections]]'s own doc for why.
+   */
+  private def buildSection(theme: String): Either[String, List[Segment]] =
+    val (leadIn, afterLeadIn) = pickOptionalSequence(List(RoomType.Combat, RoomType.Combat), theme, Set.empty)
+    val (forkSegment, afterFork) = buildFixedForkCluster(theme, afterLeadIn) match
+      case Some((segment, used)) => (List(segment), used)
+      case None                  => (Nil, afterLeadIn)
+    val (reconverge, afterReconverge) = pickOptionalSequence(List(RoomType.Combat, RoomType.Loot), theme, afterFork)
+    pickOne(RoomType.Boss, theme, afterReconverge) match
+      case Left(err) => Left(err)
+      case Right(boss) =>
         val segments =
-          before.map(Segment.Linear(_)) ::: List(Segment.Fork(fork, branchA, branchB)) ::: after.map(Segment.Linear(_))
-        (segments, exclude + fork.id + branchA.id + branchB.id)
-      case _ =>
-        (biomeRooms.map(Segment.Linear(_)), exclude)
+          leadIn.map(Segment.Linear(_)) ::: forkSegment ::: reconverge.map(Segment.Linear(_)) :::
+            List(Segment.Linear(boss))
+        Right(segments)
+
+  /** Attempts a section's one branching cluster, every room drawn from `theme`: a [[RoomType.Fork]]
+   * room plus 2-room branches (branch A: Combat then Loot; branch B: Loot then
+   * [[RoomType.MiniBoss]] - MiniBoss is reachable only via this optional side-path, never a
+   * guaranteed per-section beat). All-or-nothing: if any of the 5 rooms can't be drawn from the
+   * pool in this theme, the whole cluster is skipped rather than wiring a partial fork, same
+   * "degrade gracefully, don't fail the whole build" philosophy as every other optional template
+   * slot. No dedicated "merge" room content is needed: both branches' last rooms simply become this
+   * segment's `exitRooms`, wired forward to whatever ordinary room follows next by [[wireSegments]]
+   * - the room after the fork never needs to know which branch the player actually came from.
+   */
+  private def buildFixedForkCluster(theme: String, exclude: Set[String]): Option[(Segment.Fork, Set[String])] =
+    for
+      fork      <- pickOne(RoomType.Fork, theme, exclude).toOption
+      afterFork  = exclude + fork.id
+      branchA1  <- pickOne(RoomType.Combat, theme, afterFork).toOption
+      afterA1    = afterFork + branchA1.id
+      branchA2  <- pickOne(RoomType.Loot, theme, afterA1).toOption
+      afterA2    = afterA1 + branchA2.id
+      branchB1  <- pickOne(RoomType.Loot, theme, afterA2).toOption
+      afterB1    = afterA2 + branchB1.id
+      branchB2  <- pickOne(RoomType.MiniBoss, theme, afterB1).toOption
+    yield (Segment.Fork(fork, List(branchA1, branchA2), List(branchB1, branchB2)), afterB1 + branchB2.id)
+
+  /** Picks one room of `roomType` in `theme`, degrading gracefully (returns `None`, `exclude`
+   * unchanged) if the pool has none left - used for every fixed-template slot except Boss/
+   * Sanctuary/the Fork cluster as a whole, which stay hard requirements (see
+   * [[buildSection]]/[[pickOne]]).
+   */
+  private def pickOptional(roomType: RoomType, theme: String, exclude: Set[String]): (Option[Room], Set[String]) =
+    pickOne(roomType, theme, exclude) match
+      case Left(_)     => (None, exclude)
+      case Right(room) => (Some(room), exclude + room.id)
+
+  /** Picks a sequence of rooms by type in order, all in `theme`, each slot degrading independently
+   * via [[pickOptional]] - a later slot's pick still excludes whatever an earlier slot in the same
+   * sequence already picked, but one slot's miss never skips a later one.
+   */
+  private def pickOptionalSequence(roomTypes: List[RoomType], theme: String, exclude: Set[String]): (List[Room], Set[String]) =
+    roomTypes.foldLeft((List.empty[Room], exclude)):
+      case ((acc, excl), roomType) =>
+        pickOptional(roomType, theme, excl) match
+          case (Some(room), newExcl) => (acc :+ room, newExcl)
+          case (None, newExcl)       => (acc, newExcl)
 
   /** Wire an explicit topology instead of `build`'s random linear-chain selection: every room id
    * mentioned in `edges` or `entranceId` is looked up in `pool`, then each edge resolves the
@@ -148,70 +215,105 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
   // Private helpers
   // ---------------------------------------------
 
-  /** Pick one room of the given type, excluding already-used ids. */
-  private def pickOne(roomType: RoomType, exclude: Set[String]): Either[String, Room] =
-    val candidates = pool.values.filter(r => r.roomType == roomType && !exclude.contains(r.id)).toVector
+  /** Pick one room of the given type and theme, excluding already-used ids. */
+  private def pickOne(roomType: RoomType, theme: String, exclude: Set[String]): Either[String, Room] =
+    val candidates =
+      pool.values.filter(r => r.roomType == roomType && r.theme == theme && !exclude.contains(r.id)).toVector
     if candidates.isEmpty
-    then Left(s"No available room of type $roomType (excluded: ${exclude.mkString(", ")}).")
+    then Left(s"No available room of type $roomType in theme '$theme' (excluded: ${exclude.mkString(", ")}).")
     else Right(candidates(rng.nextInt(candidates.size)))
-
-  /** Pick `count` middle rooms (combat or loot), without repetition. */
-  private def pickMiddle(count: Int, exclude: Set[String]): Either[String, List[Room]] =
-    val candidates = pool.values.filter(r => !exclude.contains(r.id) && midTypes.contains(r.roomType)).toVector
-    Right(rng.shuffle(candidates).take(count).toList)
-
-  private val midTypes = Set(RoomType.Combat, RoomType.Loot, RoomType.Rest)
 
   /** One node in the room sequence [[wireSegments]] connects end-to-end. A `Linear` segment
    * behaves exactly like a single room in the old purely-linear chain; a `Fork` segment bundles a
    * [[RoomType.Fork]] room with its two branch destinations - the fork room is this segment's
-   * single entry point (wired from whatever precedes it), and both branches are its exit points
-   * (each wired forward to whatever follows, converging on the same next room).
+   * single entry point (wired from whatever precedes it), and the last room of each branch is an
+   * exit point (each wired forward to whatever follows, converging on the same next room). Each
+   * branch is a room *list*, not a single room - a branch can be more than 1 room deep, wired as an
+   * ordinary internal linear chain (see [[wireSegments]]).
    */
   private enum Segment:
     case Linear(room: Room)
-    case Fork(fork: Room, branchA: Room, branchB: Room)
+    case Fork(fork: Room, branchA: List[Room], branchB: List[Room])
 
     /** Every room belonging to this segment, used to seed the room map [[wireSegments]] mutates. */
     def rooms: List[Room] = this match
       case Linear(room)     => List(room)
-      case Fork(fork, a, b) => List(fork, a, b)
+      case Fork(fork, a, b) => fork :: a ::: b
 
     /** The single room whose Prev door(s) connect back to the previous segment. */
     def entryRoom: Room = this match
       case Linear(room)     => room
       case Fork(fork, _, _) => fork
 
-    /** The room(s) whose Next door(s) connect forward to the next segment. */
+    /** The room(s) whose Next door(s) connect forward to the next segment - the last room of each
+     * branch for a Fork segment, not the fork room itself. */
     def exitRooms: List[Room] = this match
       case Linear(room)  => List(room)
-      case Fork(_, a, b) => List(a, b)
+      case Fork(_, a, b) => List(a.last, b.last)
+
+  /** Ensures every room placed across `segments` has a unique id, even when the same authored room
+   * was independently picked by more than one section (allowed - see [[buildSections]]'s own doc on
+   * why `exclude` resets per section). The *first* placement of a given authored id keeps it
+   * unchanged; every placement after that gets a synthetic runtime id (e.g. `"boss_002#2"`) via a
+   * fresh [[Room]] copy - same content, distinct identity - so [[wireSegments]] can safely key
+   * everything by room id without two different sections silently colliding on one dungeon-graph
+   * node (`Dungeon.rooms` is a `Map[String, Room]` - two rooms sharing one id would collapse into a
+   * single entry, with whichever section's door-wiring ran last overwriting the other's). A room's
+   * own entities (e.g. a `LockedDoor` targeting a Vault) are untouched by the rename - unaffected,
+   * since [[injectVaultRooms]] looks up a Vault by its own literal authored id, never by whichever
+   * room referenced it.
+   */
+  private def deduplicateRoomIds(segments: List[Segment]): List[Segment] =
+    val placementCount = scala.collection.mutable.Map.empty[String, Int].withDefaultValue(0)
+    def dedupe(room: Room): Room =
+      val seenBefore = placementCount(room.id)
+      placementCount(room.id) = seenBefore + 1
+      if seenBefore == 0 then room else room.copy(id = s"${room.id}#${seenBefore + 1}")
+    segments.map:
+      case Segment.Linear(room) => Segment.Linear(dedupe(room))
+      case Segment.Fork(fork, branchA, branchB) =>
+        Segment.Fork(dedupe(fork), branchA.map(dedupe), branchB.map(dedupe))
 
   /** Wire an ordered sequence of segments into a Dungeon by resolving every Unresolved [[Door]]
    * link. Generalizes the old purely-linear per-pair wiring to also handle a [[Segment.Fork]]'s
    * branch-and-reconverge shape: first each Fork segment's own internal doors are wired (the fork
-   * room's two branch-tagged Next doors to its two branches, each branch's Prev door back to the
-   * fork room), then every consecutive pair of segments is wired exactly like the old linear case
-   * - for each of segment A's `exitRooms`, its Next door points to segment B's single `entryRoom`,
-   * and that door's Prev points back. When A has 2 exit rooms (a Fork segment), both attempt to
-   * set B's entryRoom's Prev door - only the first actually resolves it (see [[resolveLinks]]),
-   * the second is a harmless no-op. This means a room right after a fork cluster has a Prev door
-   * pointing at only one of the two branches, not both - accepted, since nothing reads "which
-   * branch did the player actually take" from that door once resolved (findSpawnPoint only cares
-   * about travel direction, not which room sent the player).
+   * room's two branch-tagged Next doors to the *first* room of each branch, then each branch's own
+   * room list wires internally as an ordinary linear chain, reusing the same pairwise
+   * [[resolveLinks]] calls segment-to-segment wiring already does), then every consecutive pair of
+   * segments is wired exactly like the old linear case - for each of segment A's `exitRooms` (the
+   * *last* room of each branch for a Fork segment), its Next door points to segment B's single
+   * `entryRoom`, and that door's Prev points back. When A has 2 exit rooms (a Fork segment), both
+   * attempt to set B's entryRoom's Prev door - only the first actually resolves it (see
+   * [[resolveLinks]]), the second is a harmless no-op. This means a room right after a fork cluster
+   * has a Prev door pointing at only one of the two branches, not both - accepted, since nothing
+   * reads "which branch did the player actually take" from that door once resolved
+   * (findSpawnPoint only cares about travel direction, not which room sent the player).
    */
   private def wireSegments(segments: List[Segment]): Either[String, Dungeon] =
     if segments.isEmpty then return Left("Cannot wire an empty segment list.")
 
     val initial = segments.flatMap(_.rooms).map(r => r.id -> r).toMap
 
+    /** Wires one branch's own room list as an ordinary internal linear chain - a no-op for a
+     * single-room branch (nothing to wire internally), same pairwise pattern as top-level
+     * segment-to-segment wiring below. */
+    def wireBranchChain(acc: Map[String, Room], branch: List[Room]): Map[String, Room] =
+      branch.sliding(2).foldLeft(acc):
+        case (acc2, List(r1, r2)) =>
+          val updated1 = resolveLinks(acc2(r1.id), ConnectorRole.Next, None, r2.id)
+          val updated2 = resolveLinks(acc2(r2.id), ConnectorRole.Prev, None, r1.id)
+          acc2.updated(r1.id, updated1).updated(r2.id, updated2)
+        case (acc2, _) => acc2
+
     val withForkInternals = segments.foldLeft(initial):
       case (acc, Segment.Fork(fork, branchA, branchB)) =>
-        val wiredFork = List("a" -> branchA, "b" -> branchB).foldLeft(acc(fork.id)):
+        val wiredFork = List("a" -> branchA.head, "b" -> branchB.head).foldLeft(acc(fork.id)):
           case (f, (branch, dest)) => resolveLinks(f, ConnectorRole.Next, Some(branch), dest.id)
-        val wiredA = resolveLinks(acc(branchA.id), ConnectorRole.Prev, None, fork.id)
-        val wiredB = resolveLinks(acc(branchB.id), ConnectorRole.Prev, None, fork.id)
-        acc.updated(fork.id, wiredFork).updated(branchA.id, wiredA).updated(branchB.id, wiredB)
+        val wiredA = resolveLinks(acc(branchA.head.id), ConnectorRole.Prev, None, fork.id)
+        val wiredB = resolveLinks(acc(branchB.head.id), ConnectorRole.Prev, None, fork.id)
+        val afterEntries =
+          acc.updated(fork.id, wiredFork).updated(branchA.head.id, wiredA).updated(branchB.head.id, wiredB)
+        wireBranchChain(wireBranchChain(afterEntries, branchA), branchB)
       case (acc, Segment.Linear(_)) => acc
 
     val wired = segments.sliding(2).foldLeft(withForkInternals):
@@ -234,9 +336,10 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
     room.copy(entities = updated)
 
   /** Removes every [[Door]] in room `roomId` whose link is still `Unresolved` for the given role,
-   * regardless of branch - used on the dungeon's entrance, whose Prev door is never wired by
-   * anything (there's nothing before it) but may still be authored, since Combat rooms are a
-   * shared pool with mid-chain rooms that normally do need one. Rather than failing (a door is
+   * regardless of branch - used on the dungeon's starting room (`dungeon.currentRoomId`, whichever
+   * room that turns out to be - see the class doc), whose Prev door is never wired by anything
+   * (there's nothing before it) but may still be authored, since its room type is drawn from the
+   * same shared pool as mid-chain rooms that normally do need one. Rather than failing (a door is
    * optional content, unlike a missing room type), the dead door is stripped instead of left
    * Unresolved and interactable-but-broken. `LockedDoor` is untouched - it has no `Unresolved`
    * concept, always pre-resolved to its `targetRoomId`.

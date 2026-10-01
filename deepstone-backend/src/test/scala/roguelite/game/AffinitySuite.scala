@@ -127,6 +127,7 @@ class AffinitySuite extends FunSuite:
   private def makeDungeon: Dungeon =
     val room = Room("r",
                     RoomType.Combat,
+                    "dungeon",
                     3,
                     3,
                     Vector.fill(3)(Vector.fill(3)(Tile.Floor)),

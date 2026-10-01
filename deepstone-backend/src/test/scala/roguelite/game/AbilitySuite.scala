@@ -102,6 +102,7 @@ class AbilitySuite extends FunSuite:
     val room = Room(
       id = "test_room",
       roomType = RoomType.Combat,
+      theme = "dungeon",
       width = 5,
       height = 5,
       tiles = Vector.fill(5)(Vector.fill(5)(Tile.Floor)),

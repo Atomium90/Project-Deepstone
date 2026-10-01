@@ -9,7 +9,7 @@ class RoomSuite extends FunSuite:
   def testRoom(entities: List[Entity] = Nil): Room =
     val tiles = Vector.tabulate(4, 4): (row, col) =>
       if row == 0 || row == 3 || col == 0 || col == 3 then Tile.Wall else Tile.Floor
-    Room(id = "test_room", roomType = RoomType.Combat, width = 4, height = 4, tiles = tiles, entities = entities)
+    Room(id = "test_room", roomType = RoomType.Combat, theme = "dungeon", width = 4, height = 4, tiles = tiles, entities = entities)
 
   // -- tileAt ----------------------------------------------------------------
 

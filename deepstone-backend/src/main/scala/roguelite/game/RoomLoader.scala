@@ -39,11 +39,11 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
     yield Room(
       id = rj.id,
       roomType = roomType,
+      theme = rj.theme,
       width = rj.width,
       height = rj.height,
       tiles = tiles,
       entities = entities,
-      theme = rj.theme.getOrElse("dungeon"),
       floorSprite = floorSprite,
       wallSprite = wallSprite,
       decoration = decoration
@@ -177,11 +177,11 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
   private case class RoomJson(
       id: String,
       `type`: String,
+      theme: String,
       width: Int,
       height: Int,
       tiles: List[List[String]],
       entities: List[EntityJson],
-      theme: Option[String] = None,
       floorSprites: Option[List[List[Option[String]]]] = None,
       wallSprites: Option[List[List[Option[String]]]] = None,
       decorations: Option[List[List[Option[String]]]] = None
@@ -213,12 +213,12 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       for
         id           <- c.get[String]("id")
         roomType     <- c.get[String]("type")
+        theme        <- c.get[String]("theme")
         width        <- c.get[Int]("width")
         height       <- c.get[Int]("height")
         tiles        <- c.get[List[List[String]]]("tiles")
         entities     <- c.get[List[EntityJson]]("entities")
-        theme        <- c.get[Option[String]]("theme")
         floorSprites <- c.get[Option[List[List[Option[String]]]]]("floorSprites")
         wallSprites  <- c.get[Option[List[List[Option[String]]]]]("wallSprites")
         decorations  <- c.get[Option[List[List[Option[String]]]]]("decorations")
-      yield RoomJson(id, roomType, width, height, tiles, entities, theme, floorSprites, wallSprites, decorations)
+      yield RoomJson(id, roomType, theme, width, height, tiles, entities, floorSprites, wallSprites, decorations)

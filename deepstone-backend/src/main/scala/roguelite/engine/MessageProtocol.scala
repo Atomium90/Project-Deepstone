@@ -37,20 +37,12 @@ enum Difficulty:
     case Difficulty.Normal => 1.0
     case Difficulty.Hard   => 1.25
 
-  /** Room count *per biome* passed to [[roguelite.game.DungeonBuilder.build]] - the whole dungeon's
-    * middle-room count is `totalRooms * biomeCount`. Same field/values as before biomes existed
-    * (only the meaning changed, from a whole-dungeon count to a per-biome one).
-    */
-  def totalRooms: Int = this match
-    case Difficulty.Easy   => 3
-    case Difficulty.Normal => 4
-    case Difficulty.Hard   => 6
-
-  /** Number of sequential biome segments in a run. Each biome beyond the first ends in a
-    * [[roguelite.game.RoomType.MiniBoss]] checkpoint before the next one starts; the final biome
-    * ends in the run's one true [[roguelite.game.RoomType.Boss]] room instead. Same per-difficulty
-    * scaling convention as [[eliteChance]]/[[totalRooms]] - harder means more content, not just
-    * tougher content.
+  /** Number of sequential sections in a run, passed to [[roguelite.game.DungeonBuilder.build]].
+    * Every section follows the same fixed room template and ends in its own
+    * [[roguelite.game.RoomType.Boss]] room; every section but the last is followed by a guaranteed
+    * [[roguelite.game.RoomType.Rest]] room before the next one starts (the last section ends at the
+    * dungeon's one [[roguelite.game.RoomType.Sanctuary]] instead). Same per-difficulty scaling
+    * convention as [[eliteChance]] - harder means more content, not just tougher content.
     */
   def biomeCount: Int = this match
     case Difficulty.Easy   => 1

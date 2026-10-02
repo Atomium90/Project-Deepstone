@@ -142,10 +142,10 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
     let entryRoomId = "";
     let entry = { x: 0, y: 0 }; // where the player stood when they entered the current room
 
-    // Normal difficulty's dungeon grew substantially once biomes landed (entrance + 2 biomes of 4
-    // rooms each + a MiniBoss checkpoint + boss, vs. the old flat 4-room dungeon) - the old budget
-    // of 80 was sized for that smaller shape and no longer covers a full run reliably.
-    for (let iteration = 0; iteration < 300 && state.phase !== "GAMEOVER"; iteration++) {
+    // A full Normal run (two sections, each with fights, an optional branch, a boss and a rest stop)
+    // takes a few hundred iterations, one per keypress, click or interaction. 800 leaves a wide margin
+    // without letting a run that is genuinely stuck go on for long.
+    for (let iteration = 0; iteration < 800 && state.phase !== "GAMEOVER"; iteration++) {
         if (state.phase !== previousPhase) {
             // App.svelte re-keys the whole phase component on every transition ({#key $gamePhase},
             // a 220ms crossfade) - the outgoing instance (old listeners, old DOM elements) can
@@ -251,7 +251,15 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
             }
         }
         if (!interacted) {
-            throw new Error(`'e' near (${target.x},${target.y}) [${target.kind}] produced no server response after retries`);
+            // Everything needed to tell a spec problem from a game problem: where the player really
+            // is, which door/entity the client itself would act on, and what the server last said.
+            const clientTarget = await page.evaluate(() => window.__DEEPSTONE_RENDERER__?.nearestInteractable()?.id ?? null);
+            const r = state.room!;
+            throw new Error(
+                `'e' near (${target.x},${target.y}) [${target.kind}:${target.id}${target.direction ? " " + target.direction : ""}] ` +
+                    `produced no server response after retries - room ${r.roomId} (${r.theme}), player at ` +
+                    `${r.playerX},${r.playerY}, client's nearest interactable: ${clientTarget}, last log: ${JSON.stringify(state.log.slice(-2))}`
+            );
         }
 
         // Matches the server's actual log wording: "You open the chest and find X!" and

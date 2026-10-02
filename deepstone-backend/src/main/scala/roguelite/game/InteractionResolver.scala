@@ -84,15 +84,18 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     TransitionResult(r._1, r._2, events = r._3)
 
   /** Shared by a normal Door and an already-unlocked LockedDoor: navigate to the target room and
-    * place the player at the tile adjacent to the door on the opposite wall. */
+    * place the player in front of the door they came through (see [[findSpawnPoint]]).
+    * `passedRole` is the role of the door just used, or `None` for a LockedDoor, which has none. */
   private def navigateThroughDoor(exp: ExplorationState,
                                   targetRoomId: String,
-                                  direction: Direction
+                                  direction: Direction,
+                                  passedRole: Option[ConnectorRole] = None
   ): (GameState, List[String], List[GameEvent]) =
     exp.dungeon.navigateTo(targetRoomId) match {
       case Left(err) => (exp, List(err), Nil)
       case Right(newDungeon) =>
-        val spawnPoint = findSpawnPoint(newDungeon.currentRoom, direction)
+        val spawnPoint =
+          findSpawnPoint(newDungeon.currentRoom, direction, exp.dungeon.currentRoomId, passedRole)
         val nextState =
           exp.copy(dungeon = newDungeon, playerX = spawnPoint._1, playerY = spawnPoint._2)
         (nextState, List(s"You pass through the door heading ${direction}."), List(GameEvent.DoorOpened))
@@ -102,7 +105,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                          door: Door
   ): (GameState, List[String], List[GameEvent]) =
     door.link match {
-      case DoorLink.Resolved(_, _, roomId) => navigateThroughDoor(exp, roomId, door.direction)
+      case DoorLink.Resolved(role, _, roomId) => navigateThroughDoor(exp, roomId, door.direction, Some(role))
       case DoorLink.Unresolved(_, _) =>
         (exp, List(s"Door '${door.id}' is not connected to any room."), Nil)
     }
@@ -404,23 +407,80 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         }
       (updated, List("You notice a hidden passage in the wall!"), List(GameEvent.SecretDoorRevealed))
 
-  /** Find a sensible spawn point in the target room when entering through a door.
+  /** Where the player appears in the target room: in front of the door they came through, whatever
+    * the room's wall thickness or layout.
     *
-    * The player arrives at the tile adjacent to the door on the opposite wall. For example,
-    * entering through a DOWN door means the player came from below, so they spawn just inside the
-    * top of the new room. Falls back to (1,1) if the computed position is not walkable.
+    * That door is, in order of preference: a door leading back to `originRoomId` (a Door whose link
+    * points there, or a LockedDoor targeting it - this covers going back, a fork's two exits, and the
+    * Vault's return door); else the door with the role opposite to the one just used, `passedRole`
+    * (this covers the room after a fork, whose single Prev door only points at one of the two
+    * branches). With no such door the position falls back to a fixed spot on the wall opposite the
+    * direction of travel, which assumes a one-tile wall.
+    *
+    * Whichever it is, an occupied or blocked spot is replaced by the nearest free tile, and only a
+    * room with no free tile at all falls back to (1,1).
     */
-  private def findSpawnPoint(room: Room, fromDirection: Direction): (Int, Int) =
-    val candidate = fromDirection match {
-      case Direction.Down => (room.width / 2, 1) // entered from south → spawn near north
-      case Direction.Up =>
-        (room.width / 2, room.height - 2) // entered from north → spawn near south
-      case Direction.Right => (1, room.height / 2) // entered from east  → spawn near west
-      case Direction.Left =>
-        (room.width - 2, room.height / 2) // entered from west  → spawn near east
+  private def findSpawnPoint(room: Room,
+                             fromDirection: Direction,
+                             originRoomId: String,
+                             passedRole: Option[ConnectorRole]
+  ): (Int, Int) =
+    val preferred = arrivalDoor(room, originRoomId, passedRole)
+      .flatMap(approachTile(room, _))
+      .getOrElse(fixedSpawnSpot(room, fromDirection))
+    room.nearbyFreeTiles(preferred._1, preferred._2, 1).headOption.getOrElse((1, 1))
+
+  /** The door of `room` the player just came through, see [[findSpawnPoint]]. */
+  private def arrivalDoor(room: Room, originRoomId: String, passedRole: Option[ConnectorRole]): Option[Entity] =
+    val leadingBack = room.entities.find {
+      case d: Door =>
+        d.link match {
+          case DoorLink.Resolved(_, _, target) => target == originRoomId
+          case DoorLink.Unresolved(_, _)       => false
+        }
+      case d: LockedDoor => d.targetRoomId == originRoomId
+      case _             => false
+    }
+    leadingBack.orElse {
+      passedRole.flatMap { role =>
+        room.entities.find {
+          case d: Door => d.link.role == role.opposite
+          case _       => false
+        }
+      }
     }
 
-    if room.isWalkable(candidate._1, candidate._2) then candidate else (1, 1)
+  /** The first floor tile stepping inward from a door's anchor, which is the tile in front of it:
+    * one step for a door on the wall gap, two for one set into a thicker wall. Looks up to 3 tiles
+    * deep. `None` for an entity that is not a door, or a door with no floor in front of it. */
+  private def approachTile(room: Room, door: Entity): Option[(Int, Int)] =
+    val direction = door match {
+      case d: Door       => Some(d.direction)
+      case d: LockedDoor => Some(d.direction)
+      case _             => None
+    }
+    direction.flatMap { dir =>
+      val (dx, dy) = dir match {
+        case Direction.Up    => (0, 1)
+        case Direction.Down  => (0, -1)
+        case Direction.Left  => (1, 0)
+        case Direction.Right => (-1, 0)
+      }
+      (1 to 3).map(k => (door.x + k * dx, door.y + k * dy)).find {
+        case (x, y) => room.tileAt(x, y) == Tile.Floor
+      }
+    }
+
+  /** Fixed spot on the wall opposite the direction of travel, used when the room has no door to
+    * appear in front of. Entering through a DOWN door means the player came from below, so they
+    * appear near the top of the new room. */
+  private def fixedSpawnSpot(room: Room, fromDirection: Direction): (Int, Int) =
+    fromDirection match {
+      case Direction.Down  => (room.width / 2, 1)
+      case Direction.Up    => (room.width / 2, room.height - 2)
+      case Direction.Right => (1, room.height / 2)
+      case Direction.Left  => (room.width - 2, room.height / 2)
+    }
 
   /** Non-boss enemy typeIds eligible to spawn from a trap (a trapped chest's ambush or a trapped
     * door's guardian). Deliberately excludes boss-tier enemies (roughly half the roster) so a trap

@@ -635,13 +635,14 @@ class GameSessionSuite extends CatsEffectSuite:
                                       ConsumableEffect.HealFixed(30)
         )
       )
-      val tiles      = makeTiles()
-      val chestRoom  = Room("r1", RoomType.Combat, "dungeon", 8, 6, tiles, List(Chest("c1", x = 2, y = 1)))
-      val bossRoom1  = Room("boss1", RoomType.Boss, "dungeon", 8, 6, tiles, Nil)
-      val bossRoom2  = Room("boss2", RoomType.Boss, "dungeon", 8, 6, tiles, Nil)
-      val sanctuary  = Room("s1", RoomType.Sanctuary, "dungeon", 8, 6, tiles, Nil)
+      val tiles = makeTiles()
+      // A Boss room never rolls a trapped chest (see DungeonBuilder.rollTrappedChests), so c1 stays
+      // openable whatever the seed. As the pool's only Boss room it is also the dungeon's first room,
+      // reused for every section.
+      val chestRoom = Room("r1", RoomType.Boss, "dungeon", 8, 6, tiles, List(Chest("c1", x = 2, y = 1)))
+      val sanctuary = Room("s1", RoomType.Sanctuary, "dungeon", 8, 6, tiles, Nil)
       val smWithChest = StateMachine(
-        Map("r1" -> chestRoom, "boss1" -> bossRoom1, "boss2" -> bossRoom2, "s1" -> sanctuary),
+        Map("r1" -> chestRoom, "s1" -> sanctuary),
         Map.empty,
         chestItemDefs,
         testClassDefs,

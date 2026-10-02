@@ -57,6 +57,25 @@ enum Difficulty:
     case Difficulty.Normal => 0.10
     case Difficulty.Hard   => 0.12
 
+  /** Per-chest probability of being trapped, rolled at dungeon build time (see
+    * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties. A room never holds more than
+    * one rolled trap, so the share of rooms that actually end up trapped is lower than this suggests
+    * once a room has several chests.
+    */
+  def trappedChestChance: Double = this match
+    case Difficulty.Easy   => 0.08
+    case Difficulty.Normal => 0.12
+    case Difficulty.Hard   => 0.16
+
+  /** Per-door probability of being trapped, rolled at dungeon build time (see
+    * [[roguelite.game.DungeonBuilder]]). Lower than [[trappedChestChance]]: a trapped door forces a
+    * fight to get through, where a chest can simply be left closed.
+    */
+  def trappedDoorChance: Double = this match
+    case Difficulty.Easy   => 0.04
+    case Difficulty.Normal => 0.06
+    case Difficulty.Hard   => 0.08
+
   /** Relative weight multiplier applied to a loot candidate based on its rarity. Only Hard biases
     * toward Uncommon for now; Easy/Normal keep today's unweighted behavior.
     */
@@ -165,7 +184,13 @@ case class EntityView(
       * sprite's native art faces a top-wall door; every other wall rotates/flips it - see
       * Renderer.ts's drawDoor).
       */
-    direction: Option[String] = None
+    direction: Option[String] = None,
+    /** Only set for "chest" - "closed" | "open_full" | "open_empty" | "sprung" (see
+      * [[roguelite.game.ChestState]]). The client picks the chest's sprite from it and knows whether
+      * pressing E can still do anything. A trapped chest reports "closed" until its trap goes off,
+      * so this never gives the trap away.
+      */
+    state: Option[String] = None
 )
 
 /** One line of NPC dialogue to show the player, produced by an [[Interact]] on an [[roguelite.game.Npc]].

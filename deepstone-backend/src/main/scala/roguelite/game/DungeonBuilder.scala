@@ -31,7 +31,8 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
 
   /** Build a dungeon out of `biomeCount` sequential sections.
    *
-   * @param difficulty Drives the per-enemy Elite roll rate (see [[rollEliteEnemies]]) and
+   * @param difficulty Drives the per-enemy Elite roll rate (see [[rollEliteEnemies]]), the per-chest
+   *                   and per-door trap rates (see [[rollTrappedChests]], [[rollTrappedDoors]]) and
    *                   `biomeCount`'s own default below.
    * @param biomeCount Number of sequential sections, clamped to at least 1. Defaults to
    *                   `difficulty.biomeCount` - a bare default of e.g. `1` here, independent of
@@ -66,7 +67,7 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
       // in place. The Sanctuary needs no equivalent cleanup - see removeUnresolvedDoors's own doc.
       cleaned                = removeUnresolvedDoors(dungeon, dungeon.currentRoomId, ConnectorRole.Prev)
       withVaults             <- injectVaultRooms(cleaned)
-    yield rollEliteEnemies(withVaults, difficulty)
+    yield rollTrappedDoors(rollTrappedChests(rollEliteEnemies(withVaults, difficulty), difficulty), difficulty)
 
   /** Builds the segment list up to (not including) the Sanctuary: `sectionCount` sections (see
    * [[buildSection]]), each pair of consecutive sections further separated by a guaranteed
@@ -148,13 +149,16 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
    * guaranteed per-section beat). All-or-nothing: if any of the 5 rooms can't be drawn from the
    * pool in this theme, the whole cluster is skipped rather than wiring a partial fork, same
    * "degrade gracefully, don't fail the whole build" philosophy as every other optional template
-   * slot. No dedicated "merge" room content is needed: both branches' last rooms simply become this
+   * slot. A Fork room whose exits don't carry exactly two distinct branch tags (see
+   * [[Room.forkBranchTags]]) counts as missing too, since it could never be wired; [[RoomLoader]]
+   * rejects such a room outright, so this only guards rooms built by hand. No dedicated "merge" room content is needed: both branches' last rooms simply become this
    * segment's `exitRooms`, wired forward to whatever ordinary room follows next by [[wireSegments]]
    * - the room after the fork never needs to know which branch the player actually came from.
    */
   private def buildFixedForkCluster(theme: String, exclude: Set[String]): Option[(Segment.Fork, Set[String])] =
     for
       fork      <- pickOne(RoomType.Fork, theme, exclude).toOption
+      tags      <- fork.forkBranchTags
       afterFork  = exclude + fork.id
       branchA1  <- pickOne(RoomType.Combat, theme, afterFork).toOption
       afterA1    = afterFork + branchA1.id
@@ -163,7 +167,7 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
       branchB1  <- pickOne(RoomType.Loot, theme, afterA2).toOption
       afterB1    = afterA2 + branchB1.id
       branchB2  <- pickOne(RoomType.MiniBoss, theme, afterB1).toOption
-    yield (Segment.Fork(fork, List(branchA1, branchA2), List(branchB1, branchB2)), afterB1 + branchB2.id)
+    yield (Segment.Fork(fork, tags, List(branchA1, branchA2), List(branchB1, branchB2)), afterB1 + branchB2.id)
 
   /** Picks one room of `roomType` in `theme`, degrading gracefully (returns `None`, `exclude`
    * unchanged) if the pool has none left - used for every fixed-template slot except Boss/
@@ -229,27 +233,29 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
    * single entry point (wired from whatever precedes it), and the last room of each branch is an
    * exit point (each wired forward to whatever follows, converging on the same next room). Each
    * branch is a room *list*, not a single room - a branch can be more than 1 room deep, wired as an
-   * ordinary internal linear chain (see [[wireSegments]]).
+   * ordinary internal linear chain (see [[wireSegments]]). `tags` are the two branch tags the fork
+   * room's own exits carry (see [[Room.forkBranchTags]]): the first leads to `branchA`, the second
+   * to `branchB`.
    */
   private enum Segment:
     case Linear(room: Room)
-    case Fork(fork: Room, branchA: List[Room], branchB: List[Room])
+    case Fork(fork: Room, tags: (String, String), branchA: List[Room], branchB: List[Room])
 
     /** Every room belonging to this segment, used to seed the room map [[wireSegments]] mutates. */
     def rooms: List[Room] = this match
       case Linear(room)     => List(room)
-      case Fork(fork, a, b) => fork :: a ::: b
+      case Fork(fork, _, a, b) => fork :: a ::: b
 
     /** The single room whose Prev door(s) connect back to the previous segment. */
     def entryRoom: Room = this match
       case Linear(room)     => room
-      case Fork(fork, _, _) => fork
+      case Fork(fork, _, _, _) => fork
 
     /** The room(s) whose Next door(s) connect forward to the next segment - the last room of each
      * branch for a Fork segment, not the fork room itself. */
     def exitRooms: List[Room] = this match
       case Linear(room)  => List(room)
-      case Fork(_, a, b) => List(a.last, b.last)
+      case Fork(_, _, a, b) => List(a.last, b.last)
 
   /** Ensures every room placed across `segments` has a unique id, even when the same authored room
    * was independently picked by more than one section (allowed - see [[buildSections]]'s own doc on
@@ -271,8 +277,8 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
       if seenBefore == 0 then room else room.copy(id = s"${room.id}#${seenBefore + 1}")
     segments.map:
       case Segment.Linear(room) => Segment.Linear(dedupe(room))
-      case Segment.Fork(fork, branchA, branchB) =>
-        Segment.Fork(dedupe(fork), branchA.map(dedupe), branchB.map(dedupe))
+      case Segment.Fork(fork, tags, branchA, branchB) =>
+        Segment.Fork(dedupe(fork), tags, branchA.map(dedupe), branchB.map(dedupe))
 
   /** Wire an ordered sequence of segments into a Dungeon by resolving every Unresolved [[Door]]
    * link. Generalizes the old purely-linear per-pair wiring to also handle a [[Segment.Fork]]'s
@@ -306,8 +312,8 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
         case (acc2, _) => acc2
 
     val withForkInternals = segments.foldLeft(initial):
-      case (acc, Segment.Fork(fork, branchA, branchB)) =>
-        val wiredFork = List("a" -> branchA.head, "b" -> branchB.head).foldLeft(acc(fork.id)):
+      case (acc, Segment.Fork(fork, (tagA, tagB), branchA, branchB)) =>
+        val wiredFork = List(tagA -> branchA.head, tagB -> branchB.head).foldLeft(acc(fork.id)):
           case (f, (branch, dest)) => resolveLinks(f, ConnectorRole.Next, Some(branch), dest.id)
         val wiredA = resolveLinks(acc(branchA.head.id), ConnectorRole.Prev, None, fork.id)
         val wiredB = resolveLinks(acc(branchB.head.id), ConnectorRole.Prev, None, fork.id)
@@ -392,6 +398,66 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
           case e: Enemy if !alreadyElite && rng.nextDouble() < chance =>
             alreadyElite = true
             e.copy(isElite = true)
+          case other => other
+        id -> room.copy(entities = newEntities)
+    dungeon.copy(rooms = updatedRooms)
+
+  /** Room types whose chests and doors can roll trapped. A Vault chest is the reward for a key
+   * already spent, and Boss/MiniBoss/Rest/Sanctuary/Fork rooms are scripted beats rather than
+   * places for a random ambush. Listing the eligible types, instead of excluding the ineligible
+   * ones, keeps any future room type safe by default.
+   */
+  private val TrapRoomTypes: Set[RoomType] = Set(RoomType.Combat, RoomType.Loot)
+
+  /** Roll trapped status onto at most one chest per eligible room. Each [[Chest]] in a room rolls
+   * independently at `difficulty.trappedChestChance`; once one chest in that room is trapped (rolled
+   * here, or authored as trapped in rooms.json) no further chest in it rolls, capping a room at 1
+   * trap. See [[TrapRoomTypes]] for which rooms are eligible.
+   *
+   * Produces fresh Room/Chest copies for the returned Dungeon only - never mutates the
+   * server-lifetime `pool` itself.
+   */
+  private def rollTrappedChests(dungeon: Dungeon, difficulty: Difficulty): Dungeon =
+    val chance = difficulty.trappedChestChance
+    val updatedRooms = dungeon.rooms.map:
+      case (id, room) if !TrapRoomTypes.contains(room.roomType) => id -> room
+      case (id, room) =>
+        var alreadyTrapped = room.entities.exists:
+          case c: Chest => c.trapped
+          case _        => false
+        val newEntities = room.entities.map:
+          case c: Chest if !alreadyTrapped && rng.nextDouble() < chance =>
+            alreadyTrapped = true
+            c.copy(trapped = true)
+          case other => other
+        id -> room.copy(entities = newEntities)
+    dungeon.copy(rooms = updatedRooms)
+
+  /** Roll trapped status onto at most one door per eligible room. Only forward ([[ConnectorRole.Next]])
+   * doors of [[DoorKind.Normal]] kind roll, each independently at `difficulty.trappedDoorChance`: a
+   * Prev door leads back to ground already cleared, and a Secret door is a reward in its own right.
+   * Same cap as [[rollTrappedChests]]: once one door in the room is trapped (rolled here, or
+   * authored as trapped in rooms.json) no further door in it rolls. A trapped door is what blocks the
+   * way forward until a guardian is beaten (see `InteractionResolver.handleTrappedDoor`), so a room
+   * never holds more than one. See [[TrapRoomTypes]] for which rooms are eligible.
+   *
+   * Produces fresh Room/Door copies for the returned Dungeon only - never mutates the
+   * server-lifetime `pool` itself.
+   */
+  private def rollTrappedDoors(dungeon: Dungeon, difficulty: Difficulty): Dungeon =
+    val chance = difficulty.trappedDoorChance
+    val updatedRooms = dungeon.rooms.map:
+      case (id, room) if !TrapRoomTypes.contains(room.roomType) => id -> room
+      case (id, room) =>
+        var alreadyTrapped = room.entities.exists:
+          case d: Door => d.doorKind == DoorKind.Trapped
+          case _       => false
+        val newEntities = room.entities.map:
+          case d: Door
+              if !alreadyTrapped && d.doorKind == DoorKind.Normal && d.link.role == ConnectorRole.Next &&
+                rng.nextDouble() < chance =>
+            alreadyTrapped = true
+            d.copy(doorKind = DoorKind.Trapped)
           case other => other
         id -> room.copy(entities = newEntities)
     dungeon.copy(rooms = updatedRooms)

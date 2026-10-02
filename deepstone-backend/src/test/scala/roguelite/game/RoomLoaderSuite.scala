@@ -144,6 +144,41 @@ class RoomLoaderSuite extends CatsEffectSuite:
     RoomLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   // ---------------------------------------------
+  // Fork rooms: their two exits' branch tags
+  // ---------------------------------------------
+
+  private def forkJson(doors: String*): String =
+    s"""[{"id":"f","type":"fork","theme":"dungeon","width":1,"height":1,"tiles":[["floor"]],"entities":[${doors.mkString(",")}]}]"""
+
+  private def nextDoorJson(id: String, branch: Option[String]): String =
+    val branchField = branch.fold("")(b => s""","branch":"$b"""")
+    s"""{"kind":"door","id":"$id","x":0,"y":0,"direction":"down","role":"next"$branchField}"""
+
+  private def assertForkRejected(json: String): munit.Location ?=> cats.effect.IO[Unit] =
+    RoomLoader.loadAllFromJson(json).attempt.map:
+      case Left(err) => assert(err.getMessage.contains("Fork room 'f'"), s"expected a message naming the fork room: ${err.getMessage}")
+      case Right(_)  => fail("expected the Fork room to be rejected")
+
+  test("a Fork room loads with any two distinct branch tags"):
+    for
+      letters <- RoomLoader.loadAllFromJson(forkJson(nextDoorJson("d1", Some("a")), nextDoorJson("d2", Some("b"))))
+      numbers <- RoomLoader.loadAllFromJson(forkJson(nextDoorJson("d1", Some("1")), nextDoorJson("d2", Some("2"))))
+    yield
+      assertEquals(letters("f").forkBranchTags, Some(("a", "b")))
+      assertEquals(numbers("f").forkBranchTags, Some(("1", "2")))
+
+  test("a Fork room with a single branch tag is rejected"):
+    assertForkRejected(forkJson(nextDoorJson("d1", Some("a")), nextDoorJson("d2", Some("a"))))
+
+  test("a Fork room with three branch tags is rejected"):
+    assertForkRejected(
+      forkJson(nextDoorJson("d1", Some("a")), nextDoorJson("d2", Some("b")), nextDoorJson("d3", Some("c")))
+    )
+
+  test("a Fork room with an untagged next door is rejected"):
+    assertForkRejected(forkJson(nextDoorJson("d1", Some("a")), nextDoorJson("d2", Some("b")), nextDoorJson("d3", None)))
+
+  // ---------------------------------------------
   // Real room pool: size-independent facts about data/rooms.json
   // ---------------------------------------------
 
@@ -216,12 +251,6 @@ class RoomLoaderSuite extends CatsEffectSuite:
           }
     }
 
-  test("at least one chest in the real room pool is trapped"):
-    for rooms <- RoomLoader.loadAll()
-    yield
-      val allChests = rooms.values.flatMap(_.entities.collect { case c: Chest => c })
-      assert(allChests.exists(_.trapped), "expected at least one trapped chest in rooms.json")
-
   test("loadAll includes a Vault room"):
     for rooms <- RoomLoader.loadAll()
     yield assert(rooms.values.exists(_.roomType == RoomType.Vault), "expected a Vault room in rooms.json")
@@ -239,12 +268,6 @@ class RoomLoaderSuite extends CatsEffectSuite:
       val lockedDoors = rooms.values.flatMap(_.entities.collect { case d: LockedDoor => d })
       lockedDoors.foreach:
         d => assert(rooms.contains(d.targetRoomId), s"LockedDoor '${d.id}' targets unknown room '${d.targetRoomId}'")
-
-  test("at least one door in the real room pool is trapped"):
-    for rooms <- RoomLoader.loadAll()
-    yield
-      val allDoors = rooms.values.flatMap(_.entities.collect { case d: Door => d })
-      assert(allDoors.exists(_.doorKind == DoorKind.Trapped), "expected at least one trapped door in rooms.json")
 
   test("at least one door in the real room pool is secret and starts unrevealed"):
     for rooms <- RoomLoader.loadAll()

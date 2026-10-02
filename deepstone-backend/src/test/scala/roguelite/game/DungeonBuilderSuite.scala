@@ -309,6 +309,36 @@ class DungeonBuilderSuite extends FunSuite:
            "expected the Fork room itself to be skipped too, not a partial fork with no branch B"
     )
 
+  /** A Fork room whose two exits carry the given branch tags. The builder reads the tags from the
+    * room itself, so any two distinct strings must wire. */
+  def taggedForkRoom(id: String, tagA: String, tagB: String): Room =
+    makeRoom(id, RoomType.Fork, List(entranceDoor(), forkExitDoor(tagA), forkExitDoor(tagB)))
+
+  test("a fork's exits resolve whatever their two branch tags are"):
+    List(("1", "2"), ("left", "right"), ("b", "a")).foreach:
+      case (tagA, tagB) =>
+        val pool    = forkTestPool + ("f1" -> taggedForkRoom("f1", tagA, tagB))
+        val dungeon = DungeonBuilder(pool, Random(1L)).build()(biomeCount = 1).getOrElse(fail("build failed"))
+        val fork    = dungeon.rooms.values.find(_.roomType == RoomType.Fork).getOrElse(fail(s"no Fork room for tags $tagA/$tagB"))
+        val targets = resolvedNextTargets(fork)
+        assertEquals(targets.keySet, Set(Some(tagA), Some(tagB)), s"tags $tagA/$tagB")
+        assertNotEquals(targets(Some(tagA)), targets(Some(tagB)), s"tags $tagA/$tagB")
+
+  test("a Fork room that cannot be wired is skipped, like a missing one"):
+    def exit(id: String, branch: Option[String]): Door =
+      Door(id = id, x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next, branch))
+    val unwireable = List(
+      makeRoom("f1", RoomType.Fork, List(entranceDoor(), exit("e1", None), exit("e2", None))),
+      makeRoom("f1", RoomType.Fork, List(entranceDoor(), exit("e1", Some("x")), exit("e2", Some("x")))),
+      makeRoom("f1", RoomType.Fork, List(entranceDoor(), exit("e1", Some("only"))))
+    )
+    unwireable.foreach: badFork =>
+      val pool    = forkTestPool + ("f1" -> badFork)
+      val dungeon = DungeonBuilder(pool, Random(1L)).build()(biomeCount = 1).getOrElse(fail("build failed"))
+      assert(!dungeon.rooms.values.exists(_.roomType == RoomType.Fork),
+             s"expected a Fork room without two distinct tags to be skipped: ${badFork.entities.map(_.id)}"
+      )
+
   // ---------------------------------------------
   // Door wiring
   // ---------------------------------------------
@@ -563,6 +593,193 @@ class DungeonBuilderSuite extends FunSuite:
       .build(difficulty = Difficulty.Hard)(biomeCount = 1)
       .getOrElse(fail("build failed"))
     assert(dungeon.rooms.values.flatMap(_.entities).collect { case e: Enemy => e }.isEmpty)
+
+  // ---------------------------------------------
+  // Trapped chests
+  // ---------------------------------------------
+
+  def chests(idPrefix: String, count: Int): List[Chest] =
+    (1 to count).map(i => Chest(id = s"$idPrefix-ch$i", x = 1, y = 1)).toList
+
+  /** A minimal pool: 1 combat room (always the first lead-in), 1 loot room (always the reconverge
+    * slot's Loot pick, since its Combat slot has nothing left to draw), 1 boss room and the required
+    * sanctuary. The loot and boss rooms carry the given number of plain chests so the roll has
+    * something to work on; the combat room carries a LockedDoor to a Vault room holding
+    * `vaultChestCount` chests when that count is above zero. */
+  def trappedChestTestPool(lootChestCount: Int = 1, bossChestCount: Int = 0, vaultChestCount: Int = 0): Map[String, Room] =
+    val combatEntities =
+      if vaultChestCount > 0 then
+        List(exitDoor(), LockedDoor("ld1", x = 2, y = 2, direction = Direction.Right, targetRoomId = "v1"))
+      else List(exitDoor())
+    val base = Map(
+      "c1"        -> makeRoom("c1", RoomType.Combat, combatEntities),
+      "l1"        -> makeRoom("l1", RoomType.Loot, entranceDoor() :: exitDoor() :: chests("l1", lootChestCount)),
+      "b1"        -> makeRoom("b1", RoomType.Boss, entranceDoor() :: exitDoor() :: chests("b1", bossChestCount)),
+      "sanctuary" -> makeRoom("sanctuary", RoomType.Sanctuary, List(entranceDoor()))
+    )
+    if vaultChestCount > 0 then base + ("v1" -> makeRoom("v1", RoomType.Vault, chests("v1", vaultChestCount)))
+    else base
+
+  def chestsIn(room: Room): List[Chest] = room.entities.collect { case c: Chest => c }
+
+  def roomOfType(d: Dungeon, roomType: RoomType): Room =
+    d.rooms.values.find(_.roomType == roomType).getOrElse(fail(s"no $roomType room"))
+
+  def lootRoomHasTrappedChest(d: Dungeon): Boolean =
+    d.rooms.values.find(_.roomType == RoomType.Loot).exists(chestsIn(_).exists(_.trapped))
+
+  test("boss and vault room chests never roll trapped, even while the loot room's own roll is active"):
+    // Enough chests in each excluded room that an eligible room would all but certainly trap one.
+    val pool = trappedChestTestPool(lootChestCount = 5, bossChestCount = 40, vaultChestCount = 40)
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(lootRoomHasTrappedChest)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    assert(lootRoomHasTrappedChest(dungeon), "expected this seed to roll a trap in the loot room")
+    assert(!chestsIn(roomOfType(dungeon, RoomType.Boss)).exists(_.trapped), "no boss-room chest should ever roll trapped")
+    assert(!chestsIn(roomOfType(dungeon, RoomType.Vault)).exists(_.trapped), "no vault chest should ever roll trapped")
+
+  test("at most 1 chest per room rolls trapped, even with many chests at Hard difficulty"):
+    val pool = trappedChestTestPool(lootChestCount = 20)
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(lootRoomHasTrappedChest)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    assertEquals(chestsIn(roomOfType(dungeon, RoomType.Loot)).count(_.trapped),
+                 1,
+                 "expected the cap to allow exactly 1 trapped chest, not 0 or more than 1"
+    )
+
+  test("a chest authored as trapped is kept and stops the room's other chests from rolling"):
+    val authored = Chest(id = "l1-authored", x = 1, y = 1, trapped = true)
+    val pool = trappedChestTestPool() +
+      ("l1" -> makeRoom("l1", RoomType.Loot, entranceDoor() :: exitDoor() :: authored :: chests("l1", 19)))
+    val dungeon = DungeonBuilder(pool, Random(1L)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    val lootChests = chestsIn(roomOfType(dungeon, RoomType.Loot))
+    assertEquals(lootChests.count(_.trapped), 1)
+    assert(lootChests.exists(c => c.id == "l1-authored" && c.trapped), "the authored trapped chest should stay trapped")
+
+  test("Hard difficulty rolls trapped chests at least as often as Easy, same seeds"):
+    val trials = 2000
+    def trapRate(difficulty: Difficulty): Double =
+      val trapCount = (1 to trials).count { seed =>
+        val dungeon = DungeonBuilder(trappedChestTestPool(lootChestCount = 1), Random(seed.toLong))
+          .build(difficulty = difficulty)(biomeCount = 1)
+          .getOrElse(fail("build failed"))
+        lootRoomHasTrappedChest(dungeon)
+      }
+      trapCount.toDouble / trials
+
+    val easyRate = trapRate(Difficulty.Easy)
+    val hardRate = trapRate(Difficulty.Hard)
+    assert(hardRate >= easyRate, s"expected Hard's trap rate ($hardRate) >= Easy's ($easyRate)")
+    // Sanity bounds around the configured 8%/16% thresholds (generous tolerance to avoid flakiness).
+    assert(easyRate > 0.04 && easyRate < 0.13, s"Easy trap rate out of expected range: $easyRate")
+    assert(hardRate > 0.11 && hardRate < 0.22, s"Hard trap rate out of expected range: $hardRate")
+
+  // ---------------------------------------------
+  // Trapped doors
+  // ---------------------------------------------
+
+  def prevDoors(count: Int): List[Door] = (1 to count).map(i => entranceDoor(s"prev$i")).toList
+
+  def nextDoors(count: Int): List[Door] = (1 to count).map(i => exitDoor(s"next$i")).toList
+
+  def secretDoors(count: Int): List[Door] =
+    (1 to count).map { i =>
+      Door(id = s"secret$i",
+           x = 4,
+           y = 5,
+           direction = Direction.Down,
+           link = DoorLink.Unresolved(ConnectorRole.Next),
+           doorKind = DoorKind.Secret,
+           revealed = false
+      )
+    }.toList
+
+  /** The same minimal shape as [[trappedChestTestPool]] (combat room first, then loot, then boss, plus
+    * the sanctuary), with each room's doors supplied directly. Defaults give every room an ordinary
+    * entrance/exit pair. */
+  def trappedDoorTestPool(combatDoors: List[Door] = List(exitDoor()),
+                          lootDoors: List[Door] = List(entranceDoor(), exitDoor()),
+                          bossDoors: List[Door] = List(entranceDoor(), exitDoor())
+  ): Map[String, Room] = Map(
+    "c1"        -> makeRoom("c1", RoomType.Combat, combatDoors),
+    "l1"        -> makeRoom("l1", RoomType.Loot, lootDoors),
+    "b1"        -> makeRoom("b1", RoomType.Boss, bossDoors),
+    "sanctuary" -> makeRoom("sanctuary", RoomType.Sanctuary, List(entranceDoor()))
+  )
+
+  def doorsIn(room: Room): List[Door] = room.entities.collect { case d: Door => d }
+
+  def combatRoomHasTrappedDoor(d: Dungeon): Boolean =
+    d.rooms.values.find(_.roomType == RoomType.Combat).exists(doorsIn(_).exists(_.doorKind == DoorKind.Trapped))
+
+  test("boss room doors never roll trapped, even while the combat room's own roll is active"):
+    val pool = trappedDoorTestPool(bossDoors = entranceDoor() :: nextDoors(60))
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(combatRoomHasTrappedDoor)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    assert(combatRoomHasTrappedDoor(dungeon), "expected this seed to roll a trap in the combat room")
+    assert(!doorsIn(roomOfType(dungeon, RoomType.Boss)).exists(_.doorKind == DoorKind.Trapped),
+           "no boss-room door should ever roll trapped"
+    )
+
+  test("Prev-role and Secret doors never roll trapped, even while the combat room's own roll is active"):
+    val pool = trappedDoorTestPool(lootDoors = prevDoors(60) ::: secretDoors(60))
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(combatRoomHasTrappedDoor)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    assert(combatRoomHasTrappedDoor(dungeon), "expected this seed to roll a trap in the combat room")
+    val lootDoors = doorsIn(roomOfType(dungeon, RoomType.Loot))
+    assert(lootDoors.nonEmpty, "expected the loot room to keep its doors")
+    assert(!lootDoors.exists(_.doorKind == DoorKind.Trapped), "no Prev or Secret door should ever roll trapped")
+
+  test("at most 1 door per room rolls trapped, even with many Next doors at Hard difficulty"):
+    val pool = trappedDoorTestPool(combatDoors = nextDoors(20))
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(combatRoomHasTrappedDoor)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    assertEquals(doorsIn(roomOfType(dungeon, RoomType.Combat)).count(_.doorKind == DoorKind.Trapped),
+                 1,
+                 "expected the cap to allow exactly 1 trapped door, not 0 or more than 1"
+    )
+
+  test("a door authored as trapped is kept and stops the room's other doors from rolling"):
+    val authored = Door("authored_trap",
+                        x = 4,
+                        y = 5,
+                        direction = Direction.Down,
+                        link = DoorLink.Unresolved(ConnectorRole.Next),
+                        doorKind = DoorKind.Trapped
+    )
+    val pool = trappedDoorTestPool(combatDoors = authored :: nextDoors(19))
+    val dungeon = DungeonBuilder(pool, Random(1L)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    val combatDoors = doorsIn(roomOfType(dungeon, RoomType.Combat))
+    assertEquals(combatDoors.count(_.doorKind == DoorKind.Trapped), 1)
+    assert(combatDoors.exists(d => d.id == "authored_trap" && d.doorKind == DoorKind.Trapped),
+           "the authored trapped door should stay trapped"
+    )
+
+  test("a trapped door keeps its resolved link"):
+    val pool = trappedDoorTestPool()
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(combatRoomHasTrappedDoor)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    val trapped = doorsIn(roomOfType(dungeon, RoomType.Combat)).find(_.doorKind == DoorKind.Trapped).getOrElse(fail("no trapped door"))
+    trapped.link match
+      case DoorLink.Resolved(ConnectorRole.Next, _, roomId) => assert(dungeon.rooms.contains(roomId))
+      case other                                            => fail(s"expected a resolved Next link, got $other")
+
+  test("Hard difficulty rolls trapped doors at least as often as Easy, same seeds"):
+    val trials = 2000
+    def trapRate(difficulty: Difficulty): Double =
+      val trapCount = (1 to trials).count { seed =>
+        val dungeon = DungeonBuilder(trappedDoorTestPool(), Random(seed.toLong))
+          .build(difficulty = difficulty)(biomeCount = 1)
+          .getOrElse(fail("build failed"))
+        combatRoomHasTrappedDoor(dungeon)
+      }
+      trapCount.toDouble / trials
+
+    val easyRate = trapRate(Difficulty.Easy)
+    val hardRate = trapRate(Difficulty.Hard)
+    assert(hardRate >= easyRate, s"expected Hard's trap rate ($hardRate) >= Easy's ($easyRate)")
+    // Sanity bounds around the configured 4%/8% thresholds (generous tolerance to avoid flakiness).
+    assert(easyRate > 0.015 && easyRate < 0.075, s"Easy trap rate out of expected range: $easyRate")
+    assert(hardRate > 0.05 && hardRate < 0.12, s"Hard trap rate out of expected range: $hardRate")
 
   // ---------------------------------------------
   // Graph topology (fork/merge proof)

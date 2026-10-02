@@ -414,6 +414,25 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
 
+  test("Interact is blocked while a pending equip choice is unresolved"):
+    val newWeapon      = Weapon("w2", "steel_sword", "Steel Sword", Rarity.Uncommon, attackBonus = 7)
+    val existingWeapon = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+    val pending = PendingEquipChoice(newWeapon, Map(EquipSlot.WeaponSlot -> existingWeapon))
+    val d       = door("r1", "r2")
+    val state   = explorationAt(3, 3, entities = List(d)).copy(pendingEquipChoice = Some(pending))
+    val TransitionResult(next, log, _, events) = sm().applyActionPure(state, Interact(d.id))
+    assertEquals(next, state)
+    assertEquals(log, Nil)
+    assertEquals(events, Nil)
+
+  test("Interact is blocked while a pending reward choice is unresolved"):
+    val option  = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
+    val pending = PendingRewardChoice(List(option))
+    val chest   = Chest("c1", x = 3, y = 3)
+    val state   = explorationAt(3, 3, entities = List(chest)).copy(pendingRewardChoice = Some(pending))
+    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Interact(chest.id))
+    assertEquals(next, state)
+
   /** Thorough revealSecretDoors behavior lives in InteractionResolverSuite. This test just confirms
     * the Move arm actually forwards InteractionResolver's events instead of dropping them. */
   test("Move that reveals a secret door forwards the SecretDoorRevealed event"):

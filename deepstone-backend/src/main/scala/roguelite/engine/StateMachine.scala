@@ -232,10 +232,12 @@ class StateMachine(roomPool: Map[String, Room],
 
       // -- Exploration ------------------------------------------------------
 
-      case (exp: ExplorationState, Move(_))
+      case (exp: ExplorationState, Move(_) | Interact(_))
           if exp.pendingEquipChoice.isDefined || exp.pendingRewardChoice.isDefined =>
-        // A pending keep/replace or reward choice must be resolved before the player can move
-        // again - same "silently blocked" precedent as a wall/entity collision below.
+        // A pending keep/replace or reward choice must be resolved before the player can move or
+        // interact again - same "silently blocked" precedent as a wall/entity collision below.
+        // Interacting is blocked too: opening another chest would overwrite the pending choice, and
+        // leaving through a door would strand the chest the choice came from.
         TransitionResult(exp, Nil)
 
       case (exp: ExplorationState, Move(direction)) =>

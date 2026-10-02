@@ -126,6 +126,21 @@ case class Room(
     wallSprite: Vector[Vector[Option[String]]] = Vector.empty,
     decoration: Vector[Vector[Option[String]]] = Vector.empty
 ):
+  /** The two branch tags of a [[RoomType.Fork]] room's exits: the distinct `branch` tags carried by
+    * its Next-role doors, in sorted order. `None` unless every Next-role door carries a tag and there
+    * are exactly two different ones. Which tag is "branch A" is arbitrary (the sorted first), only
+    * that the two differ matters, so any pair of distinct strings works. Doors sharing a tag all
+    * lead to the same branch.
+    */
+  def forkBranchTags: Option[(String, String)] =
+    val tags = entities.collect { case d: Door if d.link.role == ConnectorRole.Next => d.link.branch }
+    if tags.exists(_.isEmpty) then None
+    else
+      tags.flatten.distinct.sorted match {
+        case List(a, b) => Some((a, b))
+        case _          => None
+      }
+
   /** Check whether a tile coordinate is within the room bounds. */
   def inBounds(x: Int, y: Int): Boolean =
     x >= 0 && x < width && y >= 0 && y < height

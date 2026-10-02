@@ -29,7 +29,7 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       )
 
   private def toRoom(rj: RoomJson): Either[String, Room] =
-    for
+    val room = for
       roomType    <- RoomType.fromString(rj.`type`)
       tiles       <- parseTiles(rj.tiles)
       floorSprite <- parseSpriteGrid(rj.floorSprites, field = "floorSprites", width = rj.width, height = rj.height)
@@ -48,6 +48,21 @@ object RoomLoader extends JsonResourceLoader[Room, String]:
       wallSprite = wallSprite,
       decoration = decoration
     )
+    room.flatMap(validateFork)
+
+  /** A Fork room is wired by reading its two exits' `branch` tags (see [[Room.forkBranchTags]]), so
+    * one that doesn't have exactly two distinct tags across its `next` doors could never be
+    * connected: both exits would stay dead ends in game. Rejected at load time instead of
+    * surfacing as an unexplained "door is not connected" mid-run.
+    */
+  private def validateFork(room: Room): Either[String, Room] =
+    if room.roomType == RoomType.Fork && room.forkBranchTags.isEmpty
+    then
+      Left(
+        s"Fork room '${room.id}' needs exactly two distinct 'branch' tags across its 'next' doors, " +
+          "and every 'next' door must carry one."
+      )
+    else Right(room)
 
   private def parseTiles(raw: List[List[String]]): Either[String, Vector[Vector[Tile]]] =
     raw

@@ -42,23 +42,58 @@ case class Enemy(
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label, isElite = Some(isElite))
 
-/** A loot container. Interacting with it grants items - unless it's trapped, in which case it spawns
-  * enemies instead.
+/** Where a [[Chest]] is in its life, which decides both its sprite and whether interacting with it
+  * can still do anything.
+  *
+  *   - `Closed`: never opened.
+  *   - `OpenFull`: opened, with an item still inside because the player has not taken it yet.
+  *   - `OpenEmpty`: opened, nothing left to take.
+  *   - `Sprung`: a trapped chest whose trap has gone off. It never holds loot, and is drawn as a
+  *     mimic.
+  */
+enum ChestState:
+  case Closed, OpenFull, OpenEmpty, Sprung
+
+  /** Wire format for [[roguelite.engine.EntityView.state]]. */
+  def toProtocolString: String = this match {
+    case ChestState.Closed    => "closed"
+    case ChestState.OpenFull  => "open_full"
+    case ChestState.OpenEmpty => "open_empty"
+    case ChestState.Sprung    => "sprung"
+  }
+
+/** A loot container. Interacting with a closed one grants an item - unless it's trapped, in which
+  * case it spawns enemies instead.
   *
   * @param trapped
-  *   Not exposed to the client via [[toView]] - staying trapped should be a surprise.
+  *   Rolled at dungeon build time by [[DungeonBuilder]], or authored to force one. Not exposed to
+  *   the client via [[toView]] - staying trapped should be a surprise.
+  * @param state
+  *   See [[ChestState]]. Exposed to the client, which draws the matching sprite.
+  * @param contents
+  *   The item rolled when the chest was opened, kept while `state` is [[ChestState.OpenFull]] so the
+  *   player can come back for it. `None` in every other state. Internal only, never exposed via
+  *   [[toView]].
   */
 case class Chest(
     id: String,
     x: Int,
     y: Int,
-    trapped: Boolean = false
+    trapped: Boolean = false,
+    state: ChestState = ChestState.Closed,
+    contents: Option[Item] = None
 ) extends Entity:
-  def toView: EntityView = EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest")
+  /** This chest once its last item has been taken. */
+  def emptied: Chest = copy(state = ChestState.OpenEmpty, contents = None)
 
-/** Sub-behavior of a [[Door]]. Normal doors always navigate to their resolved target; Trapped doors
-  * ignore it and kick the player back through the room's entrance instead; Secret doors stay
-  * absent from the client's [[EntityView]] (and their tile stays a Wall) until `revealed`.
+  def toView: EntityView =
+    EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest", state = Some(state.toProtocolString))
+
+/** Sub-behavior of a [[Door]]. Normal doors always navigate to their resolved target; a Trapped door
+  * springs on first use instead (see [[InteractionResolver]]'s trapped-door handling): it throws the
+  * player back and leaves a guardian on the tile they stood on, then becomes Normal. Rolled at
+  * dungeon build time by [[DungeonBuilder]], or authored to force one. Secret doors stay absent from
+  * the client's [[EntityView]] (and their tile stays a Wall) until `revealed`.
   */
 enum DoorKind:
   case Normal, Trapped, Secret
@@ -86,10 +121,10 @@ object ConnectorRole:
   * @param branch
   *   Distinguishes multiple doors sharing the same `role` in one room (a fork's two exits, a
   *   merge's two entrances) - `None` for every room with at most one door per role. Deliberately a
-  *   free string, not a closed enum: a typo here can't silently resolve to the wrong neighbor, it
-  *   just won't match any topology edge, so [[DungeonBuilder.build]] fails loudly at wiring-
-  *   validation time instead - the same pattern as its existing "LockedDoor references unknown
-  *   room" check.
+  *   free string, not a closed enum: a Fork room's two exits can carry any two distinct tags, which
+  *   [[DungeonBuilder]] reads from the room itself (see [[Room.forkBranchTags]]) and
+  *   [[RoomLoader]] enforces. [[DungeonBuilder.buildFromTopology]] matches its edges against these
+  *   strings directly, so a mismatched tag there leaves the door `Unresolved`.
   */
 enum DoorLink:
   case Unresolved(role: ConnectorRole, branch: Option[String] = None)
@@ -100,6 +135,11 @@ object DoorLink:
     def role: ConnectorRole = link match {
       case DoorLink.Unresolved(role, _)  => role
       case DoorLink.Resolved(role, _, _) => role
+    }
+
+    def branch: Option[String] = link match {
+      case DoorLink.Unresolved(_, branch)  => branch
+      case DoorLink.Resolved(_, branch, _) => branch
     }
 
 /** A passage to an adjacent room. Interacting with it navigates to `link`'s resolved room. */

@@ -1,23 +1,23 @@
 {
   "sprites": {
     "chest_closed": {
-      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
-      "x": 224,
-      "y": 176,
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 304,
+      "y": 400,
       "w": 16,
       "h": 16
     },
     "chest_open_empty": {
-      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
-      "x": 224,
-      "y": 192,
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 400,
       "w": 16,
       "h": 16
     },
     "chest_open_full": {
-      "sheet": "/sprites/tiles/0x72_16x16DungeonTileset.v5.png",
-      "x": 224,
-      "y": 208,
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 416,
       "w": 16,
       "h": 16
     },
@@ -710,6 +710,13 @@
       "h": 24,
       "frameCount": 4,
       "frameDuration": 125
+    },
+    "chest_mimic": {
+      "sheet": "/sprites/tiles/0x72_DungeonTilesetII_v1.7.png",
+      "x": 336,
+      "y": 432,
+      "w": 16,
+      "h": 16
     }
   }
 }

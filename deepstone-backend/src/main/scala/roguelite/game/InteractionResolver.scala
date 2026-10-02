@@ -271,9 +271,10 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   /** Offers `item`, which `chest` holds, to the player. `chest` must already be open-full with
     * `item` as its contents. The chest empties once the item is actually taken: right away for an
     * auto-equip or a key, and later, through the pending choice, if the player picks it over what
-    * they had (see [[PendingEquipChoice.sourceChestId]]). A discarded duplicate, or a pending choice
-    * the player declines, leaves the chest full so the item can be taken again later. `lead` opens
-    * every log line.
+    * they had (see [[PendingEquipChoice.sourceChestId]]). A pending choice the player declines leaves
+    * the chest full, so the item can be taken again later. A discarded duplicate (the player already
+    * has an equal or better copy) empties it too: nothing in it is worth coming back for. `lead`
+    * opens every log line.
     */
   private def takeFromChest(exp: ExplorationState,
                             chest: Chest,
@@ -297,7 +298,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         )
 
       case PickupOutcome.Discarded(p) =>
-        (replaceChest(exp.copy(player = p), chest),
+        (replaceChest(exp.copy(player = p), chest.emptied),
          List(s"$lead ${item.name}, but you already have a better one."),
          Nil
         )

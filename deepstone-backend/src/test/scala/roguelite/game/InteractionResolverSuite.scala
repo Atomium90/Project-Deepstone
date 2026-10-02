@@ -476,15 +476,26 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(chestIn(next, "c1").contents.map(_.typeId), Some("practice_sword"))
     assertEquals(next.asInstanceOf[ExplorationState].pendingEquipChoice.flatMap(_.sourceChestId), Some("c1"))
 
-  test("A chest whose item is discarded as a worse duplicate stays full, still holding it"):
+  test("A chest whose item is discarded as a worse duplicate ends up open and empty"):
     val existingWeapon = Weapon("existing", "practice_sword", "Practice Sword", Rarity.Epic, attackBonus = 20)
     val playerWithWeapon =
       PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(existingWeapon))
     val state = ExplorationState(playerWithWeapon, dungeonWith(entities = List(Chest("c1", x = 3, y = 3))), 3, 3)
-    val TransitionResult(next, _, _, _) = resolver(itemDefs = practiceSwordDefs).interact(state, "c1")
-    assertEquals(chestIn(next, "c1").state, ChestState.OpenFull)
-    assertEquals(chestIn(next, "c1").contents.map(_.typeId), Some("practice_sword"))
+    val TransitionResult(next, log, _, _) = resolver(itemDefs = practiceSwordDefs).interact(state, "c1")
+    assertEquals(chestIn(next, "c1").state, ChestState.OpenEmpty)
+    assertEquals(chestIn(next, "c1").contents, None)
     assertEquals(next.asInstanceOf[ExplorationState].pendingEquipChoice, None)
+    assert(log.exists(_.toLowerCase.contains("already have a better")), s"expected a discard message: $log")
+
+  test("A full chest whose item has since become a worse duplicate empties when opened again"):
+    val held = Weapon("held", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)
+    val chest = Chest("c1", x = 3, y = 3, state = ChestState.OpenFull, contents = Some(held))
+    val betterCopy = Weapon("better", "practice_sword", "Practice Sword", Rarity.Epic, attackBonus = 20)
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(betterCopy))
+    val state  = ExplorationState(player, dungeonWith(entities = List(chest)), 3, 3)
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "c1")
+    assertEquals(chestIn(next, "c1").state, ChestState.OpenEmpty)
+    assertEquals(chestIn(next, "c1").contents, None)
 
   test("Interacting with a full chest again offers its item, and taking it empties the chest"):
     val held  = Weapon("held", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)

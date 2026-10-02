@@ -56,9 +56,11 @@ case class Chest(
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest")
 
-/** Sub-behavior of a [[Door]]. Normal doors always navigate to their resolved target; Trapped doors
-  * ignore it and kick the player back through the room's entrance instead; Secret doors stay
-  * absent from the client's [[EntityView]] (and their tile stays a Wall) until `revealed`.
+/** Sub-behavior of a [[Door]]. Normal doors always navigate to their resolved target; a Trapped door
+  * springs on first use instead (see [[InteractionResolver]]'s trapped-door handling): it throws the
+  * player back and leaves a guardian on the tile they stood on, then becomes Normal. Rolled at
+  * dungeon build time by [[DungeonBuilder]], or authored to force one. Secret doors stay absent from
+  * the client's [[EntityView]] (and their tile stays a Wall) until `revealed`.
   */
 enum DoorKind:
   case Normal, Trapped, Secret

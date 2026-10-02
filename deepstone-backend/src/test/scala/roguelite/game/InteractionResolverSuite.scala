@@ -536,47 +536,98 @@ class InteractionResolverSuite extends FunSuite:
 
   // --- Trapped door --------------------------------------------------------------
 
-  test("Interact with a trapped door redirects to the entrance's resolved target"):
-    val entranceDoor = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Resolved(ConnectorRole.Prev, None, "r2"))
-    val trapDoor = Door("door_trap",
-                        x = 2,
-                        y = 3,
-                        direction = Direction.Down,
-                        link = DoorLink.Resolved(ConnectorRole.Next, None, "unused"),
-                        doorKind = DoorKind.Trapped
+  def trapDoorAt(x: Int, y: Int, direction: Direction): Door =
+    Door("door_trap",
+         x = x,
+         y = y,
+         direction = direction,
+         link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
+         doorKind = DoorKind.Trapped
     )
-    val state           = explorationAt(3, 3, entities = List(entranceDoor, trapDoor))
-    val TransitionResult(next, log, _, _)  = resolver().interact(state, "door_trap")
-    val nextExp         = next.asInstanceOf[ExplorationState]
-    assertEquals(nextExp.dungeon.currentRoomId, "r2")
-    assertEquals((nextExp.playerX, nextExp.playerY), (4, 4)) // Up-facing spawn point in an 8x6 room
+
+  def guardiansIn(exp: ExplorationState): List[Enemy] =
+    exp.dungeon.currentRoom.entities.collect { case e: Enemy => e }
+
+  test("Springing a trapped door throws the player back and a guardian takes the tile they left"):
+    // Player on the door's approach tile (4, 4), directly above a Down-facing door on the bottom wall.
+    val state = explorationAt(4, 4, entities = List(trapDoorAt(4, 5, Direction.Down)))
+    val TransitionResult(next, log, _, _) = resolver().interact(state, "door_trap")
+    assert(next.isInstanceOf[ExplorationState], "springing the trap must not start a fight by itself")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals((nextExp.playerX, nextExp.playerY), (4, 3))
+    val guardian = guardiansIn(nextExp).headOption.getOrElse(fail("expected a guardian to appear"))
+    assertEquals((guardian.x, guardian.y), (4, 4))
+    assertEquals(guardian.typeId, "goblin")
     assert(log.exists(_.toLowerCase.contains("trap")), s"expected trap message: $log")
 
-  test("Interact with a trapped door emits no events"):
-    val entranceDoor = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Resolved(ConnectorRole.Prev, None, "r2"))
-    val trapDoor = Door("door_trap",
-                        x = 2,
-                        y = 3,
-                        direction = Direction.Down,
-                        link = DoorLink.Resolved(ConnectorRole.Next, None, "unused"),
-                        doorKind = DoorKind.Trapped
+  test("The player is thrown back away from the door's own wall, whichever wall it is on"):
+    val cases = List(
+      (Direction.Up, (4, 0), (4, 1), (4, 2)),
+      (Direction.Down, (4, 5), (4, 4), (4, 3)),
+      (Direction.Left, (0, 3), (1, 3), (2, 3)),
+      (Direction.Right, (7, 3), (6, 3), (5, 3))
     )
-    val state    = explorationAt(3, 3, entities = List(entranceDoor, trapDoor))
+    cases.foreach { case (direction, (doorX, doorY), (px, py), expectedRetreat) =>
+      val state = explorationAt(px, py, entities = List(trapDoorAt(doorX, doorY, direction)))
+      val TransitionResult(next, _, _, _) = resolver().interact(state, "door_trap")
+      val nextExp = next.asInstanceOf[ExplorationState]
+      assertEquals((nextExp.playerX, nextExp.playerY), expectedRetreat, s"retreat for a $direction door")
+      assertEquals(guardiansIn(nextExp).map(g => (g.x, g.y)), List((px, py)), s"guardian tile for a $direction door")
+    }
+
+  test("When the tile behind the player is occupied, the player is thrown to the nearest free tile instead"):
+    val blocker = Chest("blocker", x = 4, y = 3)
+    val state   = explorationAt(4, 4, entities = List(trapDoorAt(4, 5, Direction.Down), blocker))
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "door_trap")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    val room    = nextExp.dungeon.currentRoom
+    assertNotEquals((nextExp.playerX, nextExp.playerY), (4, 4))
+    assertEquals(room.tileAt(nextExp.playerX, nextExp.playerY), Tile.Floor)
+    assertEquals(room.entityAt(nextExp.playerX, nextExp.playerY), None)
+    assertEquals(guardiansIn(nextExp).map(g => (g.x, g.y)), List((4, 4)))
+
+  test("A sprung trap door behaves as a normal door once the guardian is gone"):
+    val state = explorationAt(4, 4, entities = List(trapDoorAt(4, 5, Direction.Down)))
+    val TransitionResult(sprung, _, _, _) = resolver().interact(state, "door_trap")
+    val sprungExp = sprung.asInstanceOf[ExplorationState]
+    assertEquals(sprungExp.dungeon.currentRoom.entityById("door_trap").collect { case d: Door => d.doorKind },
+                 Some(DoorKind.Normal)
+    )
+    val withoutGuardian = sprungExp.copy(dungeon = sprungExp.dungeon.copy(rooms = sprungExp.dungeon.rooms.updated(
+      "r1",
+      sprungExp.dungeon.currentRoom.removeEntity("door_trap_guardian")
+    )))
+    val TransitionResult(through, _, _, events) = resolver().interact(withoutGuardian, "door_trap")
+    assertEquals(through.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
+    assertEquals(events, List(GameEvent.DoorOpened))
+
+  test("Springing a trapped door emits no events"):
+    val state = explorationAt(4, 4, entities = List(trapDoorAt(4, 5, Direction.Down)))
     val TransitionResult(_, _, _, events) = resolver().interact(state, "door_trap")
     assertEquals(events, Nil)
 
-  test("Interact with a trapped door in a room with no entrance logs a fallback message"):
-    val trapDoor = Door("door_trap",
-                        x = 2,
-                        y = 3,
-                        direction = Direction.Down,
-                        link = DoorLink.Resolved(ConnectorRole.Next, None, "unused"),
-                        doorKind = DoorKind.Trapped
+  test("A trapped door with no eligible enemy type in the catalog spawns nothing and leaves the player in place"):
+    val noEnemiesResolver = InteractionResolver(enemyStats = Map.empty, itemDefs = Map.empty)
+    val state = explorationAt(4, 4, entities = List(trapDoorAt(4, 5, Direction.Down)))
+    val TransitionResult(next, log, _, _) = noEnemiesResolver.interact(state, "door_trap")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(guardiansIn(nextExp), Nil)
+    assertEquals((nextExp.playerX, nextExp.playerY), (4, 4))
+    assertEquals(nextExp.dungeon.currentRoom.entityById("door_trap").collect { case d: Door => d.doorKind },
+                 Some(DoorKind.Normal)
     )
-    val state           = explorationAt(3, 3, entities = List(trapDoor))
-    val TransitionResult(next, log, _, _)  = resolver().interact(state, "door_trap")
-    assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r1")
-    assert(log.exists(_.toLowerCase.contains("nowhere")), s"expected fallback message: $log")
+    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-happens message: $log")
+
+  test("A trapped door in a room with no free tile to retreat to spawns nothing"):
+    // A 3x3 room whose only floor tile is the one the player stands on.
+    val tiles = Vector.tabulate(3, 3)((row, col) => if row == 1 && col == 1 then Tile.Floor else Tile.Wall)
+    val room  = Room("r1", RoomType.Combat, "dungeon", 3, 3, tiles, List(trapDoorAt(1, 2, Direction.Down)))
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), Dungeon(Map("r1" -> room), "r1"), 1, 1)
+    val TransitionResult(next, log, _, _) = resolver().interact(state, "door_trap")
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(guardiansIn(nextExp), Nil)
+    assertEquals((nextExp.playerX, nextExp.playerY), (1, 1))
+    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-happens message: $log")
 
   // --- Secret door --------------------------------------------------------------
 

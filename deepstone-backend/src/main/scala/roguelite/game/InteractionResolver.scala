@@ -107,21 +107,56 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         (exp, List(s"Door '${door.id}' is not connected to any room."), Nil)
     }
 
-  /** Reuses the exact Prev-transition logic: find this room's entrance (Prev-role) door and go
-    * there, ignoring the trapped door's own link entirely. */
+  /** Springs a trapped door: the player is thrown back one tile and a guardian from
+    * [[availableTrapEnemies]] takes the tile they were standing on. That tile is the door's only
+    * approach, so the door stays out of reach until the guardian is dealt with, with no blocking
+    * state of its own: entities already block movement, and interacting needs a cardinal
+    * neighbor. No fight starts by itself, the player chooses when to engage. The door becomes
+    * Normal either way, so it only ever springs once.
+    *
+    * Both the retreat and the guardian's tile come from the player's own position, never from the
+    * client's notion of the door's interact tile. If the room has no free tile to retreat to, or
+    * the catalog has no eligible enemy, nothing emerges and the player stays where they are.
+    */
   private def handleTrappedDoor(exp: ExplorationState, door: Door): (GameState, List[String]) =
-    exp.dungeon.currentRoom.entities.collectFirst { case d: Door if d.link.role == ConnectorRole.Prev => d } match {
-      case None =>
-        (exp, List("The trap triggers, but there's nowhere to be thrown back to."))
-      case Some(entranceDoor) =>
-        entranceDoor.link match {
-          case DoorLink.Resolved(_, _, roomId) =>
-            val (state, _, _) = navigateThroughDoor(exp, roomId, entranceDoor.direction)
-            (state, List("A trap triggers! You are thrown back."))
-          case DoorLink.Unresolved(_, _) =>
-            (exp, List("The trap triggers, but there's nowhere to be thrown back to."))
-        }
+    val room    = exp.dungeon.currentRoom
+    val vacated = (exp.playerX, exp.playerY)
+    val sprungRoom = room.updateEntity(door.id):
+      case d: Door => d.copy(doorKind = DoorKind.Normal)
+      case other   => other
+
+    val guardianType =
+      Option.when(availableTrapEnemies.nonEmpty)(availableTrapEnemies(rng.nextInt(availableTrapEnemies.size)))
+    (guardianType, retreatTile(room, vacated, door.direction)) match {
+      case (Some(typeId), Some((retreatX, retreatY))) =>
+        val guardian =
+          Enemy(id = s"${door.id}_guardian", x = vacated._1, y = vacated._2, typeId = typeId, label = enemyStats(typeId).label)
+        val trappedRoom = sprungRoom.withEntities(List(guardian))
+        (exp.copy(dungeon = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(trappedRoom.id, trappedRoom)),
+                  playerX = retreatX,
+                  playerY = retreatY
+         ),
+         List("A trap triggers! You are thrown back and a guardian steps in to bar the way.")
+        )
+      case _ =>
+        (exp.copy(dungeon = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(sprungRoom.id, sprungRoom))),
+         List("A trap triggers! But nothing emerges from the shadows.")
+        )
     }
+
+  /** Where a player thrown back from a door lands: one tile away from the door's wall when that
+    * tile is free, otherwise the nearest free tile. `None` when the room has no free tile at all.
+    */
+  private def retreatTile(room: Room, from: (Int, Int), doorDirection: Direction): Option[(Int, Int)] =
+    val (dx, dy) = doorDirection match {
+      case Direction.Up    => (0, 1)
+      case Direction.Down  => (0, -1)
+      case Direction.Left  => (1, 0)
+      case Direction.Right => (-1, 0)
+    }
+    val straightBack = (from._1 + dx, from._2 + dy)
+    if room.isWalkable(straightBack._1, straightBack._2) then Some(straightBack)
+    else room.nearbyFreeTiles(from._1, from._2, 1, exclude = Set(from)).headOption
 
   private def handleLockedDoor(exp: ExplorationState,
                                door: LockedDoor
@@ -338,12 +373,15 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
     if room.isWalkable(candidate._1, candidate._2) then candidate else (1, 1)
 
-  /** Non-boss enemy typeIds eligible to spawn from a trapped chest. Deliberately excludes
-    * boss-tier enemies (roughly half the roster) so opening a chest never ambushes the player with
-    * a full boss encounter.
+  /** Non-boss enemy typeIds eligible to spawn from a trap (a trapped chest's ambush or a trapped
+    * door's guardian). Deliberately excludes boss-tier enemies (roughly half the roster) so a trap
+    * never confronts the player with a full boss encounter.
     */
   private val TrapEnemyPool =
     List("goblin", "orc", "skeleton", "cave_troll", "bandit", "dire_wolf", "cultist")
+
+  /** The [[TrapEnemyPool]] entries actually present in the loaded enemy catalog. */
+  private val availableTrapEnemies: List[String] = TrapEnemyPool.filter(enemyStats.contains)
 
   /** Spawn 1-2 enemies from [[TrapEnemyPool]] on free tiles near the chest, avoiding the player's
     * own tile. Falls back to fewer enemies (or none) if the room has no space.
@@ -353,7 +391,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                                playerX: Int,
                                playerY: Int
   ): (Room, List[String]) =
-    val pool = TrapEnemyPool.filter(enemyStats.contains)
+    val pool = availableTrapEnemies
     if pool.isEmpty then (room, List("It's a trap! But nothing emerges from the shadows."))
     else
       val count   = rng.nextInt(2) + 1

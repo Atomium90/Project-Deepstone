@@ -799,28 +799,25 @@ class GameSessionSuite extends CatsEffectSuite:
       val heavyHand = PerkDef("heavy_hand", "Heavy Hand", "test", icon = "*",
                               effect = PerkEffect.FlatDamageBonus(1)
       )
-      // A minimal pool (1 Combat + 1 Boss + 1 Sanctuary room, nothing else), with the run forced to
-      // Easy (biomeCount = 1) so a single Boss room is enough - Boss is required once per biome
-      // now, so a pool sized for this test's actual focus (perk persistence, now via the Sanctuary
-      // since a boss kill no longer ends the run by itself) doesn't need a 2nd Boss room just to
-      // satisfy Normal's default biomeCount = 2. entrance -> boss -> sanctuary, wired automatically
-      // by DungeonBuilder from each room's Unresolved doors - no middle rooms to navigate.
-      val tiles            = makeTiles()
-      val doorToBoss       = Door("door_to_boss", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
-      val doorFromEntrance = Door("door_entrance", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev))
-      val doorToSanctuary  = Door("door_to_sanctuary", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
-      val entranceRoom     = Room("r1", RoomType.Combat, "dungeon", 8, 6, tiles, List(doorToBoss))
+      // A minimal pool (1 Boss + 1 Sanctuary room, nothing else), with the run forced to Easy
+      // (biomeCount = 1) so a single Boss room is enough: Boss is required once per biome, and a
+      // boss kill does not end the run by itself, so perk persistence is checked via the Sanctuary.
+      // boss -> sanctuary, wired automatically by DungeonBuilder from the Boss room's Unresolved
+      // door, and the run starts in the Boss room itself. A Boss room never rolls a trapped door
+      // (see DungeonBuilder.rollTrappedDoors), so leaving it is deterministic whatever the seed.
+      val tiles           = makeTiles()
+      val doorToSanctuary = Door("door_to_sanctuary", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
       val bossRoom = Room("boss",
                           RoomType.Boss,
                           "dungeon",
                           8,
                           6,
                           tiles,
-                          List(doorFromEntrance, doorToSanctuary, Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin"))
+                          List(doorToSanctuary, Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin"))
       )
       val sanctuaryRoom = Room("s1", RoomType.Sanctuary, "dungeon", 8, 6, tiles, List(Sanctuary("sanct_1", x = 2, y = 1)))
       val smWithBoss = StateMachine(
-        Map("r1" -> entranceRoom, "boss" -> bossRoom, "s1" -> sanctuaryRoom),
+        Map("boss" -> bossRoom, "s1" -> sanctuaryRoom),
         Map("goblin" -> weakGoblinStats),
         Map.empty,
         testClassDefs,
@@ -836,7 +833,6 @@ class GameSessionSuite extends CatsEffectSuite:
                                               difficulty = Some(Difficulty.Easy),
                                               perkId = Some("heavy_hand")
                       ))
-        _         <- session.handle(Interact("door_to_boss"))
         _         <- session.handle(Interact("e1"))
         afterKill <- session.handle(CombatAction(CombatActionType.Attack))
         _          = assertEquals(afterKill.phase, GamePhase.Exploration,

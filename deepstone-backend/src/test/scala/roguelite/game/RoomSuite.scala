@@ -144,6 +144,20 @@ class RoomSuite extends FunSuite:
     val view = testRoom(entities = List(secretDoor)).toView(1, 1, Map.empty)
     assertEquals(view.entities.length, 1)
 
+  test("toView reports a chest's state as its protocol string"):
+    val view = testRoom(entities = List(Chest("c1", x = 2, y = 2))).toView(1, 1, Map.empty)
+    assertEquals(view.entities.head.state, Some("closed"))
+
+  test("a trapped chest looks exactly like an untrapped one to the client"):
+    assertEquals(Chest("c1", x = 2, y = 2, trapped = true).toView, Chest("c1", x = 2, y = 2).toView)
+
+  test("every ChestState has its own protocol string"):
+    assertEquals(ChestState.values.map(_.toProtocolString).toList, List("closed", "open_full", "open_empty", "sprung"))
+
+  test("toView leaves state unset for entities that are not chests"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    assertEquals(testRoom(entities = List(enemy)).toView(1, 1, Map.empty).entities.head.state, None)
+
   // -- withFloorAt -------------------------------------------------------------
 
   test("withFloorAt replaces exactly the tile at (x, y) with Floor"):

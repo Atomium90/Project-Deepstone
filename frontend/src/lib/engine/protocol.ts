@@ -109,6 +109,10 @@ export interface EntityView {
   /** Only set for "door"/"locked_door" - which wall of the room this door sits on. Used to
    * orient the 2-tile door sprite (see Renderer.ts's drawDoor). */
   direction?: "UP" | "DOWN" | "LEFT" | "RIGHT";
+  /** Only set for "chest". Picks the chest's sprite and says whether pressing E can still do
+   * anything. A trapped chest reports "closed" until its trap goes off, so this never gives the
+   * trap away. */
+  state?: "closed" | "open_full" | "open_empty" | "sprung";
 }
 
 /** One line of NPC dialogue, shown in a transient overlay. Only present on the single

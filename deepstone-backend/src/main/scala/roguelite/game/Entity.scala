@@ -42,19 +42,49 @@ case class Enemy(
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label, isElite = Some(isElite))
 
-/** A loot container. Interacting with it grants items - unless it's trapped, in which case it spawns
-  * enemies instead.
+/** Where a [[Chest]] is in its life, which decides both its sprite and whether interacting with it
+  * can still do anything.
+  *
+  *   - `Closed`: never opened.
+  *   - `OpenFull`: opened, with an item still inside because the player has not taken it yet.
+  *   - `OpenEmpty`: opened, nothing left to take.
+  *   - `Sprung`: a trapped chest whose trap has gone off. It never holds loot, and is drawn as a
+  *     mimic.
+  */
+enum ChestState:
+  case Closed, OpenFull, OpenEmpty, Sprung
+
+  /** Wire format for [[roguelite.engine.EntityView.state]]. */
+  def toProtocolString: String = this match {
+    case ChestState.Closed    => "closed"
+    case ChestState.OpenFull  => "open_full"
+    case ChestState.OpenEmpty => "open_empty"
+    case ChestState.Sprung    => "sprung"
+  }
+
+/** A loot container. Interacting with a closed one grants an item - unless it's trapped, in which
+  * case it spawns enemies instead.
   *
   * @param trapped
-  *   Not exposed to the client via [[toView]] - staying trapped should be a surprise.
+  *   Rolled at dungeon build time by [[DungeonBuilder]], or authored to force one. Not exposed to
+  *   the client via [[toView]] - staying trapped should be a surprise.
+  * @param state
+  *   See [[ChestState]]. Exposed to the client, which draws the matching sprite.
+  * @param contents
+  *   The item rolled when the chest was opened, kept while `state` is [[ChestState.OpenFull]] so the
+  *   player can come back for it. `None` in every other state. Internal only, never exposed via
+  *   [[toView]].
   */
 case class Chest(
     id: String,
     x: Int,
     y: Int,
-    trapped: Boolean = false
+    trapped: Boolean = false,
+    state: ChestState = ChestState.Closed,
+    contents: Option[Item] = None
 ) extends Entity:
-  def toView: EntityView = EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest")
+  def toView: EntityView =
+    EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest", state = Some(state.toProtocolString))
 
 /** Sub-behavior of a [[Door]]. Normal doors always navigate to their resolved target; a Trapped door
   * springs on first use instead (see [[InteractionResolver]]'s trapped-door handling): it throws the

@@ -184,7 +184,13 @@ case class EntityView(
       * sprite's native art faces a top-wall door; every other wall rotates/flips it - see
       * Renderer.ts's drawDoor).
       */
-    direction: Option[String] = None
+    direction: Option[String] = None,
+    /** Only set for "chest" - "closed" | "open_full" | "open_empty" | "sprung" (see
+      * [[roguelite.game.ChestState]]). The client picks the chest's sprite from it and knows whether
+      * pressing E can still do anything. A trapped chest reports "closed" until its trap goes off,
+      * so this never gives the trap away.
+      */
+    state: Option[String] = None
 )
 
 /** One line of NPC dialogue to show the player, produced by an [[Interact]] on an [[roguelite.game.Npc]].

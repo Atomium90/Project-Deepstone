@@ -1,6 +1,8 @@
 // Generates frontend/public/atlas/{tiles,entities,items}.json from the 0x72 tileset's own
 // Aseprite slice export. Run manually after copying the pack into public/sprites/tiles/:
 //   node scripts/generate-atlas.mjs
+// This rewrites each file from scratch, so re-run the scripts that merge into entities.json
+// afterwards (generate-pixelcrawler-atlas.mjs, generate-chest-atlas.mjs).
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -11,6 +13,10 @@ const publicDir = path.join(__dirname, "..", "public");
 
 const SHEET_PATH = "/sprites/tiles/0x72_16x16DungeonTileset.v5.png";
 const SOURCE_JSON = path.join(publicDir, "sprites", "tiles", "0x72_16x16DungeonTileset.v5.json");
+
+/** Chest sprites owned by generate-chest-atlas.mjs (a different sheet), skipped here so this
+ * script never writes the v5 versions of them. */
+const CHEST_ATLAS_OWNED = new Set(["chest_closed", "chest_open_empty", "chest_open_full"]);
 
 /** Buckets a slice name into one of our atlas domains, or null to skip it. */
 function categorize(name) {
@@ -44,6 +50,11 @@ const buckets = { tiles: {}, entities: {}, items: {} };
 const skipped = [];
 
 for (const slice of slices) {
+    if (CHEST_ATLAS_OWNED.has(slice.name.toLowerCase())) {
+        skipped.push(slice.name);
+        continue;
+    }
+
     const category = categorize(slice.name);
     if (!category) {
         skipped.push(slice.name);

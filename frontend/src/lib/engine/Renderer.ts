@@ -1,5 +1,6 @@
 import { assets, type AssetManager, type SourceRect } from "./AssetManager";
 import type { RoomView, PlayerView, EntityView } from "./protocol";
+import { chestSpriteKey, isEntityInteractable } from "./entityState";
 import {
   TILE_SIZE,
   LERP_SPEED,
@@ -78,10 +79,10 @@ const TILE_SPRITES: Record<string, string> = {
 };
 
 /** Atlas sprite per entity kind, for the kinds that don't vary by instance (everything except
- * "enemy", which uses EntityView.spriteId - server-resolved per typeId, see AssetManager.getSprite).
- * "door"/"locked_door" aren't here - they get their own bespoke 2-tile draw path, see drawDoor. */
+ * "enemy", which uses EntityView.spriteId - server-resolved per typeId, see AssetManager.getSprite -
+ * and "chest", which varies by state, see chestSpriteKey). "door"/"locked_door" aren't here - they
+ * get their own bespoke 2-tile draw path, see drawDoor. */
 const ENTITY_SPRITES: Record<string, string> = {
-  chest: "chest_closed",
   npc: "npc_sage",
   sanctuary: "sanctuary_halo_gold",
 };
@@ -276,9 +277,7 @@ export class Renderer {
     let nearestDist = Infinity;
 
     for (const entity of this.room.entities) {
-      // The Sanctuary has no E-key path at all - walking into it is the only way it ever
-      // triggers (see StateMachine's Move handling), so it's never a valid E target here.
-      if (entity.kind === "sanctuary") continue;
+      if (!isEntityInteractable(entity)) continue;
 
       const tile = interactCheckTile(entity, this.room.theme);
       if (!isCardinalNeighbor(px, py, tile.x, tile.y)) continue;
@@ -475,8 +474,7 @@ export class Renderer {
 
       // Entity body: real sprite when one resolves, geometric circle otherwise
       const fallbackColor = ENTITY_COLORS[entity.kind] ?? COLOR_ENTITY_FALLBACK;
-      const spriteKey =
-        entity.kind === "enemy" ? entity.spriteId : ENTITY_SPRITES[entity.kind];
+      const spriteKey = entitySpriteKey(entity);
       const sprite = spriteKey
         ? this.assets.getSprite(spriteKey, fallbackColor, this.elapsed)
         : null;
@@ -539,9 +537,9 @@ export class Renderer {
       // Keycap badge above when nearby - the Shrine's composite (base + overlapping icon +
       // outline) is much taller than the generic per-entity circle radius every other kind
       // uses here, so the badge needs its own, taller anchor or it renders on top of the gem.
-      // The Sanctuary never shows one at all - walking into it is the only way to trigger it,
-      // there's no E-key path to advertise (see nearestInteractable's matching exclusion).
-      if (isNearby && entity.kind !== "sanctuary") {
+      // An entity with nothing to interact with (the Sanctuary, a spent chest) never shows one -
+      // see isEntityInteractable, which nearestInteractable uses too.
+      if (isNearby && isEntityInteractable(entity)) {
         const badgeTopOffset =
           entity.kind === "shrine" ? this.shrineTopOffset() : radius;
         this.drawInteractBadge(cx, cy - badgeTopOffset - INTERACT_BADGE_OFFSET);
@@ -1034,6 +1032,15 @@ function interactCheckTile(entity: EntityView, theme: string): { x: number; y: n
   return entity.kind === "door" || entity.kind === "locked_door"
     ? doorInteractTile(entity, theme)
     : entity;
+}
+
+/** The atlas sprite an entity is drawn with: an enemy's server-resolved sprite, a chest's sprite for
+ * its current state, or the one fixed sprite of any other kind (undefined for the kinds with their
+ * own draw path, which the caller handles before ever using it). */
+function entitySpriteKey(entity: EntityView): string | undefined {
+  if (entity.kind === "enemy") return entity.spriteId;
+  if (entity.kind === "chest") return chestSpriteKey(entity.state);
+  return ENTITY_SPRITES[entity.kind];
 }
 
 /** Deterministic hash of an entity id, used to decide a stable left/right mirror per enemy.

@@ -169,7 +169,9 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
         await page.waitForFunction(() => window.__DEEPSTONE_RENDERER__ != null, { timeout: 5000 });
 
         const room = state.room!;
-        const chest = room.entities.find((e) => e.kind === "chest");
+        // Only a closed chest is worth walking to: an opened one stays on the map (empty, sprung, or
+        // still holding an item that was declined), so targeting it again would loop forever.
+        const chest = room.entities.find((e) => e.kind === "chest" && e.state === "closed");
         const enemy = room.entities.find((e) => e.kind === "enemy");
         // The Sanctuary is the only thing that ends the run now (a Boss kill no longer does) - it
         // has to outrank the door fallback below, or the loop would just walk back out through the

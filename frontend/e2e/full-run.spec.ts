@@ -95,14 +95,27 @@ function directionBetween(x1: number, y1: number, x2: number, y2: number): Direc
     return y2 > y1 ? "DOWN" : "UP";
 }
 
-/** Prefers the door farthest from the player's current position. InteractionResolver.findSpawnPoint
- * always spawns the player on the wall opposite their direction of travel, so the door they just
- * came through is always the nearest one - the farthest door is the way forward, not back. */
-function pickDoor(room: NonNullable<StateUpdate["room"]>, doors: EntityView[]): EntityView {
+/** The tile the client's interact-range check actually uses for an entity (mirrors Renderer.ts's
+ * doorInteractTile): the anchor of an UP door, and of a LEFT door in the "dungeon" theme, sits in
+ * the wall one tile outside the tile the player has to be next to. Walking to a neighbor of the raw
+ * anchor instead can leave the player standing on the check tile itself, which is never a neighbor
+ * of itself, so E does nothing. */
+function interactTile(entity: EntityView, theme: string): { x: number; y: number } {
+    if (entity.kind !== "door" && entity.kind !== "locked_door") return { x: entity.x, y: entity.y };
+    if (entity.direction === "UP") return { x: entity.x, y: entity.y + 1 };
+    if (entity.direction === "LEFT" && theme === "dungeon") return { x: entity.x + 1, y: entity.y };
+    return { x: entity.x, y: entity.y };
+}
+
+/** Prefers the door farthest from where the player entered the room. InteractionResolver.
+ * findSpawnPoint always spawns the player on the wall opposite their direction of travel, so the
+ * door they just came through is always the nearest one to the entry point - the farthest door is
+ * the way forward, not back. Measuring from the entry point rather than the player's current
+ * position matters once they have walked around the room (after a fight, say): from the middle,
+ * both doors can be equally far, and picking the entrance sends the run back and forth forever. */
+function pickDoor(doors: EntityView[], entry: { x: number; y: number }): EntityView {
     return doors.reduce((farthest, d) =>
-        chebyshev(room.playerX, room.playerY, d.x, d.y) > chebyshev(room.playerX, room.playerY, farthest.x, farthest.y)
-            ? d
-            : farthest
+        chebyshev(entry.x, entry.y, d.x, d.y) > chebyshev(entry.x, entry.y, farthest.x, farthest.y) ? d : farthest
     );
 }
 
@@ -126,6 +139,8 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
     let combatsResolved = 0;
     let lootPickedUp = false;
     let previousPhase = state.phase;
+    let entryRoomId = "";
+    let entry = { x: 0, y: 0 }; // where the player stood when they entered the current room
 
     // Normal difficulty's dungeon grew substantially once biomes landed (entrance + 2 biomes of 4
     // rooms each + a MiniBoss checkpoint + boss, vs. the old flat 4-room dungeon) - the old budget
@@ -169,6 +184,10 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
         await page.waitForFunction(() => window.__DEEPSTONE_RENDERER__ != null, { timeout: 5000 });
 
         const room = state.room!;
+        if (room.roomId !== entryRoomId) {
+            entryRoomId = room.roomId;
+            entry = { x: room.playerX, y: room.playerY };
+        }
         // Only a closed chest is worth walking to: an opened one stays on the map (empty, sprung, or
         // still holding an item that was declined), so targeting it again would loop forever.
         const chest = room.entities.find((e) => e.kind === "chest" && e.state === "closed");
@@ -179,7 +198,7 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
         const sanctuary = room.entities.find((e) => e.kind === "sanctuary");
         const doors = room.entities.filter((e) => e.kind === "door" || e.kind === "locked_door");
         const target: EntityView | undefined =
-            chest ?? enemy ?? sanctuary ?? (doors.length > 0 ? pickDoor(room, doors) : undefined);
+            chest ?? enemy ?? sanctuary ?? (doors.length > 0 ? pickDoor(doors, entry) : undefined);
 
         if (!target) {
             // Nothing visible to interact with (e.g. an unrevealed secret door) - take a step in
@@ -197,7 +216,8 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
             continue;
         }
 
-        for (const dir of pathTo(room, target.x, target.y)) {
+        const goal = interactTile(target, room.theme);
+        for (const dir of pathTo(room, goal.x, goal.y)) {
             await page.keyboard.press(DIRECTION_KEY[dir]);
             state = await waitForStateChange(page, state);
         }

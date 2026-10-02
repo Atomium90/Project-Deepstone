@@ -128,6 +128,10 @@ object EquipmentResolver:
     * be one of the offered candidate slots; anything else (no choice pending, or a slot that
     * wasn't actually offered) is rejected with a log message and the pending choice, if any, is
     * left untouched so the client can retry.
+    *
+    * Taking the new item also empties the chest it came from, if any (see
+    * [[PendingEquipChoice.sourceChestId]]). Declining leaves that chest as it was, still holding the
+    * item.
     */
   def resolveChoice(exp: ExplorationState,
                     targetSlot: Option[EquipSlot],
@@ -145,11 +149,22 @@ object EquipmentResolver:
 
           case Some(slot) =>
             val updatedPlayer = applyToSlot(exp.player, slot, pending.newItem, setDefs)
-            val next           = exp.copy(player = updatedPlayer, pendingEquipChoice = None)
+            val taken          = exp.copy(player = updatedPlayer, pendingEquipChoice = None)
+            val next           = pending.sourceChestId.fold(taken)(emptyChest(taken, _))
             (next,
              List(s"You equip ${pending.newItem.name}."),
              List(GameEvent.itemPickedUp(updatedPlayer, pending.newItem, setDefs))
             )
+
+  /** Marks the chest `chestId` in the current room as empty, its item having just been taken. The
+    * player does not leave the room while a choice is pending, so the chest is always in the
+    * current room. A no-op if no chest with that id is there.
+    */
+  private def emptyChest(exp: ExplorationState, chestId: String): ExplorationState =
+    val room = exp.dungeon.currentRoom.updateEntity(chestId):
+      case c: Chest => c.emptied
+      case other    => other
+    exp.copy(dungeon = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(room.id, room)))
 
   /** Place `newItem` into `slot`, evicting whatever was there (reversing an accessory's maxHp
     * bonus first, so swapping accessories never leaves a stale bonus behind), then reconciling

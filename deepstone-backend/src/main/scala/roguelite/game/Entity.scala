@@ -83,6 +83,9 @@ case class Chest(
     state: ChestState = ChestState.Closed,
     contents: Option[Item] = None
 ) extends Entity:
+  /** This chest once its last item has been taken. */
+  def emptied: Chest = copy(state = ChestState.OpenEmpty, contents = None)
+
   def toView: EntityView =
     EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest", state = Some(state.toProtocolString))
 

@@ -302,6 +302,61 @@ class EquipmentResolverSuite extends FunSuite:
     assert(log.exists(_.toLowerCase.contains("invalid")), s"expected an invalid-slot message: $log")
     assertEquals(events, Nil)
 
+  // --- resolveChoice: a pickup that came from a chest -------------------------------
+
+  private val fullChest      = Chest("c1", x = 2, y = 2, state = ChestState.OpenFull, contents = Some(sword2))
+  private val otherFullChest = Chest("c2", x = 3, y = 3, state = ChestState.OpenFull, contents = Some(armor2))
+
+  private def chestChoiceState(sourceChestId: Option[String]): ExplorationState =
+    val room = Room("r1", RoomType.Combat, "dungeon", 4, 4, Vector.fill(4)(Vector.fill(4)(Tile.Floor)),
+                    List(fullChest, otherFullChest)
+    )
+    val pending = PendingEquipChoice(sword2, Map(EquipSlot.WeaponSlot -> sword), sourceChestId = sourceChestId)
+    ExplorationState(player.copy(equippedWeapon = Some(sword)),
+                     Dungeon(Map("r1" -> room), "r1"),
+                     playerX = 1,
+                     playerY = 1,
+                     pendingEquipChoice = Some(pending)
+    )
+
+  private def chestIn(exp: ExplorationState, id: String): Chest =
+    exp.dungeon.currentRoom.entityById(id).collect { case c: Chest => c }.getOrElse(fail(s"no chest '$id' in the room"))
+
+  test("taking the item of a pending choice empties the chest it came from, and only that chest"):
+    val exp = chestChoiceState(Some("c1"))
+    val (next, _, _) = EquipmentResolver.resolveChoice(exp, Some(EquipSlot.WeaponSlot))
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.player.equippedWeapon, Some(sword2))
+    assertEquals(chestIn(nextExp, "c1").state, ChestState.OpenEmpty)
+    assertEquals(chestIn(nextExp, "c1").contents, None)
+    assertEquals(chestIn(nextExp, "c2"), otherFullChest)
+
+  test("declining a pending choice leaves the chest it came from full, still holding its item"):
+    val exp = chestChoiceState(Some("c1"))
+    val (next, _, _) = EquipmentResolver.resolveChoice(exp, None)
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.pendingEquipChoice, None)
+    assertEquals(chestIn(nextExp, "c1"), fullChest)
+
+  test("a rejected slot choice leaves the chest it came from untouched"):
+    val exp = chestChoiceState(Some("c1"))
+    val (next, _, _) = EquipmentResolver.resolveChoice(exp, Some(EquipSlot.ArmorSlot))
+    assertEquals(chestIn(next.asInstanceOf[ExplorationState], "c1"), fullChest)
+
+  test("a pending choice that did not come from a chest leaves every chest alone"):
+    val exp = chestChoiceState(None)
+    val (next, _, _) = EquipmentResolver.resolveChoice(exp, Some(EquipSlot.WeaponSlot))
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(chestIn(nextExp, "c1"), fullChest)
+    assertEquals(chestIn(nextExp, "c2"), otherFullChest)
+
+  test("a source chest that is not in the current room is ignored"):
+    val exp = chestChoiceState(Some("missing"))
+    val (next, _, _) = EquipmentResolver.resolveChoice(exp, Some(EquipSlot.WeaponSlot))
+    val nextExp = next.asInstanceOf[ExplorationState]
+    assertEquals(nextExp.player.equippedWeapon, Some(sword2))
+    assertEquals(chestIn(nextExp, "c1"), fullChest)
+
   // --- Set HP bonus reconciliation --------------------------------------------------
 
   private val hpSet = SetDef(

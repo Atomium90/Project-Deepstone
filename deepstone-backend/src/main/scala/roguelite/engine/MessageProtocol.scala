@@ -67,6 +67,15 @@ enum Difficulty:
     case Difficulty.Normal => 0.12
     case Difficulty.Hard   => 0.16
 
+  /** Per-door probability of being trapped, rolled at dungeon build time (see
+    * [[roguelite.game.DungeonBuilder]]). Lower than [[trappedChestChance]]: a trapped door forces a
+    * fight to get through, where a chest can simply be left closed.
+    */
+  def trappedDoorChance: Double = this match
+    case Difficulty.Easy   => 0.04
+    case Difficulty.Normal => 0.06
+    case Difficulty.Hard   => 0.08
+
   /** Relative weight multiplier applied to a loot candidate based on its rarity. Only Hard biases
     * toward Uncommon for now; Easy/Normal keep today's unweighted behavior.
     */

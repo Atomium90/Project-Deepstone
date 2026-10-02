@@ -32,7 +32,8 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
   /** Build a dungeon out of `biomeCount` sequential sections.
    *
    * @param difficulty Drives the per-enemy Elite roll rate (see [[rollEliteEnemies]]), the per-chest
-   *                   trap rate (see [[rollTrappedChests]]) and `biomeCount`'s own default below.
+   *                   and per-door trap rates (see [[rollTrappedChests]], [[rollTrappedDoors]]) and
+   *                   `biomeCount`'s own default below.
    * @param biomeCount Number of sequential sections, clamped to at least 1. Defaults to
    *                   `difficulty.biomeCount` - a bare default of e.g. `1` here, independent of
    *                   `difficulty`'s own default, would silently desync the moment either default
@@ -66,7 +67,7 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
       // in place. The Sanctuary needs no equivalent cleanup - see removeUnresolvedDoors's own doc.
       cleaned                = removeUnresolvedDoors(dungeon, dungeon.currentRoomId, ConnectorRole.Prev)
       withVaults             <- injectVaultRooms(cleaned)
-    yield rollTrappedChests(rollEliteEnemies(withVaults, difficulty), difficulty)
+    yield rollTrappedDoors(rollTrappedChests(rollEliteEnemies(withVaults, difficulty), difficulty), difficulty)
 
   /** Builds the segment list up to (not including) the Sanctuary: `sectionCount` sections (see
    * [[buildSection]]), each pair of consecutive sections further separated by a guaranteed
@@ -396,17 +397,17 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
         id -> room.copy(entities = newEntities)
     dungeon.copy(rooms = updatedRooms)
 
-  /** Room types whose chests can roll trapped. A Vault chest is the reward for a key already
-   * spent, and Boss/MiniBoss/Rest/Sanctuary rooms are scripted beats rather than places for a random
-   * ambush. Listing the eligible types, instead of excluding the ineligible ones, keeps any future
-   * room type safe by default.
+  /** Room types whose chests and doors can roll trapped. A Vault chest is the reward for a key
+   * already spent, and Boss/MiniBoss/Rest/Sanctuary/Fork rooms are scripted beats rather than
+   * places for a random ambush. Listing the eligible types, instead of excluding the ineligible
+   * ones, keeps any future room type safe by default.
    */
-  private val TrappedChestRoomTypes: Set[RoomType] = Set(RoomType.Combat, RoomType.Loot)
+  private val TrapRoomTypes: Set[RoomType] = Set(RoomType.Combat, RoomType.Loot)
 
   /** Roll trapped status onto at most one chest per eligible room. Each [[Chest]] in a room rolls
    * independently at `difficulty.trappedChestChance`; once one chest in that room is trapped (rolled
    * here, or authored as trapped in rooms.json) no further chest in it rolls, capping a room at 1
-   * trap. See [[TrappedChestRoomTypes]] for which rooms are eligible.
+   * trap. See [[TrapRoomTypes]] for which rooms are eligible.
    *
    * Produces fresh Room/Chest copies for the returned Dungeon only - never mutates the
    * server-lifetime `pool` itself.
@@ -414,7 +415,7 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
   private def rollTrappedChests(dungeon: Dungeon, difficulty: Difficulty): Dungeon =
     val chance = difficulty.trappedChestChance
     val updatedRooms = dungeon.rooms.map:
-      case (id, room) if !TrappedChestRoomTypes.contains(room.roomType) => id -> room
+      case (id, room) if !TrapRoomTypes.contains(room.roomType) => id -> room
       case (id, room) =>
         var alreadyTrapped = room.entities.exists:
           case c: Chest => c.trapped
@@ -423,6 +424,35 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
           case c: Chest if !alreadyTrapped && rng.nextDouble() < chance =>
             alreadyTrapped = true
             c.copy(trapped = true)
+          case other => other
+        id -> room.copy(entities = newEntities)
+    dungeon.copy(rooms = updatedRooms)
+
+  /** Roll trapped status onto at most one door per eligible room. Only forward ([[ConnectorRole.Next]])
+   * doors of [[DoorKind.Normal]] kind roll, each independently at `difficulty.trappedDoorChance`: a
+   * Prev door leads back to ground already cleared, and a Secret door is a reward in its own right.
+   * Same cap as [[rollTrappedChests]]: once one door in the room is trapped (rolled here, or
+   * authored as trapped in rooms.json) no further door in it rolls. A trapped door is what blocks the
+   * way forward until a guardian is beaten (see `InteractionResolver.handleTrappedDoor`), so a room
+   * never holds more than one. See [[TrapRoomTypes]] for which rooms are eligible.
+   *
+   * Produces fresh Room/Door copies for the returned Dungeon only - never mutates the
+   * server-lifetime `pool` itself.
+   */
+  private def rollTrappedDoors(dungeon: Dungeon, difficulty: Difficulty): Dungeon =
+    val chance = difficulty.trappedDoorChance
+    val updatedRooms = dungeon.rooms.map:
+      case (id, room) if !TrapRoomTypes.contains(room.roomType) => id -> room
+      case (id, room) =>
+        var alreadyTrapped = room.entities.exists:
+          case d: Door => d.doorKind == DoorKind.Trapped
+          case _       => false
+        val newEntities = room.entities.map:
+          case d: Door
+              if !alreadyTrapped && d.doorKind == DoorKind.Normal && d.link.role == ConnectorRole.Next &&
+                rng.nextDouble() < chance =>
+            alreadyTrapped = true
+            d.copy(doorKind = DoorKind.Trapped)
           case other => other
         id -> room.copy(entities = newEntities)
     dungeon.copy(rooms = updatedRooms)

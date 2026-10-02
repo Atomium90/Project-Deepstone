@@ -644,6 +644,114 @@ class DungeonBuilderSuite extends FunSuite:
     assert(hardRate > 0.11 && hardRate < 0.22, s"Hard trap rate out of expected range: $hardRate")
 
   // ---------------------------------------------
+  // Trapped doors
+  // ---------------------------------------------
+
+  def prevDoors(count: Int): List[Door] = (1 to count).map(i => entranceDoor(s"prev$i")).toList
+
+  def nextDoors(count: Int): List[Door] = (1 to count).map(i => exitDoor(s"next$i")).toList
+
+  def secretDoors(count: Int): List[Door] =
+    (1 to count).map { i =>
+      Door(id = s"secret$i",
+           x = 4,
+           y = 5,
+           direction = Direction.Down,
+           link = DoorLink.Unresolved(ConnectorRole.Next),
+           doorKind = DoorKind.Secret,
+           revealed = false
+      )
+    }.toList
+
+  /** The same minimal shape as [[trappedChestTestPool]] (combat room first, then loot, then boss, plus
+    * the sanctuary), with each room's doors supplied directly. Defaults give every room an ordinary
+    * entrance/exit pair. */
+  def trappedDoorTestPool(combatDoors: List[Door] = List(exitDoor()),
+                          lootDoors: List[Door] = List(entranceDoor(), exitDoor()),
+                          bossDoors: List[Door] = List(entranceDoor(), exitDoor())
+  ): Map[String, Room] = Map(
+    "c1"        -> makeRoom("c1", RoomType.Combat, combatDoors),
+    "l1"        -> makeRoom("l1", RoomType.Loot, lootDoors),
+    "b1"        -> makeRoom("b1", RoomType.Boss, bossDoors),
+    "sanctuary" -> makeRoom("sanctuary", RoomType.Sanctuary, List(entranceDoor()))
+  )
+
+  def doorsIn(room: Room): List[Door] = room.entities.collect { case d: Door => d }
+
+  def combatRoomHasTrappedDoor(d: Dungeon): Boolean =
+    d.rooms.values.find(_.roomType == RoomType.Combat).exists(doorsIn(_).exists(_.doorKind == DoorKind.Trapped))
+
+  test("boss room doors never roll trapped, even while the combat room's own roll is active"):
+    val pool = trappedDoorTestPool(bossDoors = entranceDoor() :: nextDoors(60))
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(combatRoomHasTrappedDoor)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    assert(combatRoomHasTrappedDoor(dungeon), "expected this seed to roll a trap in the combat room")
+    assert(!doorsIn(roomOfType(dungeon, RoomType.Boss)).exists(_.doorKind == DoorKind.Trapped),
+           "no boss-room door should ever roll trapped"
+    )
+
+  test("Prev-role and Secret doors never roll trapped, even while the combat room's own roll is active"):
+    val pool = trappedDoorTestPool(lootDoors = prevDoors(60) ::: secretDoors(60))
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(combatRoomHasTrappedDoor)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    assert(combatRoomHasTrappedDoor(dungeon), "expected this seed to roll a trap in the combat room")
+    val lootDoors = doorsIn(roomOfType(dungeon, RoomType.Loot))
+    assert(lootDoors.nonEmpty, "expected the loot room to keep its doors")
+    assert(!lootDoors.exists(_.doorKind == DoorKind.Trapped), "no Prev or Secret door should ever roll trapped")
+
+  test("at most 1 door per room rolls trapped, even with many Next doors at Hard difficulty"):
+    val pool = trappedDoorTestPool(combatDoors = nextDoors(20))
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(combatRoomHasTrappedDoor)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    assertEquals(doorsIn(roomOfType(dungeon, RoomType.Combat)).count(_.doorKind == DoorKind.Trapped),
+                 1,
+                 "expected the cap to allow exactly 1 trapped door, not 0 or more than 1"
+    )
+
+  test("a door authored as trapped is kept and stops the room's other doors from rolling"):
+    val authored = Door("authored_trap",
+                        x = 4,
+                        y = 5,
+                        direction = Direction.Down,
+                        link = DoorLink.Unresolved(ConnectorRole.Next),
+                        doorKind = DoorKind.Trapped
+    )
+    val pool = trappedDoorTestPool(combatDoors = authored :: nextDoors(19))
+    val dungeon = DungeonBuilder(pool, Random(1L)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    val combatDoors = doorsIn(roomOfType(dungeon, RoomType.Combat))
+    assertEquals(combatDoors.count(_.doorKind == DoorKind.Trapped), 1)
+    assert(combatDoors.exists(d => d.id == "authored_trap" && d.doorKind == DoorKind.Trapped),
+           "the authored trapped door should stay trapped"
+    )
+
+  test("a trapped door keeps its resolved link"):
+    val pool = trappedDoorTestPool()
+    val seed = firstSeedWhere(pool, Difficulty.Hard)(combatRoomHasTrappedDoor)
+    val dungeon = DungeonBuilder(pool, Random(seed)).build(difficulty = Difficulty.Hard)(biomeCount = 1).getOrElse(fail("build failed"))
+    val trapped = doorsIn(roomOfType(dungeon, RoomType.Combat)).find(_.doorKind == DoorKind.Trapped).getOrElse(fail("no trapped door"))
+    trapped.link match
+      case DoorLink.Resolved(ConnectorRole.Next, _, roomId) => assert(dungeon.rooms.contains(roomId))
+      case other                                            => fail(s"expected a resolved Next link, got $other")
+
+  test("Hard difficulty rolls trapped doors at least as often as Easy, same seeds"):
+    val trials = 2000
+    def trapRate(difficulty: Difficulty): Double =
+      val trapCount = (1 to trials).count { seed =>
+        val dungeon = DungeonBuilder(trappedDoorTestPool(), Random(seed.toLong))
+          .build(difficulty = difficulty)(biomeCount = 1)
+          .getOrElse(fail("build failed"))
+        combatRoomHasTrappedDoor(dungeon)
+      }
+      trapCount.toDouble / trials
+
+    val easyRate = trapRate(Difficulty.Easy)
+    val hardRate = trapRate(Difficulty.Hard)
+    assert(hardRate >= easyRate, s"expected Hard's trap rate ($hardRate) >= Easy's ($easyRate)")
+    // Sanity bounds around the configured 4%/8% thresholds (generous tolerance to avoid flakiness).
+    assert(easyRate > 0.015 && easyRate < 0.075, s"Easy trap rate out of expected range: $easyRate")
+    assert(hardRate > 0.05 && hardRate < 0.12, s"Hard trap rate out of expected range: $hardRate")
+
+  // ---------------------------------------------
   // Graph topology (fork/merge proof)
   // ---------------------------------------------
 

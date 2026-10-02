@@ -201,68 +201,117 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         (nextState, List(s"You engage the ${stats.label}!"))
     }
 
+  /** Opens, re-opens or springs a chest, depending on its [[ChestState]]. A chest stays on the map
+    * in every state, only its state changes:
+    *   - a closed trapped chest springs (see [[springChestTrap]]);
+    *   - any other closed chest rolls its item (see [[openChest]]);
+    *   - an open-full chest, whose item the player has not taken yet, offers it again;
+    *   - an open-empty or sprung chest has nothing left to give.
+    */
   private def handleChest(exp: ExplorationState,
                           chest: Chest
   ): (GameState, List[String], List[GameEvent]) =
-    val roomWithoutChest = exp.dungeon.currentRoom.removeEntity(chest.id)
+    chest.state match {
+      case ChestState.Closed if chest.trapped => springChestTrap(exp, chest)
+      case ChestState.Closed                  => openChest(exp, chest)
+      case ChestState.OpenFull =>
+        chest.contents match {
+          case Some(item) => takeFromChest(exp, chest, item, "You go back to the chest and find")
+          case None       => (replaceChest(exp, chest.emptied), List("The chest is empty."), Nil)
+        }
+      case ChestState.OpenEmpty | ChestState.Sprung => (exp, List("The chest is empty."), Nil)
+    }
 
-    if chest.trapped then
-      val (trappedRoom, trapLog) =
-        spawnTrapEnemies(roomWithoutChest, chest, exp.playerX, exp.playerY)
-      val updatedDungeon =
-        exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(trappedRoom.id, trappedRoom))
-      (exp.copy(dungeon = updatedDungeon), trapLog, Nil)
-    else
-      val updatedDungeon = exp.dungeon.copy(
-        rooms = exp.dungeon.rooms.updated(roomWithoutChest.id, roomWithoutChest)
+  /** The trap goes off: the chest becomes [[ChestState.Sprung]] and enemies appear around it instead
+    * of any loot.
+    */
+  private def springChestTrap(exp: ExplorationState,
+                              chest: Chest
+  ): (GameState, List[String], List[GameEvent]) =
+    val sprungRoom = exp.dungeon.currentRoom.updateEntity(chest.id) {
+      case c: Chest => c.copy(state = ChestState.Sprung)
+      case other    => other
+    }
+    val (trappedRoom, trapLog) = spawnTrapEnemies(sprungRoom, chest, exp.playerX, exp.playerY)
+    (withRoom(exp, trappedRoom), trapLog, Nil)
+
+  /** First opening of an untrapped chest: rolls its item, then offers it exactly as every later
+    * attempt to take it does (see [[takeFromChest]]). A roll that finds nothing leaves the chest
+    * open and empty.
+    */
+  private def openChest(exp: ExplorationState, chest: Chest): (GameState, List[String], List[GameEvent]) =
+    // Lucky Find: raise the roll's floor for this one chest, then consume the perk regardless of
+    // what the roll actually lands on - it's a one-shot boost to the roll, not a standing floor.
+    // The Rarity Insight upgrade (Player.chestRarityFloor) is the opposite: a permanent floor on
+    // every chest, never consumed - the two combine by taking whichever floor is stronger. Both only
+    // ever apply here, since the item is rolled once, on the first opening.
+    val perkFloor = activePerkEffect(exp.player) match {
+      case Some(PerkEffect.GuaranteedRarityFirstChest(minRarity)) if !exp.player.firstChestBonusUsed =>
+        Some(minRarity)
+      case _ => None
+    }
+    val rarityFloorOverride = List(perkFloor, exp.player.chestRarityFloor).flatten.maxByOption(_.ordinal)
+    val opened =
+      if perkFloor.isDefined then exp.copy(player = exp.player.copy(firstChestBonusUsed = true)) else exp
+
+    LootTable.rollChest(itemDefs, rng, exp.difficulty, rarityFloorOverride) match {
+      case None =>
+        (replaceChest(opened, chest.emptied), List("You open the chest. It's empty."), Nil)
+      case Some(item) =>
+        takeFromChest(opened,
+                      chest.copy(state = ChestState.OpenFull, contents = Some(item)),
+                      item,
+                      "You open the chest and find"
+        )
+    }
+
+  /** Offers `item`, which `chest` holds, to the player. `chest` must already be open-full with
+    * `item` as its contents. The chest empties once the item is actually taken: right away for an
+    * auto-equip or a key, and later, through the pending choice, if the player picks it over what
+    * they had (see [[PendingEquipChoice.sourceChestId]]). A discarded duplicate, or a pending choice
+    * the player declines, leaves the chest full so the item can be taken again later. `lead` opens
+    * every log line.
+    */
+  private def takeFromChest(exp: ExplorationState,
+                            chest: Chest,
+                            item: Item,
+                            lead: String
+  ): (GameState, List[String], List[GameEvent]) =
+    def taken(p: Player): (GameState, List[String], List[GameEvent]) =
+      (replaceChest(exp.copy(player = p), chest.emptied),
+       List(s"$lead ${item.name}! (${item.statLine})"),
+       List(GameEvent.itemPickedUp(p, item, setDefs))
       )
 
-      // Lucky Find: raise the roll's floor for this one chest, then consume the perk regardless of
-      // what the roll actually lands on - it's a one-shot boost to the roll, not a standing floor.
-      // The Rarity Insight upgrade (Player.chestRarityFloor) is the opposite: a permanent floor on
-      // every chest, never consumed - the two combine by taking whichever floor is stronger.
-      val perkFloor = activePerkEffect(exp.player) match {
-        case Some(PerkEffect.GuaranteedRarityFirstChest(minRarity)) if !exp.player.firstChestBonusUsed =>
-          Some(minRarity)
-        case _ => None
-      }
-      val rarityFloorOverride = List(perkFloor, exp.player.chestRarityFloor).flatten.maxByOption(_.ordinal)
-      val basePlayer =
-        if perkFloor.isDefined then exp.player.copy(firstChestBonusUsed = true) else exp.player
+    EquipmentResolver.resolvePickup(exp.player, item, setDefs) match {
+      case PickupOutcome.Equipped(p)     => taken(p)
+      case PickupOutcome.KeyCollected(p) => taken(p)
 
-      LootTable.rollChest(itemDefs, rng, exp.difficulty, rarityFloorOverride) match {
-        case None =>
-          (exp.copy(dungeon = updatedDungeon, player = basePlayer), List("You open the chest. It's empty."), Nil)
-        case Some(item) =>
-          EquipmentResolver.resolvePickup(basePlayer, item, setDefs) match {
-            case PickupOutcome.Equipped(p) =>
-              (exp.copy(dungeon = updatedDungeon, player = p),
-               List(s"You open the chest and find ${item.name}! (${item.statLine})"),
-               List(GameEvent.itemPickedUp(p, item, setDefs))
-              )
+      case PickupOutcome.ChoicePending(pending) =>
+        (replaceChest(exp, chest).copy(pendingEquipChoice = Some(pending.copy(sourceChestId = Some(chest.id)))),
+         List(s"$lead ${item.name}. Choose what to do with it."),
+         Nil
+        )
 
-            case PickupOutcome.KeyCollected(p) =>
-              (exp.copy(dungeon = updatedDungeon, player = p),
-               List(s"You open the chest and find ${item.name}! (${item.statLine})"),
-               List(GameEvent.itemPickedUp(p, item, setDefs))
-              )
+      case PickupOutcome.Discarded(p) =>
+        (replaceChest(exp.copy(player = p), chest),
+         List(s"$lead ${item.name}, but you already have a better one."),
+         Nil
+        )
+    }
 
-            case PickupOutcome.ChoicePending(pending) =>
-              (exp.copy(dungeon = updatedDungeon, player = basePlayer, pendingEquipChoice = Some(pending)),
-               List(s"You open the chest and find ${item.name}. Choose what to do with it."),
-               Nil
-              )
+  /** `exp` with `room` swapped in for the room of the same id. */
+  private def withRoom(exp: ExplorationState, room: Room): ExplorationState =
+    exp.copy(dungeon = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(room.id, room)))
 
-            case PickupOutcome.Discarded(p) =>
-              (exp.copy(dungeon = updatedDungeon, player = p),
-               List(s"You open the chest and find ${item.name}, but you already have a better one."),
-               Nil
-              )
-          }
-      }
+  /** `exp` with the current room's chest of the same id replaced by `chest`. */
+  private def replaceChest(exp: ExplorationState, chest: Chest): ExplorationState =
+    withRoom(exp, exp.dungeon.currentRoom.updateEntity(chest.id) {
+      case _: Chest => chest
+      case other    => other
+    })
 
-  /** Rolls 3 candidates and removes the Shrine from the room (one-shot, same as opening a
-    * [[Chest]]) - the actual pick is resolved later by [[RewardChoiceResolver]] once the player
+  /** Rolls 3 candidates and removes the Shrine from the room (one-shot) - the actual pick is resolved later by [[RewardChoiceResolver]] once the player
     * sends a `RewardChoice` action.
     */
   private def handleShrine(exp: ExplorationState, shrine: Shrine): (GameState, List[String]) =

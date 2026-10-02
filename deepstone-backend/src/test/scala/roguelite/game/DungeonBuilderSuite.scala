@@ -309,6 +309,36 @@ class DungeonBuilderSuite extends FunSuite:
            "expected the Fork room itself to be skipped too, not a partial fork with no branch B"
     )
 
+  /** A Fork room whose two exits carry the given branch tags. The builder reads the tags from the
+    * room itself, so any two distinct strings must wire. */
+  def taggedForkRoom(id: String, tagA: String, tagB: String): Room =
+    makeRoom(id, RoomType.Fork, List(entranceDoor(), forkExitDoor(tagA), forkExitDoor(tagB)))
+
+  test("a fork's exits resolve whatever their two branch tags are"):
+    List(("1", "2"), ("left", "right"), ("b", "a")).foreach:
+      case (tagA, tagB) =>
+        val pool    = forkTestPool + ("f1" -> taggedForkRoom("f1", tagA, tagB))
+        val dungeon = DungeonBuilder(pool, Random(1L)).build()(biomeCount = 1).getOrElse(fail("build failed"))
+        val fork    = dungeon.rooms.values.find(_.roomType == RoomType.Fork).getOrElse(fail(s"no Fork room for tags $tagA/$tagB"))
+        val targets = resolvedNextTargets(fork)
+        assertEquals(targets.keySet, Set(Some(tagA), Some(tagB)), s"tags $tagA/$tagB")
+        assertNotEquals(targets(Some(tagA)), targets(Some(tagB)), s"tags $tagA/$tagB")
+
+  test("a Fork room that cannot be wired is skipped, like a missing one"):
+    def exit(id: String, branch: Option[String]): Door =
+      Door(id = id, x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next, branch))
+    val unwireable = List(
+      makeRoom("f1", RoomType.Fork, List(entranceDoor(), exit("e1", None), exit("e2", None))),
+      makeRoom("f1", RoomType.Fork, List(entranceDoor(), exit("e1", Some("x")), exit("e2", Some("x")))),
+      makeRoom("f1", RoomType.Fork, List(entranceDoor(), exit("e1", Some("only"))))
+    )
+    unwireable.foreach: badFork =>
+      val pool    = forkTestPool + ("f1" -> badFork)
+      val dungeon = DungeonBuilder(pool, Random(1L)).build()(biomeCount = 1).getOrElse(fail("build failed"))
+      assert(!dungeon.rooms.values.exists(_.roomType == RoomType.Fork),
+             s"expected a Fork room without two distinct tags to be skipped: ${badFork.entities.map(_.id)}"
+      )
+
   // ---------------------------------------------
   // Door wiring
   // ---------------------------------------------

@@ -121,10 +121,10 @@ object ConnectorRole:
   * @param branch
   *   Distinguishes multiple doors sharing the same `role` in one room (a fork's two exits, a
   *   merge's two entrances) - `None` for every room with at most one door per role. Deliberately a
-  *   free string, not a closed enum: a typo here can't silently resolve to the wrong neighbor, it
-  *   just won't match any topology edge, so [[DungeonBuilder.build]] fails loudly at wiring-
-  *   validation time instead - the same pattern as its existing "LockedDoor references unknown
-  *   room" check.
+  *   free string, not a closed enum: a Fork room's two exits can carry any two distinct tags, which
+  *   [[DungeonBuilder]] reads from the room itself (see [[Room.forkBranchTags]]) and
+  *   [[RoomLoader]] enforces. [[DungeonBuilder.buildFromTopology]] matches its edges against these
+  *   strings directly, so a mismatched tag there leaves the door `Unresolved`.
   */
 enum DoorLink:
   case Unresolved(role: ConnectorRole, branch: Option[String] = None)
@@ -135,6 +135,11 @@ object DoorLink:
     def role: ConnectorRole = link match {
       case DoorLink.Unresolved(role, _)  => role
       case DoorLink.Resolved(role, _, _) => role
+    }
+
+    def branch: Option[String] = link match {
+      case DoorLink.Unresolved(_, branch)  => branch
+      case DoorLink.Resolved(_, branch, _) => branch
     }
 
 /** A passage to an adjacent room. Interacting with it navigates to `link`'s resolved room. */

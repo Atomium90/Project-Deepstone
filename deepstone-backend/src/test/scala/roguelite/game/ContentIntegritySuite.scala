@@ -118,6 +118,42 @@ class ContentIntegritySuite extends CatsEffectSuite:
           assertEquals(kinds.count(_ == "accessory"), 2, s"$setId should have exactly 2 accessories, found $kinds")
           assertEquals(kinds.size, 4, s"$setId should have exactly 4 pieces total, found $kinds")
 
+  // A door still Unresolved once a dungeon is built is a dead end in game ("Door '...' is not
+  // connected to any room"). Content authored with a wiring detail the builder doesn't honor, like
+  // a Fork room whose exits carry tags it can't match, only shows up this way: the loader and the
+  // builder each look fine on their own. So this builds real dungeons from the real room pool, over
+  // many seeds and every difficulty so each theme and fork shape gets drawn, and checks that every
+  // door of every room that ended up in them is connected. It also checks that the forks of every
+  // theme that has any were actually drawn, so a pool change can't silently stop exercising them.
+  test("a dungeon built from the real room pool never leaves a door unconnected"):
+    RoomLoader
+      .loadAll()
+      .map:
+        rooms =>
+          val forkThemesInPool = rooms.values.filter(_.roomType == RoomType.Fork).map(_.theme).toSet
+          val forkThemesBuilt  = scala.collection.mutable.Set.empty[String]
+          for
+            difficulty <- Difficulty.values.toList
+            seed       <- 1 to 150
+          do
+            DungeonBuilder(rooms, Random(seed.toLong)).build(difficulty)() match
+              case Left(err) => fail(s"seed $seed at $difficulty failed to build: $err")
+              case Right(dungeon) =>
+                dungeon.rooms.values.foreach:
+                  room =>
+                    if room.roomType == RoomType.Fork then forkThemesBuilt += room.theme
+                    room.entities.foreach:
+                      case door: Door =>
+                        door.link match
+                          case DoorLink.Unresolved(role, branch) =>
+                            fail(
+                              s"seed $seed at $difficulty: door '${door.id}' ($role, branch $branch) of room " +
+                                s"'${room.id}' is not connected to any room"
+                            )
+                          case _ => ()
+                      case _ => ()
+          assertEquals(forkThemesBuilt.toSet, forkThemesInPool, "expected every theme's fork rooms to be drawn at least once")
+
   // Chests, NPCs and the Sanctuary stay on the map for good (an opened chest keeps blocking its
   // tile), unlike enemies and shrines which disappear. An authored room must not let them seal off a
   // door or each other. Reachability is measured from the first door: a door's approach tile is the

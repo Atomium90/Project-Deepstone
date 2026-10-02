@@ -216,12 +216,6 @@ class RoomLoaderSuite extends CatsEffectSuite:
           }
     }
 
-  test("at least one chest in the real room pool is trapped"):
-    for rooms <- RoomLoader.loadAll()
-    yield
-      val allChests = rooms.values.flatMap(_.entities.collect { case c: Chest => c })
-      assert(allChests.exists(_.trapped), "expected at least one trapped chest in rooms.json")
-
   test("loadAll includes a Vault room"):
     for rooms <- RoomLoader.loadAll()
     yield assert(rooms.values.exists(_.roomType == RoomType.Vault), "expected a Vault room in rooms.json")

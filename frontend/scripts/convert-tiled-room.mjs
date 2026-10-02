@@ -101,9 +101,10 @@
 //                      placeholder (with a warning) if you haven't decided the monster yet. Not
 //                      real game content until filled in for real, but fine to leave for later.
 //        boss, mini_boss: same fields as enemy - aliases, not real entity kinds (see above).
-//        chest:        trapped (bool, optional, default false) - there's no "random trapped
-//                      roll" mechanic today, only this fixed authored flag; leave it unset for an
-//                      always-safe chest.
+//        chest:        trapped (bool, optional, default false) - leave it unset: chests are
+//                      trapped at random when a run's dungeon is built (see DungeonBuilder's
+//                      rollTrappedChests). Set it to true only to force one chest to always be
+//                      trapped.
 //        door:         direction (UP|DOWN|LEFT|RIGHT), role (prev|next) - both required; branch
 //                      (string, optional - only for a Fork room's two distinct exits)
 //        locked_door:  direction, targetRoomId (required), doorTag (string, optional)

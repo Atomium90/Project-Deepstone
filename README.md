@@ -92,8 +92,13 @@ node scripts/convert-tiled-room.mjs path/to/your-room.tmx
 automatically, and a tileset with no matching atlas just prints a warning and renders as a flat
 fallback color client-side, so you can check geometry/doors/entities right away regardless.)
 
+The converted file lands in `deepstone-backend/debug-rooms/`, inside the same subfolder the map has
+in the Tiled project (a map in `Tiled/darkDungeon/` goes to `debug-rooms/darkDungeon/`). A tileset
+file stays in the Tiled project folder, even for a map moved into a subfolder.
+
 With the backend running (`sbt run` / `run-dev.ps1`), the Hub screen shows a "⚠ Debug Rooms
-(dev only)" row listing every file currently in `deepstone-backend/debug-rooms/` - click one to
+(dev only)" row listing every room file found anywhere under `deepstone-backend/debug-rooms/`
+(subfolders included, listed by file name) - click one to
 drop straight into that single room, bypassing the normal dungeon generation entirely. The folder
 is read fresh on every click, so you can re-run the conversion command above and click the button
 again to see your latest changes with no server restart needed - convert a batch of rooms into

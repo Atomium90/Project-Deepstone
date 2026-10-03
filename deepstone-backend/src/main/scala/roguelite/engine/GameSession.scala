@@ -14,7 +14,7 @@ import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress,
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 
-import java.nio.file.{ Files, Path }
+import java.nio.file.{ Files, NoSuchFileException, Path }
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
@@ -449,25 +449,43 @@ object GameSession:
     */
   private val DebugRoomsDir: Path = Path.of("debug-rooms")
 
-  private def listDebugRooms(): IO[List[String]] =
-    IO.blocking {
-      if Files.isDirectory(DebugRoomsDir) then
-        val listing = Files.list(DebugRoomsDir)
-        try
-          listing
-            .iterator()
-            .asScala
-            .map(_.getFileName.toString)
-            .filter(_.endsWith(".json"))
-            .map(_.stripSuffix(".json"))
-            .toList
-            .sorted
-        finally listing.close()
-      else Nil
-    }.handleErrorWith(_ => IO.pure(Nil))
+  private def listDebugRooms(): IO[List[String]] = listDebugRoomsIn(DebugRoomsDir)
 
-  private def readDebugRoomFile(roomId: String): IO[String] =
-    IO.blocking(Files.readString(DebugRoomsDir.resolve(s"$roomId.json")))
+  private def readDebugRoomFile(roomId: String): IO[String] = readDebugRoomFileIn(DebugRoomsDir, roomId)
+
+  /** The ids of the rooms under `dir`: every `*.json` file at any depth, by its bare file name,
+    * sorted. Converted rooms may sit in subfolders that mirror the Tiled project
+    * (`debug-rooms/darkDungeon/...`), so the folder is not part of an id, which stays equal to the
+    * room's own `id` (the converter names the file after it). A missing or unreadable folder lists
+    * nothing.
+    */
+  private[engine] def listDebugRoomsIn(dir: Path): IO[List[String]] =
+    IO.blocking(debugRoomFiles(dir).map(_.getFileName.toString.stripSuffix(".json")).distinct.sorted)
+      .handleErrorWith(_ => IO.pure(Nil))
+
+  /** The content of the room file called `<roomId>.json` anywhere under `dir`. An id is matched
+    * against bare file names only, so one carrying a folder (or `..`) never reaches a file; if two
+    * folders hold the same name, the first path in sorted order wins.
+    */
+  private[engine] def readDebugRoomFileIn(dir: Path, roomId: String): IO[String] =
+    IO.blocking {
+      debugRoomFiles(dir).find(_.getFileName.toString == s"$roomId.json") match
+        case Some(file) => Files.readString(file)
+        case None       => throw NoSuchFileException(dir.resolve(s"$roomId.json").toString)
+    }
+
+  private def debugRoomFiles(dir: Path): List[Path] =
+    if Files.isDirectory(dir) then
+      val walk = Files.walk(dir)
+      try
+        walk
+          .iterator()
+          .asScala
+          .filter(p => Files.isRegularFile(p) && p.getFileName.toString.endsWith(".json"))
+          .toList
+          .sortBy(_.toString)
+      finally walk.close()
+    else Nil
 
   private def toAbilityView(a: AbilityDef): AbilityView =
     AbilityView(

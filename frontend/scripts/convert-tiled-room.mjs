@@ -121,8 +121,11 @@
 //   node scripts/convert-tiled-room.mjs path/to/map.tmx --id=012 --theme=dungeon
 //
 // Without --out, writes to deepstone-backend/debug-rooms/<map's own filename>.json (creating that
-// folder if needed) - the hub's "Debug Rooms" dev tool reads straight out of there, so a plain
-// conversion is immediately loadable in a live session. This script never touches rooms.json
+// folder if needed), inside the same subfolder the map has in the Tiled project (a map in
+// Tiled/darkDungeon/ goes to debug-rooms/darkDungeon/) - the hub's "Debug Rooms" dev tool reads
+// straight out of there, so a plain conversion is immediately loadable in a live session. A
+// tileset file stays in the Tiled project folder even for a map in a subfolder: it is looked for in
+// each parent folder up to the project folder when it isn't next to the map. This script never touches rooms.json
 // directly, on purpose: it's hand-curated content, not a build artifact to overwrite - once a
 // debug-rooms preview looks right, paste it into rooms.json's array yourself. --id/--roomType/
 // --theme override whatever the map's own Map Properties say, mainly useful for a quick test
@@ -131,8 +134,8 @@
 // still converts (every cell still gets its derived sprite key), it just won't render as anything
 // but a fallback color client-side until that atlas exists.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
-import { dirname, resolve, extname, join, basename } from "node:path";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { dirname, resolve, extname, join, basename, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseXmlDoc, readPropertiesEl } from "./lib/tiled-xml.mjs";
 
@@ -232,16 +235,54 @@ function parseTilesetElement(tilesetEl) {
     return { name, tiles };
 }
 
+/** The Tiled project folder (the one holding a `*.tiled-project` file), found by walking up from
+ * `dir`, or null when the map isn't inside a Tiled project. */
+function findTiledProjectRoot(dir) {
+    let current = resolve(dir);
+    for (;;) {
+        try {
+            if (readdirSync(current).some((f) => f.endsWith(".tiled-project"))) return current;
+        } catch {
+            // an unreadable folder just means keep walking up
+        }
+        const parent = dirname(current);
+        if (parent === current) return null;
+        current = parent;
+    }
+}
+
+/** Where a tileset `source` really is. Tiled writes it relative to the map's own folder, so a map
+ * moved into a subfolder by hand (outside Tiled) still says "dungeon.tsx" while the shared tileset
+ * file stayed in the project folder. When it isn't next to the map, each parent folder is tried up
+ * to the Tiled project folder (Tiled itself rewrites the path the next time the map is saved). */
+function resolveTilesetPath(baseDir, source) {
+    const direct = resolve(baseDir, source);
+    if (existsSync(direct)) return direct;
+
+    const root = findTiledProjectRoot(baseDir);
+    if (!root) return direct;
+    let dir = resolve(baseDir);
+    while (dir !== root && dirname(dir) !== dir) {
+        dir = dirname(dir);
+        const candidate = resolve(dir, basename(source));
+        if (existsSync(candidate)) {
+            warn(`tileset "${source}" isn't next to the map, using "${candidate}" - Tiled fixes the reference the next time this map is saved.`);
+            return candidate;
+        }
+    }
+    return direct;
+}
+
 /** One <tileset firstgid=".."> reference from inside a <map> - either embedded (the tileset's own
  * content sits right there as children) or external (a `source="foo.tsx"` pointer, resolved
- * relative to the .tmx's own folder - the normal Tiled setup, one shared tileset file per art
- * pack reused across every map, rather than duplicating it into each room). */
+ * relative to the .tmx's own folder, see resolveTilesetPath - the normal Tiled setup, one shared
+ * tileset file per art pack reused across every map, rather than duplicating it into each room). */
 function loadTileset(tilesetRefEl, baseDir) {
     const firstgid = Number(tilesetRefEl.getAttribute("firstgid"));
     const source = tilesetRefEl.getAttribute("source");
     if (!source) return { firstgid, ...parseTilesetElement(tilesetRefEl) };
 
-    const tsxPath = resolve(baseDir, source);
+    const tsxPath = resolveTilesetPath(baseDir, source);
     let tsxText;
     try {
         tsxText = readFileSync(tsxPath, "utf-8");
@@ -595,6 +636,17 @@ function checkAtlasesExist(usedTilesets) {
     }
 }
 
+/** The subfolder of debug-rooms a map's output goes to: the map's own folder relative to the Tiled
+ * project folder, so `Tiled/darkDungeon/x.tmx` lands in `debug-rooms/darkDungeon/x.json`. A map
+ * straight in the project folder, or outside any Tiled project, lands in debug-rooms itself. */
+function debugRoomSubdir(mapPath) {
+    const mapDir = dirname(resolve(mapPath));
+    const root = findTiledProjectRoot(mapDir);
+    if (!root) return "";
+    const rel = relative(root, mapDir);
+    return rel.startsWith("..") ? "" : rel;
+}
+
 function main() {
     const { positional, flags } = parseArgs(process.argv.slice(2));
     const mapPath = positional[0];
@@ -633,11 +685,11 @@ function main() {
     const room = { id, type: roomType, width, height, theme, tiles, floorSprites: floorSprite, wallSprites: wallSprite, decorations: decoration, entities };
 
     const json = JSON.stringify(room, null, 2);
-    // Defaults to deepstone-backend/debug-rooms/<same name as the source map> - the hub's "Debug
-    // Rooms" dev tool (see README.md) reads straight out of that folder, so converting a map and
-    // previewing it in a live session needs no --out bookkeeping for the common case. --out still
-    // overrides this for a one-off custom destination.
-    const outPath = flags.out ?? join(defaultDebugRoomsDir, `${basename(mapPath, extname(mapPath))}.json`);
+    // Defaults to deepstone-backend/debug-rooms/<same subfolder and name as the source map> - the
+    // hub's "Debug Rooms" dev tool (see README.md) reads straight out of that folder tree, so
+    // converting a map and previewing it in a live session needs no --out bookkeeping for the common
+    // case. --out still overrides this for a one-off custom destination.
+    const outPath = flags.out ?? join(defaultDebugRoomsDir, debugRoomSubdir(mapPath), `${basename(mapPath, extname(mapPath))}.json`);
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, json + "\n");
     console.error(`Wrote ${outPath}`);

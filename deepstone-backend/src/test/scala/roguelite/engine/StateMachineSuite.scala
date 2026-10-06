@@ -157,6 +157,21 @@ class StateMachineSuite extends FunSuite:
       )
     assert(next.isInstanceOf[ExplorationState])
 
+  test("StartRun puts the player on a walkable tile when the first room has thick walls"):
+    // Two rows of wall along the top, like the re-authored rooms: a fixed corner tile such as (1,1) is
+    // a wall there.
+    val thickTiles =
+      Vector.tabulate(7, 8)((row, col) => if row <= 1 || row == 6 || col == 0 || col == 7 then Tile.Wall else Tile.Floor)
+    val thickEntrance = Room("entrance", RoomType.Combat, "dungeon", 8, 7, thickTiles, Nil)
+    val TransitionResult(next, _, _, _) =
+      sm(roomPool = defaultRoomPool + ("entrance" -> thickEntrance))
+        .applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+    val exp = next.asInstanceOf[ExplorationState]
+    assertEquals(exp.dungeon.currentRoomId, "entrance")
+    assert(exp.dungeon.currentRoom.isWalkable(exp.playerX, exp.playerY),
+           s"the run began on a non-walkable tile: ${(exp.playerX, exp.playerY)}"
+    )
+
   test("StartRun creates player with chosen class"):
     val TransitionResult(next, _, _, _) =
       sm().applyActionPure(HubState(hubPlayer),

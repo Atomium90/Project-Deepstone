@@ -1,7 +1,7 @@
 package roguelite.game
 
 import munit.CatsEffectSuite
-import roguelite.engine.{ Difficulty, Direction }
+import roguelite.engine.{ ClassId, Difficulty, Direction, ExplorationState, PlayerFixtures }
 
 import scala.util.Random
 
@@ -153,6 +153,62 @@ class ContentIntegritySuite extends CatsEffectSuite:
                           case _ => ()
                       case _ => ()
           assertEquals(forkThemesBuilt.toSet, forkThemesInPool, "expected every theme's fork rooms to be drawn at least once")
+
+  // The tile a player appears on after walking through a door depends on the layout of the room they
+  // arrive in (see InteractionResolver.findSpawnPoint), so a room with an unusual wall thickness can
+  // put them somewhere they cannot stand. This walks through every ordinary door of every room of real
+  // dungeons and checks the arrival tile is walkable and sits in a room the player can leave, which
+  // an enclosed pocket inside a wall would not be.
+  test("walking through any door of a real dungeon never leaves the player stuck in a wall"):
+    RoomLoader
+      .loadAll()
+      .map:
+        rooms =>
+          val resolver = InteractionResolver(Map.empty, Map.empty)
+          for
+            difficulty <- Difficulty.values.toList
+            seed       <- 1 to 40
+          do
+            DungeonBuilder(rooms, Random(seed.toLong)).build(difficulty)() match
+              case Left(err) => fail(s"seed $seed at $difficulty failed to build: $err")
+              case Right(dungeon) =>
+                for
+                  room <- dungeon.rooms.values
+                  door <- room.entities.collect { case d: Door if d.doorKind == DoorKind.Normal => d }
+                  if door.link.isInstanceOf[DoorLink.Resolved]
+                do
+                  val start = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior),
+                                               dungeon.copy(currentRoomId = room.id),
+                                               playerX = door.x,
+                                               playerY = door.y
+                  )
+                  resolver.interact(start, door.id).state match
+                    case arrived: ExplorationState =>
+                      val target = arrived.dungeon.currentRoom
+                      assert(
+                        target.isWalkable(arrived.playerX, arrived.playerY),
+                        s"seed $seed at $difficulty: through '${door.id}' of '${room.id}' the player arrives at " +
+                          s"${(arrived.playerX, arrived.playerY)} in '${target.id}', which is not walkable"
+                      )
+                    case other => fail(s"unexpected state after walking through '${door.id}': $other")
+
+  // A run begins in the first room of the dungeon, which is always a Combat room (see
+  // InteractionResolver.startSpawnPoint). Whatever the wall thickness of a room's theme, the player must
+  // not start inside a wall, so every Combat room of the real pool is checked.
+  test("a run never begins inside a wall, in any room that can open a dungeon"):
+    RoomLoader
+      .loadAll()
+      .map:
+        rooms =>
+          val resolver = InteractionResolver(Map.empty, Map.empty)
+          rooms.values
+            .filter(_.roomType == RoomType.Combat)
+            .foreach:
+              room =>
+                val start = resolver.startSpawnPoint(room)
+                assert(room.isWalkable(start._1, start._2),
+                       s"a run opened by '${room.id}' would begin at $start, which is not walkable"
+                )
 
   // Chests, NPCs and the Sanctuary stay on the map for good (an opened chest keeps blocking its
   // tile), unlike enemies and shrines which disappear. An authored room must not let them seal off a

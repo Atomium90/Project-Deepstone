@@ -5,7 +5,9 @@ export default defineConfig({
     // Bumped alongside full-run.spec.ts's iteration budget - Normal difficulty's dungeon grew
     // substantially once biomes landed, so a full run now takes noticeably longer end to end.
     timeout: 240_000,
-    use: { baseURL: "http://localhost:5173", headless: true },
+    // Playwright actions have no timeout by default, so a click on an element that never appears
+    // would wait out the whole test timeout. 15s makes a stuck step fail with a readable error.
+    use: { baseURL: "http://localhost:5173", headless: true, actionTimeout: 15_000 },
     reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
     webServer: [
         {

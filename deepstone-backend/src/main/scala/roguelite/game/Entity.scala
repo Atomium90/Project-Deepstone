@@ -104,6 +104,13 @@ enum DoorKind:
 enum ConnectorRole:
   case Next, Prev
 
+  /** The role of the door at the other end of a connection: going through a Next door lands at the
+    * destination's Prev door, and the reverse. */
+  def opposite: ConnectorRole = this match {
+    case ConnectorRole.Next => ConnectorRole.Prev
+    case ConnectorRole.Prev => ConnectorRole.Next
+  }
+
 object ConnectorRole:
   /** Parse a role from the string format used in rooms.json. Fails on anything but an exact
     * "next"/"prev" match, so a typo in content surfaces as a load-time error instead of silently

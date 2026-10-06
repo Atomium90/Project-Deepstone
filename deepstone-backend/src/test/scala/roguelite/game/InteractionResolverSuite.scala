@@ -105,14 +105,103 @@ class InteractionResolverSuite extends FunSuite:
     val room    = nextExp.dungeon.currentRoom
     assertEquals((nextExp.playerX, nextExp.playerY), (room.width - 2, room.height / 2))
 
-  test("Spawning at a blocked candidate tile falls back to (1, 1)"):
-    // A Down-facing door's spawn candidate is (width/2, 1) - force that exact tile to Wall.
+  test("A blocked fixed spawn spot is replaced by the nearest free tile, never a wall"):
+    // With no door in the room to appear in front of, a Down-facing door's spot is (width/2, 1) -
+    // force that exact tile to Wall.
     val blockedR2 = roomWithWallAt("r2", wx = 4, wy = 1, entities = Nil)
     val d         = door("r1", "r2")
     val state     = explorationAt(3, 3, entities = List(d), extraRooms = Map("r2" -> blockedR2))
     val TransitionResult(next, _, _, _) = resolver().interact(state, d.id)
     val nextExp = next.asInstanceOf[ExplorationState]
-    assertEquals((nextExp.playerX, nextExp.playerY), (1, 1))
+    val room    = nextExp.dungeon.currentRoom
+    assert(room.isWalkable(nextExp.playerX, nextExp.playerY), s"spawned on a non-walkable tile: ${(nextExp.playerX, nextExp.playerY)}")
+    assert(math.max(math.abs(nextExp.playerX - 4), math.abs(nextExp.playerY - 1)) <= 1,
+           s"expected a tile next to the blocked spot (4, 1): ${(nextExp.playerX, nextExp.playerY)}"
+    )
+
+  // --- Spawn: in front of the door the player came through -----------------------
+
+  /** An 8x7 room with a 2-tile-thick top wall, like the darkDungeon theme's rooms: a door set into
+    * the top wall has its approach tile two rows down. */
+  def thickTopRoom(id: String, entities: List[Entity]): Room =
+    val tiles = Vector.tabulate(7, 8)((row, col) => if row <= 1 || row == 6 || col == 0 || col == 7 then Tile.Wall else Tile.Floor)
+    Room(id, RoomType.Combat, "darkDungeon", 8, 7, tiles, entities)
+
+  def prevDoorUp(id: String, x: Int, target: String): Door =
+    Door(id, x = x, y = 0, direction = Direction.Up, link = DoorLink.Resolved(ConnectorRole.Prev, None, target))
+
+  def spawnAfter(state: ExplorationState, doorId: String): (Int, Int) =
+    val TransitionResult(next, _, _, _) = resolver().interact(state, doorId)
+    val nextExp = next.asInstanceOf[ExplorationState]
+    (nextExp.playerX, nextExp.playerY)
+
+  test("Entering a room with thick walls appears in front of its entrance door, not inside the wall"):
+    val r2    = thickTopRoom("r2", List(prevDoorUp("door_in", x = 3, target = "r1")))
+    val d     = door("r1", "r2")
+    val state = explorationAt(3, 3, entities = List(d), extraRooms = Map("r2" -> r2))
+    assertEquals(spawnAfter(state, d.id), (3, 2))
+
+  test("Entering a room appears in front of the door that leads back, when several doors share the opposite role"):
+    val r2 = thickTopRoom("r2", List(prevDoorUp("door_other", x = 2, target = "elsewhere"), prevDoorUp("door_back", x = 5, target = "r1")))
+    val d     = door("r1", "r2")
+    val state = explorationAt(3, 3, entities = List(d), extraRooms = Map("r2" -> r2))
+    assertEquals(spawnAfter(state, d.id), (5, 2))
+
+  test("Entering a room appears in front of its opposite-role door when none leads back (the room after a fork)"):
+    val r2    = thickTopRoom("r2", List(prevDoorUp("door_in", x = 3, target = "the_other_branch")))
+    val d     = door("r1", "r2")
+    val state = explorationAt(3, 3, entities = List(d), extraRooms = Map("r2" -> r2))
+    assertEquals(spawnAfter(state, d.id), (3, 2))
+
+  test("Going back appears in front of the one of a fork's two exits that leads to the room just left"):
+    val forkExit = (id: String, x: Int, branch: String, target: String) =>
+      Door(id, x = x, y = 5, direction = Direction.Down, link = DoorLink.Resolved(ConnectorRole.Next, Some(branch), target))
+    val fork  = makeRoom("fork", entities = List(forkExit("exit_a", 2, "a", "elsewhere"), forkExit("exit_b", 5, "b", "r1")))
+    val back  = Door("back", x = 4, y = 0, direction = Direction.Up, link = DoorLink.Resolved(ConnectorRole.Prev, None, "fork"))
+    val state = explorationAt(4, 1, entities = List(back), extraRooms = Map("fork" -> fork))
+    assertEquals(spawnAfter(state, "back"), (5, 4))
+
+  test("Going into the Vault and back appears in front of the door used each way"):
+    val vaultReturn = Door("door_return", x = 0, y = 2, direction = Direction.Left, link = DoorLink.Resolved(ConnectorRole.Prev, None, "r1"))
+    val vault       = makeRoom("vault", w = 6, h = 6, roomType = RoomType.Vault, entities = List(vaultReturn))
+    val locked      = LockedDoor("door_vault", x = 7, y = 4, direction = Direction.Right, targetRoomId = "vault", unlocked = true)
+    val atDoor      = explorationAt(6, 4, entities = List(locked), extraRooms = Map("vault" -> vault))
+    val TransitionResult(inside, _, _, _) = resolver().interact(atDoor, "door_vault")
+    val insideExp = inside.asInstanceOf[ExplorationState]
+    assertEquals((insideExp.playerX, insideExp.playerY), (1, 2))
+    assertEquals(spawnAfter(insideExp, "door_return"), (6, 4))
+
+  test("An enemy standing in front of the door moves the arrival to the nearest free tile"):
+    val r2    = thickTopRoom("r2", List(prevDoorUp("door_in", x = 3, target = "r1"), Enemy("guard", x = 3, y = 2, typeId = "goblin", label = "Goblin")))
+    val d     = door("r1", "r2")
+    val state = explorationAt(3, 3, entities = List(d), extraRooms = Map("r2" -> r2))
+    val (px, py) = spawnAfter(state, d.id)
+    assertNotEquals((px, py), (3, 2))
+    assert(r2.isWalkable(px, py), s"spawned on a non-walkable tile: ${(px, py)}")
+    assert(math.max(math.abs(px - 3), math.abs(py - 2)) <= 1, s"expected a tile next to the door's approach tile: ${(px, py)}")
+
+  // --- Spawn: where a run begins ---------------------------------------------------
+
+  /** The first room's entrance: a Prev door that leads nowhere, since nothing comes before it. */
+  def entranceDoorUp(x: Int): Door =
+    Door("entrance", x = x, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev))
+
+  test("A run starts in front of the first room's entrance door, not inside a thick wall"):
+    val first = thickTopRoom("r1", List(entranceDoorUp(3)))
+    assertEquals(resolver().startSpawnPoint(first), (3, 2))
+
+  test("A first room without an entrance door starts the run on a free tile near the top"):
+    val first    = thickTopRoom("r1", Nil)
+    val (px, py) = resolver().startSpawnPoint(first)
+    assert(first.isWalkable(px, py), s"started on a non-walkable tile: ${(px, py)}")
+    assert(py <= 3, s"expected a tile near the top of the room: ${(px, py)}")
+
+  test("An enemy standing in front of the entrance door moves the start to the nearest free tile"):
+    val first    = thickTopRoom("r1", List(entranceDoorUp(3), Enemy("guard", x = 3, y = 2, typeId = "goblin", label = "Goblin")))
+    val (px, py) = resolver().startSpawnPoint(first)
+    assertNotEquals((px, py), (3, 2))
+    assert(first.isWalkable(px, py), s"started on a non-walkable tile: ${(px, py)}")
+    assert(math.max(math.abs(px - 3), math.abs(py - 2)) <= 1, s"expected a tile next to the entrance's approach tile: ${(px, py)}")
 
   test("Interact with unknown entity id returns error log"):
     val TransitionResult(next, log, _, _) = resolver().interact(explorationAt(3, 3), "ghost")
@@ -410,15 +499,26 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(chestIn(next, "c1").contents.map(_.typeId), Some("practice_sword"))
     assertEquals(next.asInstanceOf[ExplorationState].pendingEquipChoice.flatMap(_.sourceChestId), Some("c1"))
 
-  test("A chest whose item is discarded as a worse duplicate stays full, still holding it"):
+  test("A chest whose item is discarded as a worse duplicate ends up open and empty"):
     val existingWeapon = Weapon("existing", "practice_sword", "Practice Sword", Rarity.Epic, attackBonus = 20)
     val playerWithWeapon =
       PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(existingWeapon))
     val state = ExplorationState(playerWithWeapon, dungeonWith(entities = List(Chest("c1", x = 3, y = 3))), 3, 3)
-    val TransitionResult(next, _, _, _) = resolver(itemDefs = practiceSwordDefs).interact(state, "c1")
-    assertEquals(chestIn(next, "c1").state, ChestState.OpenFull)
-    assertEquals(chestIn(next, "c1").contents.map(_.typeId), Some("practice_sword"))
+    val TransitionResult(next, log, _, _) = resolver(itemDefs = practiceSwordDefs).interact(state, "c1")
+    assertEquals(chestIn(next, "c1").state, ChestState.OpenEmpty)
+    assertEquals(chestIn(next, "c1").contents, None)
     assertEquals(next.asInstanceOf[ExplorationState].pendingEquipChoice, None)
+    assert(log.exists(_.toLowerCase.contains("already have a better")), s"expected a discard message: $log")
+
+  test("A full chest whose item has since become a worse duplicate empties when opened again"):
+    val held = Weapon("held", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)
+    val chest = Chest("c1", x = 3, y = 3, state = ChestState.OpenFull, contents = Some(held))
+    val betterCopy = Weapon("better", "practice_sword", "Practice Sword", Rarity.Epic, attackBonus = 20)
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(betterCopy))
+    val state  = ExplorationState(player, dungeonWith(entities = List(chest)), 3, 3)
+    val TransitionResult(next, _, _, _) = resolver().interact(state, "c1")
+    assertEquals(chestIn(next, "c1").state, ChestState.OpenEmpty)
+    assertEquals(chestIn(next, "c1").contents, None)
 
   test("Interacting with a full chest again offers its item, and taking it empties the chest"):
     val held  = Weapon("held", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)

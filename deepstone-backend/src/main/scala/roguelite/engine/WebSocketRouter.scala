@@ -30,9 +30,9 @@ class WebSocketRouter(stateMachine: StateMachine,
                       upgradeDefs: Map[String, UpgradeDef],
                       abilityDefs: Map[ClassId, AbilityDef],
                       achievementDefs: Map[String, AchievementDef],
+                      debugMode: Boolean,
                       setDefs: Map[String, SetDef] = Map.empty,
-                      perkDefs: Map[String, PerkDef] = Map.empty,
-                      debugMode: Boolean = false
+                      perkDefs: Map[String, PerkDef] = Map.empty
 )(using logger: Logger[IO]):
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] =

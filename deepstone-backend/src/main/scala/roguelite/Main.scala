@@ -30,16 +30,10 @@ object Main extends IOApp:
   /** SQLite database file written alongside the running JAR. */
   private val DbPath = "deepstone.db"
 
-  /** The one command-line option: turns on the dev-only Debug Rooms tooling (the hub lists the
-    * rooms converted into `debug-rooms/` and loads one on click). Without it the server runs the
-    * normal game, with nothing of that tooling exposed.
-    */
-  private val DebugFlag = "--debug"
-
   def run(args: List[String]): IO[ExitCode] =
-    server(debugMode = args.contains(DebugFlag), ignoredArgs = args.filterNot(_ == DebugFlag)).as(ExitCode.Success)
+    server(StartupOptions.parse(args)).as(ExitCode.Success)
 
-  private def server(debugMode: Boolean, ignoredArgs: List[String]): IO[Unit] =
+  private def server(options: StartupOptions): IO[Unit] =
     // Database is a managed resource: schema init on open, connection pool released on exit.
     Database
       .resource(DbPath)
@@ -49,8 +43,12 @@ object Main extends IOApp:
             given org.typelevel.log4cats.Logger[IO] <- Slf4jLogger.create[IO]
             logger                                  <- Slf4jLogger.create[IO]
 
-            _ <- IO.whenA(ignoredArgs.nonEmpty)(logger.warn(s"Ignoring unknown arguments: ${ignoredArgs.mkString(" ")}"))
-            _ <- IO.whenA(debugMode)(logger.info(s"Debug mode on ($DebugFlag): Debug Rooms are available from the hub."))
+            _ <- IO.whenA(options.ignoredArgs.nonEmpty)(
+              logger.warn(s"Ignoring unknown arguments: ${options.ignoredArgs.mkString(" ")}")
+            )
+            _ <- IO.whenA(options.debugMode)(
+              logger.info(s"Debug mode on (${StartupOptions.DebugFlag}): Debug Rooms are available from the hub.")
+            )
             _           <- logger.info("Loading game data...")
             roomPool    <- RoomLoader.loadAll()
             enemyStats  <- EnemyLoader.loadAll()
@@ -82,7 +80,8 @@ object Main extends IOApp:
                                         perkDefs = perkDefs
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
-                                     achievementDefs, setDefs, perkDefs, debugMode
+                                     achievementDefs, setDefs = setDefs, perkDefs = perkDefs,
+                                     debugMode = options.debugMode
             )
 
             // Serves the frontend's built static files (copied into resources/static/ by

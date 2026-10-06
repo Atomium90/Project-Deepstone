@@ -36,12 +36,12 @@ class GameSession private (
     upgradeDefs: Map[String, UpgradeDef],
     achievementDefs: Map[String, AchievementDef],
     abilityCatalog: List[AbilityView],
+    debugMode: Boolean,
     setDefs: Map[String, SetDef] = Map.empty,
     setCatalog: List[SetView] = Nil,
     perkDefs: Map[String, PerkDef] = Map.empty,
     rng: Random = Random(),
-    abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
-    debugMode: Boolean = false
+    abilityDefs: Map[ClassId, AbilityDef] = Map.empty
 ):
 
   /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
@@ -444,12 +444,12 @@ object GameSession:
                           upgradeDefs,
                           achievementDefs,
                           abilityCatalog,
+                          debugMode,
                           setDefs,
                           setCatalog,
                           perkDefs,
                           rng,
-                          abilityDefs,
-                          debugMode
+                          abilityDefs
     )
 
   /** Number of perks offered per hub visit, out of the full catalog. */

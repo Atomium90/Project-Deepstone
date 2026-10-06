@@ -50,8 +50,10 @@ function isCardinalNeighbor(x1: number, y1: number, x2: number, y2: number): boo
  * (targetX, targetY) - a door embedded in a wall isn't itself walkable, only adjacent to it is.
  * A tile occupied by an entity doesn't count as walkable either, matching Room.isWalkable
  * server-side - the target entity's own tile is naturally excluded from the path (only tiles
- * *adjacent* to it are ever BFS goals), so this never needs to special-case the target itself. */
-function pathTo(room: NonNullable<StateUpdate["room"]>, targetX: number, targetY: number): Direction[] {
+ * *adjacent* to it are ever BFS goals), so this never needs to special-case the target itself.
+ * Returns an empty path when the player already stands next to the target, and `null` when no tile
+ * next to it can be reached at all. */
+function pathTo(room: NonNullable<StateUpdate["room"]>, targetX: number, targetY: number): Direction[] | null {
     const tiles = room.tiles;
     const occupied = new Set(room.entities.map((e) => `${e.x},${e.y}`));
     const isWalkable = (x: number, y: number) =>
@@ -84,7 +86,7 @@ function pathTo(room: NonNullable<StateUpdate["room"]>, targetX: number, targetY
             queue.push({ x: nx, y: ny, path: [...cur.path, s.dir] });
         }
     }
-    return [];
+    return null;
 }
 
 /** The cardinal direction from (x1,y1) to an adjacent (x2,y2) - callers only ever pass points
@@ -95,27 +97,24 @@ function directionBetween(x1: number, y1: number, x2: number, y2: number): Direc
     return y2 > y1 ? "DOWN" : "UP";
 }
 
-/** The tile the client's interact-range check actually uses for an entity (mirrors Renderer.ts's
- * doorInteractTile): the anchor of an UP door, and of a LEFT door in the "dungeon" theme, sits in
- * the wall one tile outside the tile the player has to be next to. Walking to a neighbor of the raw
- * anchor instead can leave the player standing on the check tile itself, which is never a neighbor
- * of itself, so E does nothing. */
-function interactTile(entity: EntityView, theme: string): { x: number; y: number } {
-    if (entity.kind !== "door" && entity.kind !== "locked_door") return { x: entity.x, y: entity.y };
-    if (entity.direction === "UP") return { x: entity.x, y: entity.y + 1 };
-    if (entity.direction === "LEFT" && theme === "dungeon") return { x: entity.x + 1, y: entity.y };
-    return { x: entity.x, y: entity.y };
+/** The tile the client's interact-range check actually uses for an entity (mirrors doorInteract.ts's
+ * interactCheckTile): the anchor of an UP door sits in the wall one tile outside the tile the player
+ * has to be next to. Walking to a neighbor of the raw anchor instead can leave the player standing on
+ * the check tile itself, which is never a neighbor of itself, so E does nothing. */
+function interactTile(entity: EntityView): { x: number; y: number } {
+    const isDoor = entity.kind === "door" || entity.kind === "locked_door";
+    return isDoor && entity.direction === "UP" ? { x: entity.x, y: entity.y + 1 } : { x: entity.x, y: entity.y };
 }
 
-/** Prefers the door farthest from where the player entered the room. InteractionResolver.
- * findSpawnPoint always spawns the player on the wall opposite their direction of travel, so the
- * door they just came through is always the nearest one to the entry point - the farthest door is
- * the way forward, not back. Measuring from the entry point rather than the player's current
- * position matters once they have walked around the room (after a fight, say): from the middle,
- * both doors can be equally far, and picking the entrance sends the run back and forth forever. */
-function pickDoor(doors: EntityView[], entry: { x: number; y: number }): EntityView {
-    return doors.reduce((farthest, d) =>
-        chebyshev(entry.x, entry.y, d.x, d.y) > chebyshev(entry.x, entry.y, farthest.x, farthest.y) ? d : farthest
+/** The room's doors, farthest from where the player entered first. InteractionResolver.
+ * findSpawnPoint places the player in front of the door they just came through, so that door is
+ * always the nearest one to the entry point and the farthest door is the way forward, not back.
+ * Measuring from the entry point rather than the player's current position matters once they have
+ * walked around the room (after a fight, say): from the middle, both doors can be equally far, and
+ * picking the entrance sends the run back and forth forever. */
+function doorsFarthestFirst(doors: EntityView[], entry: { x: number; y: number }): EntityView[] {
+    return [...doors].sort(
+        (a, b) => chebyshev(entry.x, entry.y, b.x, b.y) - chebyshev(entry.x, entry.y, a.x, a.y)
     );
 }
 
@@ -190,15 +189,25 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
         }
         // Only a closed chest is worth walking to: an opened one stays on the map (empty, sprung, or
         // still holding an item that was declined), so targeting it again would loop forever.
-        const chest = room.entities.find((e) => e.kind === "chest" && e.state === "closed");
-        const enemy = room.entities.find((e) => e.kind === "enemy");
-        // The Sanctuary is the only thing that ends the run now (a Boss kill no longer does) - it
-        // has to outrank the door fallback below, or the loop would just walk back out through the
-        // room's one entrance door forever once it reaches sanctuary_001.
-        const sanctuary = room.entities.find((e) => e.kind === "sanctuary");
+        // Targets in priority order: chests, then enemies, then the Sanctuary (the only thing that
+        // ends the run, it has to outrank the doors or the loop would walk back out through the
+        // entrance forever once it reaches the Sanctuary room), then doors, forward ones first.
         const doors = room.entities.filter((e) => e.kind === "door" || e.kind === "locked_door");
-        const target: EntityView | undefined =
-            chest ?? enemy ?? sanctuary ?? (doors.length > 0 ? pickDoor(doors, entry) : undefined);
+        const candidates: EntityView[] = [
+            ...room.entities.filter((e) => e.kind === "chest" && e.state === "closed"),
+            ...room.entities.filter((e) => e.kind === "enemy"),
+            ...room.entities.filter((e) => e.kind === "sanctuary"),
+            ...doorsFarthestFirst(doors, entry),
+        ];
+        // The first target that can actually be reached wins: a chest walled in by the enemies a trap
+        // spawned in a one-tile corridor would otherwise make every E do nothing.
+        const choice = candidates
+            .map((candidate) => {
+                const goal = interactTile(candidate);
+                return { candidate, path: pathTo(room, goal.x, goal.y) };
+            })
+            .find((c) => c.path !== null);
+        const target = choice?.candidate;
 
         if (!target) {
             // Nothing visible to interact with (e.g. an unrevealed secret door) - take a step in
@@ -216,8 +225,7 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
             continue;
         }
 
-        const goal = interactTile(target, room.theme);
-        for (const dir of pathTo(room, goal.x, goal.y)) {
+        for (const dir of choice!.path!) {
             await page.keyboard.press(DIRECTION_KEY[dir]);
             state = await waitForStateChange(page, state);
         }

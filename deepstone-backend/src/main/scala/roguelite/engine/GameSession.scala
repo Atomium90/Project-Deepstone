@@ -40,7 +40,8 @@ class GameSession private (
     setCatalog: List[SetView] = Nil,
     perkDefs: Map[String, PerkDef] = Map.empty,
     rng: Random = Random(),
-    abilityDefs: Map[ClassId, AbilityDef] = Map.empty
+    abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
+    debugMode: Boolean = false
 ):
 
   /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
@@ -57,7 +58,7 @@ class GameSession private (
       case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _, _) =>
         handleBuyUpgrade(upgradeId)
       case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId)) =>
-        handleDebugLoadRoom(roomId)
+        if debugMode then handleDebugLoadRoom(roomId) else rejectDebugLoadRoom
       case _ =>
         handleTransition(action)
     for
@@ -112,15 +113,22 @@ class GameSession private (
   private def toAchievementView(d: AchievementDef, unlocked: Boolean): AchievementView =
     AchievementView(id = d.id, label = d.label, description = d.description, unlocked = unlocked)
 
-  /** Dev tooling only: attaches the list of hand-converted Tiled rooms currently sitting in the
-    * backend's `debug-rooms/` folder, so the hub can offer one-click "load this room" buttons (see
-    * `handleDebugLoadRoom`). Only scanned while in the hub - irrelevant, and not worth an extra
-    * directory read, on every mid-run action.
+  /** Dev tooling only, and only when the backend was started with `--debug`: attaches the list of
+    * hand-converted Tiled rooms currently sitting in the backend's `debug-rooms/` folder, so the hub
+    * can offer one-click "load this room" buttons (see `handleDebugLoadRoom`). Only scanned while in
+    * the hub - irrelevant, and not worth an extra directory read, on every mid-run action. Without
+    * debug mode the list stays empty, which is all the client needs to hide every debug control.
     */
   private def withDebugRooms(update: StateUpdate, state: GameState): IO[StateUpdate] =
     state match
-      case _: HubState => GameSession.listDebugRooms().map(ids => update.copy(debugRooms = ids))
-      case _            => IO.pure(update)
+      case _: HubState if debugMode => GameSession.listDebugRooms().map(ids => update.copy(debugRooms = ids))
+      case _                        => IO.pure(update)
+
+  /** A `DebugLoadRoom` that arrives while debug mode is off: nothing changes, and the log says how
+    * to turn it on, same discipline as any other rejected dev action.
+    */
+  private def rejectDebugLoadRoom: IO[StateUpdate] =
+    stateRef.get.map(_.toStateUpdate(List("Debug rooms are off: start the backend with --debug to use them.")))
 
   // -----------------------------------------------------------------------
   // Internal: transition handling
@@ -393,6 +401,9 @@ object GameSession:
     *                      subset of which is offered on every fresh hub entry.
     * @param rng           Random instance for perk rolls. Inject a seeded one for deterministic
     *                      tests.
+    * @param debugMode     Whether the dev-only Debug Rooms tooling is on (the backend was started
+    *                      with `--debug`): the hub lists the rooms of `debug-rooms/` and
+    *                      `DebugLoadRoom` is honoured. Off by default.
     */
   def create(stateMachine: StateMachine,
              database: Database,
@@ -402,7 +413,8 @@ object GameSession:
              achievementDefs: Map[String, AchievementDef],
              setDefs: Map[String, SetDef] = Map.empty,
              perkDefs: Map[String, PerkDef] = Map.empty,
-             rng: Random = Random()
+             rng: Random = Random(),
+             debugMode: Boolean = false
   ): IO[GameSession] =
     for
       meta                 <- database.loadMeta()
@@ -436,7 +448,8 @@ object GameSession:
                           setCatalog,
                           perkDefs,
                           rng,
-                          abilityDefs
+                          abilityDefs,
+                          debugMode
     )
 
   /** Number of perks offered per hub visit, out of the full catalog. */

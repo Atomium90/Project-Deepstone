@@ -14,11 +14,35 @@
 
   To stop both servers at once, run stop-dev.ps1, rather than switching to each tab and
   stopping it individually.
+
+  Pass --debug (-debug works too) to start the backend with its dev-only Debug Rooms tooling:
+  the hub then lists every room converted into deepstone-backend/debug-rooms/ and loads one on
+  click. Without it the game runs normally, with none of that tooling exposed.
+
+.EXAMPLE
+  .\run-dev.ps1
+
+  Starts the game normally.
+
+.EXAMPLE
+  .\run-dev.ps1 --debug
+
+  Starts the game with the Debug Rooms tooling, to test rooms converted from Tiled.
 #>
 
 $root = $PSScriptRoot
 $backendPort = 8080
 $frontendPort = 5173
+
+# The only option is --debug. This script deliberately has no param block: PowerShell reads -debug
+# on a script that declares parameters as its own common -Debug switch (and double-dash forms
+# too), which would swallow the flag, whereas a plain script receives every spelling in $args.
+$debugRooms = ($args -contains "--debug") -or ($args -contains "-debug")
+$unknownArgs = @($args | Where-Object { $_ -and $_ -notin @("--debug", "-debug") })
+if ($unknownArgs.Count -gt 0) {
+    Write-Warning "Ignoring unknown arguments: $($unknownArgs -join ' ') (the only option is --debug)"
+}
+$backendCommand = if ($debugRooms) { 'sbt "run --debug"' } else { "sbt run" }
 
 # Full path to whatever PowerShell host is running this script (Windows PowerShell 5.1's
 # powershell.exe, or PowerShell 7+'s pwsh.exe) - not just the bare word "powershell". wt spawns
@@ -41,7 +65,7 @@ $backendLauncher = Join-Path $launcherDir "backend.ps1"
 @"
 `$env:PATH = '$escapedPath'
 Set-Location '$root\deepstone-backend'
-sbt run
+$backendCommand
 "@ | Set-Content -Path $backendLauncher -Encoding UTF8
 
 $frontendLauncher = Join-Path $launcherDir "frontend.ps1"
@@ -51,7 +75,10 @@ Set-Location '$root\frontend'
 npm run dev
 "@ | Set-Content -Path $frontendLauncher -Encoding UTF8
 
-Write-Host "Starting backend (sbt run) - server will listen on ws://localhost:$backendPort/ws"
+Write-Host "Starting backend ($backendCommand) - server will listen on ws://localhost:$backendPort/ws"
+if ($debugRooms) {
+    Write-Host "Debug mode: the hub will list the rooms converted into deepstone-backend/debug-rooms/."
+}
 Start-Process wt -ArgumentList "-w 0 new-tab --title `"Deepstone backend`" `"$shellExe`" -NoExit -File `"$backendLauncher`""
 
 # Give the first tab a moment to create the window before targeting it again.

@@ -1,6 +1,6 @@
 package roguelite
 
-import cats.effect.{ IO, IOApp }
+import cats.effect.{ ExitCode, IO, IOApp }
 import cats.syntax.semigroupk.*
 import com.comcast.ip4s.{ host, port }
 import org.http4s.HttpRoutes
@@ -25,12 +25,21 @@ import roguelite.game.{
 }
 import roguelite.db.Database
 
-object Main extends IOApp.Simple:
+object Main extends IOApp:
 
   /** SQLite database file written alongside the running JAR. */
   private val DbPath = "deepstone.db"
 
-  def run: IO[Unit] =
+  /** The one command-line option: turns on the dev-only Debug Rooms tooling (the hub lists the
+    * rooms converted into `debug-rooms/` and loads one on click). Without it the server runs the
+    * normal game, with nothing of that tooling exposed.
+    */
+  private val DebugFlag = "--debug"
+
+  def run(args: List[String]): IO[ExitCode] =
+    server(debugMode = args.contains(DebugFlag), ignoredArgs = args.filterNot(_ == DebugFlag)).as(ExitCode.Success)
+
+  private def server(debugMode: Boolean, ignoredArgs: List[String]): IO[Unit] =
     // Database is a managed resource: schema init on open, connection pool released on exit.
     Database
       .resource(DbPath)
@@ -40,6 +49,8 @@ object Main extends IOApp.Simple:
             given org.typelevel.log4cats.Logger[IO] <- Slf4jLogger.create[IO]
             logger                                  <- Slf4jLogger.create[IO]
 
+            _ <- IO.whenA(ignoredArgs.nonEmpty)(logger.warn(s"Ignoring unknown arguments: ${ignoredArgs.mkString(" ")}"))
+            _ <- IO.whenA(debugMode)(logger.info(s"Debug mode on ($DebugFlag): Debug Rooms are available from the hub."))
             _           <- logger.info("Loading game data...")
             roomPool    <- RoomLoader.loadAll()
             enemyStats  <- EnemyLoader.loadAll()
@@ -71,7 +82,7 @@ object Main extends IOApp.Simple:
                                         perkDefs = perkDefs
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
-                                     achievementDefs, setDefs, perkDefs
+                                     achievementDefs, setDefs, perkDefs, debugMode
             )
 
             // Serves the frontend's built static files (copied into resources/static/ by

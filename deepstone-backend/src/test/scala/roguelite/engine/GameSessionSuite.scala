@@ -306,6 +306,29 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(update.phase, GamePhase.Hub)
   }
 
+  db.test("without debug mode a DebugLoadRoom is rejected and no debug room is listed") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        update  <- session.handle(HubAction(HubActionType.DebugLoadRoom, debugRoomId = Some("any_room")))
+      yield
+        assertEquals(update.phase, GamePhase.Hub)
+        assertEquals(update.debugRooms, Nil)
+        assert(update.log.exists(_.contains("--debug")), s"expected a hint about --debug: ${update.log}")
+  }
+
+  db.test("with debug mode a DebugLoadRoom reaches the room loader") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      debugMode = true
+        )
+        update <- session.handle(HubAction(HubActionType.DebugLoadRoom, debugRoomId = Some("no_such_debug_room")))
+      yield
+        assertEquals(update.phase, GamePhase.Hub)
+        assert(update.log.exists(_.contains("not found")), s"expected the loader's not-found message: ${update.log}")
+  }
+
   db.test("hub state update includes upgrade list") {
     database =>
       for

@@ -31,7 +31,8 @@ class WebSocketRouter(stateMachine: StateMachine,
                       abilityDefs: Map[ClassId, AbilityDef],
                       achievementDefs: Map[String, AchievementDef],
                       setDefs: Map[String, SetDef] = Map.empty,
-                      perkDefs: Map[String, PerkDef] = Map.empty
+                      perkDefs: Map[String, PerkDef] = Map.empty,
+                      debugMode: Boolean = false
 )(using logger: Logger[IO]):
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] =
@@ -40,7 +41,7 @@ class WebSocketRouter(stateMachine: StateMachine,
         for
           session <-
             GameSession.create(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
-                               achievementDefs, setDefs, perkDefs
+                               achievementDefs, setDefs, perkDefs, debugMode = debugMode
             )
           // Unbounded queue used to push outgoing frames from the receive handler
           outgoing <- Queue.unbounded[IO, WebSocketFrame]

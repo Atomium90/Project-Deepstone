@@ -96,7 +96,10 @@ The converted file lands in `deepstone-backend/debug-rooms/`, inside the same su
 in the Tiled project (a map in `Tiled/darkDungeon/` goes to `debug-rooms/darkDungeon/`). A tileset
 file stays in the Tiled project folder, even for a map moved into a subfolder.
 
-With the backend running (`sbt run` / `run-dev.ps1`), the Hub screen shows a "⚠ Debug Rooms
+This tooling is off by default. Start the backend in debug mode with `./run-dev.ps1 --debug`, or
+`sbt "run --debug"` from `deepstone-backend/` (a packaged build takes the same `--debug` argument);
+a plain `./run-dev.ps1` or `sbt run` runs the normal game, with none of it exposed. In debug mode the
+Hub screen shows a "⚠ Debug Rooms
 (dev only)" row listing every room file found anywhere under `deepstone-backend/debug-rooms/`
 (subfolders included, listed by file name) - click one to
 drop straight into that single room, bypassing the normal dungeon generation entirely. The folder

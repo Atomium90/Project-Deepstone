@@ -431,6 +431,14 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       .getOrElse(fixedSpawnSpot(room, fromDirection))
     room.nearbyFreeTiles(preferred._1, preferred._2, 1).headOption.getOrElse((1, 1))
 
+  /** Where a run begins: in front of the entrance door of the dungeon's first room, the Prev door
+    * that leads nowhere because nothing comes before it, whatever the room's wall thickness. A first
+    * room with no such door begins near the top of the room. Either way an occupied or blocked spot
+    * is replaced by the nearest free tile, see [[findSpawnPoint]].
+    */
+  def startSpawnPoint(room: Room): (Int, Int) =
+    findSpawnPoint(room, Direction.Down, originRoomId = "", passedRole = Some(ConnectorRole.Next))
+
   /** The door of `room` the player just came through, see [[findSpawnPoint]]. */
   private def arrivalDoor(room: Room, originRoomId: String, passedRole: Option[ConnectorRole]): Option[Entity] =
     val leadingBack = room.entities.find {

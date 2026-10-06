@@ -192,6 +192,24 @@ class ContentIntegritySuite extends CatsEffectSuite:
                       )
                     case other => fail(s"unexpected state after walking through '${door.id}': $other")
 
+  // A run begins in the first room of the dungeon, which is always a Combat room (see
+  // InteractionResolver.startSpawnPoint). Whatever the wall thickness of a room's theme, the player must
+  // not start inside a wall, so every Combat room of the real pool is checked.
+  test("a run never begins inside a wall, in any room that can open a dungeon"):
+    RoomLoader
+      .loadAll()
+      .map:
+        rooms =>
+          val resolver = InteractionResolver(Map.empty, Map.empty)
+          rooms.values
+            .filter(_.roomType == RoomType.Combat)
+            .foreach:
+              room =>
+                val start = resolver.startSpawnPoint(room)
+                assert(room.isWalkable(start._1, start._2),
+                       s"a run opened by '${room.id}' would begin at $start, which is not walkable"
+                )
+
   // Chests, NPCs and the Sanctuary stay on the map for good (an opened chest keeps blocking its
   // tile), unlike enemies and shrines which disappear. An authored room must not let them seal off a
   // door or each other. Reachability is measured from the first door: a door's approach tile is the

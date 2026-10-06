@@ -187,11 +187,14 @@ class StateMachine(roomPool: Map[String, Room],
                       withEffect.copy(activePerkId = Some(perk.id))
                   }
 
+                  // The run begins in front of the first room's entrance door. A fixed corner tile
+                  // is a wall in any room whose walls are two tiles thick.
+                  val (startX, startY) = interactionResolver.startSpawnPoint(dungeon.currentRoom)
                   val nextState =
                     ExplorationState(playerWithPerk,
                                       dungeon,
-                                      playerX = 1,
-                                      playerY = 1,
+                                      playerX = startX,
+                                      playerY = startY,
                                       difficulty,
                                       enemyStats = enemyStats
                     )

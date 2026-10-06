@@ -180,6 +180,29 @@ class InteractionResolverSuite extends FunSuite:
     assert(r2.isWalkable(px, py), s"spawned on a non-walkable tile: ${(px, py)}")
     assert(math.max(math.abs(px - 3), math.abs(py - 2)) <= 1, s"expected a tile next to the door's approach tile: ${(px, py)}")
 
+  // --- Spawn: where a run begins ---------------------------------------------------
+
+  /** The first room's entrance: a Prev door that leads nowhere, since nothing comes before it. */
+  def entranceDoorUp(x: Int): Door =
+    Door("entrance", x = x, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev))
+
+  test("A run starts in front of the first room's entrance door, not inside a thick wall"):
+    val first = thickTopRoom("r1", List(entranceDoorUp(3)))
+    assertEquals(resolver().startSpawnPoint(first), (3, 2))
+
+  test("A first room without an entrance door starts the run on a free tile near the top"):
+    val first    = thickTopRoom("r1", Nil)
+    val (px, py) = resolver().startSpawnPoint(first)
+    assert(first.isWalkable(px, py), s"started on a non-walkable tile: ${(px, py)}")
+    assert(py <= 3, s"expected a tile near the top of the room: ${(px, py)}")
+
+  test("An enemy standing in front of the entrance door moves the start to the nearest free tile"):
+    val first    = thickTopRoom("r1", List(entranceDoorUp(3), Enemy("guard", x = 3, y = 2, typeId = "goblin", label = "Goblin")))
+    val (px, py) = resolver().startSpawnPoint(first)
+    assertNotEquals((px, py), (3, 2))
+    assert(first.isWalkable(px, py), s"started on a non-walkable tile: ${(px, py)}")
+    assert(math.max(math.abs(px - 3), math.abs(py - 2)) <= 1, s"expected a tile next to the entrance's approach tile: ${(px, py)}")
+
   test("Interact with unknown entity id returns error log"):
     val TransitionResult(next, log, _, _) = resolver().interact(explorationAt(3, 3), "ghost")
     assert(next.isInstanceOf[ExplorationState])

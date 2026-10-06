@@ -47,12 +47,6 @@ class LootTableSuite extends FunSuite:
     val t2 = LootTable.rollChest(itemDefs, Random(7)).map(_.typeId)
     assertEquals(t1, t2)
 
-  // Seed 3 is a seed found (once) to land rusty_key on the very first draw - a direct example
-  // instead of hoping one of 500 attempts hits it.
-  test("rollChest can produce a key"):
-    val item = LootTable.rollChest(itemDefs, Random(3)).getOrElse(fail("expected Some"))
-    assertEquals(item.typeId, "rusty_key")
-
   // --- Shrine reward-choice rolls --------------------------------------------
 
   test("rollShrineChoices returns the requested count with a valid item def map"):

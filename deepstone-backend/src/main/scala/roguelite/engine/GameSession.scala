@@ -14,7 +14,7 @@ import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress,
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 
-import java.nio.file.{ Files, Path }
+import java.nio.file.{ Files, NoSuchFileException, Path }
 import scala.jdk.CollectionConverters.*
 import scala.util.Random
 
@@ -36,6 +36,7 @@ class GameSession private (
     upgradeDefs: Map[String, UpgradeDef],
     achievementDefs: Map[String, AchievementDef],
     abilityCatalog: List[AbilityView],
+    debugMode: Boolean,
     setDefs: Map[String, SetDef] = Map.empty,
     setCatalog: List[SetView] = Nil,
     perkDefs: Map[String, PerkDef] = Map.empty,
@@ -57,7 +58,7 @@ class GameSession private (
       case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _, _) =>
         handleBuyUpgrade(upgradeId)
       case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId)) =>
-        handleDebugLoadRoom(roomId)
+        if debugMode then handleDebugLoadRoom(roomId) else rejectDebugLoadRoom
       case _ =>
         handleTransition(action)
     for
@@ -112,15 +113,22 @@ class GameSession private (
   private def toAchievementView(d: AchievementDef, unlocked: Boolean): AchievementView =
     AchievementView(id = d.id, label = d.label, description = d.description, unlocked = unlocked)
 
-  /** Dev tooling only: attaches the list of hand-converted Tiled rooms currently sitting in the
-    * backend's `debug-rooms/` folder, so the hub can offer one-click "load this room" buttons (see
-    * `handleDebugLoadRoom`). Only scanned while in the hub - irrelevant, and not worth an extra
-    * directory read, on every mid-run action.
+  /** Dev tooling only, and only when the backend was started with `--debug`: attaches the list of
+    * hand-converted Tiled rooms currently sitting in the backend's `debug-rooms/` folder, so the hub
+    * can offer one-click "load this room" buttons (see `handleDebugLoadRoom`). Only scanned while in
+    * the hub - irrelevant, and not worth an extra directory read, on every mid-run action. Without
+    * debug mode the list stays empty, which is all the client needs to hide every debug control.
     */
   private def withDebugRooms(update: StateUpdate, state: GameState): IO[StateUpdate] =
     state match
-      case _: HubState => GameSession.listDebugRooms().map(ids => update.copy(debugRooms = ids))
-      case _            => IO.pure(update)
+      case _: HubState if debugMode => GameSession.listDebugRooms().map(ids => update.copy(debugRooms = ids))
+      case _                        => IO.pure(update)
+
+  /** A `DebugLoadRoom` that arrives while debug mode is off: nothing changes, and the log says how
+    * to turn it on, same discipline as any other rejected dev action.
+    */
+  private def rejectDebugLoadRoom: IO[StateUpdate] =
+    stateRef.get.map(_.toStateUpdate(List("Debug rooms are off: start the backend with --debug to use them.")))
 
   // -----------------------------------------------------------------------
   // Internal: transition handling
@@ -393,6 +401,9 @@ object GameSession:
     *                      subset of which is offered on every fresh hub entry.
     * @param rng           Random instance for perk rolls. Inject a seeded one for deterministic
     *                      tests.
+    * @param debugMode     Whether the dev-only Debug Rooms tooling is on (the backend was started
+    *                      with `--debug`): the hub lists the rooms of `debug-rooms/` and
+    *                      `DebugLoadRoom` is honoured. Off by default.
     */
   def create(stateMachine: StateMachine,
              database: Database,
@@ -402,7 +413,8 @@ object GameSession:
              achievementDefs: Map[String, AchievementDef],
              setDefs: Map[String, SetDef] = Map.empty,
              perkDefs: Map[String, PerkDef] = Map.empty,
-             rng: Random = Random()
+             rng: Random = Random(),
+             debugMode: Boolean = false
   ): IO[GameSession] =
     for
       meta                 <- database.loadMeta()
@@ -432,6 +444,7 @@ object GameSession:
                           upgradeDefs,
                           achievementDefs,
                           abilityCatalog,
+                          debugMode,
                           setDefs,
                           setCatalog,
                           perkDefs,
@@ -449,25 +462,43 @@ object GameSession:
     */
   private val DebugRoomsDir: Path = Path.of("debug-rooms")
 
-  private def listDebugRooms(): IO[List[String]] =
-    IO.blocking {
-      if Files.isDirectory(DebugRoomsDir) then
-        val listing = Files.list(DebugRoomsDir)
-        try
-          listing
-            .iterator()
-            .asScala
-            .map(_.getFileName.toString)
-            .filter(_.endsWith(".json"))
-            .map(_.stripSuffix(".json"))
-            .toList
-            .sorted
-        finally listing.close()
-      else Nil
-    }.handleErrorWith(_ => IO.pure(Nil))
+  private def listDebugRooms(): IO[List[String]] = listDebugRoomsIn(DebugRoomsDir)
 
-  private def readDebugRoomFile(roomId: String): IO[String] =
-    IO.blocking(Files.readString(DebugRoomsDir.resolve(s"$roomId.json")))
+  private def readDebugRoomFile(roomId: String): IO[String] = readDebugRoomFileIn(DebugRoomsDir, roomId)
+
+  /** The ids of the rooms under `dir`: every `*.json` file at any depth, by its bare file name,
+    * sorted. Converted rooms may sit in subfolders that mirror the Tiled project
+    * (`debug-rooms/darkDungeon/...`), so the folder is not part of an id, which stays equal to the
+    * room's own `id` (the converter names the file after it). A missing or unreadable folder lists
+    * nothing.
+    */
+  private[engine] def listDebugRoomsIn(dir: Path): IO[List[String]] =
+    IO.blocking(debugRoomFiles(dir).map(_.getFileName.toString.stripSuffix(".json")).distinct.sorted)
+      .handleErrorWith(_ => IO.pure(Nil))
+
+  /** The content of the room file called `<roomId>.json` anywhere under `dir`. An id is matched
+    * against bare file names only, so one carrying a folder (or `..`) never reaches a file; if two
+    * folders hold the same name, the first path in sorted order wins.
+    */
+  private[engine] def readDebugRoomFileIn(dir: Path, roomId: String): IO[String] =
+    IO.blocking {
+      debugRoomFiles(dir).find(_.getFileName.toString == s"$roomId.json") match
+        case Some(file) => Files.readString(file)
+        case None       => throw NoSuchFileException(dir.resolve(s"$roomId.json").toString)
+    }
+
+  private def debugRoomFiles(dir: Path): List[Path] =
+    if Files.isDirectory(dir) then
+      val walk = Files.walk(dir)
+      try
+        walk
+          .iterator()
+          .asScala
+          .filter(p => Files.isRegularFile(p) && p.getFileName.toString.endsWith(".json"))
+          .toList
+          .sortBy(_.toString)
+      finally walk.close()
+    else Nil
 
   private def toAbilityView(a: AbilityDef): AbilityView =
     AbilityView(

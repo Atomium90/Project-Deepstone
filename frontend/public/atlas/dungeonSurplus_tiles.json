@@ -1,0 +1,116 @@
+{
+  "sprites": {
+    "dungeonSurplus_0": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 0,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_1": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 16,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_2": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 32,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_3": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 48,
+      "y": 0,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_4": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 0,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_5": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 16,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_6": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 32,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_7": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 48,
+      "y": 16,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_8": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 0,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_9": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 16,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_10": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 32,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_11": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 48,
+      "y": 32,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_12": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 0,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_13": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 16,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_14": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 32,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    },
+    "dungeonSurplus_15": {
+      "sheet": "/sprites/tiles/dungeonSurplus.png",
+      "x": 48,
+      "y": 48,
+      "w": 16,
+      "h": 16
+    }
+  }
+}

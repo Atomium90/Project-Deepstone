@@ -15,8 +15,20 @@ Third-party art and audio assets used by Deepstone, and their licenses.
 - **DungeonTileset II** by 0x72 (https://0x72.itch.io/dungeontileset-ii)
   Used for: hand-authored Tiled rooms' dungeon-theme tiles (see `frontend/scripts/
   generate-tiled-tileset-atlas.mjs`), master sheet imported into Tiled for precise autotiling.
+  Modified: the block of vertical wall sprites on the master sheet (x 0-96, y 128-192) was moved
+  up by 8 px so every wall piece sits on the same 16 px grid phase and a raw 16x16 cut lines up
+  (`frontend/public/sprites/tiles/0x72_DungeonTilesetII_v1.7_aligned.png`). No pixel was added or
+  removed. The original, unmodified sheet is kept next to it and is still used for the chests and
+  the door leaf.
 - **16x16 Dark Dungeon Tileset** by Kosinaz (https://kosinaz.itch.io/16x16-dark-dungeon-tileset)
   Based on 0x72's DungeonTileset II. Used for: hand-authored Tiled rooms' darkDungeon theme.
+- **Surplus sheet** (`frontend/public/sprites/tiles/dungeonSurplus.png`), reworked extras derived
+  from the two tilesets above so the dungeon theme can use darkDungeon-style walls. It holds the
+  four DungeonTileset II wall banners cut out on a transparent background (every pixel that is not
+  wall palette), the lava and water wall fountains of the Dark Dungeon Tileset adapted to the
+  dungeon theme (the water recoloured with DungeonTileset II's water colors, the floor built into
+  the base tile replaced by rows from DungeonTileset II's fountain base), and four half floors
+  (top, bottom, left, right) cut from DungeonTileset II's plain floor tile.
 - **Pixel Crawler** pack
   Used for: player and enemy character sprites.
 - **UI Pack**, **UI Pack (RPG Expansion)**, **Game Icons**, **Game Icons (Expansion)** by Kenney (https://kenney.nl)

@@ -11,7 +11,8 @@ import scala.util.Random
 object LootTable:
 
   /** Items that can drop from any chest (typeId → relative weight). Weights are relative: only
-    * their ratio matters.
+    * their ratio matters. `rusty_key` is left out on purpose while no room has a locked door for
+    * it to open: put it back together with the first one.
     */
   private val ChestPool: List[(String, Int)] = List(
     "health_potion"          -> 25,
@@ -19,7 +20,6 @@ object LootTable:
     "gold_dagger"            -> 10,
     "leather_bound_grimoire" -> 10,
     "soulstone"              -> 10,
-    "rusty_key"              -> 12,
     "steel_sword"            -> 5,
     "wooden_emerald_bow"     -> 5,
     "pyromancer_staff"       -> 5,

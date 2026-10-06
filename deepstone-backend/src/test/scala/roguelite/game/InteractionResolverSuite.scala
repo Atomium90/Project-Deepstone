@@ -344,13 +344,11 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(events, Nil)
     assert(log.exists(_.toLowerCase.contains("choose")), s"expected a choice-prompt message: $log")
 
-  test("A chest that yields a key increments the player's key count instead of offering a choice"):
-    val itemDefs: Map[String, Item] = Map(
-      "rusty_key" -> Key("", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic)
-    )
-    val chest = Chest("c1", x = 3, y = 3)
+  test("A key taken from a chest increments the player's key count instead of offering a choice"):
+    val held  = Key("k1", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic)
+    val chest = Chest("c1", x = 3, y = 3, state = ChestState.OpenFull, contents = Some(held))
     val state = explorationAt(3, 3, entities = List(chest))
-    val TransitionResult(next, log, _, events) = resolver(itemDefs = itemDefs).interact(state, "c1")
+    val TransitionResult(next, log, _, events) = resolver().interact(state, "c1")
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.player.keyCounts.get(KeyKind.Generic), Some(1))
     assertEquals(nextExp.pendingEquipChoice, None)

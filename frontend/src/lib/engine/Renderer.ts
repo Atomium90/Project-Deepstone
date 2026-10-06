@@ -1,6 +1,8 @@
 import { assets, type AssetManager, type SourceRect } from "./AssetManager";
 import type { RoomView, PlayerView, EntityView } from "./protocol";
 import { chestSpriteKey, isEntityInteractable } from "./entityState";
+import { doorNativeYOffset } from "./doorArt";
+import { interactCheckTile } from "./doorInteract";
 import {
   TILE_SIZE,
   LERP_SPEED,
@@ -95,26 +97,16 @@ const DOOR_SPRITE = "dungeon_door_leaf";
 
 /** Native-pixel row, counting from DOOR_SPRITE's own top edge (sy), where the arch ends and the
  * door panel begins - the crop starts at sheet y=237 and the panel starts at sheet y=252, so
- * 252-237=15. Only meaningful for the darkDungeon split in drawDoor. */
-const DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT = 15;
+ * 252-237=15. drawDoor splits the sprite here, for every theme. */
+const DOOR_ARCH_NATIVE_HEIGHT = 15;
 
-/** The arch piece (see DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT) renders compressed to this many
- * native-equivalent pixels instead of its own true 15. The panel keeps its true height (it has to
- * stay pixel-accurate to the floor/wall grid around it), so once it shifts by
- * DARK_DUNGEON_DOOR_NATIVE_Y_OFFSET, the arch is what shrinks to keep the two pieces filling the
- * door's normal 2-tile footprint with zero gap - by the same 0.8 ratio DOOR_SPRITE's own 40px
- * width already gets squeezed to fit 2 tiles (32/40 = 12/15), so it shrinks proportionally rather
- * than distorting. */
-const DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT_COMPRESSED = 12;
-
-/** How far, in native pixels, to shift the door panel from the box's natural bottom edge -
- * darkDungeon's own wall/floor art sits slightly off the plain dungeon theme's grid (the plain
- * dungeon theme's door needs no adjustment at all). The arch shrinks to match - see
- * DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT_COMPRESSED. Defined in native pixels and scaled by
- * TILE_SIZE/16 at the point of use, like every other atlas source rect in this codebase - every
- * source pack so far is authored on a 16px native grid, TILE_SIZE is that same tile at 4x (64px
- * on screen). */
-const DARK_DUNGEON_DOOR_NATIVE_Y_OFFSET = 6;
+/** The arch piece (see DOOR_ARCH_NATIVE_HEIGHT) renders compressed to this many native-equivalent
+ * pixels instead of its own true 15. The panel keeps its true height (it has to stay
+ * pixel-accurate to the floor/wall grid around it), so the arch is what shrinks to keep the two
+ * pieces filling the door's normal 2-tile footprint with zero gap - by the same 0.8 ratio
+ * DOOR_SPRITE's own 40px width already gets squeezed to fit 2 tiles (32/40 = 12/15), so it
+ * shrinks proportionally rather than distorting. */
+const DOOR_ARCH_NATIVE_HEIGHT_COMPRESSED = 12;
 
 /** The Sanctuary renders at a 2x2 tile footprint (its native 24x24-per-frame art is already
  * authored at double the usual 16x16 tile size), centered on its own single logical tile like
@@ -279,7 +271,7 @@ export class Renderer {
     for (const entity of this.room.entities) {
       if (!isEntityInteractable(entity)) continue;
 
-      const tile = interactCheckTile(entity, this.room.theme);
+      const tile = interactCheckTile(entity);
       if (!isCardinalNeighbor(px, py, tile.x, tile.y)) continue;
       const dist = chebyshevDist(px, py, tile.x, tile.y);
       if (dist < nearestDist) {
@@ -459,7 +451,7 @@ export class Renderer {
     for (const entity of room.entities) {
       const cx = entity.x * TILE_SIZE + TILE_SIZE / 2;
       const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
-      const interactTile = interactCheckTile(entity, room.theme);
+      const interactTile = interactCheckTile(entity);
       const isNearby = isCardinalNeighbor(
         px,
         py,
@@ -488,7 +480,7 @@ export class Renderer {
       ) {
         this.drawSanctuary(sprite.image, sprite.sourceRect, cx, cy);
       } else if (entity.kind === "door" || entity.kind === "locked_door") {
-        this.drawDoor(entity, room.theme);
+        this.drawDoor(entity, room);
       } else if (sprite?.image && sprite.sourceRect) {
         const flip = entity.kind === "enemy" && shouldFlip(entity.id);
         if (isElite) {
@@ -736,9 +728,9 @@ export class Renderer {
     ctx.drawImage(gem.image, gx, gy, gw, gh, iconX, iconY, iconSize, iconSize);
   }
 
-  /** Draws a door/locked_door as its real 2x2-tile leaf sprite - UP/DOWN only. DOOR_SPRITE's
-   * native art already faces a top/bottom wall correctly (arch/lintel up, threshold down), so
-   * no rotation is needed. The box is always anchored directly at the object's own tile,
+  /** Draws a door/locked_door as its real 2x2-tile leaf sprite (arch and panel as two pieces,
+   * see below) - UP/DOWN only. DOOR_SPRITE's native art already faces a top/bottom wall
+   * correctly (arch/lintel up, threshold down), so no rotation is needed. The box is always anchored directly at the object's own tile,
    * expanding right and down (matching how the object is authored in Tiled - a plain
    * top-left-anchored 2x2 rectangle - see convert-tiled-room.mjs).
    * LEFT/RIGHT draw nothing at all (see the early return below) - DOOR_SPRITE was authored
@@ -747,7 +739,7 @@ export class Renderer {
    * showing through underneath (still fully interactable via the usual "[E]" prompt) until a
    * real side-on door sprite is sourced or drawn - a later art-pass decision, not a rendering bug
    * to chase now. */
-  private drawDoor(entity: EntityView, theme: string): void {
+  private drawDoor(entity: EntityView, room: RoomView): void {
     if (entity.direction === "LEFT" || entity.direction === "RIGHT") return;
 
     const { ctx } = this;
@@ -776,73 +768,61 @@ export class Renderer {
 
     // No rotation needed here anymore - only UP/DOWN ever reach this point (LEFT/RIGHT
     // returned above), and DOOR_SPRITE's native orientation already faces a top/bottom wall
-    // correctly as-is. The translate still centers the two-piece darkDungeon math below on
-    // the box, independent of rotation.
+    // correctly as-is. The translate still centers the two-piece math below on the box,
+    // independent of rotation.
     const { x: sx, y: sy, w: sw, h: sh } = sprite.sourceRect;
     ctx.save();
     ctx.translate(boxX + size / 2, boxY + size / 2);
 
-    if (theme === "darkDungeon") {
-      // Renders the door as two pieces: the panel keeps its true, undistorted height and
-      // just gets repositioned (shifted by DARK_DUNGEON_DOOR_NATIVE_Y_OFFSET from the box's
-      // natural bottom edge); the arch is drawn directly above it with zero gap, compressed
-      // to DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT_COMPRESSED so the two pieces still fill the
-      // door's normal 2-tile footprint. Applied in the sprite's own local (pre-rotation)
-      // frame, so the rotation above already reorients it correctly per wall.
-      //
-      // Deliberately TILE_SIZE/16, not size/sh - the panel renders at the same undistorted
-      // native-to-screen rate every other sprite in this codebase uses, not a rate derived
-      // from squeezing all 35 native rows into the 2-tile box.
-      const nativeToScreen = TILE_SIZE / 16;
-      const panelNativeH = sh - DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT;
-      const panelDestH = panelNativeH * nativeToScreen;
-      const archDestH =
-        DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT_COMPRESSED * nativeToScreen;
-      const shift = DARK_DUNGEON_DOOR_NATIVE_Y_OFFSET * nativeToScreen;
+    // Renders the door as two pieces, whatever the theme: the panel keeps its true,
+    // undistorted height and just gets repositioned (raised by the native Y offset of the wall
+    // art around the door, 0 for plain dungeon walls, from the box's natural bottom edge, see
+    // doorNativeYOffset); the arch is drawn directly
+    // above it with zero gap, compressed to DOOR_ARCH_NATIVE_HEIGHT_COMPRESSED so the two
+    // pieces still fill the door's normal 2-tile footprint. One scale squeezing the whole
+    // sprite into the box would distort the panel, which has to stay pixel-accurate to the
+    // floor/wall grid around it. Applied in the sprite's own local (pre-rotation) frame, so
+    // the rotation above already reorients it correctly per wall.
+    //
+    // Deliberately TILE_SIZE/16, not size/sh - the panel renders at the same undistorted
+    // native-to-screen rate every other sprite in this codebase uses, not a rate derived
+    // from squeezing all 35 native rows into the 2-tile box.
+    const nativeToScreen = TILE_SIZE / 16;
+    const panelNativeH = sh - DOOR_ARCH_NATIVE_HEIGHT;
+    const panelDestH = panelNativeH * nativeToScreen;
+    const archDestH = DOOR_ARCH_NATIVE_HEIGHT_COMPRESSED * nativeToScreen;
+    const shift = doorNativeYOffset(room, entity) * nativeToScreen;
 
-      // The two-piece unit moves as one rigid body toward local "top" (-Y), same direction
-      // regardless of wall - darkDungeon's art sits off-grid as a property of the sprite
-      // itself, not of which wall a given door happens to sit on. A direction-dependent sign
-      // here would push DOWN's panel past the room's true bottom edge into empty canvas.
-      const panelBottom = size / 2 - shift;
-      const panelTop = panelBottom - panelDestH;
-      // Panel - undistorted height.
-      ctx.drawImage(
-        sprite.image,
-        sx,
-        sy + DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT,
-        sw,
-        panelNativeH,
-        -size / 2,
-        panelTop,
-        size,
-        panelDestH,
-      );
-      // Arch - compressed height, placed directly above the panel with zero gap.
-      ctx.drawImage(
-        sprite.image,
-        sx,
-        sy,
-        sw,
-        DARK_DUNGEON_DOOR_ARCH_NATIVE_HEIGHT,
-        -size / 2,
-        panelTop - archDestH,
-        size,
-        archDestH,
-      );
-    } else {
-      ctx.drawImage(
-        sprite.image,
-        sx,
-        sy,
-        sw,
-        sh,
-        -size / 2,
-        -size / 2,
-        size,
-        size,
-      );
-    }
+    // The two-piece unit moves as one rigid body toward local "top" (-Y), same direction
+    // regardless of wall - darkDungeon's art sits off-grid as a property of the sprite
+    // itself, not of which wall a given door happens to sit on. A direction-dependent sign
+    // here would push DOWN's panel past the room's true bottom edge into empty canvas.
+    const panelBottom = size / 2 - shift;
+    const panelTop = panelBottom - panelDestH;
+    // Panel - undistorted height.
+    ctx.drawImage(
+      sprite.image,
+      sx,
+      sy + DOOR_ARCH_NATIVE_HEIGHT,
+      sw,
+      panelNativeH,
+      -size / 2,
+      panelTop,
+      size,
+      panelDestH,
+    );
+    // Arch - compressed height, placed directly above the panel with zero gap.
+    ctx.drawImage(
+      sprite.image,
+      sx,
+      sy,
+      sw,
+      DOOR_ARCH_NATIVE_HEIGHT,
+      -size / 2,
+      panelTop - archDestH,
+      size,
+      archDestH,
+    );
 
     ctx.restore();
   }
@@ -996,42 +976,6 @@ function isCardinalNeighbor(
   const sameCol = x1 === x2;
   if (sameRow === sameCol) return false; // both true (same tile) or both false (diagonal)
   return chebyshevDist(x1, y1, x2, y2) <= INTERACT_RANGE;
-}
-
-/** UP and LEFT need different handling, confirmed empirically against the real tile grids of every
- * converted room rather than assumed from the old "dungeon" convention alone:
- *   - UP's correction is universal, not theme-gated. Every room checked (old "dungeon" and new
- *     darkDungeon alike) has at least one solid wall row between a UP door's raw entity.y and the
- *     first real floor row - one row in "dungeon" (y+1 already lands on that floor row directly),
- *     two rows in darkDungeon (y+1 lands on the second wall row, not floor - but that's still fine,
- *     since isCardinalNeighbor checks the *player's* position against this resolved tile, not
- *     whether this tile itself is floor: y+2, one further step in, is y+1's own cardinal neighbor
- *     and the first real floor row either way). +1 reliably resolves to a tile whose interior-side
- *     neighbor is real floor, regardless of exactly how thick the wall band above it is.
- *   - LEFT has no such universal row count to lean on: "dungeon"'s own two LEFT doors are already
- *     floor-anchored same as darkDungeon's are, yet still rely on the existing +1 shift for their
- *     current (shipped, tested) interact distance - so unlike UP, correctness here isn't "the same
- *     formula happens to keep working at any thickness", it's "this specific content already
- *     depends on this specific shift". Gated to "dungeon" specifically so newer themes (which
- *     don't share that dependency - their LEFT doors sit directly on the real gap, no shift wanted)
- *     default to the correct, uncorrected behavior instead of inheriting it by accident. */
-function doorInteractTile(entity: EntityView, theme: string): { x: number; y: number } {
-  switch (entity.direction) {
-    case "UP":
-      return { x: entity.x, y: entity.y + 1 };
-    case "LEFT":
-      return theme === "dungeon" ? { x: entity.x + 1, y: entity.y } : { x: entity.x, y: entity.y };
-    default:
-      return { x: entity.x, y: entity.y }; // DOWN, RIGHT, unset
-  }
-}
-
-/** Resolves the tile that should be used for an entity's interact-range check - the door-specific
- * correction above for door/locked_door, or the entity's own position unchanged otherwise. */
-function interactCheckTile(entity: EntityView, theme: string): { x: number; y: number } {
-  return entity.kind === "door" || entity.kind === "locked_door"
-    ? doorInteractTile(entity, theme)
-    : entity;
 }
 
 /** The atlas sprite an entity is drawn with: an enemy's server-resolved sprite, a chest's sprite for

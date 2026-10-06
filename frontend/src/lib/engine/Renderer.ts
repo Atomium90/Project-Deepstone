@@ -2,6 +2,7 @@ import { assets, type AssetManager, type SourceRect } from "./AssetManager";
 import type { RoomView, PlayerView, EntityView } from "./protocol";
 import { chestSpriteKey, isEntityInteractable } from "./entityState";
 import { doorNativeYOffset } from "./doorArt";
+import { interactCheckTile } from "./doorInteract";
 import {
   TILE_SIZE,
   LERP_SPEED,
@@ -270,7 +271,7 @@ export class Renderer {
     for (const entity of this.room.entities) {
       if (!isEntityInteractable(entity)) continue;
 
-      const tile = interactCheckTile(entity, this.room.theme);
+      const tile = interactCheckTile(entity);
       if (!isCardinalNeighbor(px, py, tile.x, tile.y)) continue;
       const dist = chebyshevDist(px, py, tile.x, tile.y);
       if (dist < nearestDist) {
@@ -450,7 +451,7 @@ export class Renderer {
     for (const entity of room.entities) {
       const cx = entity.x * TILE_SIZE + TILE_SIZE / 2;
       const cy = entity.y * TILE_SIZE + TILE_SIZE / 2;
-      const interactTile = interactCheckTile(entity, room.theme);
+      const interactTile = interactCheckTile(entity);
       const isNearby = isCardinalNeighbor(
         px,
         py,
@@ -975,42 +976,6 @@ function isCardinalNeighbor(
   const sameCol = x1 === x2;
   if (sameRow === sameCol) return false; // both true (same tile) or both false (diagonal)
   return chebyshevDist(x1, y1, x2, y2) <= INTERACT_RANGE;
-}
-
-/** UP and LEFT need different handling, confirmed empirically against the real tile grids of every
- * converted room rather than assumed from the old "dungeon" convention alone:
- *   - UP's correction is universal, not theme-gated. Every room checked (old "dungeon" and new
- *     darkDungeon alike) has at least one solid wall row between a UP door's raw entity.y and the
- *     first real floor row - one row in "dungeon" (y+1 already lands on that floor row directly),
- *     two rows in darkDungeon (y+1 lands on the second wall row, not floor - but that's still fine,
- *     since isCardinalNeighbor checks the *player's* position against this resolved tile, not
- *     whether this tile itself is floor: y+2, one further step in, is y+1's own cardinal neighbor
- *     and the first real floor row either way). +1 reliably resolves to a tile whose interior-side
- *     neighbor is real floor, regardless of exactly how thick the wall band above it is.
- *   - LEFT has no such universal row count to lean on: "dungeon"'s own two LEFT doors are already
- *     floor-anchored same as darkDungeon's are, yet still rely on the existing +1 shift for their
- *     current (shipped, tested) interact distance - so unlike UP, correctness here isn't "the same
- *     formula happens to keep working at any thickness", it's "this specific content already
- *     depends on this specific shift". Gated to "dungeon" specifically so newer themes (which
- *     don't share that dependency - their LEFT doors sit directly on the real gap, no shift wanted)
- *     default to the correct, uncorrected behavior instead of inheriting it by accident. */
-function doorInteractTile(entity: EntityView, theme: string): { x: number; y: number } {
-  switch (entity.direction) {
-    case "UP":
-      return { x: entity.x, y: entity.y + 1 };
-    case "LEFT":
-      return theme === "dungeon" ? { x: entity.x + 1, y: entity.y } : { x: entity.x, y: entity.y };
-    default:
-      return { x: entity.x, y: entity.y }; // DOWN, RIGHT, unset
-  }
-}
-
-/** Resolves the tile that should be used for an entity's interact-range check - the door-specific
- * correction above for door/locked_door, or the entity's own position unchanged otherwise. */
-function interactCheckTile(entity: EntityView, theme: string): { x: number; y: number } {
-  return entity.kind === "door" || entity.kind === "locked_door"
-    ? doorInteractTile(entity, theme)
-    : entity;
 }
 
 /** The atlas sprite an entity is drawn with: an enemy's server-resolved sprite, a chest's sprite for

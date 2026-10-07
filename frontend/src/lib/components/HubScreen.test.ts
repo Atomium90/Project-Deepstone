@@ -20,7 +20,7 @@ function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
         phase: "HUB",
         player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 100, affinityTags: [] },
         equipment: { weapon: null, armor: null, accessories: [null, null], potionBelt: [null, null], keys: [] },
-        hub: { upgrades: [], perks: [] },
+        hub: { upgrades: [], perks: [], runsCompleted: 1 },
         abilities: [],
         achievements: [],
         sets: [],
@@ -52,7 +52,7 @@ describe("HubScreen", () => {
     });
 
     test("a gated class is locked and unselectable until its unlock upgrade is owned", async () => {
-        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: false })], perks: [] } }));
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: false })], perks: [], runsCompleted: 1 } }));
         const { container } = render(HubScreen);
         const archerCard = container.querySelectorAll(".class-card")[CLASS_CARD.archer] as HTMLButtonElement;
         expect(archerCard.classList.contains("locked")).toBe(true);
@@ -64,7 +64,7 @@ describe("HubScreen", () => {
     });
 
     test("a gated class becomes selectable once its unlock upgrade is owned", async () => {
-        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: true })], perks: [] } }));
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: true })], perks: [], runsCompleted: 1 } }));
         const { container } = render(HubScreen);
         const archerCard = container.querySelectorAll(".class-card")[CLASS_CARD.archer] as HTMLButtonElement;
         expect(archerCard.classList.contains("locked")).toBe(false);
@@ -85,7 +85,7 @@ describe("HubScreen", () => {
     });
 
     test("selecting then re-clicking a perk toggles its id in and out of the STARTRUN payload", async () => {
-        gameState.set(makeState({ hub: { upgrades: [], perks: [makePerk({ id: "heavy_hand" })] } }));
+        gameState.set(makeState({ hub: { upgrades: [], perks: [makePerk({ id: "heavy_hand" })], runsCompleted: 1 } }));
         const { container } = render(HubScreen);
         const sendSpy = vi.spyOn(client, "send");
         const perkCard = container.querySelector(".perk-card")!;
@@ -105,7 +105,7 @@ describe("HubScreen", () => {
         gameState.set(
             makeState({
                 player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 5, affinityTags: [] },
-                hub: { upgrades: [makeUpgrade({ id: "hp_boost_1", cost: 30 })], perks: [] },
+                hub: { upgrades: [makeUpgrade({ id: "hp_boost_1", cost: 30 })], perks: [], runsCompleted: 1 },
             })
         );
         const { container } = render(HubScreen);
@@ -127,6 +127,7 @@ describe("HubScreen", () => {
                         makeUpgrade({ id: "m1", label: "Meta Upgrade", category: "meta" }),
                     ],
                     perks: [],
+                    runsCompleted: 1,
                 },
             })
         );

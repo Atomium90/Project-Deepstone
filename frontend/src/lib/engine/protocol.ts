@@ -203,6 +203,8 @@ export interface PerkView {
 export interface HubView {
   upgrades: UpgradeView[];
   perks: PerkView[];
+  /** Runs finished so far, won or lost. 0 means a brand-new save. */
+  runsCompleted: number;
 }
 
 /** A single item as seen by the client, whether equipped, in the potion belt, or shown in a

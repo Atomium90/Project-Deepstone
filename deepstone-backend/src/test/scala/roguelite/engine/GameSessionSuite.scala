@@ -347,6 +347,38 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assert(update.hub.get.upgrades.forall(!_.unlocked), "no upgrades should be unlocked")
   }
 
+  db.test("a fresh save reports no completed run in the hub") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        update  <- session.currentUpdate
+      yield assertEquals(update.hub.map(_.runsCompleted), Some(0))
+  }
+
+  db.test("the hub reports the runs completed in earlier sessions") {
+    database =>
+      for
+        _       <- database.saveAchievementStats(AchievementStats(runsCompleted = 4))
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        update  <- session.currentUpdate
+      yield assertEquals(update.hub.map(_.runsCompleted), Some(4))
+  }
+
+  db.test("finishing a run raises the completed count shown once back in the hub") {
+    database =>
+      for
+        session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs
+                   )
+        _           <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _           <- session.handle(Interact("e1"))
+        afterHit    <- session.handle(CombatAction(CombatActionType.Attack))
+        afterReturn <- session.handle(HubAction(HubActionType.ReturnToHub))
+      yield
+        assertEquals(afterHit.phase, GamePhase.GameOver, s"expected defeat to end the run: ${afterHit.log}")
+        assertEquals(afterReturn.hub.map(_.runsCompleted), Some(1))
+  }
+
   db.test("fresh session offers 3 perks out of a wider catalog") {
     database =>
       for

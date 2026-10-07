@@ -66,7 +66,7 @@ class GameSession private (
       state    <- stateRef.get
       progress <- achievementRef.get
       withDebug <- withDebugRooms(update, state)
-    yield withAbilityCost(withAchievements(withCatalog(withDebug), progress), state)
+    yield withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state)
 
   /** Return the current state snapshot without changing anything. Useful for sending the initial
     * state right after connection.
@@ -76,7 +76,14 @@ class GameSession private (
       state     <- stateRef.get
       progress  <- achievementRef.get
       withDebug <- withDebugRooms(state.toStateUpdate(), state)
-    yield withAbilityCost(withAchievements(withCatalog(withDebug), progress), state)
+    yield withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state)
+
+  /** Attach how many runs the player has finished to the hub view (see [[HubView]]), the same
+    * "enrich the update with live meta outside the pure state" step as [[withAchievements]]. A
+    * no-op outside the hub.
+    */
+  private def withHubProgress(update: StateUpdate, progress: AchievementProgress): StateUpdate =
+    update.copy(hub = update.hub.map(_.copy(runsCompleted = progress.stats.runsCompleted)))
 
   /** Resolve `CombatView.abilityCost` against the player's live set/perk discounts (see
     * [[roguelite.game.AbilityDef.effectiveCost]]) - a no-op outside combat, or if the player's

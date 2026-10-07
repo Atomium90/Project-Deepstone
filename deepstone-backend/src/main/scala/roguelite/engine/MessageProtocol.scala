@@ -362,6 +362,57 @@ case class PendingEquipChoiceView(newItem: ItemView, options: List[EquipChoiceOp
   */
 case class PendingRewardChoiceView(options: List[ItemView])
 
+/** One section of the dungeon map: a run of rooms drawn from a single theme, ending in its own boss.
+  * The client draws one row per section.
+  *
+  * @param theme
+  *   The theme the section's rooms belong to (e.g. "dungeon", "darkDungeon"), see
+  *   [[RoomView.theme]].
+  */
+case class MinimapSectionView(index: Int, theme: String)
+
+/** One room on the dungeon map.
+  *
+  * @param id
+  *   Identifies the node within this map only, and is never the room's own id: authored room ids
+  *   name their type (e.g. "combat_003"), which would give away a room the player has not seen.
+  * @param roomType
+  *   "combat" | "loot" | "rest" | "boss" | "miniboss" | "fork" | "sanctuary" | "vault". `None` for a
+  *   room the player has not visited whose type is not revealed in advance.
+  * @param visited
+  *   True once the player has been in the room, including the one they are in now.
+  * @param current
+  *   True for the room the player is in.
+  * @param section
+  *   Index of the [[MinimapSectionView]] the room belongs to.
+  * @param column
+  *   Position along the section's row, starting at 0. Rooms on the two branches of a fork share
+  *   columns.
+  * @param lane
+  *   0 for the main line, 1 for the second branch of a fork.
+  */
+case class MinimapNodeView(id: String,
+                           roomType: Option[String],
+                           visited: Boolean,
+                           current: Boolean,
+                           section: Int,
+                           column: Int,
+                           lane: Int
+)
+
+/** A way from one map node to another, always in the forward direction.
+  *
+  * @param exit
+  *   Only set on the edges leaving a fork: "UP" | "DOWN" | "LEFT" | "RIGHT", the wall of the fork
+  *   room the door to this branch sits on, so the player can tell which door leads where.
+  */
+case class MinimapEdgeView(from: String, to: String, exit: Option[String] = None)
+
+/** The dungeon as a graph for the map panel: every room is present from the start, with its type
+  * hidden until it is visited unless the type is one the player is meant to see coming.
+  */
+case class MinimapView(sections: List[MinimapSectionView], nodes: List[MinimapNodeView], edges: List[MinimapEdgeView])
+
 /** Static description of one class's combat ability. Sent as a small catalog on every
   * [[StateUpdate]] (not just during combat) so the client never needs to hardcode ability names,
   * costs, or resource labels. See [[roguelite.engine.GameSession]].
@@ -451,7 +502,9 @@ case class StateUpdate(
       * `phase == Hub` - empty everywhere else, and empty in a packaged build where that folder
       * doesn't exist at all.
       */
-    debugRooms: List[String] = Nil
+    debugRooms: List[String] = Nil,
+    /** The dungeon map, only present while exploring a run: see [[MinimapView]]. */
+    minimap: Option[MinimapView] = None
 )
 
 // ---------------------------------------------
@@ -588,6 +641,10 @@ object MessageProtocol:
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[SetView]         = deriveEncoder
   given Encoder[DialogueView]    = deriveEncoder
+  given Encoder[MinimapSectionView] = deriveEncoder
+  given Encoder[MinimapNodeView]    = deriveEncoder
+  given Encoder[MinimapEdgeView]    = deriveEncoder
+  given Encoder[MinimapView]        = deriveEncoder
   given Encoder[StateUpdate]     = deriveEncoder
 
   /** Serialize a StateUpdate to a JSON string to be sent over the WebSocket. */

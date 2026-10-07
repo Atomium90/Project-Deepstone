@@ -264,3 +264,56 @@ class MessageProtocolSuite extends FunSuite:
     )
     val json = MessageProtocol.encodeUpdate(update)
     assert(json.contains("\"isBoss\":true"), s"Expected isBoss:true in JSON: $json")
+
+  // -- minimap ---------------------------------------------------------------
+
+  private def explorationUpdate(minimap: Option[MinimapView]): StateUpdate =
+    StateUpdate(
+      phase = GamePhase.Exploration,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      minimap = minimap
+    )
+
+  private def encodedMinimap(minimap: Option[MinimapView]): io.circe.ACursor =
+    io.circe.parser
+      .parse(MessageProtocol.encodeUpdate(explorationUpdate(minimap)))
+      .fold(err => fail(s"encodeUpdate produced invalid JSON: $err"), identity)
+      .hcursor
+      .downField("minimap")
+
+  test("encodeUpdate includes the minimap with its sections, nodes and edges"):
+    val minimap = MinimapView(
+      sections = List(MinimapSectionView(index = 0, theme = "dungeon")),
+      nodes = List(
+        MinimapNodeView("n0", Some("combat"), visited = true, current = true, section = 0, column = 0, lane = 0),
+        MinimapNodeView("n1", Some("miniboss"), visited = false, current = false, section = 0, column = 1, lane = 1)
+      ),
+      edges = List(MinimapEdgeView("n0", "n1", Some("DOWN")))
+    )
+    val cursor = encodedMinimap(Some(minimap))
+    assertEquals(cursor.downField("sections").downN(0).get[String]("theme"), Right("dungeon"))
+    assertEquals(cursor.downField("nodes").downN(0).get[String]("roomType"), Right("combat"))
+    assertEquals(cursor.downField("nodes").downN(1).get[Int]("lane"), Right(1))
+    assertEquals(cursor.downField("nodes").downN(1).get[Boolean]("visited"), Right(false))
+    assertEquals(cursor.downField("edges").downN(0).get[String]("exit"), Right("DOWN"))
+
+  test("encodeUpdate sends a hidden room type and an absent fork exit as null"):
+    val minimap = MinimapView(
+      sections = List(MinimapSectionView(0, "dungeon")),
+      nodes = List(MinimapNodeView("n0", None, visited = false, current = false, section = 0, column = 0, lane = 0)),
+      edges = List(MinimapEdgeView("n0", "n1"))
+    )
+    val cursor = encodedMinimap(Some(minimap))
+    assertEquals(cursor.downField("nodes").downN(0).downField("roomType").focus.map(_.isNull), Some(true))
+    assertEquals(cursor.downField("edges").downN(0).downField("exit").focus.map(_.isNull), Some(true))
+
+  test("encodeUpdate leaves the minimap null when there is none"):
+    assertEquals(encodedMinimap(None).focus.map(_.isNull), Some(true))

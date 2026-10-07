@@ -1,11 +1,11 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { fly } from "svelte/transition";
-    import { gameState, client, combatLog, npcDialogue, debugRoomsCache } from "../engine/StateStore";
+    import { gameState, client, combatLog, npcDialogue, debugRoomsCache, minimap } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
     import { Renderer } from "../engine/Renderer";
+    import { keyCommand, type KeyCommand } from "../engine/explorationKeys";
     import { RESOURCE_BAR_COLORS, HP_BAR_COLOR, COLOR_ENTITY_FALLBACK } from "../engine/constants";
-    import type { Direction } from "../engine/protocol";
     import StatBar from "./StatBar.svelte";
     import CombatLog from "./CombatLog.svelte";
     import NpcDialogue from "./NpcDialogue.svelte";
@@ -44,12 +44,6 @@
         }
     }
 
-    // Map keyboard keys to game directions
-    const KEY_MAP: Record<string, Direction> = {
-        ArrowUp: "UP", ArrowDown: "DOWN", ArrowLeft: "LEFT", ArrowRight: "RIGHT",
-        z: "UP", s: "DOWN", q: "LEFT", d: "RIGHT",
-    };
-
     // Track which keys are currently held to avoid key repeat spam
     const heldKeys = new Set<string>();
 
@@ -68,41 +62,38 @@
         client.send({ type: "HUB_ACTION", action: "DEBUGLOADROOM", debugRoomId: next });
     }
 
+    function runCommand(command: KeyCommand): void {
+        switch (command.kind) {
+            case "move":
+                client.send({ type: "MOVE", direction: command.direction });
+                break;
+            case "interact": {
+                const entity = renderer?.nearestInteractable();
+                if (entity) client.send({ type: "INTERACT", targetId: entity.id });
+                break;
+            }
+            case "debugRoom":
+                cycleDebugRoom(command.step);
+                break;
+            case "openTab":
+                characterTab.set(command.tab);
+                break;
+            case "closeOverlay":
+                characterTab.set(null);
+                break;
+        }
+    }
+
+    /** Which key does what, and that the run is paused behind the Character screen, is decided by
+     * keyCommand. Guarded against native key-repeat: a held key acts once. */
     function handleKeyDown(e: KeyboardEvent): void {
-        // Debug rooms: next/prev (ç/à - the unshifted AZERTY 9/0 keys)
-        if ((e.key === "ç" || e.key === "à") && !heldKeys.has(e.key)) {
-            e.preventDefault();
-            heldKeys.add(e.key);
-            cycleDebugRoom(e.key === "à" ? 1 : -1);
-            return;
-        }
+        const command = keyCommand(e.key, $characterTab, $minimap !== null);
+        if (!command || heldKeys.has(e.key)) return;
 
-        // Movement
-        const direction = KEY_MAP[e.key];
-        if (direction && !heldKeys.has(e.key)) {
-            // Prevent arrow keys from scrolling the page
-            e.preventDefault();
-            heldKeys.add(e.key);
-            client.send({ type: "MOVE", direction });
-            return;
-        }
-        
-        // Interact (E key) - guarded against native key-repeat the same way Move already is
-        if ((e.key === "e" || e.key === "E") && !heldKeys.has(e.key)) {
-            e.preventDefault();
-            heldKeys.add(e.key);
-            const entity = renderer?.nearestInteractable();
-            if (entity) client.send({ type: "INTERACT", targetId: entity.id });
-            return;
-        }
-
-        // Equipment (I key) - opens the Character screen straight to the Equipment tab, the only
-        // place equipment is ever actually populated (it never carries over to the Hub).
-        if ((e.key === "i" || e.key === "I") && !heldKeys.has(e.key)) {
-            e.preventDefault();
-            heldKeys.add(e.key);
-            characterTab.set("equipment");
-        }
+        // Also keeps the arrow keys from scrolling the page.
+        e.preventDefault();
+        heldKeys.add(e.key);
+        runCommand(command);
     }
 
     function handleKeyUp(e: KeyboardEvent): void {
@@ -231,7 +222,7 @@
                     {/if}
                 </div>
 
-                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E<br />Equipment: I{#if isDebugRoom}<br />Debug room: ç / à{/if}</p>
+                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E<br />Equipment: I<br />Map: M{#if isDebugRoom}<br />Debug room: ç / à{/if}</p>
             </aside>
         {/if}
     </div>

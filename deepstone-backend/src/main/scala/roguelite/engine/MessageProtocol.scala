@@ -389,7 +389,8 @@ case class MinimapSectionView(index: Int, theme: String)
   *   Position along the section's row, starting at 0. Rooms on the two branches of a fork share
   *   columns.
   * @param lane
-  *   0 for the main line, 1 for the second branch of a fork.
+  *   0 for the upper branch of a fork and for every room outside one, 1 for the lower branch. The
+  *   client centres the rooms outside a fork's branches on a row that has two lanes.
   */
 case class MinimapNodeView(id: String,
                            roomType: Option[String],

@@ -119,6 +119,74 @@ class InteractionResolverSuite extends FunSuite:
            s"expected a tile next to the blocked spot (4, 1): ${(nextExp.playerX, nextExp.playerY)}"
     )
 
+  // --- Door: the way back after a fork ---------------------------------------------
+
+  private def forkNextDoor(id: String, x: Int, branch: Option[String], target: String): Door =
+    Door(id, x = x, y = 5, direction = Direction.Down, link = DoorLink.Resolved(ConnectorRole.Next, branch, target))
+
+  private def forkPrevDoor(id: String, x: Int, branch: Option[String], target: String): Door =
+    Door(id, x = x, y = 0, direction = Direction.Up, link = DoorLink.Resolved(ConnectorRole.Prev, branch, target))
+
+  /** A fork whose two one-room branches reconverge on a merge room, wired the way DungeonBuilder
+    * wires it: the merge room has a single untagged Prev door, linked to branch "a" whichever
+    * branch the player takes. `mergeEntities` replaces that door when a test needs another shape.
+    */
+  private def forkMergeExploration(
+      mergeEntities: List[Entity] = List(forkPrevDoor("merge_back", 4, None, "a"))
+  ): ExplorationState =
+    val rooms = List(
+      makeRoom("fork", entities = List(forkNextDoor("to_a", 2, Some("a"), "a"), forkNextDoor("to_b", 5, Some("b"), "b"))),
+      makeRoom("a", entities = List(forkPrevDoor("a_back", 4, None, "fork"), forkNextDoor("a_next", 4, None, "merge"))),
+      makeRoom("b", entities = List(forkPrevDoor("b_back", 4, None, "fork"), forkNextDoor("b_next", 4, None, "merge"))),
+      makeRoom("merge", entities = mergeEntities)
+    )
+    ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior),
+                     Dungeon(rooms.map(r => r.id -> r).toMap, "fork"),
+                     4,
+                     3
+    )
+
+  /** Interacts with each door in turn, wherever the player stands (the server trusts the targetId). */
+  private def walk(state: ExplorationState, doorIds: String*): ExplorationState =
+    doorIds.foldLeft(state): (current, id) =>
+      resolver().interact(current, id).state.asInstanceOf[ExplorationState]
+
+  test("Going back from the room after a fork returns to the branch the player took, branch B"):
+    val back = walk(forkMergeExploration(), "to_b", "b_next", "merge_back")
+    assertEquals(back.dungeon.currentRoomId, "b")
+
+  test("Going back from the room after a fork returns to the branch the player took, branch A"):
+    val back = walk(forkMergeExploration(), "to_a", "a_next", "merge_back")
+    assertEquals(back.dungeon.currentRoomId, "a")
+
+  test("Going back into a branch appears in front of the door that leads forward again"):
+    val back = walk(forkMergeExploration(), "to_b", "b_next", "merge_back")
+    assertEquals((back.playerX, back.playerY), (4, 4))
+
+  test("Taking the other branch after backing out updates the way back"):
+    val state = walk(forkMergeExploration(), "to_b", "b_next", "merge_back", "b_back", "to_a", "a_next", "merge_back")
+    assertEquals(state.dungeon.currentRoomId, "a")
+
+  test("A Prev door that names its branch keeps its link"):
+    val taggedBack = forkPrevDoor("merge_back_b", 3, Some("b"), "b")
+    val state      = forkMergeExploration(mergeEntities = List(forkPrevDoor("merge_back_a", 5, Some("a"), "a"), taggedBack))
+    val back       = walk(state, "to_a", "a_next", "merge_back_b")
+    assertEquals(back.dungeon.currentRoomId, "b")
+
+  test("A forward move records the way back and a backward move leaves it alone"):
+    val inMerge = walk(forkMergeExploration(), "to_b", "b_next")
+    assertEquals(inMerge.dungeon.cameFrom, Map("b" -> "fork", "merge" -> "b"))
+    assertEquals(walk(inMerge, "merge_back").dungeon.cameFrom, Map("b" -> "fork", "merge" -> "b"))
+
+  test("Going through the Vault's doors never records a way back"):
+    val vaultReturn = Door("door_return", x = 0, y = 2, direction = Direction.Left, link = DoorLink.Resolved(ConnectorRole.Prev, None, "r1"))
+    val vault       = makeRoom("vault", w = 6, h = 6, roomType = RoomType.Vault, entities = List(vaultReturn))
+    val locked      = LockedDoor("door_vault", x = 7, y = 4, direction = Direction.Right, targetRoomId = "vault", unlocked = true)
+    val atDoor      = explorationAt(6, 4, entities = List(locked), extraRooms = Map("vault" -> vault))
+    val roundTrip   = walk(atDoor, "door_vault", "door_return")
+    assertEquals(roundTrip.dungeon.currentRoomId, "r1")
+    assertEquals(roundTrip.dungeon.cameFrom, Map.empty[String, String])
+
   // --- Spawn: in front of the door the player came through -----------------------
 
   /** An 8x7 room with a 2-tile-thick top wall, like the darkDungeon theme's rooms: a door set into

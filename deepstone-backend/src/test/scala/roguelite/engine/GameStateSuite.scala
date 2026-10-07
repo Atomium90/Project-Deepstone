@@ -73,6 +73,38 @@ class GameStateSuite extends FunSuite:
     val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
     assertEquals(state.toStateUpdate().pendingEquipChoice, None)
 
+  // --- Minimap --------------------------------------------------------------------
+
+  test("ExplorationState.toStateUpdate carries the map of its dungeon, with the player's room current"):
+    val twoRooms = Dungeon(
+      Map("r1" -> makeRoom("r1", List(Door("d", 4, 5, Direction.Down, DoorLink.Resolved(ConnectorRole.Next, None, "r2")))),
+          "r2" -> makeRoom("r2")
+      ),
+      "r1"
+    )
+    val minimap = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), twoRooms, 1, 1).toStateUpdate().minimap
+    assertEquals(minimap.map(_.nodes.size), Some(2))
+    assertEquals(minimap.map(_.nodes.filter(_.current).map(_.roomType)), Some(List(Some("combat"))))
+
+  test("the map follows the player once the dungeon records a move"):
+    val twoRooms = Dungeon(
+      Map("r1" -> makeRoom("r1", List(Door("d", 4, 5, Direction.Down, DoorLink.Resolved(ConnectorRole.Next, None, "r2")))),
+          "r2" -> makeRoom("r2")
+      ),
+      "r1"
+    )
+    val moved   = twoRooms.navigateTo("r2", forward = true).toOption.getOrElse(fail("expected r2 to exist"))
+    val minimap = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), moved, 1, 1).toStateUpdate().minimap
+    assertEquals(minimap.map(_.nodes.map(n => (n.visited, n.current))), Some(List((true, false), (true, true))))
+
+  test("only an exploring player is sent a map"):
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior)
+    val stats  = EnemyStats(typeId = "goblin", label = "Goblin", spriteId = "mob_goblin_idle", maxHp = 20, attack = 5, defense = 0, xpReward = 10, actions = List(EnemyActionWeight("ATTACK", 100)))
+    val combat = CombatState(player, dungeon, 1, 1, Combat(enemy = EnemyInstance.fromStats("e1", stats, Difficulty.Normal, isElite = false)), "e1")
+    assertEquals(HubState(player).toStateUpdate().minimap, None)
+    assertEquals(combat.toStateUpdate().minimap, None)
+    assertEquals(GameOverState(player).toStateUpdate().minimap, None)
+
   // --- equipmentToView: key kind labels ---------------------------------------------
 
   test("equipmentToView resolves every KeyKind to its coarse display label"):

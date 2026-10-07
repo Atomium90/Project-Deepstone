@@ -10,10 +10,20 @@ package roguelite.game
   *   All rooms in this dungeon, keyed by room id.
   * @param currentRoomId
   *   The room the player is currently in.
+  * @param visited
+  *   Rooms the player has left, recorded by [[navigateTo]]. The room the player is in is not
+  *   necessarily in here yet: read it through [[visitedRoomIds]], which always includes it.
+  * @param cameFrom
+  *   For each room entered by going forward (through a [[ConnectorRole.Next]] door), the room the
+  *   player came from. Going back never writes here, so a room keeps pointing at the room before
+  *   it. This is what lets a room reached from two branches send the player back to the branch
+  *   they actually took.
   */
 case class Dungeon(
     rooms: Map[String, Room],
-    currentRoomId: String
+    currentRoomId: String,
+    visited: Set[String] = Set.empty,
+    cameFrom: Map[String, String] = Map.empty
 ):
   /** The room the player is currently in. Throws if the dungeon is malformed (currentRoomId not
     * present in rooms, should never happen at runtime).
@@ -24,14 +34,28 @@ case class Dungeon(
       throw IllegalStateException(s"Current room '$currentRoomId' not found in dungeon rooms.")
     )
 
+  /** Every room the player has been in, the one they are in now included. */
+  def visitedRoomIds: Set[String] = visited + currentRoomId
+
   /** Attempt to navigate to a different room by id.
     *
     * Returns a new [[Dungeon]] with the updated current room, or an error message if the target
     * room does not exist in this dungeon.
+    *
+    * @param forward
+    *   True when the player goes through a [[ConnectorRole.Next]] door: the room they leave is then
+    *   remembered in [[cameFrom]] as the way back from the target.
     */
-  def navigateTo(targetRoomId: String): Either[String, Dungeon] =
+  def navigateTo(targetRoomId: String, forward: Boolean = false): Either[String, Dungeon] =
     if rooms.contains(targetRoomId)
-    then Right(copy(currentRoomId = targetRoomId))
+    then
+      Right(
+        copy(
+          currentRoomId = targetRoomId,
+          visited = visited + currentRoomId,
+          cameFrom = if forward then cameFrom.updated(targetRoomId, currentRoomId) else cameFrom
+        )
+      )
     else Left(s"Room '$targetRoomId' does not exist in this dungeon.")
 
   /** True if the current room is the boss room. Used to determine when the dungeon has been

@@ -46,6 +46,50 @@ class DungeonSuite extends FunSuite:
     original.navigateTo("r2")
     assertEquals(original.currentRoomId, "r1")
 
+  // -- visited rooms ---------------------------------------------------------
+
+  def chainDungeon: Dungeon =
+    Dungeon(rooms = List("r1", "r2", "r3").map(id => id -> makeRoom(id)).toMap, currentRoomId = "r1")
+
+  test("a fresh dungeon counts only its starting room as visited"):
+    assertEquals(chainDungeon.visitedRoomIds, Set("r1"))
+
+  test("navigateTo keeps the room it leaves in the visited set"):
+    val result = chainDungeon.navigateTo("r2").flatMap(_.navigateTo("r3"))
+    assertEquals(result.map(_.visitedRoomIds), Right(Set("r1", "r2", "r3")))
+
+  test("going back to a room does not add anything new to the visited set"):
+    val result = chainDungeon.navigateTo("r2").flatMap(_.navigateTo("r1"))
+    assertEquals(result.map(_.visitedRoomIds), Right(Set("r1", "r2")))
+
+  test("a failed navigateTo leaves the visited set untouched"):
+    assertEquals(chainDungeon.navigateTo("nonexistent").isLeft, true)
+    assertEquals(chainDungeon.visitedRoomIds, Set("r1"))
+
+  // -- cameFrom --------------------------------------------------------------
+
+  test("a forward navigateTo records the room it left as the way back"):
+    val result = chainDungeon.navigateTo("r2", forward = true).flatMap(_.navigateTo("r3", forward = true))
+    assertEquals(result.map(_.cameFrom), Right(Map("r2" -> "r1", "r3" -> "r2")))
+
+  test("a navigateTo that is not forward never writes cameFrom"):
+    val result = chainDungeon.navigateTo("r2")
+    assertEquals(result.map(_.cameFrom), Right(Map.empty[String, String]))
+
+  test("going back leaves the earlier room's cameFrom entry as it was"):
+    val forward = chainDungeon.navigateTo("r2", forward = true).flatMap(_.navigateTo("r3", forward = true))
+    val back    = forward.flatMap(_.navigateTo("r2"))
+    assertEquals(back.map(_.cameFrom), Right(Map("r2" -> "r1", "r3" -> "r2")))
+
+  test("entering a room again by going forward replaces its cameFrom entry"):
+    val rooms = List("a", "b", "merge").map(id => id -> makeRoom(id)).toMap
+    val dun   = Dungeon(rooms = rooms, currentRoomId = "a")
+    val result = dun
+      .navigateTo("merge", forward = true)
+      .flatMap(_.navigateTo("b"))
+      .flatMap(_.navigateTo("merge", forward = true))
+    assertEquals(result.map(_.cameFrom.get("merge")), Right(Some("b")))
+
   // -- isAtBoss --------------------------------------------------------------
 
   test("isAtBoss is false for a combat room"):

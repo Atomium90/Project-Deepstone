@@ -77,6 +77,10 @@ export const pendingEquipChoice = derived(gameState, ($s) => $s?.pendingEquipCho
  * durable-state discipline as `pendingEquipChoice` above. Drives RewardChoiceModal.svelte. */
 export const pendingRewardChoice = derived(gameState, ($s) => $s?.pendingRewardChoice ?? null);
 
+/** Derived convenience: the dungeon map while exploring a run, or null. A direct reflection of
+ * server state like `pendingEquipChoice`, resent on every update. Drives MinimapPanel.svelte. */
+export const minimap = derived(gameState, ($s) => $s?.minimap ?? null);
+
 /** Derived convenience: how many equipped pieces carry each setId, keyed by setId. Drives the
  * set-bonus progress shown in ItemTooltip.svelte and the active-set badges in
  * EquipmentPanel.svelte. See `countEquippedSets` above for the counting rule. */

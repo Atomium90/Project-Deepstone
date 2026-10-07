@@ -1,9 +1,11 @@
 <script lang="ts">
     import { characterTab } from "../engine/CharacterStore";
     import { settings } from "../engine/SettingsStore";
+    import { minimap } from "../engine/StateStore";
     import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
     import AchievementsPanel from "./AchievementsPanel.svelte";
     import EquipmentPanel from "./EquipmentPanel.svelte";
+    import MinimapPanel from "./MinimapPanel.svelte";
 
     function close(): void {
         characterTab.set(null);
@@ -35,6 +37,16 @@
                 >
                     Achievements
                 </button>
+                <!-- A map exists only while a run is being explored, so there is nothing to open from the Hub. -->
+                {#if $minimap}
+                    <button
+                            class="tab-btn"
+                            class:active={$characterTab === "map"}
+                            on:click={() => characterTab.set("map")}
+                    >
+                        Map
+                    </button>
+                {/if}
             </nav>
             <button class="close-btn" on:click={close} title="Back to Hub">✕</button>
         </header>
@@ -73,6 +85,8 @@
                 </label>
             {:else if $characterTab === "achievements"}
                 <AchievementsPanel />
+            {:else if $characterTab === "map"}
+                <MinimapPanel />
             {/if}
         </div>
     </div>

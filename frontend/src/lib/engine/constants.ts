@@ -1,4 +1,4 @@
-import type { ClassId, Difficulty } from "./protocol";
+import type { ClassId, Difficulty, RoomTypeName } from "./protocol";
 
 // ---------------------------------------------
 // Renderer
@@ -278,3 +278,53 @@ export const SHRINE_OUTLINE_NEAR_WIDTH = 1;
  * inline in HubScreen.svelte (shards) and AchievementToast.svelte (border/title). Other files
  * still hardcode this hex inline - a full dedup pass is out of scope here. */
 export const COLOR_ACHIEVEMENT_GOLD = "#d4ac0d";
+
+// ---------------------------------------------
+// Dungeon map (Character screen's Map tab)
+// ---------------------------------------------
+
+/** Display name of each room type, used for the hover text of a map node. */
+export const ROOM_TYPE_LABELS: Record<RoomTypeName, string> = {
+  combat: "Combat",
+  loot: "Loot",
+  rest: "Rest",
+  boss: "Boss",
+  miniboss: "Mini-boss",
+  fork: "Fork",
+  sanctuary: "Sanctuary",
+  vault: "Vault",
+};
+
+/** Display name of each room theme (see RoomView.theme). A theme with no entry is shown by its id. */
+export const THEME_LABELS: Record<string, string> = {
+  dungeon: "Dungeon",
+  darkDungeon: "Dark dungeon",
+};
+
+/** Colors of the dungeon map, on the Character screen's dark background. */
+export const MINIMAP_COLORS = {
+  nodeFill: "#161616",
+  /** Border of a room that is not visited yet, dashed. */
+  nodeBorder: "#3a3a3a",
+  /** Border of a room the player has been in. */
+  visitedBorder: "#8a8a8a",
+  /** Icon of a visited or current room. */
+  icon: "#cccccc",
+  /** Icon of a room not visited yet. */
+  iconDim: "#777777",
+  /** Icon of an unexplored room. */
+  iconUnknown: "#555555",
+  currentFill: "#2a2410",
+  currentBorder: COLOR_ACHIEVEMENT_GOLD,
+  /** Boss and mini-boss. */
+  enemy: COLOR_ENTITY_ENEMY,
+  sanctuary: "#5ce07a",
+  edgeDone: "#8a8a8a",
+  edgeTodo: "#3a3a3a",
+  sectionName: "#cccccc",
+  sectionTheme: "#777777",
+  sectionRule: "#2a2a2a",
+  chipFill: "#1a1a1a",
+  chipBorder: "#444444",
+  chipIcon: "#aaaaaa",
+} as const;

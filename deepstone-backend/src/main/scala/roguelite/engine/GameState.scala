@@ -9,6 +9,7 @@ import roguelite.game.{
   Item,
   KeyKind,
   MetaProgression,
+  MinimapBuilder,
   PendingEquipChoice,
   PendingRewardChoice,
   PerkDef,
@@ -170,7 +171,8 @@ case class ExplorationState(player: Player,
       pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView(_, player.affinityTags)),
       pendingRewardChoice = pendingRewardChoice.map(pendingRewardChoiceToView(_, player.affinityTags)),
       log = log,
-      dialogue = dialogue
+      dialogue = dialogue,
+      minimap = Some(MinimapBuilder.build(dungeon))
     )
 
 /** Active combat state.

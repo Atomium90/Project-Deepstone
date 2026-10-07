@@ -154,6 +154,58 @@ class ContentIntegritySuite extends CatsEffectSuite:
                       case _ => ()
           assertEquals(forkThemesBuilt.toSet, forkThemesInPool, "expected every theme's fork rooms to be drawn at least once")
 
+  // The map is worked out from the doors alone, so a wiring shape the layout does not expect would
+  // only show up on a real dungeon: a room missing from the map, a second start, a link going back.
+  // This checks the map of real dungeons against the dungeon itself, then walks the player to the end of
+  // each one and checks the map followed.
+  test("the map of a dungeon built from the real room pool matches the dungeon"):
+    RoomLoader
+      .loadAll()
+      .map:
+        rooms =>
+          val revealedInAdvance = Set("boss", "miniboss", "sanctuary")
+          for
+            difficulty <- Difficulty.values.toList
+            seed       <- 1 to 60
+          do
+            DungeonBuilder(rooms, Random(seed.toLong)).build(difficulty)() match
+              case Left(err) => fail(s"seed $seed at $difficulty failed to build: $err")
+              case Right(dungeon) =>
+                val where = s"seed $seed at $difficulty"
+                val view  = MinimapBuilder.build(dungeon)
+                val byId  = view.nodes.map(n => n.id -> n).toMap
+                def position(id: String): (Int, Int) = (byId(id).section, byId(id).column)
+
+                assertEquals(view.nodes.size, dungeon.rooms.size, s"$where: a room is missing from the map")
+                assertEquals(view.sections.size, difficulty.biomeCount, s"$where: expected a row per section")
+                assertEquals(view.nodes.count(_.current), 1, s"$where: expected one current room")
+                assertEquals(view.nodes.map(_.id).toSet -- view.edges.map(_.to), Set(view.nodes.find(_.current).get.id),
+                             s"$where: the starting room should be the only one nothing leads into"
+                )
+                assert(view.edges.forall(e => Ordering[(Int, Int)].gt(position(e.to), position(e.from))), s"$where: a link goes back")
+                assert(view.nodes.forall(n => n.lane == 0 || n.lane == 1), s"$where: unexpected lane")
+                assert(view.nodes.forall(n => revealedInAdvance.contains(n.roomType.getOrElse("")) || n.visited || n.roomType.isEmpty),
+                       s"$where: a hidden room gave its type away"
+                )
+                assertEquals(view.nodes.count(_.roomType.contains("sanctuary")), 1, s"$where: expected one Sanctuary")
+                assertEquals(view.edges.count(_.exit.isDefined),
+                             2 * dungeon.rooms.values.count(_.roomType == RoomType.Fork),
+                             s"$where: every fork should have two exits"
+                )
+
+                @scala.annotation.tailrec
+                def walkToTheEnd(d: Dungeon, steps: Int): (Dungeon, Int) =
+                  d.currentRoom.entities
+                    .collectFirst { case door: Door if door.link.role == ConnectorRole.Next => door.link }
+                    .collect { case DoorLink.Resolved(_, _, target) => target } match
+                    case Some(target) => walkToTheEnd(d.navigateTo(target, forward = true).toOption.get, steps + 1)
+                    case None         => (d, steps)
+
+                val (end, steps) = walkToTheEnd(dungeon, 0)
+                val atEnd        = MinimapBuilder.build(end)
+                assertEquals(atEnd.nodes.filter(_.current).map(_.roomType), List(Some("sanctuary")), s"$where: the run should end at the Sanctuary")
+                assertEquals(atEnd.nodes.count(_.visited), steps + 1, s"$where: one visited room per step, plus the start")
+
   // The tile a player appears on after walking through a door depends on the layout of the room they
   // arrive in (see InteractionResolver.findSpawnPoint), so a room with an unusual wall thickness can
   // put them somewhere they cannot stand. This walks through every ordinary door of every room of real

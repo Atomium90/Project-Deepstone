@@ -114,7 +114,7 @@ describe("CharacterScreen", () => {
     });
 
     test("the reduce-screen-shake checkbox is bound to the settings store", async () => {
-        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50 });
+        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true });
         characterTab.set("settings");
         const { container } = render(CharacterScreen);
         const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;

@@ -5,6 +5,8 @@ import { tick } from "svelte";
 import HubScreen from "./HubScreen.svelte";
 import { gameState, client } from "../engine/StateStore";
 import { lastStartedDifficulty } from "../engine/RunStore";
+import { activeHint, resetTutorial, skipTutorial } from "../engine/HintStore";
+import { settings } from "../engine/SettingsStore";
 import type { StateUpdate, UpgradeView, PerkView } from "../engine/protocol";
 
 function makeUpgrade(overrides: Partial<UpgradeView> = {}): UpgradeView {
@@ -20,7 +22,7 @@ function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
         phase: "HUB",
         player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 100, affinityTags: [] },
         equipment: { weapon: null, armor: null, accessories: [null, null], potionBelt: [null, null], keys: [] },
-        hub: { upgrades: [], perks: [] },
+        hub: { upgrades: [], perks: [], runsCompleted: 1 },
         abilities: [],
         achievements: [],
         sets: [],
@@ -52,7 +54,7 @@ describe("HubScreen", () => {
     });
 
     test("a gated class is locked and unselectable until its unlock upgrade is owned", async () => {
-        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: false })], perks: [] } }));
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: false })], perks: [], runsCompleted: 1 } }));
         const { container } = render(HubScreen);
         const archerCard = container.querySelectorAll(".class-card")[CLASS_CARD.archer] as HTMLButtonElement;
         expect(archerCard.classList.contains("locked")).toBe(true);
@@ -64,7 +66,7 @@ describe("HubScreen", () => {
     });
 
     test("a gated class becomes selectable once its unlock upgrade is owned", async () => {
-        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: true })], perks: [] } }));
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: true })], perks: [], runsCompleted: 1 } }));
         const { container } = render(HubScreen);
         const archerCard = container.querySelectorAll(".class-card")[CLASS_CARD.archer] as HTMLButtonElement;
         expect(archerCard.classList.contains("locked")).toBe(false);
@@ -85,7 +87,7 @@ describe("HubScreen", () => {
     });
 
     test("selecting then re-clicking a perk toggles its id in and out of the STARTRUN payload", async () => {
-        gameState.set(makeState({ hub: { upgrades: [], perks: [makePerk({ id: "heavy_hand" })] } }));
+        gameState.set(makeState({ hub: { upgrades: [], perks: [makePerk({ id: "heavy_hand" })], runsCompleted: 1 } }));
         const { container } = render(HubScreen);
         const sendSpy = vi.spyOn(client, "send");
         const perkCard = container.querySelector(".perk-card")!;
@@ -105,7 +107,12 @@ describe("HubScreen", () => {
         gameState.set(
             makeState({
                 player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 5, affinityTags: [] },
-                hub: { upgrades: [makeUpgrade({ id: "hp_boost_1", cost: 30 })], perks: [] },
+                // The cheap second upgrade is what keeps the shop on screen at 5 Shards.
+                hub: {
+                    upgrades: [makeUpgrade({ id: "hp_boost_1", cost: 30 }), makeUpgrade({ id: "cheap", cost: 5 })],
+                    perks: [],
+                    runsCompleted: 1,
+                },
             })
         );
         const { container } = render(HubScreen);
@@ -127,6 +134,7 @@ describe("HubScreen", () => {
                         makeUpgrade({ id: "m1", label: "Meta Upgrade", category: "meta" }),
                     ],
                     perks: [],
+                    runsCompleted: 1,
                 },
             })
         );
@@ -136,5 +144,95 @@ describe("HubScreen", () => {
 
         await fireEvent.click(container.querySelectorAll(".upgrade-tab")[1]); // "Stats"
         expect(labels()).toEqual(["Stat Upgrade"]);
+    });
+
+    describe("the Hub shown step by step", () => {
+        function hubWith(shards: number, upgrades: UpgradeView[], perks: PerkView[] = []): StateUpdate {
+            return makeState({
+                player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: shards, affinityTags: [] },
+                hub: { upgrades, perks, runsCompleted: 1 },
+            });
+        }
+
+        const shopShown = (container: HTMLElement) => container.querySelector(".right-panel .upgrade-tabs") !== null;
+        const classCards = (container: HTMLElement) => container.querySelectorAll(".class-card").length;
+
+        beforeEach(() => {
+            settings.update((s) => ({ ...s, showHints: true }));
+            resetTutorial();
+        });
+
+        test("with too few Shards for any upgrade, the shop and the locked classes are hidden", () => {
+            gameState.set(hubWith(10, [makeUpgrade({ cost: 30 })]));
+            const { container } = render(HubScreen);
+            expect(shopShown(container)).toBe(false);
+            expect(classCards(container)).toBe(1);
+            expect(container.querySelector(".class-card .class-name")?.textContent).toBe("Warrior");
+        });
+
+        test("the left panel then stands alone, with no empty right panel", () => {
+            gameState.set(hubWith(10, [makeUpgrade({ cost: 30 })]));
+            const { container } = render(HubScreen);
+            expect(container.querySelector(".right-panel")).toBeNull();
+            expect(container.querySelector(".hub-body")?.classList.contains("single")).toBe(true);
+        });
+
+        test("the shop and every class appear once the balance covers the cheapest upgrade", () => {
+            gameState.set(hubWith(30, [makeUpgrade({ cost: 30 }), makeUpgrade({ id: "dear", cost: 90 })]));
+            const { container } = render(HubScreen);
+            expect(shopShown(container)).toBe(true);
+            expect(classCards(container)).toBe(3);
+            expect(container.querySelector(".hub-body")?.classList.contains("single")).toBe(false);
+        });
+
+        test("an owned upgrade keeps the shop on screen even with no Shards left", () => {
+            gameState.set(hubWith(0, [makeUpgrade({ cost: 30, unlocked: true })]));
+            const { container } = render(HubScreen);
+            expect(shopShown(container)).toBe(true);
+        });
+
+        test("skipping the tutorial shows the shop whatever the balance", () => {
+            skipTutorial();
+            gameState.set(hubWith(0, [makeUpgrade({ cost: 30 })]));
+            const { container } = render(HubScreen);
+            expect(shopShown(container)).toBe(true);
+            expect(classCards(container)).toBe(3);
+        });
+
+        test("the shop shows up when the balance grows, and stays if it drops back", async () => {
+            gameState.set(hubWith(10, [makeUpgrade({ cost: 30 })]));
+            const { container } = render(HubScreen);
+            expect(shopShown(container)).toBe(false);
+
+            gameState.set(hubWith(30, [makeUpgrade({ cost: 30 })]));
+            await tick();
+            expect(shopShown(container)).toBe(true);
+
+            // Buying the upgrade spends the Shards: the shop must not disappear with them.
+            gameState.set(hubWith(0, [makeUpgrade({ cost: 30, unlocked: true })]));
+            await tick();
+            expect(shopShown(container)).toBe(true);
+        });
+
+        test("run perks alone bring the right panel back, without the shop", () => {
+            gameState.set(hubWith(0, [makeUpgrade({ cost: 30 })], [makePerk({ id: "heavy_hand", label: "Heavy Hand" })]));
+            const { container } = render(HubScreen);
+            expect(container.querySelector(".right-panel")).not.toBeNull();
+            expect(shopShown(container)).toBe(false);
+            expect(container.querySelectorAll(".perk-card")).toHaveLength(1);
+            expect(classCards(container)).toBe(1);
+        });
+
+        test("the first time the shop appears, the shop hint is asked for", () => {
+            gameState.set(hubWith(30, [makeUpgrade({ cost: 30 })]));
+            render(HubScreen);
+            expect(get(activeHint)).toBe("shop");
+        });
+
+        test("no hint is asked for while the shop is hidden", () => {
+            gameState.set(hubWith(10, [makeUpgrade({ cost: 30 })]));
+            render(HubScreen);
+            expect(get(activeHint)).toBeNull();
+        });
     });
 });

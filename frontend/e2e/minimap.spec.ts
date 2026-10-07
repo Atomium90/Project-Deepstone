@@ -1,6 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import type { StateUpdate } from "../src/lib/engine/protocol";
-import { currentState, waitForStateChange, DIRECTION_KEY, pathTo, interactTile, doorsFarthestFirst } from "./helpers";
+import {
+    currentState,
+    waitForStateChange,
+    DIRECTION_KEY,
+    pathTo,
+    interactTile,
+    doorsFarthestFirst,
+    skipTutorial,
+} from "./helpers";
 
 /** Walks the player out of the room they are in, through its door. A fight is only taken when an
  * enemy stands in the way, and a trapped door's guardian is beaten the same way, so what is left
@@ -72,6 +80,7 @@ async function leaveRoom(page: Page, from: StateUpdate): Promise<StateUpdate> {
 test("the map shows the run, pauses it while open, and follows the player through a door", async ({ page }) => {
     page.on("pageerror", (err) => console.log(`[browser exception] ${err.message}\n${err.stack}`));
 
+    await skipTutorial(page);
     await page.goto("/");
     await expect.poll(async () => (await currentState(page))?.phase).toBe("HUB");
     const inHub = await currentState(page);

@@ -162,6 +162,23 @@ class MessageProtocolSuite extends FunSuite:
     assert(json.contains("\"hub\""), s"Expected 'hub' phase in JSON: $json")
     assert(json.contains("Welcome to the hub."), s"Expected log message in JSON: $json")
 
+  test("encodeUpdate sends the hub's completed run count"):
+    val update = StateUpdate(
+      phase = GamePhase.Hub,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      hub = Some(HubView(upgrades = Nil, runsCompleted = 3))
+    )
+    val json = MessageProtocol.encodeUpdate(update)
+    assert(json.contains("\"runsCompleted\":3"), s"Expected runsCompleted in the hub JSON: $json")
+
   test("encodeUpdate with optional fields absent produces null or omitted fields"):
     val update = StateUpdate(
       phase = GamePhase.Hub,

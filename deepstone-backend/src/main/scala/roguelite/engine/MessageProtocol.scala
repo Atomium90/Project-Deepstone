@@ -286,7 +286,12 @@ case class UpgradeView(id: String,
 /** One run perk offered to the player, rolled fresh every HUB visit (see `HubState.perkOptions`). */
 case class PerkView(id: String, label: String, description: String, icon: String)
 
-case class HubView(upgrades: List[UpgradeView], perks: List[PerkView] = Nil)
+/** @param runsCompleted
+  *   How many runs the player has finished so far, won or lost. Lets the client tell a brand-new
+  *   save (0) from a returning one, so the first run can skip the hub. Resolved by
+  *   [[GameSession]] from the achievement stats, not carried by [[HubState]].
+  */
+case class HubView(upgrades: List[UpgradeView], perks: List[PerkView] = Nil, runsCompleted: Int = 0)
 
 case class ItemView(
     id: String,

@@ -8,6 +8,15 @@ declare global {
     }
 }
 
+/** Marks the tutorial as skipped before the page loads. A database with no finished run (the CI
+ * one) otherwise shows the new-save start screen instead of the Hub these specs begin from. Call
+ * it before `page.goto`. */
+export async function skipTutorial(page: Page): Promise<void> {
+    await page.addInitScript(() => {
+        localStorage.setItem("deepstone-tutorial", JSON.stringify({ skipped: true, seen: [] }));
+    });
+}
+
 export async function currentState(page: Page): Promise<StateUpdate | null> {
     return page.evaluate(() => window.__DEEPSTONE_STATE__ ?? null);
 }

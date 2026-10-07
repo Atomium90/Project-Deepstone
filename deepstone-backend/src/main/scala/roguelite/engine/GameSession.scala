@@ -13,6 +13,7 @@ import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
+import roguelite.game.ShardTopUp
 
 import java.nio.file.{ Files, NoSuchFileException, Path }
 import scala.jdk.CollectionConverters.*
@@ -45,10 +46,11 @@ class GameSession private (
 ):
 
   /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
-    * action or replaced by the next fresh hub entry. See `HubState.perkOptions`.
+    * action or replaced by the next fresh hub entry, or nothing while perks are still locked. See
+    * `HubState.perkOptions` and [[GameSession.perkOptionsFor]].
     */
-  private def rollPerkOptions(): List[PerkDef] =
-    rng.shuffle(perkDefs.values.toList).take(GameSession.PerkOptionsCount)
+  private def rollPerkOptions(): IO[List[PerkDef]] =
+    achievementRef.get.map(progress => GameSession.perkOptionsFor(perkDefs, progress.stats, rng))
 
   /** Process a player action, update the internal state, and return the new state snapshot to be
     * serialized and sent to the client.
@@ -66,7 +68,7 @@ class GameSession private (
       state    <- stateRef.get
       progress <- achievementRef.get
       withDebug <- withDebugRooms(update, state)
-    yield withAbilityCost(withAchievements(withCatalog(withDebug), progress), state)
+    yield withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state)
 
   /** Return the current state snapshot without changing anything. Useful for sending the initial
     * state right after connection.
@@ -76,7 +78,14 @@ class GameSession private (
       state     <- stateRef.get
       progress  <- achievementRef.get
       withDebug <- withDebugRooms(state.toStateUpdate(), state)
-    yield withAbilityCost(withAchievements(withCatalog(withDebug), progress), state)
+    yield withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state)
+
+  /** Attach how many runs the player has finished to the hub view (see [[HubView]]), the same
+    * "enrich the update with live meta outside the pure state" step as [[withAchievements]]. A
+    * no-op outside the hub.
+    */
+  private def withHubProgress(update: StateUpdate, progress: AchievementProgress): StateUpdate =
+    update.copy(hub = update.hub.map(_.copy(runsCompleted = progress.stats.runsCompleted)))
 
   /** Resolve `CombatView.abilityCost` against the player's live set/perk discounts (see
     * [[roguelite.game.AbilityDef.effectiveCost]]) - a no-op outside combat, or if the player's
@@ -141,10 +150,11 @@ class GameSession private (
           val transitionResult = stateMachine.applyActionPure(state, action)
           (transitionResult.state, (state, transitionResult))
       (prev, transitionResult) = result
-      finalNext     <- handlePostTransition(prev, transitionResult.state)
+      postResult    <- handlePostTransition(prev, transitionResult.state)
+      (finalNext, extraLog) = postResult
       newlyUnlocked <- processAchievementEvents(transitionResult.events)
     yield finalNext
-      .toStateUpdate(transitionResult.log, transitionResult.dialogue)
+      .toStateUpdate(transitionResult.log ++ extraLog, transitionResult.dialogue)
       .copy(newlyUnlocked = newlyUnlocked,
             damageEvents = toDamageEventViews(transitionResult.events),
             soundEvents = toSoundEventTags(transitionResult.events)
@@ -172,41 +182,55 @@ class GameSession private (
       case GameEvent.DoorOpened          => "door_open"
     }
 
-  /** Side-effects and state enrichment triggered by specific state transitions.
+  /** Side-effects and state enrichment triggered by specific state transitions. Returns the state
+    * to carry on with, plus any log lines the enrichment itself produced.
     *
     *   - `Combat → GameOver`  : persist metaCurrency immediately (browser-close safety)
-    *   - `GameOver → HubState`: enrich the placeholder HubState with real MetaProgression
+    *   - `GameOver → HubState`: enrich the placeholder HubState with real MetaProgression, after
+    *                            topping up the Shards of a player stuck without a kit
     *   - `Hub → Exploration`  : apply purchased upgrade bonuses to the starting player
     */
-  private def handlePostTransition(prev: GameState, next: GameState): IO[GameState] =
+  private def handlePostTransition(prev: GameState, next: GameState): IO[(GameState, List[String])] =
     (prev, next) match
       case (_, gameOver: GameOverState) =>
         // Persist currency immediately
         val currency = gameOver.player.metaCurrency
         metaRef.update(_.copy(currency = currency)) *>
           database.saveCurrency(currency) *>
-          IO.pure(gameOver)
+          IO.pure((gameOver, Nil))
 
       case (_: GameOverState, hub: HubState) =>
         // State machine puts MetaProgression.empty as placeholder; replace with real meta.
-        // This is also a fresh hub entry, so roll a new set of perk options.
-        metaRef.get.flatMap:
-          meta =>
-            val enriched = hub.copy(
-              player = hub.player.copy(metaCurrency = meta.currency),
-              meta = meta,
-              perkOptions = rollPerkOptions()
-            )
-            stateRef.set(enriched) *> IO.pure(enriched)
+        // This is also a fresh hub entry, so roll a new set of perk options. The run that just
+        // ended is already counted in the achievement stats (its events were processed when it
+        // reached GameOver), which is what the top-up reads.
+        for
+          currentMeta <- metaRef.get
+          progress    <- achievementRef.get
+          grant = ShardTopUp.grantFor(currentMeta, progress.stats, upgradeDefs)
+          meta        <- grant.fold(IO.pure(currentMeta))(applyShardTopUp(currentMeta, _))
+          perkOptions <- rollPerkOptions()
+          enriched = hub.copy(
+            player = hub.player.copy(metaCurrency = meta.currency),
+            meta = meta,
+            perkOptions = perkOptions
+          )
+          _ <- stateRef.set(enriched)
+        yield (enriched, grant.map(g => s"You received ${g.amount} bonus Shards.").toList)
 
       case (_: HubState, exp: ExplorationState) =>
         metaRef.get.flatMap:
           meta =>
             val boosted = applyMetaBonuses(exp, meta)
-            stateRef.set(boosted) *> IO.pure(boosted)
+            stateRef.set(boosted) *> IO.pure((boosted, Nil))
 
       case _ =>
-        IO.pure(next)
+        IO.pure((next, Nil))
+
+  /** Add a [[ShardTopUp.Grant]] to the balance, in memory and in the database. */
+  private def applyShardTopUp(meta: MetaProgression, grant: ShardTopUp.Grant): IO[MetaProgression] =
+    val toppedUp = meta.copy(currency = meta.currency + grant.amount)
+    database.saveCurrency(toppedUp.currency) *> metaRef.set(toppedUp).as(toppedUp)
 
   /** Check the achievement catalog against the events emitted by this transition, persist any
     * newly-unlocked achievements and updated counters, and return the freshly-unlocked views for
@@ -429,7 +453,7 @@ object GameSession:
                           xp = 0,
                           metaCurrency = meta.currency
       )
-      initPerkOptions = rng.shuffle(perkDefs.values.toList).take(PerkOptionsCount)
+      initPerkOptions = perkOptionsFor(perkDefs, achievementStats, rng)
       stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions))
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
@@ -454,6 +478,22 @@ object GameSession:
 
   /** Number of perks offered per hub visit, out of the full catalog. */
   private val PerkOptionsCount = 3
+
+  /** Run perks are locked until the player has won this many runs. An interim rule: the difficulty
+    * ceiling is meant to take over this gate later. Enforced here, on the server, by offering no
+    * perk at all, so a client cannot unlock them (the hub already hides an empty perk list).
+    */
+  private[engine] val PerksUnlockedAfterWins = 1
+
+  /** The perks to offer on a hub visit: a random subset of the catalog, or none while the player
+    * has fewer than [[PerksUnlockedAfterWins]] victories. A locked visit does not consume the rng.
+    */
+  private[engine] def perkOptionsFor(perkDefs: Map[String, PerkDef],
+                                     stats: AchievementStats,
+                                     rng: Random
+  ): List[PerkDef] =
+    if stats.runsWon < PerksUnlockedAfterWins then Nil
+    else rng.shuffle(perkDefs.values.toList).take(PerkOptionsCount)
 
   /** Dev tooling only: where `frontend/scripts/convert-tiled-room.mjs --out=...` output is meant
     * to be pointed at. Resolved relative to the backend's own working directory (`sbt run` /

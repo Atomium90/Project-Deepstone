@@ -1,7 +1,12 @@
 {
     "hint.dismiss": "Got it",
+    "hint.shop.title": "Hub upgrades",
+    "hint.shop.body": "Spend your Shards on upgrades. The Basic Kit gives your class its starting weapon and armor, so it is a good first buy.",
     "settings.showHints": "Show hints",
     "settings.resetTutorial": "Reset tutorial",
     "settings.resetButton": "Reset",
-    "settings.resetDone": "Done"
+    "settings.resetDone": "Done",
+    "start.goal": "Fight your way through the dungeon and reach the Sanctuary at its end.",
+    "start.begin": "Start",
+    "start.skip": "Skip tutorial"
 }

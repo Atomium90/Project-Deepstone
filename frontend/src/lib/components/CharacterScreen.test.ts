@@ -1,8 +1,10 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import { render, fireEvent } from "@testing-library/svelte";
 import { get } from "svelte/store";
+import { tick } from "svelte";
 import CharacterScreen from "./CharacterScreen.svelte";
 import { characterTab } from "../engine/CharacterStore";
+import { dismissHint, resetTutorial, showHint, tutorial } from "../engine/HintStore";
 import { settings } from "../engine/SettingsStore";
 import { gameState } from "../engine/StateStore";
 import type { MinimapView, StateUpdate } from "../engine/protocol";
@@ -36,7 +38,7 @@ describe("CharacterScreen", () => {
         await fireEvent.click(settingsTab);
 
         expect(container.querySelector(".equipment-panel")).toBeNull();
-        expect(container.querySelectorAll(".setting-row").length).toBe(3);
+        expect(container.querySelectorAll(".setting-row")).toHaveLength(5);
     });
 
     test("the close button clears characterTab", async () => {
@@ -122,5 +124,47 @@ describe("CharacterScreen", () => {
 
         await fireEvent.click(checkbox);
         expect(get(settings).reduceScreenShake).toBe(true);
+    });
+
+    describe("hints", () => {
+        beforeEach(() => {
+            settings.update((s) => ({ ...s, showHints: true }));
+            resetTutorial();
+            characterTab.set("settings");
+        });
+
+        test("the Show hints checkbox is bound to the settings store", async () => {
+            const { container } = render(CharacterScreen);
+            const checkbox = container.querySelectorAll('input[type="checkbox"]')[1] as HTMLInputElement;
+            expect(checkbox.checked).toBe(true);
+
+            await fireEvent.click(checkbox);
+            expect(get(settings).showHints).toBe(false);
+        });
+
+        test("the reset button makes the hints show again and says it is done", async () => {
+            showHint("affinity");
+            dismissHint();
+            expect(get(tutorial).seen).toEqual(["affinity"]);
+
+            const { container } = render(CharacterScreen);
+            const button = container.querySelector(".setting-btn")!;
+            expect(button.textContent?.trim()).toBe("Reset");
+
+            await fireEvent.click(button);
+            expect(get(tutorial)).toEqual({ skipped: false, seen: [] });
+            expect(button.textContent?.trim()).toBe("Done");
+        });
+
+        test("the button reads Reset again after leaving the Settings tab", async () => {
+            const { container } = render(CharacterScreen);
+            await fireEvent.click(container.querySelector(".setting-btn")!);
+
+            characterTab.set("equipment");
+            await tick();
+            characterTab.set("settings");
+            await tick();
+            expect(container.querySelector(".setting-btn")?.textContent?.trim()).toBe("Reset");
+        });
     });
 });

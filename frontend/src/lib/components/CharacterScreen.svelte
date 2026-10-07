@@ -2,13 +2,25 @@
     import { characterTab } from "../engine/CharacterStore";
     import { settings } from "../engine/SettingsStore";
     import { minimap } from "../engine/StateStore";
+    import { resetTutorial } from "../engine/HintStore";
+    import { t } from "../engine/i18n";
     import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
     import AchievementsPanel from "./AchievementsPanel.svelte";
     import EquipmentPanel from "./EquipmentPanel.svelte";
     import MinimapPanel from "./MinimapPanel.svelte";
 
+    /** Set once the reset button was pressed, so the press visibly did something. Cleared when the
+     * Settings tab is left, so it reads "Reset" again next time. */
+    let tutorialWasReset = false;
+    $: if ($characterTab !== "settings") tutorialWasReset = false;
+
     function close(): void {
         characterTab.set(null);
+    }
+
+    function resetHints(): void {
+        resetTutorial();
+        tutorialWasReset = true;
     }
 </script>
 
@@ -83,6 +95,20 @@
                             style="accent-color: {COLOR_ACHIEVEMENT_GOLD}"
                     />
                 </label>
+                <label class="setting-row">
+                    <span>{$t("settings.showHints")}</span>
+                    <input
+                            type="checkbox"
+                            bind:checked={$settings.showHints}
+                            style="accent-color: {COLOR_ACHIEVEMENT_GOLD}"
+                    />
+                </label>
+                <div class="setting-row">
+                    <span>{$t("settings.resetTutorial")}</span>
+                    <button class="setting-btn" on:click={resetHints}>
+                        {tutorialWasReset ? $t("settings.resetDone") : $t("settings.resetButton")}
+                    </button>
+                </div>
             {:else if $characterTab === "achievements"}
                 <AchievementsPanel />
             {:else if $characterTab === "map"}
@@ -182,5 +208,22 @@
     .setting-row input[type="range"] {
         width: 10rem;
         cursor: pointer;
+    }
+
+    .setting-btn {
+        padding: 0.25rem 0.75rem;
+        background: none;
+        border: 1px solid #555;
+        border-radius: 3px;
+        color: #ccc;
+        font-family: monospace;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: color 0.12s, border-color 0.12s;
+    }
+
+    .setting-btn:hover {
+        color: #d4ac0d;
+        border-color: #d4ac0d;
     }
 </style>

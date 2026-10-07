@@ -9,11 +9,13 @@ export interface Settings {
   sfxVolume: number;
   /** 0-100. */
   musicVolume: number;
+  /** Whether the first-time hints (see HintStore.ts) are shown at all. */
+  showHints: boolean;
 }
 
 const STORAGE_KEY = "deepstone-settings";
 
-const DEFAULTS: Settings = { reduceScreenShake: false, sfxVolume: 70, musicVolume: 50 };
+const DEFAULTS: Settings = { reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true };
 
 function loadSettings(): Settings {
   try {

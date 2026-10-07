@@ -12,6 +12,7 @@
     import CharacterScreen  from "./lib/components/CharacterScreen.svelte";
     import EquipChoiceModal from "./lib/components/EquipChoiceModal.svelte";
     import RewardChoiceModal from "./lib/components/RewardChoiceModal.svelte";
+    import HintCard from "./lib/components/HintCard.svelte";
 
     onMount(() => {
         connectToServer();
@@ -48,6 +49,7 @@
     <CharacterScreen />
     <EquipChoiceModal />
     <RewardChoiceModal />
+    <HintCard />
 </main>
 
 <style>

@@ -36,6 +36,13 @@ Third-party art and audio assets used by Deepstone, and their licenses.
 - **High Quality 16-bit RPG Music** by HydroGene (https://hydrogene.itch.io/high-quality-16-bit-music)
   Used for: hub, combat, and exploration background music.
 
+## MIT (copyright notice kept here)
+
+- **Tabler Icons** by Paweł Kuna (https://tabler.io/icons)
+  Copyright (c) 2020-2023 Paweł Kuna, [MIT License](https://github.com/tabler/tabler-icons/blob/master/LICENSE).
+  Used for: the room type, marker and arrow glyphs of the dungeon map
+  (`frontend/src/lib/engine/minimapIcons.ts`), as placeholders until a game-style icon set replaces them.
+
 ## AI-generated (no third-party pack/license)
 
 - **Sanctuary halo** (`lightHalo_anim`, gold variant) - AI-generated, 4-frame animation.

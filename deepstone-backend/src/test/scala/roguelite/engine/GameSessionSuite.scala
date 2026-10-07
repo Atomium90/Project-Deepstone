@@ -295,6 +295,41 @@ class GameSessionSuite extends CatsEffectSuite:
                  CombatResolver(Random(0L))
     )
 
+  /** A minimal pool (1 Boss + 1 Sanctuary room, nothing else), played on Easy (biomeCount = 1) so a
+    * single Boss room is enough: Boss is required once per biome, and a boss kill does not end the
+    * run by itself, so a run is won through the Sanctuary. The run starts in the Boss room itself:
+    * boss -> sanctuary, wired automatically by DungeonBuilder from the Boss room's Unresolved door.
+    * A Boss room never rolls a trapped door (see DungeonBuilder.rollTrappedDoors), so leaving it is
+    * deterministic whatever the seed. To win: Interact "e1", Attack, Interact "door_to_sanctuary",
+    * Interact "sanct_1".
+    */
+  def smWithBossRun: StateMachine =
+    val tiles           = makeTiles()
+    val doorToSanctuary = Door("door_to_sanctuary", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
+    val bossRoom = Room("boss",
+                        RoomType.Boss,
+                        "dungeon",
+                        8,
+                        6,
+                        tiles,
+                        List(doorToSanctuary, Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin"))
+    )
+    val sanctuaryRoom = Room("s1", RoomType.Sanctuary, "dungeon", 8, 6, tiles, List(Sanctuary("sanct_1", x = 2, y = 1)))
+    StateMachine(
+      Map("boss" -> bossRoom, "s1" -> sanctuaryRoom),
+      Map("goblin" -> weakGoblinStats),
+      Map.empty,
+      testClassDefs,
+      testUpgradeDefs,
+      CombatResolver(Random(0L))
+    )
+
+  /** A save that has already won once, so the run perks are unlocked (see
+    * GameSession.PerksUnlockedAfterWins).
+    */
+  def seedFirstVictory(database: Database): IO[Unit] =
+    database.saveAchievementStats(AchievementStats(runsWon = 1))
+
   // One fresh in-memory DB per test
   val db = ResourceFixture(Database.inMemory())
 
@@ -379,9 +414,10 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(afterReturn.hub.map(_.runsCompleted), Some(1))
   }
 
-  db.test("fresh session offers 3 perks out of a wider catalog") {
+  db.test("a save with a victory is offered 3 perks out of a wider catalog") {
     database =>
       for
+        _       <- seedFirstVictory(database)
         session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
                                       perkDefs = testPerkDefs, rng = Random(0L)
                    )
@@ -389,9 +425,72 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(update.hub.get.perks.length, 3)
   }
 
+  db.test("a save with no victory yet is offered no perk, the catalog being locked") {
+    database =>
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      perkDefs = testPerkDefs, rng = Random(0L)
+                   )
+        update  <- session.currentUpdate
+      yield assertEquals(update.hub.get.perks, Nil)
+  }
+
+  db.test("losing a run keeps the perks locked on the way back to the hub") {
+    database =>
+      for
+        session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, perkDefs = testPerkDefs, rng = Random(0L)
+                   )
+        _           <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _           <- session.handle(Interact("e1"))
+        afterHit    <- session.handle(CombatAction(CombatActionType.Attack))
+        afterReturn <- session.handle(HubAction(HubActionType.ReturnToHub))
+      yield
+        assertEquals(afterHit.phase, GamePhase.GameOver, s"expected defeat to end the run: ${afterHit.log}")
+        assertEquals(afterReturn.hub.get.perks, Nil)
+  }
+
+  db.test("the first victory unlocks the perks at the next hub visit") {
+    database =>
+      for
+        session <- GameSession.create(smWithBossRun, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, perkDefs = testPerkDefs, rng = Random(0L)
+                   )
+        _           <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                                difficulty = Some(Difficulty.Easy)
+                       ))
+        _           <- session.handle(Interact("e1"))
+        _           <- session.handle(CombatAction(CombatActionType.Attack))
+        _           <- session.handle(Interact("door_to_sanctuary"))
+        afterWin    <- session.handle(Interact("sanct_1"))
+        afterReturn <- session.handle(HubAction(HubActionType.ReturnToHub))
+      yield
+        assert(afterWin.victory, s"expected the Sanctuary to end the run in victory: ${afterWin.log}")
+        assertEquals(afterReturn.hub.get.perks.length, 3)
+  }
+
+  test("perkOptionsFor offers nothing below the victory threshold, whatever the catalog") {
+    val none = GameSession.perkOptionsFor(testPerkDefs, AchievementStats(runsCompleted = 9, runsWon = 0), Random(0L))
+    assertEquals(none, Nil)
+  }
+
+  test("perkOptionsFor offers 3 distinct perks from the threshold on") {
+    val offered = GameSession.perkOptionsFor(testPerkDefs, AchievementStats(runsWon = GameSession.PerksUnlockedAfterWins),
+                                             Random(0L)
+    )
+    assertEquals(offered.length, 3)
+    assertEquals(offered.map(_.id).distinct.length, 3)
+  }
+
+  test("perkOptionsFor offers a whole catalog smaller than 3") {
+    val small = testPerkDefs.take(2)
+    assertEquals(GameSession.perkOptionsFor(small, AchievementStats(runsWon = 1), Random(0L)).length, 2)
+  }
+
   db.test("ReturnToHub after a run rerolls the offered perks") {
     database =>
       for
+        _       <- seedFirstVictory(database)
         session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
                                       testAchievementDefs, perkDefs = testPerkDefs, rng = Random(0L)
                    )
@@ -408,6 +507,7 @@ class GameSessionSuite extends CatsEffectSuite:
   db.test("BuyUpgrade does not reroll the offered perks") {
     database =>
       for
+        _       <- seedFirstVictory(database)
         session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
                                       perkDefs = testPerkDefs, rng = Random(0L)
                    )
@@ -430,6 +530,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                  effect = PerkEffect.AbilityCostReductionPercent(20)
       )
       for
+        _       <- seedFirstVictory(database)
         session <- GameSession.create(smWithEnemy, database, Map.empty, testUpgradeDefs,
                                       Map(ClassId.Warrior -> ability), testAchievementDefs,
                                       perkDefs = Map(discountPerk.id -> discountPerk), rng = Random(0L)
@@ -833,6 +934,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                              CombatResolver(Random(0L))
       )
       for
+        _       <- seedFirstVictory(database)
         session <- GameSession.create(smWithEnemyAndItems, database, itemDefs, testUpgradeDefs, Map.empty,
                                       testAchievementDefs, perkDefs = Map(wellStocked.id -> wellStocked),
                                       rng = Random(0L)
@@ -854,33 +956,10 @@ class GameSessionSuite extends CatsEffectSuite:
       val heavyHand = PerkDef("heavy_hand", "Heavy Hand", "test", icon = "*",
                               effect = PerkEffect.FlatDamageBonus(1)
       )
-      // A minimal pool (1 Boss + 1 Sanctuary room, nothing else), with the run forced to Easy
-      // (biomeCount = 1) so a single Boss room is enough: Boss is required once per biome, and a
-      // boss kill does not end the run by itself, so perk persistence is checked via the Sanctuary.
-      // boss -> sanctuary, wired automatically by DungeonBuilder from the Boss room's Unresolved
-      // door, and the run starts in the Boss room itself. A Boss room never rolls a trapped door
-      // (see DungeonBuilder.rollTrappedDoors), so leaving it is deterministic whatever the seed.
-      val tiles           = makeTiles()
-      val doorToSanctuary = Door("door_to_sanctuary", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
-      val bossRoom = Room("boss",
-                          RoomType.Boss,
-                          "dungeon",
-                          8,
-                          6,
-                          tiles,
-                          List(doorToSanctuary, Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin"))
-      )
-      val sanctuaryRoom = Room("s1", RoomType.Sanctuary, "dungeon", 8, 6, tiles, List(Sanctuary("sanct_1", x = 2, y = 1)))
-      val smWithBoss = StateMachine(
-        Map("boss" -> bossRoom, "s1" -> sanctuaryRoom),
-        Map("goblin" -> weakGoblinStats),
-        Map.empty,
-        testClassDefs,
-        testUpgradeDefs,
-        CombatResolver(Random(0L))
-      )
+      // Perk persistence is checked via the Sanctuary: a boss kill does not end the run by itself.
       for
-        session <- GameSession.create(smWithBoss, database, Map.empty, testUpgradeDefs, Map.empty,
+        _       <- seedFirstVictory(database)
+        session <- GameSession.create(smWithBossRun, database, Map.empty, testUpgradeDefs, Map.empty,
                                       testAchievementDefs, perkDefs = Map(heavyHand.id -> heavyHand),
                                       rng = Random(0L)
                    )

@@ -45,10 +45,11 @@ class GameSession private (
 ):
 
   /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
-    * action or replaced by the next fresh hub entry. See `HubState.perkOptions`.
+    * action or replaced by the next fresh hub entry, or nothing while perks are still locked. See
+    * `HubState.perkOptions` and [[GameSession.perkOptionsFor]].
     */
-  private def rollPerkOptions(): List[PerkDef] =
-    rng.shuffle(perkDefs.values.toList).take(GameSession.PerkOptionsCount)
+  private def rollPerkOptions(): IO[List[PerkDef]] =
+    achievementRef.get.map(progress => GameSession.perkOptionsFor(perkDefs, progress.stats, rng))
 
   /** Process a player action, update the internal state, and return the new state snapshot to be
     * serialized and sent to the client.
@@ -197,14 +198,16 @@ class GameSession private (
       case (_: GameOverState, hub: HubState) =>
         // State machine puts MetaProgression.empty as placeholder; replace with real meta.
         // This is also a fresh hub entry, so roll a new set of perk options.
-        metaRef.get.flatMap:
-          meta =>
-            val enriched = hub.copy(
-              player = hub.player.copy(metaCurrency = meta.currency),
-              meta = meta,
-              perkOptions = rollPerkOptions()
-            )
-            stateRef.set(enriched) *> IO.pure(enriched)
+        for
+          meta        <- metaRef.get
+          perkOptions <- rollPerkOptions()
+          enriched = hub.copy(
+            player = hub.player.copy(metaCurrency = meta.currency),
+            meta = meta,
+            perkOptions = perkOptions
+          )
+          _ <- stateRef.set(enriched)
+        yield enriched
 
       case (_: HubState, exp: ExplorationState) =>
         metaRef.get.flatMap:
@@ -436,7 +439,7 @@ object GameSession:
                           xp = 0,
                           metaCurrency = meta.currency
       )
-      initPerkOptions = rng.shuffle(perkDefs.values.toList).take(PerkOptionsCount)
+      initPerkOptions = perkOptionsFor(perkDefs, achievementStats, rng)
       stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions))
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
@@ -461,6 +464,22 @@ object GameSession:
 
   /** Number of perks offered per hub visit, out of the full catalog. */
   private val PerkOptionsCount = 3
+
+  /** Run perks are locked until the player has won this many runs. An interim rule: the difficulty
+    * ceiling is meant to take over this gate later. Enforced here, on the server, by offering no
+    * perk at all, so a client cannot unlock them (the hub already hides an empty perk list).
+    */
+  private[engine] val PerksUnlockedAfterWins = 1
+
+  /** The perks to offer on a hub visit: a random subset of the catalog, or none while the player
+    * has fewer than [[PerksUnlockedAfterWins]] victories. A locked visit does not consume the rng.
+    */
+  private[engine] def perkOptionsFor(perkDefs: Map[String, PerkDef],
+                                     stats: AchievementStats,
+                                     rng: Random
+  ): List[PerkDef] =
+    if stats.runsWon < PerksUnlockedAfterWins then Nil
+    else rng.shuffle(perkDefs.values.toList).take(PerkOptionsCount)
 
   /** Dev tooling only: where `frontend/scripts/convert-tiled-room.mjs --out=...` output is meant
     * to be pointed at. Resolved relative to the backend's own working directory (`sbt run` /

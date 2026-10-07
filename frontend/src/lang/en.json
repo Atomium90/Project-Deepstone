@@ -3,5 +3,8 @@
     "settings.showHints": "Show hints",
     "settings.resetTutorial": "Reset tutorial",
     "settings.resetButton": "Reset",
-    "settings.resetDone": "Done"
+    "settings.resetDone": "Done",
+    "start.goal": "Fight your way through the dungeon and reach the Sanctuary at its end.",
+    "start.begin": "Start",
+    "start.skip": "Skip tutorial"
 }

@@ -4,9 +4,11 @@
     import { gameState, gamePhase, connectToServer } from "./lib/engine/StateStore";
     import { assets } from "./lib/engine/AssetManager";
     import { audio } from "./lib/engine/AudioManager";
+    import { isNewSave } from "./lib/engine/FirstRun";
     import ExplorationHUD  from "./lib/components/ExplorationHUD.svelte";
     import CombatScreen    from "./lib/components/CombatScreen.svelte";
     import HubScreen       from "./lib/components/HubScreen.svelte";
+    import StartScreen     from "./lib/components/StartScreen.svelte";
     import GameOverScreen  from "./lib/components/GameOverScreen.svelte";
     import AchievementToast from "./lib/components/AchievementToast.svelte";
     import CharacterScreen  from "./lib/components/CharacterScreen.svelte";
@@ -30,7 +32,12 @@
                 </div>
 
             {:else if $gamePhase === "HUB"}
-                <HubScreen />
+                <!-- A brand-new save goes straight to a first run instead of the Hub. -->
+                {#if $isNewSave}
+                    <StartScreen />
+                {:else}
+                    <HubScreen />
+                {/if}
 
             {:else if $gamePhase === "EXPLORATION"}
                 <ExplorationHUD />

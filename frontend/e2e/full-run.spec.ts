@@ -8,6 +8,7 @@ import {
     directionBetween,
     interactTile,
     doorsFarthestFirst,
+    skipTutorial,
 } from "./helpers";
 
 test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ page }) => {
@@ -18,6 +19,7 @@ test("a full run: hub -> exploration -> combat -> loot -> game over", async ({ p
         if (msg.type() === "error") console.log(`[browser console.error] ${msg.text()}`);
     });
 
+    await skipTutorial(page);
     await page.goto("/");
     await expect.poll(async () => (await currentState(page))?.phase).toBe("HUB");
     const beforeStart = await currentState(page);

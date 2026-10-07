@@ -450,6 +450,59 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(afterReturn.hub.get.perks, Nil)
   }
 
+  /** Plays one lost run and goes back to the hub, returning the hub update. */
+  private def loseARunAndReturn(session: GameSession): IO[StateUpdate] =
+    for
+      _        <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      _        <- session.handle(Interact("e1"))
+      afterHit <- session.handle(CombatAction(CombatActionType.Attack))
+      _         = assertEquals(afterHit.phase, GamePhase.GameOver, s"expected defeat to end the run: ${afterHit.log}")
+      back     <- session.handle(HubAction(HubActionType.ReturnToHub))
+    yield back
+
+  db.test("the third finished run tops the Shards up to a starting kit on the way back to the hub") {
+    database =>
+      for
+        _       <- database.saveAchievementStats(AchievementStats(runsCompleted = 2))
+        session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs
+                   )
+        back     <- loseARunAndReturn(session)
+        metaInDb <- database.loadMeta()
+      yield
+        val kitCost = testUpgradeDefs("warrior_kit").cost
+        assertEquals(back.player.metaCurrency, kitCost)
+        assertEquals(back.log.lastOption, Some(s"You received $kitCost bonus Shards."))
+        assertEquals(metaInDb.currency, kitCost, "the grant must be saved, not only shown")
+  }
+
+  db.test("the top-up is not given before the third finished run") {
+    database =>
+      for
+        _       <- database.saveAchievementStats(AchievementStats(runsCompleted = 1))
+        session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs
+                   )
+        back <- loseARunAndReturn(session)
+      yield
+        assertEquals(back.player.metaCurrency, 0)
+        assert(!back.log.exists(_.contains("bonus Shards")), s"unexpected top-up: ${back.log}")
+  }
+
+  db.test("the top-up is not given to a player who owns a kit") {
+    database =>
+      for
+        _       <- database.saveAchievementStats(AchievementStats(runsCompleted = 2))
+        _       <- database.purchaseUpgrade("warrior_kit", newCurrency = 0)
+        session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs
+                   )
+        back <- loseARunAndReturn(session)
+      yield
+        assertEquals(back.player.metaCurrency, 0)
+        assert(!back.log.exists(_.contains("bonus Shards")), s"unexpected top-up: ${back.log}")
+  }
+
   db.test("the first victory unlocks the perks at the next hub visit") {
     database =>
       for

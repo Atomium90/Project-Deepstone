@@ -2,6 +2,7 @@
     import { gameState, client } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
     import { lastStartedDifficulty } from "../engine/RunStore";
+    import { tutorial, showHint } from "../engine/HintStore";
     import {
         PLAYER_CLASS_COLORS,
         CURRENCY_NAME,
@@ -39,6 +40,23 @@
         selectedUpgradeTab === "all" ? upgrades : upgrades.filter((u) => u.category === selectedUpgradeTab);
     $: perks    = $gameState?.hub?.perks ?? [];
     $: shards   = player?.metaCurrency ?? 0;
+
+    // The Hub is introduced step by step: the upgrade shop (and with it the classes that are
+    // locked behind an upgrade) only shows once there is something to spend Shards on, then stays
+    // for good. "Something to spend on" is any of: the player owns an upgrade (their Shards may
+    // have been spent on it), the balance covers the cheapest upgrade, or the tutorial was skipped.
+    // The shop never hides again, since the balance only drops by buying an upgrade.
+    $: cheapestUpgrade = upgrades.length > 0 ? Math.min(...upgrades.map((u) => u.cost)) : null;
+    $: shopVisible =
+        $tutorial.skipped ||
+        upgrades.some((u) => u.unlocked) ||
+        (cheapestUpgrade !== null && shards >= cheapestUpgrade);
+    $: if (shopVisible) showHint("shop");
+    // The perks are offered by the server only once it unlocks them, so a non-empty list is
+    // already the whole rule.
+    $: rightPanelVisible = shopVisible || perks.length > 0;
+    $: visibleClasses = shopVisible ? classes : classes.filter((c) => CLASS_UNLOCK_UPGRADE_ID[c] === null);
+
     // Dev tooling only - hand-converted Tiled rooms sitting in the backend's debug-rooms/ folder
     // (see frontend/scripts/convert-tiled-room.mjs). Empty (section hidden) unless that folder
     // exists and has something in it, so this never shows up for an actual player.
@@ -109,14 +127,14 @@
         </div>
     </header>
 
-    <div class="hub-body">
+    <div class="hub-body" class:single={!rightPanelVisible}>
 
         <!-- ── Left: class selection + start ── -->
         <section class="left-panel">
             <p class="section-label">Choose your class</p>
 
             <div class="class-list">
-                {#each classes as c}
+                {#each visibleClasses as c}
                     {@const info  = CLASS_INFO[c]}
                     {@const color = PLAYER_CLASS_COLORS[c]}
                     {@const unlocked = isClassUnlocked(c)}
@@ -168,8 +186,10 @@
             </button>
         </section>
 
-        <!-- ── Right: hub upgrades ── -->
+        <!-- ── Right: hub upgrades (once there is something to spend Shards on) and run perks ── -->
+        {#if rightPanelVisible}
         <section class="right-panel">
+            {#if shopVisible}
             <p class="section-label">Hub Upgrades</p>
 
             <div class="upgrade-tabs">
@@ -224,9 +244,10 @@
                     {/each}
                 </div>
             {/if}
+            {/if}
 
             {#if perks.length > 0}
-                <p class="section-label perk-section-label">Run Perk</p>
+                <p class="section-label" class:perk-section-label={shopVisible}>Run Perk</p>
                 <div class="perk-list">
                     {#each perks as p}
                         <button
@@ -248,6 +269,7 @@
                 <p class="feedback">{feedback}</p>
             {/if}
         </section>
+        {/if}
 
     </div>
 
@@ -395,6 +417,18 @@
         grid-template-columns: 1fr 1fr;
         gap: 0;
         overflow: hidden;
+    }
+
+    /* Nothing to show on the right yet (no shop, no perks): the left panel stands alone, centered. */
+    .hub-body.single {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .hub-body.single .left-panel {
+        width: 100%;
+        max-width: 34rem;
+        border-right: none;
     }
 
     .section-label {

@@ -1,5 +1,7 @@
 {
     "hint.dismiss": "Got it",
+    "hint.shop.title": "Hub upgrades",
+    "hint.shop.body": "Spend your Shards on upgrades. The Basic Kit gives your class its starting weapon and armor, so it is a good first buy.",
     "settings.showHints": "Show hints",
     "settings.resetTutorial": "Reset tutorial",
     "settings.resetButton": "Reset",

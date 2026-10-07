@@ -291,9 +291,9 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
    * `entryRoom`, and that door's Prev points back. When A has 2 exit rooms (a Fork segment), both
    * attempt to set B's entryRoom's Prev door - only the first actually resolves it (see
    * [[resolveLinks]]), the second is a harmless no-op. This means a room right after a fork cluster
-   * has a Prev door pointing at only one of the two branches, not both - accepted, since nothing
-   * reads "which branch did the player actually take" from that door once resolved
-   * (findSpawnPoint only cares about travel direction, not which room sent the player).
+   * has a Prev door linked to only one of the two branches, not both. The link is not what decides
+   * where that door leads: `InteractionResolver` sends the player back to the room recorded in
+   * [[Dungeon.cameFrom]], so they return to the branch they actually took.
    */
   private def wireSegments(segments: List[Segment]): Either[String, Dungeon] =
     if segments.isEmpty then return Left("Cannot wire an empty segment list.")

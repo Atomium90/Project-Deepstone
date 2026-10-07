@@ -91,7 +91,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                                   direction: Direction,
                                   passedRole: Option[ConnectorRole] = None
   ): (GameState, List[String], List[GameEvent]) =
-    exp.dungeon.navigateTo(targetRoomId) match {
+    exp.dungeon.navigateTo(targetRoomId, forward = passedRole.contains(ConnectorRole.Next)) match {
       case Left(err) => (exp, List(err), Nil)
       case Right(newDungeon) =>
         val spawnPoint =
@@ -105,10 +105,22 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                          door: Door
   ): (GameState, List[String], List[GameEvent]) =
     door.link match {
-      case DoorLink.Resolved(role, _, roomId) => navigateThroughDoor(exp, roomId, door.direction, Some(role))
+      case DoorLink.Resolved(role, branch, roomId) =>
+        navigateThroughDoor(exp, doorTarget(exp.dungeon, role, branch, roomId), door.direction, Some(role))
       case DoorLink.Unresolved(_, _) =>
         (exp, List(s"Door '${door.id}' is not connected to any room."), Nil)
     }
+
+  /** The room a door leads to. An untagged Prev door points at the one room the wiring chose, which
+    * for the room after a fork is the end of a single branch whichever branch the player took, so
+    * it follows the room they actually came from. A tagged door already names its branch and keeps
+    * its link, as does any room entered without going forward (nothing recorded in
+    * [[Dungeon.cameFrom]]).
+    */
+  private def doorTarget(dungeon: Dungeon, role: ConnectorRole, branch: Option[String], linked: String): String =
+    if role == ConnectorRole.Prev && branch.isEmpty
+    then dungeon.cameFrom.getOrElse(dungeon.currentRoomId, linked)
+    else linked
 
   /** Springs a trapped door: the player is thrown back one tile and a guardian from
     * [[availableTrapEnemies]] takes the tile they were standing on. That tile is the door's only

@@ -10,8 +10,9 @@ import {
     soundEvents,
     pendingEquipChoice,
     equippedSetCounts,
+    minimap,
 } from "./StateStore";
-import type { StateUpdate, ItemView, EquipmentView } from "./protocol";
+import type { StateUpdate, ItemView, EquipmentView, MinimapView } from "./protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
     return { id: "i1", typeId: "t1", name: "Item", kind: "weapon", rarity: "common", statLine: "+1 ATK", ...overrides };
@@ -61,6 +62,7 @@ describe("StateStore derived stores", () => {
         expect(get(soundEvents)).toEqual([]);
         expect(get(pendingEquipChoice)).toBeNull();
         expect(get(equippedSetCounts)).toEqual({});
+        expect(get(minimap)).toBeNull();
     });
 
     test("gamePhase mirrors the current StateUpdate's phase", () => {
@@ -96,6 +98,19 @@ describe("StateStore derived stores", () => {
         // Unlike the transient fields above, a follow-up update that still carries it must not clear it.
         gameState.set(makeState({ pendingEquipChoice: choice }));
         expect(get(pendingEquipChoice)).toEqual(choice);
+    });
+
+    test("minimap reflects the map the server sent and is null once an update has none", () => {
+        const map: MinimapView = {
+            sections: [{ index: 0, theme: "dungeon" }],
+            nodes: [{ id: "n0", roomType: "combat", visited: true, current: true, section: 0, column: 0, lane: 0 }],
+            edges: [],
+        };
+        gameState.set(makeState({ phase: "EXPLORATION", minimap: map }));
+        expect(get(minimap)).toEqual(map);
+
+        gameState.set(makeState({ phase: "COMBAT" }));
+        expect(get(minimap)).toBeNull();
     });
 
     test("equippedSetCounts counts weapon/armor/accessories sharing a setId", () => {

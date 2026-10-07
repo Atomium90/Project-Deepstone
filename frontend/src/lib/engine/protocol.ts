@@ -307,6 +307,52 @@ export interface SetView {
   bonus4pcLabel: string;
 }
 
+/** A room type as named on the wire. */
+export type RoomTypeName = "combat" | "loot" | "rest" | "boss" | "miniboss" | "fork" | "sanctuary" | "vault";
+
+/** One section of the dungeon map: a run of rooms drawn from one theme, ending in its own boss. The
+ * map draws one row per section. */
+export interface MinimapSectionView {
+  index: number;
+  /** The theme the section's rooms belong to, e.g. "dungeon" or "darkDungeon". */
+  theme: string;
+}
+
+/** One room on the dungeon map. */
+export interface MinimapNodeView {
+  /** Identifies the node within this map only, never the room's own id (an authored id such as
+   * "combat_003" would give the type of a room the player has not seen away). */
+  id: string;
+  /** Null for a room the player has not visited whose type is not revealed in advance. */
+  roomType: RoomTypeName | null;
+  /** True once the player has been in the room, the one they are in now included. */
+  visited: boolean;
+  /** True for the room the player is in. */
+  current: boolean;
+  /** Index of the MinimapSectionView the room belongs to. */
+  section: number;
+  /** Position along the section's row, from 0. Rooms on a fork's two branches share columns. */
+  column: number;
+  /** 0 for the upper branch of a fork and for every room outside one, 1 for the lower branch. A
+   * room outside a fork's branches sits on the middle line of a row that has two lanes. */
+  lane: number;
+}
+
+/** A way from one map node to another, always forward. */
+export interface MinimapEdgeView {
+  from: string;
+  to: string;
+  /** Only on the edges leaving a fork: the wall of the fork room its door sits on. */
+  exit: Direction | null;
+}
+
+/** The dungeon as a graph for the map panel. Only sent while exploring a run. */
+export interface MinimapView {
+  sections: MinimapSectionView[];
+  nodes: MinimapNodeView[];
+  edges: MinimapEdgeView[];
+}
+
 export interface StateUpdate {
   phase: GamePhase;
   player: PlayerView;
@@ -348,4 +394,6 @@ export interface StateUpdate {
    * "load this room" buttons in the hub. Only ever populated while `phase === "HUB"` - empty
    * everywhere else, and empty in a packaged build where that folder doesn't exist at all. */
   debugRooms: string[];
+  /** The dungeon map, only present while exploring a run. */
+  minimap?: MinimapView;
 }

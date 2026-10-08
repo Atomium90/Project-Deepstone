@@ -24,6 +24,12 @@ export default defineConfig({
     // would wait out the whole test timeout. 15s makes a stuck step fail with a readable error.
     use: { baseURL: "http://localhost:5173", headless: true, actionTimeout: 15_000 },
     reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
+    // All the specs share one backend and one database. The first-run spec needs a save with no
+    // finished run, and the others finish runs, so it goes first: the other project waits for it.
+    projects: [
+        { name: "first-run", testMatch: "first-run.spec.ts" },
+        { name: "game", testIgnore: "first-run.spec.ts", dependencies: ["first-run"] },
+    ],
     webServer: [
         {
             command: "npm run dev",

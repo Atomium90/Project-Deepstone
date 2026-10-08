@@ -27,16 +27,14 @@ import roguelite.db.Database
 
 object Main extends IOApp:
 
-  /** SQLite database file written alongside the running JAR. */
-  private val DbPath = "deepstone.db"
-
   def run(args: List[String]): IO[ExitCode] =
     server(StartupOptions.parse(args)).as(ExitCode.Success)
 
   private def server(options: StartupOptions): IO[Unit] =
-    // Database is a managed resource: schema init on open, connection pool released on exit.
+    // Database is a managed resource: schema init on open, connection pool released on exit. The
+    // file is deepstone.db alongside the running JAR unless --db names another one.
     Database
-      .resource(DbPath)
+      .resource(options.databasePath)
       .use:
         database =>
           for

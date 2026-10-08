@@ -1,5 +1,7 @@
 package roguelite
 
+import scala.annotation.tailrec
+
 /** What the command line asked of the server.
   *
   * @param debugMode
@@ -9,12 +11,33 @@ package roguelite
   * @param ignoredArgs
   *   Every argument that is not a known option, kept so the server can warn about a typo instead of
   *   silently running without the option the user meant.
+  * @param databasePath
+  *   The SQLite file the save lives in, `deepstone.db` unless `--db <path>` says otherwise. The end
+  *   to end tests point it at a file of their own, so they never play on a real save.
   */
-final case class StartupOptions(debugMode: Boolean, ignoredArgs: List[String])
+final case class StartupOptions(debugMode: Boolean,
+                                ignoredArgs: List[String],
+                                databasePath: String = StartupOptions.DefaultDatabasePath
+)
 
 object StartupOptions:
 
   val DebugFlag = "--debug"
 
+  val DatabaseFlag = "--db"
+
+  /** Written next to where the server runs. */
+  val DefaultDatabasePath = "deepstone.db"
+
   def parse(args: List[String]): StartupOptions =
-    StartupOptions(debugMode = args.contains(DebugFlag), ignoredArgs = args.filterNot(_ == DebugFlag))
+    @tailrec
+    def loop(rest: List[String], options: StartupOptions): StartupOptions = rest match
+      case Nil => options.copy(ignoredArgs = options.ignoredArgs.reverse)
+      case DebugFlag :: tail => loop(tail, options.copy(debugMode = true))
+      // A path never starts with "--", so "--db --debug" is a --db with no path, not a database
+      // called "--debug": the flag is kept aside as unknown, and --debug still turns debug on.
+      case DatabaseFlag :: path :: tail if !path.startsWith("--") =>
+        loop(tail, options.copy(databasePath = path))
+      case other :: tail => loop(tail, options.copy(ignoredArgs = other :: options.ignoredArgs))
+
+    loop(args, StartupOptions(debugMode = false, ignoredArgs = Nil))

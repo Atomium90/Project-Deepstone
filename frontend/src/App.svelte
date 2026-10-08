@@ -5,6 +5,7 @@
     import { assets } from "./lib/engine/AssetManager";
     import { audio } from "./lib/engine/AudioManager";
     import { isNewSave } from "./lib/engine/FirstRun";
+    import { watchHints } from "./lib/engine/HintTriggers";
     import ExplorationHUD  from "./lib/components/ExplorationHUD.svelte";
     import CombatScreen    from "./lib/components/CombatScreen.svelte";
     import HubScreen       from "./lib/components/HubScreen.svelte";
@@ -20,6 +21,8 @@
         connectToServer();
         assets.preloadAtlases();
         audio.init();
+        // onMount runs the returned function when the app is torn down.
+        return watchHints();
     });
 </script>
 

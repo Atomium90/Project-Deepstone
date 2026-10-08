@@ -9,7 +9,7 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.staticcontent.resourceServiceBuilder
 import org.http4s.StaticFile
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import roguelite.engine.{ RequestGuard, StateMachine, WebSocketRouter }
+import roguelite.engine.{ RequestGuard, SecurityHeaders, StateMachine, WebSocketRouter }
 import roguelite.game.{
   AbilityLoader,
   AchievementLoader,
@@ -102,7 +102,10 @@ object Main extends IOApp:
               .withHost(host"127.0.0.1")
               .withPort(ServerPort)
               .withHttpWebSocketApp(
-                wsb => guard((router.routes(wsb) <+> staticRoutes).orNotFound)
+                wsb =>
+                  SecurityHeaders(ServerPort.value)(
+                    guard((router.routes(wsb) <+> staticRoutes).orNotFound)
+                  )
               )
               .build
               .useForever

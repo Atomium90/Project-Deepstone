@@ -1,5 +1,5 @@
 val scala3Version = "3.3.7"
-val http4sVersion = "0.23.23"
+val http4sVersion = "0.23.38"
 val circeVersion  = "0.14.6"
 val munitVersion  = "0.7.29"
 val doobieVersion = "1.0.0-RC4"
@@ -29,7 +29,7 @@ lazy val root = (project in file("."))
       "com.zaxxer.hikari"     -> "io.micrometer.core.instrument",
       "com.zaxxer.hikari"     -> "io.prometheus.client",
       "com.zaxxer.hikari"     -> "javassist",
-      "fs2.io.net.unixsocket" -> "jnr.unixsocket",
+      "fs2.io.net"            -> "jnr.unixsocket",
       "org.sqlite.nativeimage" -> "org.graalvm.nativeimage.hosted",
       "scala.quoted"          -> "scala"
     ),

@@ -1,0 +1,18 @@
+<configuration>
+  <!-- Console only, readable by a player: time, level, message, and the first line of any
+       exception. A developer who needs the details starts the server with
+       -Dlogback.configurationFile=<another file>. -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <filter class="roguelite.ClientDisconnectFilter"/>
+    <encoder>
+      <pattern>%d{HH:mm:ss} %-5level %msg%n%ex{short}</pattern>
+    </encoder>
+  </appender>
+
+  <!-- The connection pool narrates its own start-up; the game's own lines say what matters. -->
+  <logger name="com.zaxxer.hikari" level="WARN"/>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

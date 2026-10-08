@@ -74,6 +74,20 @@ describe("HintCard", () => {
         expect(get(activeHint)).toBe("second");
     });
 
+    test("a hint with no corner of its own shows bottom left", async () => {
+        const { container } = render(HintCard);
+        showHint("first");
+        await tick();
+        expect(container.querySelector(".hint-card")?.classList.contains("pos-bottom-left")).toBe(true);
+    });
+
+    test("a hint shows in the corner its catalog entry names", async () => {
+        const { container } = render(HintCard);
+        showHint("shop");
+        await tick();
+        expect(container.querySelector(".hint-card")?.classList.contains("pos-top-right")).toBe(true);
+    });
+
     test("turning hints off in Settings removes the card", async () => {
         const { container } = render(HintCard);
         showHint("first");

@@ -13,6 +13,10 @@ lazy val root = (project in file("."))
   .settings(
     name := "deepstone-backend",
     jlinkOptions ++= Seq("--strip-debug", "--no-header-files", "--no-man-pages", "--compress=2"),
+    // The launcher puts lib/* on the classpath instead of naming every jar: the Windows script
+    // writes the whole list on one command line, which cmd refuses above 8191 characters, so the
+    // game would not start from a folder with a long path. Java expands the wildcard itself.
+    scriptClasspath := Seq("*"),
     // jdeps flags these as missing because they're optional integrations none of our
     // dependencies actually exercise at runtime (Servlet/SMTP appenders and the XZ compressor
     // of rolled log files in Logback, Dropwizard/Micrometer/Prometheus/Hibernate/javassist

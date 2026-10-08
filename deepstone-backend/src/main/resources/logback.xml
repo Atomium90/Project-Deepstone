@@ -9,8 +9,9 @@
     </encoder>
   </appender>
 
-  <!-- The connection pool narrates its own start-up; the game's own lines say what matters. -->
-  <logger name="com.zaxxer.hikari" level="WARN"/>
+  <!-- The connection pool narrates its own start-up and prints a stack trace when the save cannot
+       be opened. The game explains that failure itself in plain language (see StartupErrors). -->
+  <logger name="com.zaxxer.hikari" level="OFF"/>
 
   <root level="INFO">
     <appender-ref ref="CONSOLE"/>

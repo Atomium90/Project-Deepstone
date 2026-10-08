@@ -2,6 +2,7 @@ package roguelite
 
 import cats.effect.{ ExitCode, IO, IOApp }
 import cats.effect.std.Console
+import cats.syntax.monadError.*
 import cats.syntax.semigroupk.*
 import com.comcast.ip4s.{ host, Port }
 import org.http4s.HttpRoutes
@@ -27,6 +28,8 @@ import roguelite.game.{
 }
 import roguelite.db.Database
 
+import java.io.IOException
+import java.net.BindException
 import java.nio.file.{ Path, Paths }
 
 object Main extends IOApp:
@@ -34,13 +37,17 @@ object Main extends IOApp:
   def run(args: List[String]): IO[ExitCode] =
     server(StartupOptions.parse(args))
       .as(ExitCode.Success)
-      .recoverWith:
-        case failure: StartupFailure => Console[IO].errorln(failure.message).as(ExitCode.Error)
+      .handleErrorWith:
+        error => report(error).as(ExitCode.Error)
+
+  /** Says in plain language why the game stopped, then keeps the window open long enough to read it. */
+  private def report(error: Throwable): IO[Unit] =
+    Console[IO].errorln(StartupErrors.explain(error)) *> ConsolePause.waitForEnter
 
   private def server(options: StartupOptions): IO[Unit] =
     for
       serverPort <- PortSelection.choose(options.port, PortSelection.isFreeOnLoopback)
-      savePath   <- resolveSavePath(options)
+      savePath   <- resolveSavePath(options).adaptError { case error: IOException => StartupErrors.saveFolder(error) }
       _          <- serve(options, savePath, serverPort)
     yield ()
 
@@ -58,6 +65,7 @@ object Main extends IOApp:
     // Database is a managed resource: schema init on open, connection pool released on exit.
     Database
       .resource(savePath.toString)
+      .adaptError { case error => StartupErrors.saveFile(error, savePath) }
       .use:
         database =>
           for
@@ -134,6 +142,7 @@ object Main extends IOApp:
                   )
               )
               .build
+              .adaptError { case error: BindException => StartupErrors.port(error, serverPort) }
               .use(
                 _ =>
                   logger.info(s"Deepstone is running. Open http://localhost:$serverPort in your browser.") *>

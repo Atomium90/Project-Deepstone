@@ -14,16 +14,16 @@ lazy val root = (project in file("."))
     name := "deepstone-backend",
     jlinkOptions ++= Seq("--strip-debug", "--no-header-files", "--no-man-pages", "--compress=2"),
     // jdeps flags these as missing because they're optional integrations none of our
-    // dependencies actually exercise at runtime (Servlet/SMTP/conditional-config appenders
-    // in Logback, Dropwizard/Micrometer/Prometheus/Hibernate/javassist paths in HikariCP,
-    // fs2's Unix-domain-socket backend, sqlite-jdbc's GraalVM native-image hook, and a
-    // self-referential Scala 3 quotes/macros false positive). Listed by exact prefix pair
-    // rather than a blanket ignore so a genuinely new missing dependency still fails the build.
+    // dependencies actually exercise at runtime (Servlet/SMTP appenders and the XZ compressor
+    // of rolled log files in Logback, Dropwizard/Micrometer/Prometheus/Hibernate/javassist
+    // paths in HikariCP, fs2's Unix-domain-socket backend, sqlite-jdbc's GraalVM native-image
+    // hook, and a self-referential Scala 3 quotes/macros false positive). Listed by exact
+    // prefix pair rather than a blanket ignore so a genuinely new missing dependency still
+    // fails the build.
     jlinkIgnoreMissingDependency := JlinkIgnore.byPackagePrefix(
       "ch.qos.logback"        -> "jakarta.servlet",
       "ch.qos.logback"        -> "jakarta.mail",
-      "ch.qos.logback"        -> "org.codehaus.janino",
-      "ch.qos.logback"        -> "org.codehaus.commons.compiler",
+      "ch.qos.logback"        -> "org.tukaani.xz",
       "com.zaxxer.hikari"     -> "com.codahale.metrics",
       "com.zaxxer.hikari"     -> "org.hibernate",
       "com.zaxxer.hikari"     -> "io.micrometer.core.instrument",
@@ -47,11 +47,11 @@ lazy val root = (project in file("."))
       // Doobie (functional JDBC) + SQLite driver
       "org.tpolecat" %% "doobie-core"   % doobieVersion,
       "org.tpolecat" %% "doobie-hikari" % doobieVersion,
-      "org.xerial"    % "sqlite-jdbc"   % "3.45.1.0",
+      "org.xerial"    % "sqlite-jdbc"   % "3.53.4.0",
 
       // Logging
       "org.typelevel" %% "log4cats-slf4j"  % "2.6.0",
-      "ch.qos.logback" % "logback-classic" % "1.4.11",
+      "ch.qos.logback" % "logback-classic" % "1.5.38",
 
       // Testing
       "org.scalameta" %% "munit"               % munitVersion % Test,

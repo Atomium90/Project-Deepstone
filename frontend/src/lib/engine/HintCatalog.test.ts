@@ -31,12 +31,22 @@ describe("HintCatalog", () => {
         }
     });
 
+    test("the default corner is the top right", () => {
+        expect(DEFAULT_HINT_POSITION).toBe("top-right");
+    });
+
     test("a hint with no position of its own uses the default corner", () => {
         expect(hintPosition("controls")).toBe(DEFAULT_HINT_POSITION);
     });
 
+    test("no hint of the game asks for a corner of its own today", () => {
+        expect(HINTS.filter((hint) => hint.position !== undefined)).toEqual([]);
+    });
+
     test("a hint with a position of its own uses it", () => {
-        expect(hintPosition("shop")).toBe("top-right");
+        const catalog = [{ id: "a", position: "bottom-left" as const }, { id: "b" }];
+        expect(hintPosition("a", catalog)).toBe("bottom-left");
+        expect(hintPosition("b", catalog)).toBe(DEFAULT_HINT_POSITION);
     });
 
     test("an id missing from the catalog uses the default corner", () => {

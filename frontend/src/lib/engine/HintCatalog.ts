@@ -4,12 +4,16 @@ export type HintPosition = "bottom-left" | "bottom-right" | "top-left" | "top-ri
 /** One hint. Its texts live in the lang files, under `hint.<id>.title` and `hint.<id>.body`. */
 export interface HintDef {
     id: string;
-    /** The corner this hint's card shows in. Each screen has its own free spots, so a hint that
-     * would cover something important in the default corner picks another one. */
+    /** The corner this hint's card shows in, when it should not use the default one. No hint does
+     * today, the field is there for a screen where the default corner would hide something the
+     * player needs while reading. */
     position?: HintPosition;
 }
 
-export const DEFAULT_HINT_POSITION: HintPosition = "bottom-left";
+/** The top right is where the eye goes first on every screen, so the card is read before it is
+ * dismissed. It can cover information (the Shards counter, the stats panel), which does not
+ * matter: a hint is meant to be read, then closed with "Got it". */
+export const DEFAULT_HINT_POSITION: HintPosition = "top-right";
 
 /** Every hint of the game, in the order the Help tab lists them: what the dungeon teaches first,
  * then what the Hub does. What triggers each one is in HintTriggers.ts, except "shop", which
@@ -27,10 +31,10 @@ export const HINTS: readonly HintDef[] = [
     { id: "reward_choice" },
     { id: "elite" },
     { id: "difficulty" },
-    { id: "shop", position: "top-right" },
+    { id: "shop" },
     { id: "perks" },
 ];
 
-export function hintPosition(id: string): HintPosition {
-    return HINTS.find((hint) => hint.id === id)?.position ?? DEFAULT_HINT_POSITION;
+export function hintPosition(id: string, catalog: readonly HintDef[] = HINTS): HintPosition {
+    return catalog.find((hint) => hint.id === id)?.position ?? DEFAULT_HINT_POSITION;
 }

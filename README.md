@@ -109,6 +109,13 @@ that folder up front and switch between them freely while iterating. `debug-room
 it's a local scratch folder for previewing content, never real, shippable game data. Once a room
 is finished, delete its file from `debug-rooms/` and paste its JSON into `rooms.json` instead.
 
+## Choosing the save file
+
+The save lives in `deepstone.db`, next to where the backend runs. To use another file, pass
+`--db <path>` (for example `sbt "run --db target/other.db"`, or the same argument on a packaged
+build): the file is created if it does not exist, and your own save is left alone. The end-to-end
+tests use this to play on a database of their own.
+
 ## Credits
 
 Third-party art assets and their licenses are listed in [CREDITS.md](CREDITS.md).

@@ -9,7 +9,7 @@ import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.staticcontent.resourceServiceBuilder
 import org.http4s.StaticFile
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import roguelite.engine.{ StateMachine, WebSocketRouter }
+import roguelite.engine.{ RequestGuard, StateMachine, WebSocketRouter }
 import roguelite.game.{
   AbilityLoader,
   AchievementLoader,
@@ -26,6 +26,8 @@ import roguelite.game.{
 import roguelite.db.Database
 
 object Main extends IOApp:
+
+  private val ServerPort = port"8080"
 
   def run(args: List[String]): IO[ExitCode] =
     server(StartupOptions.parse(args)).as(ExitCode.Success)
@@ -91,12 +93,16 @@ object Main extends IOApp:
                 StaticFile.fromResource("/static/index.html", Some(req)).getOrElseF(NotFound())
             } <+> resourceServiceBuilder[IO]("/static").toRoutes
 
+            // Every request, WebSocket handshake and static file alike, goes through the guard
+            // first: a page from another site never reaches the game.
+            guard = RequestGuard(ServerPort.value)
+
             _ <- EmberServerBuilder
               .default[IO]
               .withHost(host"127.0.0.1")
-              .withPort(port"8080")
+              .withPort(ServerPort)
               .withHttpWebSocketApp(
-                wsb => (router.routes(wsb) <+> staticRoutes).orNotFound
+                wsb => guard((router.routes(wsb) <+> staticRoutes).orNotFound)
               )
               .build
               .useForever

@@ -41,7 +41,9 @@ export default defineConfig({
         {
             // No friendly HTTP route at "/" (the WS route lives at /ws) - `port` waits for the
             // TCP port to accept connections instead of polling for an HTTP response.
-            command: `sbt "run --db ${E2E_DATABASE}"`,
+            // --port 8080: the dev page is wired to that port, and without the flag the backend
+            // moves to another one when it is taken.
+            command: `sbt "run --db ${E2E_DATABASE} --port 8080"`,
             cwd: "../deepstone-backend",
             port: 8080,
             // Never reuse a backend that is already up: it would be the dev one, playing on the

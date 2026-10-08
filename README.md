@@ -36,12 +36,12 @@ if you're not on Windows.
 
 ### Backend
 
-Requires: Java 17+, sbt 1.9+
+Requires: Java 17+, sbt 1.12+
 
 ```bash
 cd deepstone-backend
-sbt run          # starts the server on ws://localhost:8080/ws
-sbt test         # run all tests
+sbt "run --port 8080"   # starts the server on ws://localhost:8080/ws (the dev page expects 8080)
+sbt test                # run all tests
 ```
 
 ### Frontend
@@ -125,6 +125,16 @@ folder is never overwritten. A save kept elsewhere can simply be copied into the
 To use another file, pass `--db <path>` (for example `sbt "run --db target/other.db"`, or the same
 argument on a packaged build): the file is created if it does not exist, and your own save is left
 alone. The end-to-end tests use this to play on a database of their own.
+
+## Choosing the port
+
+Without `--port`, the server listens on the first free port from 8080 to 8089 and prints the address
+to open, for example `Deepstone is running. Open http://localhost:8081 in your browser.` The page
+finds the server on the port it was loaded from, so nothing else needs changing.
+
+`--port <number>` asks for one port, and the server stops with an explanation if another program
+holds it, rather than moving elsewhere. The dev setup (`run-dev.ps1`, the end-to-end tests) passes
+`--port 8080`, because the Vite dev page is wired to that port.
 
 ## Credits
 

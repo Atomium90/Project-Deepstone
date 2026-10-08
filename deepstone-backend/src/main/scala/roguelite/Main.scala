@@ -1,8 +1,9 @@
 package roguelite
 
 import cats.effect.{ ExitCode, IO, IOApp }
+import cats.effect.std.Console
 import cats.syntax.semigroupk.*
-import com.comcast.ip4s.{ host, port }
+import com.comcast.ip4s.{ host, Port }
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
@@ -30,13 +31,18 @@ import java.nio.file.{ Path, Paths }
 
 object Main extends IOApp:
 
-  private val ServerPort = port"8080"
-
   def run(args: List[String]): IO[ExitCode] =
-    server(StartupOptions.parse(args)).as(ExitCode.Success)
+    server(StartupOptions.parse(args))
+      .as(ExitCode.Success)
+      .recoverWith:
+        case failure: StartupFailure => Console[IO].errorln(failure.message).as(ExitCode.Error)
 
   private def server(options: StartupOptions): IO[Unit] =
-    resolveSavePath(options).flatMap(serve(options, _))
+    for
+      serverPort <- PortSelection.choose(options.port, PortSelection.isFreeOnLoopback)
+      savePath   <- resolveSavePath(options)
+      _          <- serve(options, savePath, serverPort)
+    yield ()
 
   /** The save is in the player's data folder unless --db names another file. */
   private def resolveSavePath(options: StartupOptions): IO[Path] =
@@ -48,7 +54,7 @@ object Main extends IOApp:
       _        <- Logger[IO].info(s"Save file: $savePath")
     yield savePath
 
-  private def serve(options: StartupOptions, savePath: Path): IO[Unit] =
+  private def serve(options: StartupOptions, savePath: Path, serverPort: Int): IO[Unit] =
     // Database is a managed resource: schema init on open, connection pool released on exit.
     Database
       .resource(savePath.toString)
@@ -110,22 +116,29 @@ object Main extends IOApp:
 
             // Every request, WebSocket handshake and static file alike, goes through the guard
             // first: a page from another site never reaches the game.
-            guard = RequestGuard(ServerPort.value)
+            guard = RequestGuard(serverPort)
 
+            listenPort <- IO.fromOption(Port.fromInt(serverPort))(
+              IllegalStateException(s"Not a valid port: $serverPort")
+            )
             _ <- EmberServerBuilder
               .default[IO]
               .withHost(host"127.0.0.1")
-              .withPort(ServerPort)
+              .withPort(listenPort)
               .withMaxWebSocketMessageSize(ServerLimits.MaxWebSocketMessageBytes)
               .withMaxConnections(ServerLimits.MaxConnections)
               .withHttpWebSocketApp(
                 wsb =>
-                  SecurityHeaders(ServerPort.value)(
+                  SecurityHeaders(serverPort)(
                     guard((router.routes(wsb) <+> staticRoutes).orNotFound)
                   )
               )
               .build
-              .useForever
+              .use(
+                _ =>
+                  logger.info(s"Deepstone is running. Open http://localhost:$serverPort in your browser.") *>
+                    IO.never
+              )
               .onError(
                 err => logger.error(err)("Server crashed")
               )

@@ -43,8 +43,9 @@ class WebSocketRouter(stateMachine: StateMachine,
             GameSession.create(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
                                achievementDefs, setDefs, perkDefs, debugMode = debugMode
             )
-          // Unbounded queue used to push outgoing frames from the receive handler
-          outgoing <- Queue.unbounded[IO, WebSocketFrame]
+          // Bounded queue used to push outgoing frames from the receive handler: a client that stops
+          // reading makes it fill, and the receive side then waits instead of piling up answers
+          outgoing <- Queue.bounded[IO, WebSocketFrame](ServerLimits.OutgoingQueueSize)
           // Seed the queue with the initial state so the client receives it immediately on connect, before sending any action
           initial <- session.currentUpdate.map(
             u => Text(MessageProtocol.encodeUpdate(u))

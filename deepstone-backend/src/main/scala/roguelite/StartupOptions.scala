@@ -12,12 +12,13 @@ import scala.annotation.tailrec
   *   Every argument that is not a known option, kept so the server can warn about a typo instead of
   *   silently running without the option the user meant.
   * @param databasePath
-  *   The SQLite file the save lives in, `deepstone.db` unless `--db <path>` says otherwise. The end
-  *   to end tests point it at a file of their own, so they never play on a real save.
+  *   The SQLite file the save lives in when `--db <path>` names one. Without it the save is in the
+  *   player's data folder (see [[SaveLocation]]). The end to end tests point it at a file of their
+  *   own, so they never play on a real save.
   */
 final case class StartupOptions(debugMode: Boolean,
                                 ignoredArgs: List[String],
-                                databasePath: String = StartupOptions.DefaultDatabasePath
+                                databasePath: Option[String] = None
 )
 
 object StartupOptions:
@@ -25,9 +26,6 @@ object StartupOptions:
   val DebugFlag = "--debug"
 
   val DatabaseFlag = "--db"
-
-  /** Written next to where the server runs. */
-  val DefaultDatabasePath = "deepstone.db"
 
   def parse(args: List[String]): StartupOptions =
     @tailrec
@@ -37,7 +35,7 @@ object StartupOptions:
       // A path never starts with "--", so "--db --debug" is a --db with no path, not a database
       // called "--debug": the flag is kept aside as unknown, and --debug still turns debug on.
       case DatabaseFlag :: path :: tail if !path.startsWith("--") =>
-        loop(tail, options.copy(databasePath = path))
+        loop(tail, options.copy(databasePath = Some(path)))
       case other :: tail => loop(tail, options.copy(ignoredArgs = other :: options.ignoredArgs))
 
     loop(args, StartupOptions(debugMode = false, ignoredArgs = Nil))

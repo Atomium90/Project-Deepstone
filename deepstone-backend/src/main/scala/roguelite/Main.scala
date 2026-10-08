@@ -8,6 +8,7 @@ import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.staticcontent.resourceServiceBuilder
 import org.http4s.StaticFile
+import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import roguelite.engine.{ RequestGuard, SecurityHeaders, ServerLimits, StateMachine, WebSocketRouter }
 import roguelite.game.{
@@ -25,6 +26,8 @@ import roguelite.game.{
 }
 import roguelite.db.Database
 
+import java.nio.file.{ Path, Paths }
+
 object Main extends IOApp:
 
   private val ServerPort = port"8080"
@@ -33,10 +36,22 @@ object Main extends IOApp:
     server(StartupOptions.parse(args)).as(ExitCode.Success)
 
   private def server(options: StartupOptions): IO[Unit] =
-    // Database is a managed resource: schema init on open, connection pool released on exit. The
-    // file is deepstone.db alongside the running JAR unless --db names another one.
+    resolveSavePath(options).flatMap(serve(options, _))
+
+  /** The save is in the player's data folder unless --db names another file. */
+  private def resolveSavePath(options: StartupOptions): IO[Path] =
+    for
+      given Logger[IO] <- Slf4jLogger.create[IO]
+      dataDirectory =
+        SaveLocation.dataDirectory(sys.props("os.name"), sys.env, Paths.get(sys.props("user.home")))
+      savePath <- SaveLocation.resolve(options.databasePath, Paths.get("").toAbsolutePath, dataDirectory)
+      _        <- Logger[IO].info(s"Save file: $savePath")
+    yield savePath
+
+  private def serve(options: StartupOptions, savePath: Path): IO[Unit] =
+    // Database is a managed resource: schema init on open, connection pool released on exit.
     Database
-      .resource(options.databasePath)
+      .resource(savePath.toString)
       .use:
         database =>
           for

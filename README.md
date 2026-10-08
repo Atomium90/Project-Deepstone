@@ -111,10 +111,20 @@ is finished, delete its file from `debug-rooms/` and paste its JSON into `rooms.
 
 ## Choosing the save file
 
-The save lives in `deepstone.db`, next to where the backend runs. To use another file, pass
-`--db <path>` (for example `sbt "run --db target/other.db"`, or the same argument on a packaged
-build): the file is created if it does not exist, and your own save is left alone. The end-to-end
-tests use this to play on a database of their own.
+The save is `deepstone.db` in your own data folder, so it is the same wherever the game is unzipped
+or started from:
+
+- Windows: `%APPDATA%\Deepstone`
+- macOS: `~/Library/Application Support/Deepstone`
+- Linux: `$XDG_DATA_HOME/deepstone`, or `~/.local/share/deepstone`
+
+The first time, a `deepstone.db` found in the folder the game is started from (where earlier
+versions wrote it) is copied there. The old file is left in place, and a save already in the data
+folder is never overwritten. A save kept elsewhere can simply be copied into the data folder.
+
+To use another file, pass `--db <path>` (for example `sbt "run --db target/other.db"`, or the same
+argument on a packaged build): the file is created if it does not exist, and your own save is left
+alone. The end-to-end tests use this to play on a database of their own.
 
 ## Credits
 

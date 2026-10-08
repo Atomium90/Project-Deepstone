@@ -19,16 +19,16 @@ class StartupOptionsSuite extends FunSuite:
       StartupOptions(debugMode = true, ignoredArgs = List("--other"))
     )
 
-  test("the save is deepstone.db unless told otherwise"):
-    assertEquals(StartupOptions.parse(Nil).databasePath, "deepstone.db")
+  test("without --db no save file is named, which leaves the choice to the player's data folder"):
+    assertEquals(StartupOptions.parse(Nil).databasePath, None)
 
   test("--db <path> picks the file of the save, and is not an unknown argument"):
     val options = StartupOptions.parse(List("--db", "target/e2e.db"))
-    assertEquals(options.databasePath, "target/e2e.db")
+    assertEquals(options.databasePath, Some("target/e2e.db"))
     assertEquals(options.ignoredArgs, Nil)
 
   test("--db and --debug work together, in either order"):
-    val expected = StartupOptions(debugMode = true, ignoredArgs = Nil, databasePath = "other.db")
+    val expected = StartupOptions(debugMode = true, ignoredArgs = Nil, databasePath = Some("other.db"))
     assertEquals(StartupOptions.parse(List("--db", "other.db", "--debug")), expected)
     assertEquals(StartupOptions.parse(List("--debug", "--db", "other.db")), expected)
 
@@ -45,7 +45,7 @@ class StartupOptionsSuite extends FunSuite:
     )
 
   test("the last --db wins"):
-    assertEquals(StartupOptions.parse(List("--db", "a.db", "--db", "b.db")).databasePath, "b.db")
+    assertEquals(StartupOptions.parse(List("--db", "a.db", "--db", "b.db")).databasePath, Some("b.db"))
 
   test("unknown arguments keep the order they came in"):
     assertEquals(StartupOptions.parse(List("--one", "--debug", "--two")).ignoredArgs, List("--one", "--two"))

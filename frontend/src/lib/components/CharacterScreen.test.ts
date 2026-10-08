@@ -4,7 +4,7 @@ import { get } from "svelte/store";
 import { tick } from "svelte";
 import CharacterScreen from "./CharacterScreen.svelte";
 import { characterTab } from "../engine/CharacterStore";
-import { dismissHint, resetTutorial, showHint, tutorial } from "../engine/HintStore";
+import { dismissHint, resetTutorial, showHint, skipTutorial, tutorial } from "../engine/HintStore";
 import { settings } from "../engine/SettingsStore";
 import { gameState } from "../engine/StateStore";
 import type { MinimapView, StateUpdate } from "../engine/protocol";
@@ -38,7 +38,7 @@ describe("CharacterScreen", () => {
         await fireEvent.click(settingsTab);
 
         expect(container.querySelector(".equipment-panel")).toBeNull();
-        expect(container.querySelectorAll(".setting-row")).toHaveLength(5);
+        expect(container.querySelectorAll(".setting-row")).toHaveLength(6);
     });
 
     test("the close button clears characterTab", async () => {
@@ -91,14 +91,14 @@ describe("CharacterScreen", () => {
             gameState.set(exploring(map));
             characterTab.set("equipment");
             const { container } = render(CharacterScreen);
-            expect(tabLabels(container)).toEqual(["Equipment", "Settings", "Achievements", "Map"]);
+            expect(tabLabels(container)).toEqual(["Equipment", "Settings", "Achievements", "Map", "Help"]);
         });
 
         test("is not offered when there is no map, as in the Hub", () => {
             gameState.set(exploring(undefined));
             characterTab.set("equipment");
             const { container } = render(CharacterScreen);
-            expect(tabLabels(container)).toEqual(["Equipment", "Settings", "Achievements"]);
+            expect(tabLabels(container)).toEqual(["Equipment", "Settings", "Achievements", "Help"]);
         });
 
         test("clicking it shows the map and marks it active", async () => {
@@ -148,7 +148,7 @@ describe("CharacterScreen", () => {
             expect(get(tutorial).seen).toEqual(["affinity"]);
 
             const { container } = render(CharacterScreen);
-            const button = container.querySelector(".setting-btn")!;
+            const button = container.querySelector(".reset-tutorial-btn")!;
             expect(button.textContent?.trim()).toBe("Reset");
 
             await fireEvent.click(button);
@@ -158,13 +158,52 @@ describe("CharacterScreen", () => {
 
         test("the button reads Reset again after leaving the Settings tab", async () => {
             const { container } = render(CharacterScreen);
-            await fireEvent.click(container.querySelector(".setting-btn")!);
+            await fireEvent.click(container.querySelector(".reset-tutorial-btn")!);
 
             characterTab.set("equipment");
             await tick();
             characterTab.set("settings");
             await tick();
-            expect(container.querySelector(".setting-btn")?.textContent?.trim()).toBe("Reset");
+            expect(container.querySelector(".reset-tutorial-btn")?.textContent?.trim()).toBe("Reset");
+        });
+
+        test("the skip button marks the tutorial as skipped and then reads Skipped, disabled", async () => {
+            const { container } = render(CharacterScreen);
+            const button = container.querySelector(".skip-tutorial-btn") as HTMLButtonElement;
+            expect(button.textContent?.trim()).toBe("Skip");
+            expect(button.disabled).toBe(false);
+
+            await fireEvent.click(button);
+
+            expect(get(tutorial).skipped).toBe(true);
+            expect(button.textContent?.trim()).toBe("Skipped");
+            expect(button.disabled).toBe(true);
+        });
+
+        test("the skip button comes back after a reset", async () => {
+            skipTutorial();
+            const { container } = render(CharacterScreen);
+            const button = container.querySelector(".skip-tutorial-btn") as HTMLButtonElement;
+            expect(button.disabled).toBe(true);
+
+            await fireEvent.click(container.querySelector(".reset-tutorial-btn")!);
+
+            expect(button.disabled).toBe(false);
+            expect(button.textContent?.trim()).toBe("Skip");
+        });
+
+        test("the Help tab shows the journal of the hints discovered", async () => {
+            showHint("controls");
+            dismissHint();
+            characterTab.set("equipment");
+            const { container } = render(CharacterScreen);
+            const helpTab = Array.from(container.querySelectorAll(".tab-btn")).find((t) => t.textContent?.trim() === "Help")!;
+
+            await fireEvent.click(helpTab);
+
+            expect(get(characterTab)).toBe("help");
+            expect(container.querySelector(".tab-btn.active")?.textContent?.trim()).toBe("Help");
+            expect(container.querySelector(".entry-title")?.textContent).toBe("Moving around");
         });
     });
 });

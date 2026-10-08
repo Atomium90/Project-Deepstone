@@ -3,6 +3,7 @@
     import { characterTab } from "../engine/CharacterStore";
     import { lastStartedDifficulty } from "../engine/RunStore";
     import { tutorial, showHint } from "../engine/HintStore";
+    import { t } from "../engine/i18n";
     import {
         PLAYER_CLASS_COLORS,
         CURRENCY_NAME,
@@ -298,6 +299,10 @@
         <button class="footer-nav-btn" on:click={() => characterTab.set("achievements")}>
             <span class="footer-nav-icon">🏆</span>
             <span class="footer-nav-label">Achievements</span>
+        </button>
+        <button class="footer-nav-btn help-nav-btn" on:click={() => characterTab.set("help")}>
+            <span class="footer-nav-icon">❓</span>
+            <span class="footer-nav-label">{$t("help.tab")}</span>
         </button>
     </footer>
 </div>

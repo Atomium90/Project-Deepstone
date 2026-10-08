@@ -5,6 +5,7 @@ import { tick } from "svelte";
 import HubScreen from "./HubScreen.svelte";
 import { gameState, client } from "../engine/StateStore";
 import { lastStartedDifficulty } from "../engine/RunStore";
+import { characterTab } from "../engine/CharacterStore";
 import { activeHint, resetTutorial, skipTutorial } from "../engine/HintStore";
 import { settings } from "../engine/SettingsStore";
 import type { StateUpdate, UpgradeView, PerkView } from "../engine/protocol";
@@ -144,6 +145,13 @@ describe("HubScreen", () => {
 
         await fireEvent.click(container.querySelectorAll(".upgrade-tab")[1]); // "Stats"
         expect(labels()).toEqual(["Stat Upgrade"]);
+    });
+
+    test("the footer's Help button opens the Help tab of the Character screen", async () => {
+        characterTab.set(null);
+        const { container } = render(HubScreen);
+        await fireEvent.click(container.querySelector(".help-nav-btn")!);
+        expect(get(characterTab)).toBe("help");
     });
 
     describe("the Hub shown step by step", () => {

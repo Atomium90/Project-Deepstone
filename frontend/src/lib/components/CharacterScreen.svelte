@@ -2,11 +2,12 @@
     import { characterTab } from "../engine/CharacterStore";
     import { settings } from "../engine/SettingsStore";
     import { minimap } from "../engine/StateStore";
-    import { resetTutorial } from "../engine/HintStore";
+    import { resetTutorial, skipTutorial, tutorial } from "../engine/HintStore";
     import { t } from "../engine/i18n";
     import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
     import AchievementsPanel from "./AchievementsPanel.svelte";
     import EquipmentPanel from "./EquipmentPanel.svelte";
+    import HelpPanel from "./HelpPanel.svelte";
     import MinimapPanel from "./MinimapPanel.svelte";
 
     /** Set once the reset button was pressed, so the press visibly did something. Cleared when the
@@ -59,6 +60,13 @@
                         Map
                     </button>
                 {/if}
+                <button
+                        class="tab-btn"
+                        class:active={$characterTab === "help"}
+                        on:click={() => characterTab.set("help")}
+                >
+                    {$t("help.tab")}
+                </button>
             </nav>
             <button class="close-btn" on:click={close} title="Back to Hub">✕</button>
         </header>
@@ -104,8 +112,14 @@
                     />
                 </label>
                 <div class="setting-row">
+                    <span>{$t("settings.skipTutorial")}</span>
+                    <button class="setting-btn skip-tutorial-btn" disabled={$tutorial.skipped} on:click={skipTutorial}>
+                        {$tutorial.skipped ? $t("settings.skipDone") : $t("settings.skipButton")}
+                    </button>
+                </div>
+                <div class="setting-row">
                     <span>{$t("settings.resetTutorial")}</span>
-                    <button class="setting-btn" on:click={resetHints}>
+                    <button class="setting-btn reset-tutorial-btn" on:click={resetHints}>
                         {tutorialWasReset ? $t("settings.resetDone") : $t("settings.resetButton")}
                     </button>
                 </div>
@@ -113,6 +127,8 @@
                 <AchievementsPanel />
             {:else if $characterTab === "map"}
                 <MinimapPanel />
+            {:else if $characterTab === "help"}
+                <HelpPanel />
             {/if}
         </div>
     </div>
@@ -222,8 +238,13 @@
         transition: color 0.12s, border-color 0.12s;
     }
 
-    .setting-btn:hover {
+    .setting-btn:hover:not(:disabled) {
         color: #d4ac0d;
         border-color: #d4ac0d;
+    }
+
+    .setting-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
     }
 </style>

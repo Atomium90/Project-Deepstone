@@ -1,11 +1,13 @@
 <script lang="ts">
     import { activeHint, dismissHint } from "../engine/HintStore";
+    import { hintPosition } from "../engine/HintCatalog";
     import { t } from "../engine/i18n";
 </script>
 
-<!-- The texts of a hint live in the lang files under hint.<id>.title and hint.<id>.body. -->
+<!-- The texts of a hint live in the lang files under hint.<id>.title and hint.<id>.body, and its
+     corner comes from the hint catalog. -->
 {#if $activeHint}
-    <aside class="hint-card" role="status">
+    <aside class="hint-card pos-{hintPosition($activeHint)}" role="status">
         <span class="hint-title">{$t(`hint.${$activeHint}.title`)}</span>
         <p class="hint-body">{$t(`hint.${$activeHint}.body`)}</p>
         <button class="hint-dismiss" on:click={dismissHint}>{$t("hint.dismiss")}</button>
@@ -17,8 +19,6 @@
      * anywhere. Nothing covers the screen, the game stays playable behind it. */
     .hint-card {
         position: fixed;
-        left: 1rem;
-        bottom: 1rem;
         z-index: 600;
         display: flex;
         flex-direction: column;
@@ -33,6 +33,11 @@
         color: #ccc;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
     }
+
+    .pos-bottom-left { left: 1rem; bottom: 1rem; }
+    .pos-bottom-right { right: 1rem; bottom: 1rem; }
+    .pos-top-left { left: 1rem; top: 1rem; }
+    .pos-top-right { right: 1rem; top: 1rem; }
 
     .hint-title {
         font-size: 0.6rem;

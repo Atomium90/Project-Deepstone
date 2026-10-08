@@ -6,6 +6,7 @@ import HintCard from "./HintCard.svelte";
 import { activeHint, resetTutorial, showHint, tutorial } from "../engine/HintStore";
 import { settings } from "../engine/SettingsStore";
 import { dictionaries } from "../engine/i18n";
+import { HINTS, type HintDef } from "../engine/HintCatalog";
 
 /** Two stand-in hints, texts added to the English dictionary for the duration of this file only. */
 const TEST_TEXTS: Record<string, string> = {
@@ -15,9 +16,19 @@ const TEST_TEXTS: Record<string, string> = {
     "hint.second.body": "Second body",
 };
 
+/** No hint of the game names a corner of its own today, so one stand-in does, in the catalog, for
+ * the duration of this file only. */
+const CORNER_HINT: HintDef = { id: "first", position: "bottom-left" };
+
 describe("HintCard", () => {
-    beforeAll(() => Object.assign(dictionaries.en, TEST_TEXTS));
-    afterAll(() => Object.keys(TEST_TEXTS).forEach((key) => delete dictionaries.en[key]));
+    beforeAll(() => {
+        Object.assign(dictionaries.en, TEST_TEXTS);
+        (HINTS as HintDef[]).push(CORNER_HINT);
+    });
+    afterAll(() => {
+        Object.keys(TEST_TEXTS).forEach((key) => delete dictionaries.en[key]);
+        (HINTS as HintDef[]).splice((HINTS as HintDef[]).indexOf(CORNER_HINT), 1);
+    });
 
     beforeEach(() => {
         settings.update((s) => ({ ...s, showHints: true }));
@@ -72,6 +83,21 @@ describe("HintCard", () => {
         await fireEvent.click(container.querySelector(".hint-dismiss")!);
         expect(container.querySelector(".hint-title")?.textContent).toBe("Second title");
         expect(get(activeHint)).toBe("second");
+    });
+
+    test("a hint with no corner of its own shows top right", async () => {
+        const { container } = render(HintCard);
+        showHint("second");
+        await tick();
+        expect(container.querySelector(".hint-card")?.classList.contains("pos-top-right")).toBe(true);
+    });
+
+    test("a hint shows in the corner its catalog entry names", async () => {
+        const { container } = render(HintCard);
+        showHint("first");
+        await tick();
+        expect(container.querySelector(".hint-card")?.classList.contains("pos-bottom-left")).toBe(true);
+        expect(container.querySelector(".hint-card")?.classList.contains("pos-top-right")).toBe(false);
     });
 
     test("turning hints off in Settings removes the card", async () => {

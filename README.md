@@ -138,4 +138,9 @@ holds it, rather than moving elsewhere. The dev setup (`run-dev.ps1`, the end-to
 
 ## Credits
 
-Third-party art assets and their licenses are listed in [CREDITS.md](CREDITS.md).
+Third-party art and audio, and their licenses, are listed in [CREDITS.md](CREDITS.md) and in the
+Credits tab of the Character screen in the game.
+
+## Security
+
+To report a vulnerability, see [SECURITY.md](SECURITY.md).

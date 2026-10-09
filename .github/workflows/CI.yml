@@ -70,6 +70,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The art and audio of the game live in a private repo, never in this one (see README.md).
+      - name: No third-party art or audio committed
+        run: |
+          tracked=$(git ls-files frontend/public/sprites frontend/public/audio)
+          if [ -n "$tracked" ]; then
+            echo "These files must not be committed, third-party assets stay in the private assets repo:"
+            echo "$tracked" | head -20
+            exit 1
+          fi
+
       - name: Set up Node 20
         uses: actions/setup-node@v4
         with:

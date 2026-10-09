@@ -1,0 +1,53 @@
+# Proposes updates to the pinned GitHub Actions, the frontend dependencies and the sbt dependencies
+# of the backend, one pull request at a time so that each can be tested by the CI and merged or
+# closed on its own. Security fixes arrive the same way for the frontend. For sbt GitHub only
+# offers version updates, so the backend libraries are also checked by hand against the
+# advisories before a release (see RELEASING.md).
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # A version has to be a few days old before it is proposed, which leaves time for a
+    # compromised release to be caught and withdrawn.
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "ci"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(frontend)"
+    open-pull-requests-limit: 5
+    # Minor and patch updates share one pull request, a major update gets its own.
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "sbt"
+    directory: "/deepstone-backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "chore(backend)"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"

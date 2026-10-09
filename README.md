@@ -136,6 +136,20 @@ finds the server on the port it was loaded from, so nothing else needs changing.
 holds it, rather than moving elsewhere. The dev setup (`run-dev.ps1`, the end-to-end tests) passes
 `--port 8080`, because the Vite dev page is wired to that port.
 
+## Art and audio
+
+The game's art and audio are the work of other people and are not stored in this repo, see
+[CREDITS.md](CREDITS.md). They live in a private repo, `deepstone-licensed-assets`, which holds the
+files the game uses in the layout of `frontend/public/`. To have them locally, clone that repo next
+to this one and run `.\sync-assets.ps1` from the root of this repo (`-WhatIf` shows what it would
+do, `-Prune` also removes the files the game does not use).
+
+Without them the game still runs, with plain shapes instead of sprites and interface skins (the
+health and resource bars show only their numbers) and no sound, which is all the tests and the CI
+need. `npm run audit:assets` in `frontend/` lists the files the game
+refers to and fails when one is missing. A release is built by the release workflow, or locally by
+`build-release.ps1`, which refuses to build without the assets.
+
 ## Credits
 
 Third-party art and audio, and their licenses, are listed in [CREDITS.md](CREDITS.md) and in the

@@ -4,9 +4,9 @@ Deepstone is built on the work of the artists and musicians below. Thank you. Th
 the game, in the Credits tab of the Character screen.
 
 The code is MIT licensed (see [LICENSE](LICENSE)). The art and audio below are not part of that
-licence: each pack keeps its own terms, linked next to it. Some files are kept out of the public
-repository because their terms do not allow publishing the raw files, and are added when the game
-is built.
+licence: each pack keeps its own terms, linked next to it. None of it is stored in this repository.
+The files the game uses are kept in a private repository and added when the game is built, so the
+downloadable game contains them, under the terms listed here.
 
 ## Art
 

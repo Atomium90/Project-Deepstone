@@ -41,6 +41,21 @@ describe("CharacterScreen", () => {
         expect(container.querySelectorAll(".setting-row")).toHaveLength(6);
     });
 
+    test("the Credits tab is there with no run going, and shows the credits panel", async () => {
+        characterTab.set("equipment");
+        const { container } = render(CharacterScreen);
+        const tabs = Array.from(container.querySelectorAll(".tab-btn"));
+        const creditsTab = tabs.find((t) => t.textContent?.trim() === "Credits")!;
+        expect(creditsTab).toBeDefined();
+
+        await fireEvent.click(creditsTab);
+
+        expect(get(characterTab)).toBe("credits");
+        expect(container.querySelector(".credits-panel")).not.toBeNull();
+        expect(container.querySelector(".equipment-panel")).toBeNull();
+        expect(container.querySelector(".tab-btn.active")?.textContent?.trim()).toBe("Credits");
+    });
+
     test("the close button clears characterTab", async () => {
         characterTab.set("settings");
         const { container } = render(CharacterScreen);
@@ -91,14 +106,14 @@ describe("CharacterScreen", () => {
             gameState.set(exploring(map));
             characterTab.set("equipment");
             const { container } = render(CharacterScreen);
-            expect(tabLabels(container)).toEqual(["Equipment", "Settings", "Achievements", "Map", "Help"]);
+            expect(tabLabels(container)).toEqual(["Equipment", "Settings", "Achievements", "Map", "Help", "Credits"]);
         });
 
         test("is not offered when there is no map, as in the Hub", () => {
             gameState.set(exploring(undefined));
             characterTab.set("equipment");
             const { container } = render(CharacterScreen);
-            expect(tabLabels(container)).toEqual(["Equipment", "Settings", "Achievements", "Help"]);
+            expect(tabLabels(container)).toEqual(["Equipment", "Settings", "Achievements", "Help", "Credits"]);
         });
 
         test("clicking it shows the map and marks it active", async () => {

@@ -6,6 +6,7 @@
     import { t } from "../engine/i18n";
     import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
     import AchievementsPanel from "./AchievementsPanel.svelte";
+    import CreditsPanel from "./CreditsPanel.svelte";
     import EquipmentPanel from "./EquipmentPanel.svelte";
     import HelpPanel from "./HelpPanel.svelte";
     import MinimapPanel from "./MinimapPanel.svelte";
@@ -66,6 +67,13 @@
                         on:click={() => characterTab.set("help")}
                 >
                     {$t("help.tab")}
+                </button>
+                <button
+                        class="tab-btn"
+                        class:active={$characterTab === "credits"}
+                        on:click={() => characterTab.set("credits")}
+                >
+                    {$t("credits.tab")}
                 </button>
             </nav>
             <button class="close-btn" on:click={close} title="Back to Hub">✕</button>
@@ -129,6 +137,8 @@
                 <MinimapPanel />
             {:else if $characterTab === "help"}
                 <HelpPanel />
+            {:else if $characterTab === "credits"}
+                <CreditsPanel />
             {/if}
         </div>
     </div>

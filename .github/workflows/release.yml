@@ -177,15 +177,47 @@ jobs:
           path: ${{ steps.package.outputs.path }}
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Create (or update) a draft GitHub Release with both platform zips
-  # attached. Left as a draft deliberately - the narrative, player-facing
-  # release notes are still written by hand in the GitHub UI, same as every
-  # release so far (v0.2.0-v0.5.0); this job only automates the mechanical
+  # Sign a build provenance for both zips: a signed statement, kept by GitHub,
+  # that these exact files were built by this workflow from this commit.
+  # Anyone can check a download against it with
+  #   gh attestation verify <zip> --repo Atomium90/Project-Deepstone
+  # The job holds the signing rights and nothing else, apart from reading the
+  # artifacts, and it is separate from the job that writes the release.
+  # ─────────────────────────────────────────────────────────────────────────
+  attest:
+    name: Attest build provenance
+    needs: [resolve, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/*.zip
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Create (or update) a DRAFT GitHub Release with both platform zips and
+  # their SHA-256 sums attached. Left as a draft deliberately - the narrative,
+  # player-facing release notes are still written by hand in the GitHub UI,
+  # same as every release so far; this job only automates the mechanical
   # build+attach step.
+  # A release that is already published is never touched: replacing the files
+  # of a public version would make its checksums and attestation meaningless,
+  # so the job stops instead.
   # ─────────────────────────────────────────────────────────────────────────
   publish:
     name: Publish draft release
-    needs: [resolve, build]
+    needs: [resolve, build, attest]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -197,14 +229,47 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Write the checksums
+        run: |
+          cd dist
+          sha256sum *.zip | tee SHA256SUMS.txt
+
       - name: Create or update the draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.resolve.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
-          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/*.zip --repo "$REPO" --clobber
-          else
-            gh release create "$TAG" dist/*.zip --repo "$REPO" --draft --title "$TAG"
-          fi
+          # none, draft or published: a draft can be filled in again, a published release cannot.
+          releases=$(gh release list --repo "$REPO" --limit 200 --json tagName,isDraft)
+          state=$(jq -r --arg tag "$TAG" '
+            map(select(.tagName == $tag))
+            | if length == 0 then "none" elif .[0].isDraft then "draft" else "published" end
+          ' <<< "$releases")
+          echo "Release $TAG: $state"
+          case "$state" in
+            published)
+              echo "::error::Release $TAG is already published, its files are never replaced. Bump the version and tag again."
+              exit 1
+              ;;
+            draft)
+              gh release upload "$TAG" dist/*.zip dist/SHA256SUMS.txt --repo "$REPO" --clobber
+              ;;
+            none)
+              gh release create "$TAG" dist/*.zip dist/SHA256SUMS.txt --repo "$REPO" --draft --title "$TAG"
+              ;;
+          esac
+
+      - name: Show the checksums for the release notes
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "### SHA-256"
+            echo
+            echo '```'
+            cat dist/SHA256SUMS.txt
+            echo '```'
+            echo
+            echo "Check a download against its signed provenance with \`gh attestation verify <file>.zip --repo $REPO\`."
+          } >> "$GITHUB_STEP_SUMMARY"

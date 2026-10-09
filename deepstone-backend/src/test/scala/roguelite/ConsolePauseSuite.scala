@@ -18,3 +18,9 @@ class ConsolePauseSuite extends CatsEffectSuite:
 
   test("with no console, it asks nothing and waits for nothing"):
     run(interactive = false).assertEquals(Nil)
+
+  // Under a build tool or a CI job there is no console, so this must come back at once. Run from a
+  // terminal that has one, the real prompt would wait for a key, so the check is skipped there.
+  test("waitForEnter returns at once when the program has no console"):
+    IO.delay(System.console() == null).flatMap:
+      noConsole => if noConsole then ConsolePause.waitForEnter else IO.unit

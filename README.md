@@ -155,6 +155,10 @@ refers to and fails when one is missing. A release is built by the release workf
 Third-party art and audio, and their licenses, are listed in [CREDITS.md](CREDITS.md) and in the
 Credits tab of the Character screen in the game.
 
+## Releases
+
+How a version is built, checked and published is in [RELEASING.md](RELEASING.md).
+
 ## Security
 
 To report a vulnerability, see [SECURITY.md](SECURITY.md).

@@ -15,7 +15,7 @@
     const BAR_FILL_BY_COLOR: Record<string, string> = {
         "#c0392b": "/sprites/ui/rpg-expansion/barRed_horizontalMid.png",
         "#27ae60": "/sprites/ui/rpg-expansion/barGreen_horizontalMid.png",
-        "#2980b9": "/sprites/ui/rpg-expansion/barBlue_horizontalMid.png",
+        "#2980b9": "/sprites/ui/rpg-expansion/barBlue_horizontalBlue.png",
     };
     $: fillImage = BAR_FILL_BY_COLOR[color];
 </script>

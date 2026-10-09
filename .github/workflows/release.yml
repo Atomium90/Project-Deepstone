@@ -44,7 +44,7 @@ jobs:
           }
           "tag=$tag" >> $env:GITHUB_OUTPUT
 
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ steps.resolve-tag.outputs.tag }}
@@ -86,7 +86,7 @@ jobs:
             platform: linux
 
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           ref: ${{ needs.resolve.outputs.tag }}
@@ -132,7 +132,7 @@ jobs:
       # frontend/public, so a packaged build gets them with a plain copy. build-release.ps1
       # then checks that every file the game refers to is there.
       - name: Check out the third-party assets
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           repository: Atomium90/deepstone-licensed-assets

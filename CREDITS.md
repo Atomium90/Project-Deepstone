@@ -8,6 +8,9 @@ licence: each pack keeps its own terms, linked next to it. None of it is stored 
 The files the game uses are kept in a private repository and added when the game is built, so the
 downloadable game contains them, under the terms listed here.
 
+The software libraries are not listed here: the downloadable game carries their notice and license
+texts in `THIRD-PARTY-NOTICES.txt`, next to `LICENSE`.
+
 ## Art
 
 - **16x16 Dungeon Tileset** by 0x72 (https://0x72.itch.io/16x16-dungeon-tileset)

@@ -28,6 +28,12 @@ the release workflow build the game for Windows and Linux, sign what it built an
   expected to report the Svelte 4 advisories (server-side rendering and DOM clobbering): they do not
   apply, the game does not render on the server and never injects HTML, and the only fix is
   Svelte 5. Anything else it reports is new.
+- The library notice builds. `sbt Universal/packageBin` writes `THIRD-PARTY-NOTICES.txt` into the
+  package and stops when a library declares no license or one the generator does not know: add it
+  to `deepstone-backend/project/ThirdPartyNotices.scala` and its text to
+  `deepstone-backend/src/notices/licenses/`. The frontend library is listed by hand in
+  `deepstone-backend/src/notices/frontend-libraries.txt`, so update it if a library is added to the
+  game page.
 - The token `LICENSED_ASSETS_PAT` has not expired. It is a fine-grained, read-only token limited to
   the private assets repo, and the release cannot fetch the art and audio without it.
 

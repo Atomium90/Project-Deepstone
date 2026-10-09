@@ -155,6 +155,11 @@ refers to and fails when one is missing. A release is built by the release workf
 Third-party art and audio, and their licenses, are listed in [CREDITS.md](CREDITS.md) and in the
 Credits tab of the Character screen in the game.
 
+The libraries the game is built with are credited in `THIRD-PARTY-NOTICES.txt`, which the build
+writes into every package next to `LICENSE`. It lists each library with its license and carries the
+full text of every license in use. The build stops if a library comes without a license it knows, see
+`deepstone-backend/project/ThirdPartyNotices.scala`.
+
 ## Releases
 
 How a version is built, checked and published is in [RELEASING.md](RELEASING.md).

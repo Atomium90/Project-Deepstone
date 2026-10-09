@@ -112,14 +112,6 @@ export const CREDITS: CreditEntry[] = [
         group: "art",
     },
     {
-        id: "kenney-game-icons-expansion",
-        name: "Game Icons (Expansion)",
-        author: "Kenney",
-        url: "https://kenney.nl",
-        ...CC0,
-        group: "art",
-    },
-    {
         id: "tabler-icons",
         name: "Tabler Icons",
         author: "Paweł Kuna",
@@ -154,14 +146,6 @@ export const CREDITS: CreditEntry[] = [
     {
         id: "kenney-rpg-audio",
         name: "RPG Audio",
-        author: "Kenney",
-        url: "https://kenney.nl",
-        ...CC0,
-        group: "audio",
-    },
-    {
-        id: "kenney-ui-audio",
-        name: "UI Audio",
         author: "Kenney",
         url: "https://kenney.nl",
         ...CC0,

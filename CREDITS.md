@@ -43,10 +43,10 @@ is built.
   License: the packs' own terms. Free for personal and commercial use, the packs may not be
   redistributed or resold as they are. Attribution appreciated.
   Used for: weapon, armor and some accessory icons.
-- **UI Pack**, **UI Pack (RPG Expansion)**, **Game Icons** and **Game Icons (Expansion)** by Kenney
-  (https://kenney.nl)
+- **UI Pack**, **UI Pack (RPG Expansion)** and **Game Icons** by Kenney (https://kenney.nl)
   License: [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
-  Used for: buttons, bars, panels and the settings, lock and checkmark icons.
+  Used for: the combat action buttons and the checkmark (UI Pack), the health and resource bars
+  (UI Pack (RPG Expansion)), and the settings and lock icons (Game Icons).
 - **Tabler Icons** by Paweł Kuna (https://tabler.io/icons)
   License: [MIT](https://github.com/tabler/tabler-icons/blob/master/LICENSE).
   Copyright (c) 2020-2023 Paweł Kuna.
@@ -66,6 +66,6 @@ is built.
   (https://alkakrab.itch.io/fantasy-boss-battle-music-pack-vol-2)
   License: the pack's own terms. Free for commercial use.
   Used for: the boss music.
-- **RPG Audio** and **UI Audio** by Kenney (https://kenney.nl)
+- **RPG Audio** by Kenney (https://kenney.nl)
   License: [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
-  Used for: the sound effects.
+  Used for: the sound effects (doors, coins and blades).

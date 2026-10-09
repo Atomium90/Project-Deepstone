@@ -9,6 +9,10 @@ on:
         description: "Existing tag to build and release (e.g. v0.6.0)"
         required: true
 
+# Read-only by default: only the job that creates the release asks for more.
+permissions:
+  contents: read
+
 jobs:
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -23,23 +27,35 @@ jobs:
       version: ${{ steps.check-version.outputs.version }}
 
     steps:
+      # The tag name comes from whoever pushed the tag or started the run, so it reaches the script
+      # through the environment, never pasted into the script text, and nothing but a plain version
+      # tag goes any further: the name ends up in a git ref and in later steps.
       - name: Determine tag
         id: resolve-tag
         shell: pwsh
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          $tag = "${{ github.event.inputs.tag }}"
-          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = "${{ github.ref_name }}" }
+          $tag = $env:INPUT_TAG
+          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = $env:REF_NAME }
+          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?\z') {
+            throw "Not a version tag: '$tag'. Expected something like v0.8.0."
+          }
           "tag=$tag" >> $env:GITHUB_OUTPUT
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ steps.resolve-tag.outputs.tag }}
 
       - name: Check build.sbt version matches the tag
         id: check-version
         shell: pwsh
+        env:
+          TAG: ${{ steps.resolve-tag.outputs.tag }}
         run: |
-          $tag = "${{ steps.resolve-tag.outputs.tag }}"
+          $tag = $env:TAG
           $expected = $tag -replace '^v', ''
 
           $line = Select-String -Path deepstone-backend/build.sbt -Pattern 'ThisBuild\s*/\s*version\s*:=\s*"([^"]+)"'
@@ -70,23 +86,24 @@ jobs:
             platform: linux
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ needs.resolve.outputs.tag }}
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with:
           java-version: "17"
           distribution: "temurin"
 
       - name: Install sbt
-        uses: coursier/setup-action@v1
+        uses: coursier/setup-action@039f736548afa5411c1382f40a5bd9c2d30e0383 # v1.3.9
         with:
           apps: sbt
 
       - name: Cache sbt
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.sbt
@@ -100,7 +117,7 @@ jobs:
         run: sbt test
 
       - name: Set up Node 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "20"
           cache: "npm"
@@ -110,28 +127,28 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      # The two licensed asset packs (player sprites, boss music) are gitignored from the
-      # public repo - see CREDITS.md and .gitignore. Pull them from the private mirror so a
-      # packaged build has them, same files build-release.ps1 bakes in for a local build.
-      - name: Check out licensed assets
-        uses: actions/checkout@v4
+      # None of the third-party art and audio is in the public repo - see CREDITS.md and
+      # README.md. The private mirror holds the files the game uses in the layout of
+      # frontend/public, so a packaged build gets them with a plain copy. build-release.ps1
+      # then checks that every file the game refers to is there.
+      - name: Check out the third-party assets
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           repository: Atomium90/deepstone-licensed-assets
           token: ${{ secrets.LICENSED_ASSETS_PAT }}
           path: licensed-assets
 
-      - name: Stage licensed assets into frontend/public
+      # The checkout above does not keep the token (persist-credentials: false), and the copy is
+      # removed once the files are in place, so the build and packaging tools that run next, which
+      # run code from many dependencies, find nothing of the private repo but the files the game uses.
+      - name: Stage the third-party assets into frontend/public
         shell: pwsh
         run: |
-          # hero_classes/ holds nothing but gitignored files, so it may not even exist yet on
-          # a fresh checkout - create every destination up front rather than assuming.
-          New-Item -ItemType Directory -Force -Path "frontend/public/audio/music" | Out-Null
-          New-Item -ItemType Directory -Force -Path "frontend/public/sprites/entities/hero_classes" | Out-Null
-          New-Item -ItemType Directory -Force -Path "frontend/public/sprites/items" | Out-Null
-
-          Copy-Item "licensed-assets/audio/music/*.ogg" "frontend/public/audio/music/" -Force
-          Copy-Item "licensed-assets/sprites/entities/hero_classes/*.png" "frontend/public/sprites/entities/hero_classes/" -Force
-          Copy-Item "licensed-assets/sprites/items/*.png" "frontend/public/sprites/items/" -Force
+          New-Item -ItemType Directory -Force -Path "frontend/public" | Out-Null
+          Copy-Item "licensed-assets/sprites" "frontend/public/" -Recurse -Force
+          Copy-Item "licensed-assets/audio" "frontend/public/" -Recurse -Force
+          Remove-Item -Recurse -Force "licensed-assets"
 
       - name: Build release package
         shell: pwsh
@@ -140,42 +157,82 @@ jobs:
       - name: Rename package for this platform
         id: package
         shell: pwsh
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
           $zip = Get-ChildItem -Path "deepstone-backend/target/universal" -Filter "*.zip" |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $zip) { throw "No zip found under deepstone-backend/target/universal" }
 
-          $newName = "deepstone-backend-${{ needs.resolve.outputs.version }}-${{ matrix.platform }}.zip"
+          $newName = "deepstone-backend-$($env:VERSION)-$($env:PLATFORM).zip"
           $newPath = Join-Path $zip.DirectoryName $newName
           Rename-Item -Path $zip.FullName -NewName $newName
           "path=$newPath" >> $env:GITHUB_OUTPUT
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-${{ matrix.platform }}
           path: ${{ steps.package.outputs.path }}
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Create (or update) a draft GitHub Release with both platform zips
-  # attached. Left as a draft deliberately - the narrative, player-facing
-  # release notes are still written by hand in the GitHub UI, same as every
-  # release so far (v0.2.0-v0.5.0); this job only automates the mechanical
+  # Sign a build provenance for both zips: a signed statement, kept by GitHub,
+  # that these exact files were built by this workflow from this commit.
+  # Anyone can check a download against it with
+  #   gh attestation verify <zip> --repo Atomium90/Project-Deepstone
+  # The job holds the signing rights and nothing else, apart from reading the
+  # artifacts, and it is separate from the job that writes the release.
+  # ─────────────────────────────────────────────────────────────────────────
+  attest:
+    name: Attest build provenance
+    needs: [resolve, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/*.zip
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Create (or update) a DRAFT GitHub Release with both platform zips and
+  # their SHA-256 sums attached. Left as a draft deliberately - the narrative,
+  # player-facing release notes are still written by hand in the GitHub UI,
+  # same as every release so far; this job only automates the mechanical
   # build+attach step.
+  # A release that is already published is never touched: replacing the files
+  # of a public version would make its checksums and attestation meaningless,
+  # so the job stops instead.
   # ─────────────────────────────────────────────────────────────────────────
   publish:
     name: Publish draft release
-    needs: [resolve, build]
+    needs: [resolve, build, attest]
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           pattern: release-*
           path: dist
           merge-multiple: true
+
+      - name: Write the checksums
+        run: |
+          cd dist
+          sha256sum *.zip | tee SHA256SUMS.txt
 
       - name: Create or update the draft release
         env:
@@ -183,8 +240,36 @@ jobs:
           TAG: ${{ needs.resolve.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
-          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/*.zip --repo "$REPO" --clobber
-          else
-            gh release create "$TAG" dist/*.zip --repo "$REPO" --draft --title "$TAG"
-          fi
+          # none, draft or published: a draft can be filled in again, a published release cannot.
+          releases=$(gh release list --repo "$REPO" --limit 200 --json tagName,isDraft)
+          state=$(jq -r --arg tag "$TAG" '
+            map(select(.tagName == $tag))
+            | if length == 0 then "none" elif .[0].isDraft then "draft" else "published" end
+          ' <<< "$releases")
+          echo "Release $TAG: $state"
+          case "$state" in
+            published)
+              echo "::error::Release $TAG is already published, its files are never replaced. Bump the version and tag again."
+              exit 1
+              ;;
+            draft)
+              gh release upload "$TAG" dist/*.zip dist/SHA256SUMS.txt --repo "$REPO" --clobber
+              ;;
+            none)
+              gh release create "$TAG" dist/*.zip dist/SHA256SUMS.txt --repo "$REPO" --draft --title "$TAG"
+              ;;
+          esac
+
+      - name: Show the checksums for the release notes
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          {
+            echo "### SHA-256"
+            echo
+            echo '```'
+            cat dist/SHA256SUMS.txt
+            echo '```'
+            echo
+            echo "Check a download against its signed provenance with \`gh attestation verify <file>.zip --repo $REPO\`."
+          } >> "$GITHUB_STEP_SUMMARY"

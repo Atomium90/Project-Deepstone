@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, vi } from "vitest";
-import { GameClient } from "./GameClient";
+import { GameClient, DEV_SERVER_URL, serverUrl } from "./GameClient";
 
 /** jsdom has no real WebSocket implementation, and a real socket wouldn't be deterministic in a
  * unit test anyway - this fake gives GameClient exactly the surface it depends on (readyState,
@@ -37,6 +37,22 @@ class FakeWebSocket {
         this.onopen?.();
     }
 }
+
+describe("serverUrl", () => {
+    test("the packaged game reaches the WebSocket on the port its page was loaded from", () => {
+        expect(serverUrl("8080", false)).toBe("ws://127.0.0.1:8080/ws");
+        expect(serverUrl("8083", false)).toBe("ws://127.0.0.1:8083/ws");
+    });
+
+    test("a page loaded on the default HTTP port has no port in its address", () => {
+        expect(serverUrl("", false)).toBe("ws://127.0.0.1:80/ws");
+    });
+
+    test("under the dev server the page's own port is ignored and the dev backend is used", () => {
+        expect(serverUrl("5173", true)).toBe(DEV_SERVER_URL);
+        expect(DEV_SERVER_URL).toBe("ws://127.0.0.1:8080/ws");
+    });
+});
 
 describe("GameClient", () => {
     beforeEach(() => {

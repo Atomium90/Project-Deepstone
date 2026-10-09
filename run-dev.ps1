@@ -42,7 +42,9 @@ $unknownArgs = @($args | Where-Object { $_ -and $_ -notin @("--debug", "-debug")
 if ($unknownArgs.Count -gt 0) {
     Write-Warning "Ignoring unknown arguments: $($unknownArgs -join ' ') (the only option is --debug)"
 }
-$backendCommand = if ($debugRooms) { 'sbt "run --debug"' } else { "sbt run" }
+# The page is wired to the backend's port, so it is asked for explicitly: without --port the
+# backend moves to the next free port when 8080 is taken, which the dev page would not follow.
+$backendCommand = if ($debugRooms) { "sbt `"run --port $backendPort --debug`"" } else { "sbt `"run --port $backendPort`"" }
 
 # Full path to whatever PowerShell host is running this script (Windows PowerShell 5.1's
 # powershell.exe, or PowerShell 7+'s pwsh.exe) - not just the bare word "powershell". wt spawns

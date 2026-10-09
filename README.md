@@ -36,12 +36,12 @@ if you're not on Windows.
 
 ### Backend
 
-Requires: Java 17+, sbt 1.9+
+Requires: Java 17+, sbt 1.12+
 
 ```bash
 cd deepstone-backend
-sbt run          # starts the server on ws://localhost:8080/ws
-sbt test         # run all tests
+sbt "run --port 8080"   # starts the server on ws://localhost:8080/ws (the dev page expects 8080)
+sbt test                # run all tests
 ```
 
 ### Frontend
@@ -111,11 +111,59 @@ is finished, delete its file from `debug-rooms/` and paste its JSON into `rooms.
 
 ## Choosing the save file
 
-The save lives in `deepstone.db`, next to where the backend runs. To use another file, pass
-`--db <path>` (for example `sbt "run --db target/other.db"`, or the same argument on a packaged
-build): the file is created if it does not exist, and your own save is left alone. The end-to-end
-tests use this to play on a database of their own.
+The save is `deepstone.db` in your own data folder, so it is the same wherever the game is unzipped
+or started from:
+
+- Windows: `%APPDATA%\Deepstone`
+- macOS: `~/Library/Application Support/Deepstone`
+- Linux: `$XDG_DATA_HOME/deepstone`, or `~/.local/share/deepstone`
+
+The first time, a `deepstone.db` found in the folder the game is started from (where earlier
+versions wrote it) is copied there. The old file is left in place, and a save already in the data
+folder is never overwritten. A save kept elsewhere can simply be copied into the data folder.
+
+To use another file, pass `--db <path>` (for example `sbt "run --db target/other.db"`, or the same
+argument on a packaged build): the file is created if it does not exist, and your own save is left
+alone. The end-to-end tests use this to play on a database of their own.
+
+## Choosing the port
+
+Without `--port`, the server listens on the first free port from 8080 to 8089 and prints the address
+to open, for example `Deepstone is running. Open http://localhost:8081 in your browser.` The page
+finds the server on the port it was loaded from, so nothing else needs changing.
+
+`--port <number>` asks for one port, and the server stops with an explanation if another program
+holds it, rather than moving elsewhere. The dev setup (`run-dev.ps1`, the end-to-end tests) passes
+`--port 8080`, because the Vite dev page is wired to that port.
+
+## Art and audio
+
+The game's art and audio are the work of other people and are not stored in this repo, see
+[CREDITS.md](CREDITS.md). They live in a private repo, `deepstone-licensed-assets`, which holds the
+files the game uses in the layout of `frontend/public/`. To have them locally, clone that repo next
+to this one and run `.\sync-assets.ps1` from the root of this repo (`-WhatIf` shows what it would
+do, `-Prune` also removes the files the game does not use).
+
+Without them the game still runs, with plain shapes instead of sprites and interface skins (the
+health and resource bars show only their numbers) and no sound, which is all the tests and the CI
+need. `npm run audit:assets` in `frontend/` lists the files the game
+refers to and fails when one is missing. A release is built by the release workflow, or locally by
+`build-release.ps1`, which refuses to build without the assets.
 
 ## Credits
 
-Third-party art assets and their licenses are listed in [CREDITS.md](CREDITS.md).
+Third-party art and audio, and their licenses, are listed in [CREDITS.md](CREDITS.md) and in the
+Credits tab of the Character screen in the game.
+
+The libraries the game is built with are credited in `THIRD-PARTY-NOTICES.txt`, which the build
+writes into every package next to `LICENSE`. It lists each library with its license and carries the
+full text of every license in use. The build stops if a library comes without a license it knows, see
+`deepstone-backend/project/ThirdPartyNotices.scala`.
+
+## Releases
+
+How a version is built, checked and published is in [RELEASING.md](RELEASING.md).
+
+## Security
+
+To report a vulnerability, see [SECURITY.md](SECURITY.md).

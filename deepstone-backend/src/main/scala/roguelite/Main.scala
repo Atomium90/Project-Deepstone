@@ -1,15 +1,18 @@
 package roguelite
 
 import cats.effect.{ ExitCode, IO, IOApp }
+import cats.effect.std.Console
+import cats.syntax.monadError.*
 import cats.syntax.semigroupk.*
-import com.comcast.ip4s.{ host, port }
+import com.comcast.ip4s.{ host, Port }
 import org.http4s.HttpRoutes
 import org.http4s.dsl.io.*
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.server.staticcontent.resourceServiceBuilder
 import org.http4s.StaticFile
+import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
-import roguelite.engine.{ StateMachine, WebSocketRouter }
+import roguelite.engine.{ RequestGuard, SecurityHeaders, ServerLimits, StateMachine, WebSocketRouter }
 import roguelite.game.{
   AbilityLoader,
   AchievementLoader,
@@ -25,16 +28,44 @@ import roguelite.game.{
 }
 import roguelite.db.Database
 
+import java.io.IOException
+import java.net.BindException
+import java.nio.file.{ Path, Paths }
+
 object Main extends IOApp:
 
   def run(args: List[String]): IO[ExitCode] =
-    server(StartupOptions.parse(args)).as(ExitCode.Success)
+    server(StartupOptions.parse(args))
+      .as(ExitCode.Success)
+      .handleErrorWith:
+        error => report(error).as(ExitCode.Error)
+
+  /** Says in plain language why the game stopped, then keeps the window open long enough to read it. */
+  private def report(error: Throwable): IO[Unit] =
+    Console[IO].errorln(StartupErrors.explain(error)) *> ConsolePause.waitForEnter
 
   private def server(options: StartupOptions): IO[Unit] =
-    // Database is a managed resource: schema init on open, connection pool released on exit. The
-    // file is deepstone.db alongside the running JAR unless --db names another one.
+    for
+      serverPort <- PortSelection.choose(options.port, PortSelection.isFreeOnLoopback)
+      savePath   <- resolveSavePath(options).adaptError { case error: IOException => StartupErrors.saveFolder(error) }
+      _          <- serve(options, savePath, serverPort)
+    yield ()
+
+  /** The save is in the player's data folder unless --db names another file. */
+  private def resolveSavePath(options: StartupOptions): IO[Path] =
+    for
+      given Logger[IO] <- Slf4jLogger.create[IO]
+      dataDirectory =
+        SaveLocation.dataDirectory(sys.props("os.name"), sys.env, Paths.get(sys.props("user.home")))
+      savePath <- SaveLocation.resolve(options.databasePath, Paths.get("").toAbsolutePath, dataDirectory)
+      _        <- Logger[IO].info(s"Save file: $savePath")
+    yield savePath
+
+  private def serve(options: StartupOptions, savePath: Path, serverPort: Int): IO[Unit] =
+    // Database is a managed resource: schema init on open, connection pool released on exit.
     Database
-      .resource(options.databasePath)
+      .resource(savePath.toString)
+      .adaptError { case error => StartupErrors.saveFile(error, savePath) }
       .use:
         database =>
           for
@@ -91,15 +122,32 @@ object Main extends IOApp:
                 StaticFile.fromResource("/static/index.html", Some(req)).getOrElseF(NotFound())
             } <+> resourceServiceBuilder[IO]("/static").toRoutes
 
+            // Every request, WebSocket handshake and static file alike, goes through the guard
+            // first: a page from another site never reaches the game.
+            guard = RequestGuard(serverPort)
+
+            listenPort <- IO.fromOption(Port.fromInt(serverPort))(
+              IllegalStateException(s"Not a valid port: $serverPort")
+            )
             _ <- EmberServerBuilder
               .default[IO]
               .withHost(host"127.0.0.1")
-              .withPort(port"8080")
+              .withPort(listenPort)
+              .withMaxWebSocketMessageSize(ServerLimits.MaxWebSocketMessageBytes)
+              .withMaxConnections(ServerLimits.MaxConnections)
               .withHttpWebSocketApp(
-                wsb => (router.routes(wsb) <+> staticRoutes).orNotFound
+                wsb =>
+                  SecurityHeaders(serverPort)(
+                    guard((router.routes(wsb) <+> staticRoutes).orNotFound)
+                  )
               )
               .build
-              .useForever
+              .adaptError { case error: BindException => StartupErrors.port(error, serverPort) }
+              .use(
+                _ =>
+                  logger.info(s"Deepstone is running. Open http://localhost:$serverPort in your browser.") *>
+                    IO.never
+              )
               .onError(
                 err => logger.error(err)("Server crashed")
               )

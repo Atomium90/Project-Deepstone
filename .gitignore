@@ -41,12 +41,8 @@ deepstone-backend/src/main/resources/static/
 # shippable content.
 deepstone-backend/debug-rooms/
 
-# Licensed files ignored for licensing reasons - see CREDITS.md
-frontend/public/audio/music/boss_soulrend_sovereign.ogg
-frontend/public/audio/music/boss_ruinlord_ascendant.ogg
-frontend/public/audio/music/boss_bloodbound_fight.ogg
-frontend/public/sprites/entities/hero_classes/sprite_left.png
-frontend/public/sprites/entities/hero_classes/sprite_right.png
-frontend/public/sprites/items/rpg_weapons_16.png
-frontend/public/sprites/items/rpg_armour_16.png
-frontend/public/sprites/items/rpg_mage_16.png
+# Third-party art and audio: none of it is stored in this repo. It lives in the private
+# deepstone-licensed-assets repo and is copied here by sync-assets.ps1 (see CREDITS.md and
+# README.md). The atlas files in frontend/public/atlas stay tracked, they only hold coordinates.
+frontend/public/sprites/
+frontend/public/audio/

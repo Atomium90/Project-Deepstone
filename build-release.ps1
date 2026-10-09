@@ -14,13 +14,26 @@
   The output zip contains bin/deepstone-backend(.bat) launcher scripts - extract it anywhere
   and run that script to start the server, then open http://localhost:8080 in a browser.
 
-  Whatever is currently in frontend/public/ gets built in as-is, including the two licensed
-  assets that are gitignored from the repo (player sprites, boss music) - see CREDITS.md.
+  The art and audio are not in the repo (see CREDITS.md): they come from the private assets repo,
+  copied into frontend/public/ by sync-assets.ps1, or by the release workflow. Whatever is in
+  frontend/public/ gets built in as-is, so the script first checks that every file the game
+  refers to is there and stops if one is missing.
 #>
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $staticDir = Join-Path $root "deepstone-backend\src\main\resources\static"
+
+Write-Host "Checking the assets..."
+Push-Location (Join-Path $root "frontend")
+try {
+    npm run audit:assets
+    if ($LASTEXITCODE -ne 0) {
+        throw "The assets are missing or incomplete (see above). Run sync-assets.ps1 to copy them from the private assets repo, then try again."
+    }
+} finally {
+    Pop-Location
+}
 
 Write-Host "Building frontend..."
 Push-Location (Join-Path $root "frontend")

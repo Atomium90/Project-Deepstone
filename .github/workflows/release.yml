@@ -110,28 +110,23 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      # The two licensed asset packs (player sprites, boss music) are gitignored from the
-      # public repo - see CREDITS.md and .gitignore. Pull them from the private mirror so a
-      # packaged build has them, same files build-release.ps1 bakes in for a local build.
-      - name: Check out licensed assets
+      # None of the third-party art and audio is in the public repo - see CREDITS.md and
+      # README.md. The private mirror holds the files the game uses in the layout of
+      # frontend/public, so a packaged build gets them with a plain copy. build-release.ps1
+      # then checks that every file the game refers to is there.
+      - name: Check out the third-party assets
         uses: actions/checkout@v4
         with:
           repository: Atomium90/deepstone-licensed-assets
           token: ${{ secrets.LICENSED_ASSETS_PAT }}
           path: licensed-assets
 
-      - name: Stage licensed assets into frontend/public
+      - name: Stage the third-party assets into frontend/public
         shell: pwsh
         run: |
-          # hero_classes/ holds nothing but gitignored files, so it may not even exist yet on
-          # a fresh checkout - create every destination up front rather than assuming.
-          New-Item -ItemType Directory -Force -Path "frontend/public/audio/music" | Out-Null
-          New-Item -ItemType Directory -Force -Path "frontend/public/sprites/entities/hero_classes" | Out-Null
-          New-Item -ItemType Directory -Force -Path "frontend/public/sprites/items" | Out-Null
-
-          Copy-Item "licensed-assets/audio/music/*.ogg" "frontend/public/audio/music/" -Force
-          Copy-Item "licensed-assets/sprites/entities/hero_classes/*.png" "frontend/public/sprites/entities/hero_classes/" -Force
-          Copy-Item "licensed-assets/sprites/items/*.png" "frontend/public/sprites/items/" -Force
+          New-Item -ItemType Directory -Force -Path "frontend/public" | Out-Null
+          Copy-Item "licensed-assets/sprites" "frontend/public/" -Recurse -Force
+          Copy-Item "licensed-assets/audio" "frontend/public/" -Recurse -Force
 
       - name: Build release package
         shell: pwsh

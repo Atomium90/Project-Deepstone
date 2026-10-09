@@ -17,7 +17,7 @@
     "audit:assets": "node scripts/audit-assets.mjs"
   },
   "dependencies": {
-    "svelte": "^4.2.7"
+    "svelte": "^5.57.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

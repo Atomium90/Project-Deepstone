@@ -13,7 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "generate-atlas": "node scripts/generate-atlas.mjs",
     "generate-atlas:pixelcrawler": "node scripts/generate-pixelcrawler-atlas.mjs",
-    "generate-atlas:chests": "node scripts/generate-chest-atlas.mjs"
+    "generate-atlas:chests": "node scripts/generate-chest-atlas.mjs",
+    "audit:assets": "node scripts/audit-assets.mjs"
   },
   "dependencies": {
     "svelte": "^4.2.7"

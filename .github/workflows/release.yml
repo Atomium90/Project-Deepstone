@@ -9,6 +9,10 @@ on:
         description: "Existing tag to build and release (e.g. v0.6.0)"
         required: true
 
+# Read-only by default: only the job that creates the release asks for more.
+permissions:
+  contents: read
+
 jobs:
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -23,23 +27,35 @@ jobs:
       version: ${{ steps.check-version.outputs.version }}
 
     steps:
+      # The tag name comes from whoever pushed the tag or started the run, so it reaches the script
+      # through the environment, never pasted into the script text, and nothing but a plain version
+      # tag goes any further: the name ends up in a git ref and in later steps.
       - name: Determine tag
         id: resolve-tag
         shell: pwsh
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          $tag = "${{ github.event.inputs.tag }}"
-          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = "${{ github.ref_name }}" }
+          $tag = $env:INPUT_TAG
+          if ([string]::IsNullOrWhiteSpace($tag)) { $tag = $env:REF_NAME }
+          if ($tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?\z') {
+            throw "Not a version tag: '$tag'. Expected something like v0.8.0."
+          }
           "tag=$tag" >> $env:GITHUB_OUTPUT
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ steps.resolve-tag.outputs.tag }}
 
       - name: Check build.sbt version matches the tag
         id: check-version
         shell: pwsh
+        env:
+          TAG: ${{ steps.resolve-tag.outputs.tag }}
         run: |
-          $tag = "${{ steps.resolve-tag.outputs.tag }}"
+          $tag = $env:TAG
           $expected = $tag -replace '^v', ''
 
           $line = Select-String -Path deepstone-backend/build.sbt -Pattern 'ThisBuild\s*/\s*version\s*:=\s*"([^"]+)"'
@@ -72,6 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           ref: ${{ needs.resolve.outputs.tag }}
 
       - name: Set up JDK 17
@@ -117,16 +134,21 @@ jobs:
       - name: Check out the third-party assets
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          persist-credentials: false
           repository: Atomium90/deepstone-licensed-assets
           token: ${{ secrets.LICENSED_ASSETS_PAT }}
           path: licensed-assets
 
+      # The checkout above does not keep the token (persist-credentials: false), and the copy is
+      # removed once the files are in place, so the build and packaging tools that run next, which
+      # run code from many dependencies, find nothing of the private repo but the files the game uses.
       - name: Stage the third-party assets into frontend/public
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "frontend/public" | Out-Null
           Copy-Item "licensed-assets/sprites" "frontend/public/" -Recurse -Force
           Copy-Item "licensed-assets/audio" "frontend/public/" -Recurse -Force
+          Remove-Item -Recurse -Force "licensed-assets"
 
       - name: Build release package
         shell: pwsh
@@ -135,12 +157,15 @@ jobs:
       - name: Rename package for this platform
         id: package
         shell: pwsh
+        env:
+          VERSION: ${{ needs.resolve.outputs.version }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
           $zip = Get-ChildItem -Path "deepstone-backend/target/universal" -Filter "*.zip" |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $zip) { throw "No zip found under deepstone-backend/target/universal" }
 
-          $newName = "deepstone-backend-${{ needs.resolve.outputs.version }}-${{ matrix.platform }}.zip"
+          $newName = "deepstone-backend-$($env:VERSION)-$($env:PLATFORM).zip"
           $newPath = Join-Path $zip.DirectoryName $newName
           Rename-Item -Path $zip.FullName -NewName $newName
           "path=$newPath" >> $env:GITHUB_OUTPUT

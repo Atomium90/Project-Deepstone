@@ -6,7 +6,7 @@ val doobieVersion = "1.0.0-RC4"
 
 ThisBuild / scalaVersion := scala3Version
 ThisBuild / organization := "roguelite"
-ThisBuild / version      := "0.7.2"
+ThisBuild / version      := "0.8.0"
 
 val thirdPartyNotices = taskKey[File]("Writes THIRD-PARTY-NOTICES.txt for the libraries the package ships")
 

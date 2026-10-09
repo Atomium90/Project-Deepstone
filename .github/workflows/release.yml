@@ -98,7 +98,7 @@ jobs:
           distribution: "temurin"
 
       - name: Install sbt
-        uses: coursier/setup-action@039f736548afa5411c1382f40a5bd9c2d30e0383 # v1.3.9
+        uses: coursier/setup-action@648df969f41ef15fda2baba8b37f9fa3d16390a3 # v3.0.4
         with:
           apps: sbt
 

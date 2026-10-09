@@ -1,0 +1,4 @@
+svelte (version 4)  -  MIT
+Copyright (c) 2016-23 Svelte contributors, https://github.com/sveltejs/svelte/graphs/contributors
+The game page is compiled with Svelte, whose runtime is part of the page's script. The full text of
+the MIT license is below.

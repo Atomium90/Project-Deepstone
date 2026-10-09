@@ -1,7 +1,7 @@
 val scala3Version = "3.3.7"
 val http4sVersion = "0.23.38"
 val circeVersion  = "0.14.6"
-val munitVersion  = "0.7.29"
+val munitVersion  = "1.3.6"
 val doobieVersion = "1.0.0-RC4"
 
 ThisBuild / scalaVersion := scala3Version

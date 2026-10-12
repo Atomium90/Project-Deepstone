@@ -332,3 +332,36 @@ class ContentIntegritySuite extends CatsEffectSuite:
                   assert(adjacent.exists(main.contains),
                          s"room '${room.id}': '${e.id}' can no longer be reached from door '${first.id}'"
                   )
+
+  test("difficulty.json defines every difficulty, and the lowest one needs nothing"):
+    for tiers <- DifficultyLoader.loadAll()
+    yield
+      assertEquals(tiers.keySet, Difficulty.values.toSet)
+      assertEquals(tiers(Difficulty.Easy).requirement, None)
+
+  test("every tier lists one theme per section its difficulty builds"):
+    for tiers <- DifficultyLoader.loadAll()
+    yield tiers.values.foreach:
+      tier =>
+        assertEquals(tier.themes.size,
+                     tier.difficulty.biomeCount,
+                     s"${tier.difficulty} builds ${tier.difficulty.biomeCount} sections"
+        )
+
+  test("every theme a tier lists can build its sections from rooms.json"):
+    for
+      tiers <- DifficultyLoader.loadAll()
+      rooms <- RoomLoader.loadAll()
+    yield
+      def has(theme: String, roomType: RoomType): Boolean =
+        rooms.values.exists(r => r.theme == theme && r.roomType == roomType)
+
+      tiers.values.foreach:
+        tier =>
+          tier.themes.foreach:
+            theme => assert(has(theme, RoomType.Boss), s"${tier.difficulty}: theme '$theme' has no Boss room")
+          tier.themes.init.foreach:
+            theme => assert(has(theme, RoomType.Rest), s"${tier.difficulty}: theme '$theme' has no Rest room")
+          assert(has(tier.themes.last, RoomType.Sanctuary),
+                 s"${tier.difficulty}: theme '${tier.themes.last}' has no Sanctuary room"
+          )

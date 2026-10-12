@@ -134,6 +134,7 @@ describe("candidateHints", () => {
             upgrades: [],
             perks: Array.from({ length: perks }, (_, i) => ({ id: `p${i}`, label: "Perk", description: "d", icon: "*" })),
             runsCompleted,
+            difficulties: [],
         });
 
         test("offers nothing while the save has no finished run, the start screen is up", () => {

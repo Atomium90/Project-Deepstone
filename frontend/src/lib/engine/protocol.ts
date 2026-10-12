@@ -200,11 +200,31 @@ export interface PerkView {
   icon: string;
 }
 
+/** How far a save is from unlocking a difficulty tier: `winsDone` of the `wins` needed on tier
+ * `winsAt`, and `shardsSpentDone` of the `shardsSpent` needed. */
+export interface TierRequirementView {
+  winsAt: Difficulty;
+  wins: number;
+  winsDone: number;
+  shardsSpent: number;
+  shardsSpentDone: number;
+}
+
+/** One difficulty tier as the hub shows it. `requirement` is null for a tier that needs nothing. */
+export interface DifficultyView {
+  id: Difficulty;
+  unlocked: boolean;
+  requirement: TierRequirementView | null;
+}
+
 export interface HubView {
   upgrades: UpgradeView[];
   perks: PerkView[];
   /** Runs finished so far, won or lost. 0 means a brand-new save. */
   runsCompleted: number;
+  /** Every difficulty tier, lowest first, with whether it can be started. The server refuses a
+   * run on a locked one, so this only drives what the hub offers. */
+  difficulties: DifficultyView[];
 }
 
 /** A single item as seen by the client, whether equipped, in the potion belt, or shown in a

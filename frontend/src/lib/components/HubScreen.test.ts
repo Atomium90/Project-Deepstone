@@ -8,7 +8,7 @@ import { lastStartedDifficulty } from "../engine/RunStore";
 import { characterTab } from "../engine/CharacterStore";
 import { activeHint, resetTutorial, skipTutorial } from "../engine/HintStore";
 import { settings } from "../engine/SettingsStore";
-import type { StateUpdate, UpgradeView, PerkView } from "../engine/protocol";
+import type { StateUpdate, UpgradeView, PerkView, DifficultyView } from "../engine/protocol";
 
 function makeUpgrade(overrides: Partial<UpgradeView> = {}): UpgradeView {
     return { id: "u1", label: "Upgrade", description: "d", cost: 10, icon: "*", category: "stat", unlocked: false, ...overrides };
@@ -23,7 +23,7 @@ function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
         phase: "HUB",
         player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 100, affinityTags: [] },
         equipment: { weapon: null, armor: null, accessories: [null, null], potionBelt: [null, null], keys: [] },
-        hub: { upgrades: [], perks: [], runsCompleted: 1 },
+        hub: { upgrades: [], perks: [], runsCompleted: 1, difficulties: [] },
         abilities: [],
         achievements: [],
         sets: [],
@@ -55,7 +55,7 @@ describe("HubScreen", () => {
     });
 
     test("a gated class is locked and unselectable until its unlock upgrade is owned", async () => {
-        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: false })], perks: [], runsCompleted: 1 } }));
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: false })], perks: [], runsCompleted: 1, difficulties: [] } }));
         const { container } = render(HubScreen);
         const archerCard = container.querySelectorAll(".class-card")[CLASS_CARD.archer] as HTMLButtonElement;
         expect(archerCard.classList.contains("locked")).toBe(true);
@@ -67,7 +67,7 @@ describe("HubScreen", () => {
     });
 
     test("a gated class becomes selectable once its unlock upgrade is owned", async () => {
-        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: true })], perks: [], runsCompleted: 1 } }));
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked: true })], perks: [], runsCompleted: 1, difficulties: [] } }));
         const { container } = render(HubScreen);
         const archerCard = container.querySelectorAll(".class-card")[CLASS_CARD.archer] as HTMLButtonElement;
         expect(archerCard.classList.contains("locked")).toBe(false);
@@ -88,7 +88,7 @@ describe("HubScreen", () => {
     });
 
     test("selecting then re-clicking a perk toggles its id in and out of the STARTRUN payload", async () => {
-        gameState.set(makeState({ hub: { upgrades: [], perks: [makePerk({ id: "heavy_hand" })], runsCompleted: 1 } }));
+        gameState.set(makeState({ hub: { upgrades: [], perks: [makePerk({ id: "heavy_hand" })], runsCompleted: 1, difficulties: [] } }));
         const { container } = render(HubScreen);
         const sendSpy = vi.spyOn(client, "send");
         const perkCard = container.querySelector(".perk-card")!;
@@ -112,7 +112,7 @@ describe("HubScreen", () => {
                 hub: {
                     upgrades: [makeUpgrade({ id: "hp_boost_1", cost: 30 }), makeUpgrade({ id: "cheap", cost: 5 })],
                     perks: [],
-                    runsCompleted: 1,
+                    runsCompleted: 1, difficulties: [],
                 },
             })
         );
@@ -135,7 +135,7 @@ describe("HubScreen", () => {
                         makeUpgrade({ id: "m1", label: "Meta Upgrade", category: "meta" }),
                     ],
                     perks: [],
-                    runsCompleted: 1,
+                    runsCompleted: 1, difficulties: [],
                 },
             })
         );
@@ -145,6 +145,117 @@ describe("HubScreen", () => {
 
         await fireEvent.click(container.querySelectorAll(".upgrade-tab")[1]); // "Stats"
         expect(labels()).toEqual(["Stat Upgrade"]);
+    });
+
+    describe("difficulty tiers", () => {
+        const NORMAL_NEEDS = { winsAt: "easy", wins: 1, winsDone: 0, shardsSpent: 0, shardsSpentDone: 0 } as const;
+        const HARD_NEEDS = { winsAt: "normal", wins: 4, winsDone: 2, shardsSpent: 300, shardsSpentDone: 120 } as const;
+
+        function tiers(normal: boolean, hard: boolean): DifficultyView[] {
+            return [
+                { id: "easy", unlocked: true, requirement: null },
+                { id: "normal", unlocked: normal, requirement: normal ? { ...NORMAL_NEEDS, winsDone: 1 } : NORMAL_NEEDS },
+                { id: "hard", unlocked: hard, requirement: hard ? { ...HARD_NEEDS, winsDone: 4, shardsSpentDone: 300 } : HARD_NEEDS },
+            ];
+        }
+
+        function hubWithTiers(difficulties: DifficultyView[]): StateUpdate {
+            return makeState({ hub: { upgrades: [], perks: [], runsCompleted: 1, difficulties } });
+        }
+
+        const cards = (container: HTMLElement) => container.querySelectorAll<HTMLButtonElement>(".difficulty-card");
+        const hintLines = (container: HTMLElement) =>
+            Array.from(container.querySelectorAll(".difficulty-need")).map((el) => el.textContent);
+
+        test("a locked tier is greyed out and cannot be selected", async () => {
+            gameState.set(hubWithTiers(tiers(false, false)));
+            const { container } = render(HubScreen);
+
+            for (const locked of [DIFFICULTY_CARD.normal, DIFFICULTY_CARD.hard]) {
+                expect(cards(container)[locked].classList.contains("locked")).toBe(true);
+                expect(cards(container)[locked].disabled).toBe(true);
+            }
+            expect(cards(container)[DIFFICULTY_CARD.easy].disabled).toBe(false);
+
+            await fireEvent.click(cards(container)[DIFFICULTY_CARD.hard]);
+            expect(cards(container)[DIFFICULTY_CARD.easy].classList.contains("selected")).toBe(true);
+            expect(cards(container)[DIFFICULTY_CARD.hard].classList.contains("selected")).toBe(false);
+        });
+
+        test("while Normal is locked, a run starts on Easy", async () => {
+            gameState.set(hubWithTiers(tiers(false, false)));
+            const { container } = render(HubScreen);
+            const sendSpy = vi.spyOn(client, "send");
+
+            await fireEvent.click(container.querySelector("button.start-btn")!);
+
+            expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ action: "STARTRUN", difficulty: "easy" }));
+            expect(get(lastStartedDifficulty)).toBe("easy");
+        });
+
+        test("Normal is the default tier once it is unlocked", () => {
+            gameState.set(hubWithTiers(tiers(true, false)));
+            const { container } = render(HubScreen);
+            expect(cards(container)[DIFFICULTY_CARD.normal].classList.contains("selected")).toBe(true);
+            expect(cards(container)[DIFFICULTY_CARD.hard].disabled).toBe(true);
+        });
+
+        test("an unlocked Hard can be picked", async () => {
+            gameState.set(hubWithTiers(tiers(true, true)));
+            const { container } = render(HubScreen);
+            const sendSpy = vi.spyOn(client, "send");
+
+            await fireEvent.click(cards(container)[DIFFICULTY_CARD.hard]);
+            await fireEvent.click(container.querySelector("button.start-btn")!);
+
+            expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ difficulty: "hard" }));
+        });
+
+        test("the next locked tier says what is missing to open it", () => {
+            gameState.set(hubWithTiers(tiers(false, false)));
+            const { container } = render(HubScreen);
+            expect(container.querySelector(".difficulty-hint")?.textContent).toContain("Next tier: Normal");
+            expect(hintLines(container)).toEqual(["Wins on Easy: 0 of 1"]);
+        });
+
+        test("a tier lacking both wins and Shards lists both", () => {
+            gameState.set(hubWithTiers(tiers(true, false)));
+            const { container } = render(HubScreen);
+            expect(container.querySelector(".difficulty-hint")?.textContent).toContain("Next tier: Hard");
+            expect(hintLines(container)).toEqual(["Wins on Normal: 2 of 4", "Shards spent: 120 of 300"]);
+        });
+
+        test("a tier that only lacks Shards lists only the Shards", () => {
+            const lacking = tiers(true, false);
+            lacking[2] = { ...lacking[2], requirement: { ...HARD_NEEDS, winsDone: 4 } };
+            gameState.set(hubWithTiers(lacking));
+            const { container } = render(HubScreen);
+            expect(hintLines(container)).toEqual(["Shards spent: 120 of 300"]);
+        });
+
+        test("a locked card names what it lacks in its tooltip", () => {
+            gameState.set(hubWithTiers(tiers(true, false)));
+            const { container } = render(HubScreen);
+            expect(cards(container)[DIFFICULTY_CARD.hard].title).toBe("Wins on Normal: 2 of 4 · Shards spent: 120 of 300");
+            expect(cards(container)[DIFFICULTY_CARD.normal].title).toBe("The baseline experience");
+        });
+
+        test("no hint is shown once every tier is unlocked", () => {
+            gameState.set(hubWithTiers(tiers(true, true)));
+            const { container } = render(HubScreen);
+            expect(container.querySelector(".difficulty-hint")).toBeNull();
+        });
+
+        test("the selection moves to an unlocked tier when the tiers change under it", async () => {
+            gameState.set(hubWithTiers(tiers(true, true)));
+            const { container } = render(HubScreen);
+            await fireEvent.click(cards(container)[DIFFICULTY_CARD.hard]);
+            expect(cards(container)[DIFFICULTY_CARD.hard].classList.contains("selected")).toBe(true);
+
+            gameState.set(hubWithTiers(tiers(true, false)));
+            await tick();
+            expect(cards(container)[DIFFICULTY_CARD.normal].classList.contains("selected")).toBe(true);
+        });
     });
 
     test("the footer's Help button opens the Help tab of the Character screen", async () => {
@@ -158,7 +269,7 @@ describe("HubScreen", () => {
         function hubWith(shards: number, upgrades: UpgradeView[], perks: PerkView[] = []): StateUpdate {
             return makeState({
                 player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: shards, affinityTags: [] },
-                hub: { upgrades, perks, runsCompleted: 1 },
+                hub: { upgrades, perks, runsCompleted: 1, difficulties: [] },
             });
         }
 

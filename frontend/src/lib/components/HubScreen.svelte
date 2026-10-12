@@ -16,12 +16,12 @@
     const ICON_LOCK = "/sprites/ui/icons/icon_lock.png";
     const ICON_GEAR = "/sprites/ui/icons/icon_gear.png";
     const ICON_SHARD = "/sprites/ui/icons/icon_shard.png";
-    import type { ClassId, Difficulty, UpgradeCategory, UpgradeView } from "../engine/protocol";
+    import type { ClassId, Difficulty, DifficultyView, UpgradeCategory, UpgradeView } from "../engine/protocol";
 
     // Selected class (Warrior by default)
     let selectedClass: ClassId = "warrior";
 
-    // Selected difficulty (Normal by default)
+    // Selected difficulty: Normal by default, or the highest unlocked tier while Normal is locked
     let selectedDifficulty: Difficulty = "normal";
 
     // Selected run perk (none by default - a perk is optional, not required to start a run)
@@ -41,6 +41,15 @@
         selectedUpgradeTab === "all" ? upgrades : upgrades.filter((u) => u.category === selectedUpgradeTab);
     $: perks    = $gameState?.hub?.perks ?? [];
     $: shards   = player?.metaCurrency ?? 0;
+
+    // Which tiers can be started. The server is what enforces it, the hub only mirrors it, so a
+    // tier the server does not list counts as available.
+    $: tiers = $gameState?.hub?.difficulties ?? [];
+    $: unlockedTiers = new Set(difficulties.filter((d) => tiers.find((tier) => tier.id === d)?.unlocked ?? true));
+    $: if (!unlockedTiers.has(selectedDifficulty)) {
+        selectedDifficulty = difficulties.filter((d) => unlockedTiers.has(d)).at(-1) ?? "easy";
+    }
+    $: nextLockedTier = tiers.find((tier) => !tier.unlocked);
 
     // The Hub is introduced step by step: the upgrade shop (and with it the classes that are
     // locked behind an upgrade) only shows once there is something to spend Shards on, then stays
@@ -79,7 +88,34 @@
     }
 
     function selectDifficulty(d: Difficulty): void {
+        if (!unlockedTiers.has(d)) return;
         selectedDifficulty = d;
+    }
+
+    /** What a tier still lacks, one text per unmet condition. */
+    function missingFor(tier: DifficultyView | undefined): string[] {
+        const requirement = tier?.requirement;
+        if (!requirement) return [];
+        const lines: string[] = [];
+        if (requirement.winsDone < requirement.wins) {
+            lines.push(
+                $t("hub.difficulty.needWins", {
+                    tier: DIFFICULTY_INFO[requirement.winsAt].label,
+                    done: requirement.winsDone,
+                    wins: requirement.wins,
+                }),
+            );
+        }
+        if (requirement.shardsSpentDone < requirement.shardsSpent) {
+            lines.push(
+                $t("hub.difficulty.needShards", {
+                    currency: CURRENCY_NAME,
+                    done: requirement.shardsSpentDone,
+                    needed: requirement.shardsSpent,
+                }),
+            );
+        }
+        return lines;
     }
 
     /** Clicking an already-selected perk deselects it - a perk is optional, not required. */
@@ -166,18 +202,33 @@
                 {#each difficulties as d}
                     {@const info  = DIFFICULTY_INFO[d]}
                     {@const color = DIFFICULTY_COLORS[d]}
+                    {@const unlocked = unlockedTiers.has(d)}
                     <button
                         class="difficulty-card"
                         class:selected={selectedDifficulty === d}
+                        class:locked={!unlocked}
+                        disabled={!unlocked}
                         style="--accent: {color}"
                         on:click={() => selectDifficulty(d)}
-                        title={info.description}
+                        title={unlocked ? info.description : missingFor(tiers.find((tier) => tier.id === d)).join(" · ")}
                     >
+                        {#if !unlocked}
+                            <img class="lock-badge" src={ICON_LOCK} alt="" />
+                        {/if}
                         <span class="difficulty-icon">{info.icon}</span>
                         <span class="difficulty-name">{info.label}</span>
                     </button>
                 {/each}
             </div>
+
+            {#if nextLockedTier}
+                <p class="difficulty-hint">
+                    {$t("hub.difficulty.next", { tier: DIFFICULTY_INFO[nextLockedTier.id].label })}
+                    {#each missingFor(nextLockedTier) as line}
+                        <span class="difficulty-need">{line}</span>
+                    {/each}
+                </p>
+            {/if}
 
             <button class="start-btn" on:click={startRun}>
                 ▶ Start Run
@@ -545,6 +596,7 @@
     }
 
     .difficulty-card {
+        position: relative;
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -570,8 +622,29 @@
         color: var(--accent);
     }
 
+    .difficulty-card.locked {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .difficulty-card.locked:hover {
+        background: #161616;
+        border-color: #252525;
+    }
+
     .difficulty-icon { font-size: 1.1rem; }
     .difficulty-name { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .difficulty-hint {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        margin-top: -0.75rem;
+        font-size: 0.65rem;
+        color: #666;
+    }
+
+    .difficulty-need { color: #8a7a4a; }
 
     .start-btn {
         margin-top: auto;

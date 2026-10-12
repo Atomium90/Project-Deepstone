@@ -10,7 +10,7 @@ function hubState(runsCompleted: number): StateUpdate {
         phase: "HUB",
         player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 0, affinityTags: [] },
         equipment: { weapon: null, armor: null, accessories: [null, null], potionBelt: [null, null], keys: [] },
-        hub: { upgrades: [], perks: [], runsCompleted },
+        hub: { upgrades: [], perks: [], runsCompleted, difficulties: [] },
         abilities: [],
         achievements: [],
         sets: [],

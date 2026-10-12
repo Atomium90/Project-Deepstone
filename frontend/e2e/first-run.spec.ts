@@ -43,4 +43,9 @@ test("the first run of a new save: start screen -> bare-handed run -> game over 
     expect(backInHub.hub?.runsCompleted).toBe(1);
     await expect(page.locator("div.hub-root")).toBeVisible();
     await expect(page.locator("button.begin-btn")).toHaveCount(0);
+
+    // The tiers follow the result of that run: a win on Easy opens Normal and a defeat leaves it
+    // locked, while Hard stays locked either way. The hub greys out whatever is locked.
+    expect(backInHub.hub?.difficulties.map((tier) => tier.unlocked)).toEqual([true, ended.victory, false]);
+    await expect(page.locator(".difficulty-card.locked")).toHaveCount(ended.victory ? 1 : 2);
 });

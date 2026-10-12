@@ -109,7 +109,8 @@ object Main extends IOApp:
                                         resolver,
                                         npcDialogueDefs = npcDialogueDefs,
                                         setDefs = setDefs,
-                                        perkDefs = perkDefs
+                                        perkDefs = perkDefs,
+                                        difficultyDefs = difficultyDefs
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
                                      achievementDefs, setDefs = setDefs, perkDefs = perkDefs,

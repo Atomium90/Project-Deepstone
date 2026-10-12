@@ -4,6 +4,7 @@ import cats.effect.IO
 import roguelite.game.{
   ClassDef,
   CombatResolver,
+  DifficultyTierDef,
   Dungeon,
   DungeonBuilder,
   EnemyStats,
@@ -56,6 +57,10 @@ import roguelite.game.UpgradeEffect
   *   The loaded run-perk catalog, passed through to [[InteractionResolver]] for the Lucky Find
   *   chest hook. `StartRun`'s own perk validation doesn't need this separately - it reads the
   *   full `PerkDef` straight off `HubState.perkOptions`.
+  * @param difficultyDefs
+  *   The loaded difficulty tier catalog, whose theme sequence decides the theme of each section of
+  *   the dungeon `StartRun` builds. A difficulty it does not list leaves the builder to pick themes
+  *   itself. Which tiers a save may start is decided by [[GameSession]], not here.
   */
 class StateMachine(roomPool: Map[String, Room],
                    enemyStats: Map[String, EnemyStats],
@@ -66,7 +71,8 @@ class StateMachine(roomPool: Map[String, Room],
                    rng: Random = Random(),
                    npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
                    setDefs: Map[String, SetDef] = Map.empty,
-                   perkDefs: Map[String, PerkDef] = Map.empty
+                   perkDefs: Map[String, PerkDef] = Map.empty,
+                   difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty
 ):
   private val interactionResolver =
     InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs, setDefs = setDefs, perkDefs = perkDefs)
@@ -126,7 +132,8 @@ class StateMachine(roomPool: Map[String, Room],
             case (None, Some(classDef)) =>
               val difficulty = difficultyOpt.getOrElse(StateMachine.DefaultDifficulty)
 
-              DungeonBuilder(roomPool, rng).build(difficulty = difficulty)() match {
+              val themes = difficultyDefs.get(difficulty).map(_.themes).getOrElse(Nil)
+              DungeonBuilder(roomPool, rng, themes).build(difficulty = difficulty)() match {
                 case Left(err) =>
                   (hub, List(s"Failed to build dungeon: $err"))
 

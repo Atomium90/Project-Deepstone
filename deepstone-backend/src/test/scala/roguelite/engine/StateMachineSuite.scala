@@ -111,14 +111,16 @@ class StateMachineSuite extends FunSuite:
 
   def sm(roomPool: Map[String, Room] = defaultRoomPool,
          upgradeDefs: Map[String, UpgradeDef] = Map.empty,
-         itemDefs: Map[String, Item] = Map.empty
+         itemDefs: Map[String, Item] = Map.empty,
+         difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty
   ): StateMachine =
     StateMachine(roomPool,
                  enemyStatsMap,
                  itemDefs,
                  testClassDefs,
                  upgradeDefs,
-                 CombatResolver(Random(0L))
+                 CombatResolver(Random(0L)),
+                 difficultyDefs = difficultyDefs
     )
 
   val healthPotion: Consumable =
@@ -156,6 +158,27 @@ class StateMachineSuite extends FunSuite:
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer))
       )
     assert(next.isInstanceOf[ExplorationState])
+
+  test("StartRun builds the dungeon from the theme sequence of the difficulty it runs on"):
+    val otherTheme = Map(
+      "o_entrance"  -> makeRoom("o_entrance", roomType = RoomType.Combat).copy(theme = "other"),
+      "o_boss"      -> makeRoom("o_boss", roomType = RoomType.Boss).copy(theme = "other"),
+      "o_sanctuary" -> makeRoom("o_sanctuary", roomType = RoomType.Sanctuary).copy(theme = "other")
+    )
+    val tiers = Map(Difficulty.Easy -> DifficultyTierDef(Difficulty.Easy, None, List("other")))
+    val machine = sm(roomPool = defaultRoomPool ++ otherTheme, difficultyDefs = tiers)
+    val hub     = HubState(hubPlayer)
+
+    def firstRoomTheme(difficulty: Difficulty): String =
+      machine
+        .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(difficulty)))
+        .state
+        .asInstanceOf[ExplorationState]
+        .dungeon
+        .currentRoom
+        .theme
+
+    assertEquals(firstRoomTheme(Difficulty.Easy), "other")
 
   test("StartRun puts the player on a walkable tile when the first room has thick walls"):
     // Two rows of wall along the top, like the re-authored rooms: a fixed corner tile such as (1,1) is

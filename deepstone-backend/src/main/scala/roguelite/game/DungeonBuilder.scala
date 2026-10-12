@@ -26,8 +26,13 @@ case class TopologyEdge(from: String, role: ConnectorRole, branch: Option[String
  *
  * @param pool   All available rooms keyed by id.
  * @param rng    Random instance: inject a seeded one for reproducible dungeons.
+ * @param themeSequence The theme of each section, in order (see [[DifficultyTierDef.themes]]); a run
+ *               with more sections than entries repeats the last one. Empty by default, in which case
+ *               every section picks its theme by [[pickNextTheme]]'s policy instead. Whatever decides
+ *               the themes, a Boss already met in an earlier section of the run is not drawn again
+ *               while its theme has another one to offer.
  */
-class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
+class DungeonBuilder(pool: Map[String, Room], rng: Random = Random(), themeSequence: List[String] = Nil):
 
   /** Build a dungeon out of `biomeCount` sequential sections.
    *
@@ -74,7 +79,7 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
    * [[RoomType.Rest]] room, matched to the section that just ended, where the pool has one left to
    * give - if not, that boundary is silently skipped and the two sections simply run together as
    * one longer stretch, rather than failing the whole build over missing optional structure. Each
-   * section picks its own theme fresh via [[pickNextTheme]] and rebuilds its own `exclude` set from
+   * section takes its theme from [[themeOf]] and rebuilds its own `exclude` set from
    * scratch - *not* threaded across sections, deliberately: a room reused in a later section is
    * acceptable (sections are independent, visually and mechanically - [[deduplicateRoomIds]] is
    * what actually makes a literal repeat safe, called once after every section is built, not here).
@@ -86,19 +91,32 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
     if availableThemes.isEmpty then Left("No rooms available in the pool (no themes found).")
     else
       @annotation.tailrec
-      def loop(sectionsLeft: Int, usedThemes: List[String], acc: List[Segment]): Either[String, (List[Segment], String)] =
-        val theme = pickNextTheme(usedThemes, availableThemes)
-        buildSection(theme) match
+      def loop(sectionsLeft: Int,
+               usedThemes: List[String],
+               usedBosses: Set[String],
+               acc: List[Segment]
+      ): Either[String, (List[Segment], String)] =
+        val theme = themeOf(usedThemes.size, usedThemes, availableThemes)
+        buildSection(theme, usedBosses) match
           case Left(err) => Left(err)
           case Right(segments) =>
+            val bosses = usedBosses ++ bossIdOf(segments)
             if sectionsLeft <= 1 then Right((acc ::: segments, theme))
             else
               pickOne(RoomType.Rest, theme, exclude = Set.empty) match
-                case Left(_)     => loop(sectionsLeft - 1, usedThemes :+ theme, acc ::: segments)
-                case Right(rest) => loop(sectionsLeft - 1, usedThemes :+ theme, acc ::: segments ::: List(Segment.Linear(rest)))
-      loop(sectionCount, Nil, Nil)
+                case Left(_)     => loop(sectionsLeft - 1, usedThemes :+ theme, bosses, acc ::: segments)
+                case Right(rest) =>
+                  loop(sectionsLeft - 1, usedThemes :+ theme, bosses, acc ::: segments ::: List(Segment.Linear(rest)))
+      loop(sectionCount, Nil, Set.empty, Nil)
 
-  /** Picks the theme for the next section. Current policy: prefer a theme not yet used anywhere
+  /** The theme of the section at `index` (0 for the first): its entry in [[themeSequence]], the last
+    * entry for any section past the end of it, or [[pickNextTheme]]'s pick when no sequence is
+    * configured.
+    */
+  private def themeOf(index: Int, usedThemes: List[String], availableThemes: List[String]): String =
+    themeSequence.lift(index).orElse(themeSequence.lastOption).getOrElse(pickNextTheme(usedThemes, availableThemes))
+
+  /** Picks the theme for the next section when no [[themeSequence]] is configured. Policy: prefer a theme not yet used anywhere
    * this run, picked at random among whichever themes qualify - only once every theme has been
    * used at least once does a repeat become eligible at all, and even then the immediately-previous
    * section's theme is excluded first (so two consecutive sections never look the same), unless
@@ -127,21 +145,35 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random()):
    * (that slot is simply skipped) if the pool has nothing left to give in this theme - same
    * philosophy as every other optional slot in this builder. The Boss stays a hard requirement,
    * same as `build`'s own doc describes. `exclude` starts fresh here, scoped to this section only -
-   * see [[buildSections]]'s own doc for why.
+   * see [[buildSections]]'s own doc for why - except for the Boss, which `usedBosses` (the Boss rooms
+   * of the earlier sections) keeps from repeating when the theme has another one (see [[pickBoss]]).
    */
-  private def buildSection(theme: String): Either[String, List[Segment]] =
+  private def buildSection(theme: String, usedBosses: Set[String]): Either[String, List[Segment]] =
     val (leadIn, afterLeadIn) = pickOptionalSequence(List(RoomType.Combat, RoomType.Combat), theme, Set.empty)
     val (forkSegment, afterFork) = buildFixedForkCluster(theme, afterLeadIn) match
       case Some((segment, used)) => (List(segment), used)
       case None                  => (Nil, afterLeadIn)
     val (reconverge, afterReconverge) = pickOptionalSequence(List(RoomType.Combat, RoomType.Loot), theme, afterFork)
-    pickOne(RoomType.Boss, theme, afterReconverge) match
+    pickBoss(theme, afterReconverge, usedBosses) match
       case Left(err) => Left(err)
       case Right(boss) =>
         val segments =
           leadIn.map(Segment.Linear(_)) ::: forkSegment ::: reconverge.map(Segment.Linear(_)) :::
             List(Segment.Linear(boss))
         Right(segments)
+
+  /** Picks a section's Boss, leaving out the Boss rooms already met in earlier sections of the run.
+    * Only when that leaves the theme with nothing does an earlier Boss come back (a small pool must
+    * still build a run, see [[deduplicateRoomIds]]).
+    */
+  private def pickBoss(theme: String, exclude: Set[String], usedBosses: Set[String]): Either[String, Room] =
+    pickOne(RoomType.Boss, theme, exclude ++ usedBosses) match
+      case Left(_)  => pickOne(RoomType.Boss, theme, exclude)
+      case picked   => picked
+
+  /** The id of the Boss room closing a section (its last segment), as authored in the pool. */
+  private def bossIdOf(segments: List[Segment]): Option[String] =
+    segments.lastOption.collect { case Segment.Linear(room) => room.id }
 
   /** Attempts a section's one branching cluster, every room drawn from `theme`: a [[RoomType.Fork]]
    * room plus 2-room branches (branch A: Combat then Loot; branch B: Loot then

@@ -365,3 +365,21 @@ class ContentIntegritySuite extends CatsEffectSuite:
           assert(has(tier.themes.last, RoomType.Sanctuary),
                  s"${tier.difficulty}: theme '${tier.themes.last}' has no Sanctuary room"
           )
+
+  test("a dungeon built from the real pool follows its tier's themes and never meets a Boss twice"):
+    for
+      tiers <- DifficultyLoader.loadAll()
+      rooms <- RoomLoader.loadAll()
+    yield tiers.values.foreach:
+      tier =>
+        (0L until 30L).foreach:
+          seed =>
+            val dungeon = DungeonBuilder(rooms, Random(seed), tier.themes)
+              .build(tier.difficulty)()
+              .getOrElse(fail(s"${tier.difficulty} failed to build for seed $seed"))
+            val bosses = dungeon.rooms.values.filter(_.roomType == RoomType.Boss).toList
+            assertEquals(dungeon.currentRoom.theme, tier.themes.head, s"${tier.difficulty}, seed $seed")
+            assertEquals(bosses.map(_.theme).sorted, tier.themes.sorted, s"${tier.difficulty}, seed $seed")
+            assert(!bosses.exists(_.id.contains('#')),
+                   s"${tier.difficulty}, seed $seed: the same Boss room was drawn twice"
+            )

@@ -179,6 +179,39 @@ class MessageProtocolSuite extends FunSuite:
     val json = MessageProtocol.encodeUpdate(update)
     assert(json.contains("\"runsCompleted\":3"), s"Expected runsCompleted in the hub JSON: $json")
 
+  test("encodeUpdate sends each difficulty tier with its unlock progress"):
+    val update = StateUpdate(
+      phase = GamePhase.Hub,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      hub = Some(
+        HubView(
+          upgrades = Nil,
+          difficulties = List(
+            DifficultyView(Difficulty.Easy, unlocked = true),
+            DifficultyView(Difficulty.Normal,
+                           unlocked = false,
+                           Some(TierRequirementView(Difficulty.Easy, wins = 1, winsDone = 0, shardsSpent = 0, shardsSpentDone = 0))
+            )
+          )
+        )
+      )
+    )
+    val hub = io.circe.parser.parse(MessageProtocol.encodeUpdate(update)).toOption.get.hcursor.downField("hub")
+    assertEquals(hub.downField("difficulties").downN(0).get[String]("id"), Right("easy"))
+    assertEquals(hub.downField("difficulties").downN(0).get[Boolean]("unlocked"), Right(true))
+    val normal = hub.downField("difficulties").downN(1)
+    assertEquals(normal.get[Boolean]("unlocked"), Right(false))
+    assertEquals(normal.downField("requirement").get[String]("winsAt"), Right("easy"))
+    assertEquals(normal.downField("requirement").get[Int]("wins"), Right(1))
+
   test("encodeUpdate with optional fields absent produces null or omitted fields"):
     val update = StateUpdate(
       phase = GamePhase.Hub,

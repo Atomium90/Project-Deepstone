@@ -124,7 +124,7 @@ class StateMachine(roomPool: Map[String, Room],
             case (None, None) => (hub, List(s"Unknown class '$classId'. Cannot start run."))
 
             case (None, Some(classDef)) =>
-              val difficulty = difficultyOpt.getOrElse(Difficulty.Normal)
+              val difficulty = difficultyOpt.getOrElse(StateMachine.DefaultDifficulty)
 
               DungeonBuilder(roomPool, rng).build(difficulty = difficulty)() match {
                 case Left(err) =>
@@ -301,6 +301,9 @@ class StateMachine(roomPool: Map[String, Room],
         )
 
 object StateMachine:
+
+  /** The difficulty a `StartRun` runs on when it names none. */
+  val DefaultDifficulty: Difficulty = Difficulty.Normal
 
   /** Dev tooling only (see `loadDebugRoom`): a freshly-converted room has no natural "spawn from
     * this door" context the way a real dungeon transition does, so this just picks the room's own

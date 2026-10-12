@@ -11,6 +11,7 @@ import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
+import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -42,7 +43,8 @@ class GameSession private (
     setCatalog: List[SetView] = Nil,
     perkDefs: Map[String, PerkDef] = Map.empty,
     rng: Random = Random(),
-    abilityDefs: Map[ClassId, AbilityDef] = Map.empty
+    abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
+    difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty
 ):
 
   /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
@@ -50,7 +52,9 @@ class GameSession private (
     * `HubState.perkOptions` and [[GameSession.perkOptionsFor]].
     */
   private def rollPerkOptions(): IO[List[PerkDef]] =
-    achievementRef.get.map(progress => GameSession.perkOptionsFor(perkDefs, progress.stats, rng))
+    achievementRef.get.map:
+      progress =>
+        GameSession.perkOptionsFor(perkDefs, DifficultyUnlocks.unlockedTiers(difficultyDefs, progress.stats), rng)
 
   /** Process a player action, update the internal state, and return the new state snapshot to be
     * serialized and sent to the client.
@@ -59,6 +63,8 @@ class GameSession private (
     val result = action match
       case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _, _) =>
         handleBuyUpgrade(upgradeId)
+      case HubAction(HubActionType.StartRun, _, _, difficulty, _, _) =>
+        handleStartRun(action, difficulty.getOrElse(StateMachine.DefaultDifficulty))
       case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId)) =>
         if debugMode then handleDebugLoadRoom(roomId) else rejectDebugLoadRoom
       case _ =>
@@ -80,12 +86,32 @@ class GameSession private (
       withDebug <- withDebugRooms(state.toStateUpdate(), state)
     yield withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state)
 
-  /** Attach how many runs the player has finished to the hub view (see [[HubView]]), the same
-    * "enrich the update with live meta outside the pure state" step as [[withAchievements]]. A
-    * no-op outside the hub.
+  /** Attach how many runs the player has finished, and which difficulty tiers are unlocked, to the
+    * hub view (see [[HubView]]), the same "enrich the update with live meta outside the pure state"
+    * step as [[withAchievements]]. A no-op outside the hub.
     */
   private def withHubProgress(update: StateUpdate, progress: AchievementProgress): StateUpdate =
-    update.copy(hub = update.hub.map(_.copy(runsCompleted = progress.stats.runsCompleted)))
+    update.copy(hub =
+      update.hub.map(
+        _.copy(runsCompleted = progress.stats.runsCompleted, difficulties = difficultyViews(progress.stats))
+      )
+    )
+
+  private def difficultyViews(stats: AchievementStats): List[DifficultyView] =
+    Difficulty.values.toList.map:
+      difficulty =>
+        DifficultyView(
+          id = difficulty,
+          unlocked = DifficultyUnlocks.isUnlocked(difficultyDefs, difficulty, stats),
+          requirement = DifficultyUnlocks.progress(difficultyDefs, difficulty, stats).map:
+            p =>
+              TierRequirementView(winsAt = p.requirement.winsAt,
+                                  wins = p.requirement.wins,
+                                  winsDone = p.winsDone,
+                                  shardsSpent = p.requirement.shardsSpent,
+                                  shardsSpentDone = p.shardsSpentDone
+              )
+        )
 
   /** Resolve `CombatView.abilityCost` against the player's live set/perk discounts (see
     * [[roguelite.game.AbilityDef.effectiveCost]]) - a no-op outside combat, or if the player's
@@ -285,6 +311,17 @@ class GameSession private (
       _ <- achievementRef.set(updatedProgress)
     yield ()
 
+  /** Refuses a `StartRun` on a difficulty tier the save has not unlocked, whatever the client sent:
+    * the hub greys such a tier out, but the server is what enforces it. Like `BuyUpgrade`, this is
+    * decided here rather than in the pure state machine because the stats it reads live in the
+    * session. Every other run start goes through the state machine as usual.
+    */
+  private def handleStartRun(action: PlayerAction, difficulty: Difficulty): IO[StateUpdate] =
+    achievementRef.get.flatMap:
+      progress =>
+        if DifficultyUnlocks.isUnlocked(difficultyDefs, difficulty, progress.stats) then handleTransition(action)
+        else stateRef.get.map(_.toStateUpdate(List(s"$difficulty is not unlocked yet.")))
+
   /** Validate, persist, and apply an upgrade purchase atomically from the session's perspective.
     *
     * The DB write and the in-memory update happen sequentially. A failure in `database.purchaseUpgrade`
@@ -428,6 +465,9 @@ object GameSession:
     * @param debugMode     Whether the dev-only Debug Rooms tooling is on (the backend was started
     *                      with `--debug`): the hub lists the rooms of `debug-rooms/` and
     *                      `DebugLoadRoom` is honoured. Off by default.
+    * @param difficultyDefs The loaded difficulty tier catalog (see [[roguelite.game.DifficultyLoader]]),
+    *                      which decides the tiers a `StartRun` may name and when the run perks open.
+    *                      Empty by default, which leaves every tier available.
     */
   def create(stateMachine: StateMachine,
              database: Database,
@@ -438,7 +478,8 @@ object GameSession:
              setDefs: Map[String, SetDef] = Map.empty,
              perkDefs: Map[String, PerkDef] = Map.empty,
              rng: Random = Random(),
-             debugMode: Boolean = false
+             debugMode: Boolean = false,
+             difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty
   ): IO[GameSession] =
     for
       meta                 <- database.loadMeta()
@@ -453,7 +494,7 @@ object GameSession:
                           xp = 0,
                           metaCurrency = meta.currency
       )
-      initPerkOptions = perkOptionsFor(perkDefs, achievementStats, rng)
+      initPerkOptions = perkOptionsFor(perkDefs, DifficultyUnlocks.unlockedTiers(difficultyDefs, achievementStats), rng)
       stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions))
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
@@ -473,26 +514,23 @@ object GameSession:
                           setCatalog,
                           perkDefs,
                           rng,
-                          abilityDefs
+                          abilityDefs,
+                          difficultyDefs
     )
 
   /** Number of perks offered per hub visit, out of the full catalog. */
   private val PerkOptionsCount = 3
 
-  /** Run perks are locked until the player has won this many runs. An interim rule: the difficulty
-    * ceiling is meant to take over this gate later. Enforced here, on the server, by offering no
-    * perk at all, so a client cannot unlock them (the hub already hides an empty perk list).
-    */
-  private[engine] val PerksUnlockedAfterWins = 1
-
-  /** The perks to offer on a hub visit: a random subset of the catalog, or none while the player
-    * has fewer than [[PerksUnlockedAfterWins]] victories. A locked visit does not consume the rng.
+  /** The perks to offer on a hub visit: a random subset of the catalog, or none while the Normal
+    * tier is still locked, the perks being the first rung of the difficulty ladder. Enforced here,
+    * on the server, by offering no perk at all, so a client cannot unlock them (the hub already
+    * hides an empty perk list). A locked visit does not consume the rng.
     */
   private[engine] def perkOptionsFor(perkDefs: Map[String, PerkDef],
-                                     stats: AchievementStats,
+                                     unlockedTiers: Set[Difficulty],
                                      rng: Random
   ): List[PerkDef] =
-    if stats.runsWon < PerksUnlockedAfterWins then Nil
+    if !unlockedTiers.contains(Difficulty.Normal) then Nil
     else rng.shuffle(perkDefs.values.toList).take(PerkOptionsCount)
 
   /** Dev tooling only: where `frontend/scripts/convert-tiled-room.mjs --out=...` output is meant

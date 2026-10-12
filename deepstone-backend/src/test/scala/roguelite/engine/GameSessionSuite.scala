@@ -181,6 +181,21 @@ class GameSessionSuite extends CatsEffectSuite:
         id -> PerkDef(id, s"Perk $i", s"Test perk $i", icon = "*", effect = PerkEffect.ExtraStartingItem("health_potion"))
     .toMap
 
+  /** The tier rules the hub tests run against: Normal opens after a win on Easy, Hard after 4 wins
+    * on Normal and 300 Shards spent. A suite fixture, so the tests never read `data/difficulty.json`.
+    */
+  val testTierDefs: Map[Difficulty, DifficultyTierDef] = Map(
+    Difficulty.Easy -> DifficultyTierDef(Difficulty.Easy, None, List("dungeon")),
+    Difficulty.Normal -> DifficultyTierDef(Difficulty.Normal,
+                                           Some(TierRequirement(Difficulty.Easy, 1, 0)),
+                                           List("dungeon", "darkDungeon")
+    ),
+    Difficulty.Hard -> DifficultyTierDef(Difficulty.Hard,
+                                         Some(TierRequirement(Difficulty.Normal, 4, 300)),
+                                         List("dungeon", "darkDungeon", "darkDungeon")
+    )
+  )
+
   /** Minimal achievement catalog mirroring achievements.json, avoids file I/O in unit tests.
     * Only a small representative subset is needed here (thorough per-condition coverage lives in
     * AchievementCheckerSuite); this just exercises the GameSession wiring end-to-end.
@@ -324,8 +339,8 @@ class GameSessionSuite extends CatsEffectSuite:
       CombatResolver(Random(0L))
     )
 
-  /** A save that has already won once, so the run perks are unlocked (see
-    * GameSession.PerksUnlockedAfterWins).
+  /** A save that has already won once, so Normal and the run perks are unlocked (under
+    * [[testTierDefs]]).
     */
   def seedFirstVictory(database: Database): IO[Unit] =
     database.saveAchievementStats(AchievementStats(runsWon = 1))
@@ -419,7 +434,7 @@ class GameSessionSuite extends CatsEffectSuite:
       for
         _       <- seedFirstVictory(database)
         session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
-                                      perkDefs = testPerkDefs, rng = Random(0L)
+                                      perkDefs = testPerkDefs, rng = Random(0L), difficultyDefs = testTierDefs
                    )
         update  <- session.currentUpdate
       yield assertEquals(update.hub.get.perks.length, 3)
@@ -429,7 +444,7 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
-                                      perkDefs = testPerkDefs, rng = Random(0L)
+                                      perkDefs = testPerkDefs, rng = Random(0L), difficultyDefs = testTierDefs
                    )
         update  <- session.currentUpdate
       yield assertEquals(update.hub.get.perks, Nil)
@@ -439,9 +454,12 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
-                                      testAchievementDefs, perkDefs = testPerkDefs, rng = Random(0L)
+                                      testAchievementDefs, perkDefs = testPerkDefs, rng = Random(0L),
+                                      difficultyDefs = testTierDefs
                    )
-        _           <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _           <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                                difficulty = Some(Difficulty.Easy)
+                       ))
         _           <- session.handle(Interact("e1"))
         afterHit    <- session.handle(CombatAction(CombatActionType.Attack))
         afterReturn <- session.handle(HubAction(HubActionType.ReturnToHub))
@@ -507,7 +525,8 @@ class GameSessionSuite extends CatsEffectSuite:
     database =>
       for
         session <- GameSession.create(smWithBossRun, database, Map.empty, testUpgradeDefs, Map.empty,
-                                      testAchievementDefs, perkDefs = testPerkDefs, rng = Random(0L)
+                                      testAchievementDefs, perkDefs = testPerkDefs, rng = Random(0L),
+                                      difficultyDefs = testTierDefs
                    )
         _           <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
                                                 difficulty = Some(Difficulty.Easy)
@@ -522,22 +541,105 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(afterReturn.hub.get.perks.length, 3)
   }
 
-  test("perkOptionsFor offers nothing below the victory threshold, whatever the catalog") {
-    val none = GameSession.perkOptionsFor(testPerkDefs, AchievementStats(runsCompleted = 9, runsWon = 0), Random(0L))
+  test("perkOptionsFor offers nothing while Normal is locked, whatever the catalog") {
+    val none = GameSession.perkOptionsFor(testPerkDefs, Set(Difficulty.Easy), Random(0L))
     assertEquals(none, Nil)
   }
 
-  test("perkOptionsFor offers 3 distinct perks from the threshold on") {
-    val offered = GameSession.perkOptionsFor(testPerkDefs, AchievementStats(runsWon = GameSession.PerksUnlockedAfterWins),
-                                             Random(0L)
-    )
+  test("perkOptionsFor offers 3 distinct perks once Normal is unlocked") {
+    val offered = GameSession.perkOptionsFor(testPerkDefs, Set(Difficulty.Easy, Difficulty.Normal), Random(0L))
     assertEquals(offered.length, 3)
     assertEquals(offered.map(_.id).distinct.length, 3)
   }
 
   test("perkOptionsFor offers a whole catalog smaller than 3") {
     val small = testPerkDefs.take(2)
-    assertEquals(GameSession.perkOptionsFor(small, AchievementStats(runsWon = 1), Random(0L)).length, 2)
+    assertEquals(GameSession.perkOptionsFor(small, Set(Difficulty.Easy, Difficulty.Normal), Random(0L)).length, 2)
+  }
+
+  // ---------------------------------------------
+  // Difficulty tiers
+  // ---------------------------------------------
+
+  private def startRunOn(session: GameSession, difficulty: Option[Difficulty]): IO[StateUpdate] =
+    session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = difficulty))
+
+  private def tierSession(database: Database): IO[GameSession] =
+    GameSession.create(smWithBossRun, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                       rng = Random(0L), difficultyDefs = testTierDefs
+    )
+
+  db.test("a new save can start Easy but neither Normal, Hard, nor a run that names no tier") {
+    database =>
+      for
+        session <- tierSession(database)
+        normal  <- startRunOn(session, Some(Difficulty.Normal))
+        hard    <- startRunOn(session, Some(Difficulty.Hard))
+        unnamed <- startRunOn(session, None)
+        easy    <- startRunOn(session, Some(Difficulty.Easy))
+      yield
+        List(normal, hard, unnamed).foreach:
+          refused =>
+            assertEquals(refused.phase, GamePhase.Hub)
+            assert(refused.log.exists(_.contains("not unlocked")), s"expected a locked-tier message: ${refused.log}")
+        assertEquals(easy.phase, GamePhase.Exploration)
+  }
+
+  db.test("the hub lists every tier, lowest first, with how far the save is from each") {
+    database =>
+      for
+        session <- tierSession(database)
+        update  <- session.currentUpdate
+      yield
+        val tiers = update.hub.get.difficulties
+        assertEquals(tiers.map(_.id), List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard))
+        assertEquals(tiers.map(_.unlocked), List(true, false, false))
+        assertEquals(tiers(0).requirement, None)
+        assertEquals(tiers(1).requirement, Some(TierRequirementView(Difficulty.Easy, 1, 0, 0, 0)))
+        assertEquals(tiers(2).requirement, Some(TierRequirementView(Difficulty.Normal, 4, 0, 300, 0)))
+  }
+
+  db.test("a win on Easy unlocks Normal at the next hub visit") {
+    database =>
+      for
+        session <- tierSession(database)
+        _           <- startRunOn(session, Some(Difficulty.Easy))
+        _           <- session.handle(Interact("e1"))
+        _           <- session.handle(CombatAction(CombatActionType.Attack))
+        _           <- session.handle(Interact("door_to_sanctuary"))
+        afterWin    <- session.handle(Interact("sanct_1"))
+        afterReturn <- session.handle(HubAction(HubActionType.ReturnToHub))
+        normal      <- startRunOn(session, Some(Difficulty.Normal))
+      yield
+        assert(afterWin.victory, s"expected the Sanctuary to end the run in victory: ${afterWin.log}")
+        assertEquals(afterReturn.hub.get.difficulties.map(_.unlocked), List(true, true, false))
+        assertEquals(normal.phase, GamePhase.Exploration)
+  }
+
+  db.test("a save that won before wins were counted per tier keeps Normal but not Hard") {
+    database =>
+      for
+        _       <- seedFirstVictory(database)
+        session <- tierSession(database)
+        update  <- session.currentUpdate
+        normal  <- startRunOn(session, Some(Difficulty.Normal))
+      yield
+        assertEquals(update.hub.get.difficulties.map(_.unlocked), List(true, true, false))
+        assertEquals(normal.phase, GamePhase.Exploration)
+  }
+
+  db.test("Hard stays locked until the Shards are spent as well as the wins on Normal") {
+    database =>
+      val wins = Map(Difficulty.Easy -> 1, Difficulty.Normal -> 4)
+      for
+        _       <- database.saveAchievementStats(AchievementStats(runsWon = 5, totalShardsSpent = 299, winsByDifficulty = wins))
+        short   <- tierSession(database).flatMap(_.currentUpdate)
+        _       <- database.saveAchievementStats(AchievementStats(runsWon = 5, totalShardsSpent = 300, winsByDifficulty = wins))
+        enough  <- tierSession(database).flatMap(_.currentUpdate)
+      yield
+        assertEquals(short.hub.get.difficulties.map(_.unlocked), List(true, true, false))
+        assertEquals(short.hub.get.difficulties(2).requirement, Some(TierRequirementView(Difficulty.Normal, 4, 4, 300, 299)))
+        assertEquals(enough.hub.get.difficulties.map(_.unlocked), List(true, true, true))
   }
 
   db.test("ReturnToHub after a run rerolls the offered perks") {

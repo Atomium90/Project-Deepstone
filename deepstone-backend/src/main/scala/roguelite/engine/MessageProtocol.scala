@@ -286,12 +286,32 @@ case class UpgradeView(id: String,
 /** One run perk offered to the player, rolled fresh every HUB visit (see `HubState.perkOptions`). */
 case class PerkView(id: String, label: String, description: String, icon: String)
 
+/** How far a save is from unlocking a difficulty tier: `winsDone` of the `wins` needed on tier
+  * `winsAt`, and `shardsSpentDone` of the `shardsSpent` needed.
+  */
+case class TierRequirementView(winsAt: Difficulty,
+                               wins: Int,
+                               winsDone: Int,
+                               shardsSpent: Int,
+                               shardsSpentDone: Int
+)
+
+/** One difficulty tier as the hub shows it. `requirement` is `None` for a tier that needs nothing. */
+case class DifficultyView(id: Difficulty, unlocked: Boolean, requirement: Option[TierRequirementView] = None)
+
 /** @param runsCompleted
   *   How many runs the player has finished so far, won or lost. Lets the client tell a brand-new
   *   save (0) from a returning one, so the first run can skip the hub. Resolved by
   *   [[GameSession]] from the achievement stats, not carried by [[HubState]].
+  * @param difficulties
+  *   Every difficulty tier, lowest first, with whether it can be started and how far the save is from
+  *   unlocking it. Resolved by [[GameSession]] from the achievement stats, like `runsCompleted`.
   */
-case class HubView(upgrades: List[UpgradeView], perks: List[PerkView] = Nil, runsCompleted: Int = 0)
+case class HubView(upgrades: List[UpgradeView],
+                   perks: List[PerkView] = Nil,
+                   runsCompleted: Int = 0,
+                   difficulties: List[DifficultyView] = Nil
+)
 
 case class ItemView(
     id: String,
@@ -636,6 +656,8 @@ object MessageProtocol:
   given Encoder[DamageEventView] = deriveEncoder
   given Encoder[UpgradeView]  = deriveEncoder
   given Encoder[PerkView]     = deriveEncoder
+  given Encoder[TierRequirementView] = deriveEncoder
+  given Encoder[DifficultyView]      = deriveEncoder
   given Encoder[HubView]      = deriveEncoder
   given Encoder[ItemView]     = deriveEncoder
   given Encoder[KeyCountView] = deriveEncoder

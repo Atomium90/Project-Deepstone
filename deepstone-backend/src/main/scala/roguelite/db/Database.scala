@@ -4,6 +4,7 @@ import doobie.util.transactor.Transactor
 import doobie.implicits.*
 import cats.implicits.*
 import cats.effect.IO
+import roguelite.engine.Difficulty
 import roguelite.game.{ AchievementStats, MetaProgression }
 import cats.effect.kernel.Resource
 import scala.concurrent.ExecutionContext
@@ -74,6 +75,12 @@ class Database private (xa: Transactor[IO]):
               )
             """.update.run *>
         sql"""
+              CREATE TABLE IF NOT EXISTS difficulty_win (
+                difficulty TEXT PRIMARY KEY,
+                wins       INTEGER NOT NULL DEFAULT 0
+              )
+            """.update.run *>
+        sql"""
               INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)
             """.update.run *>
         sql"""
@@ -120,11 +127,13 @@ class Database private (xa: Transactor[IO]):
     (deduct *> unlock).transact(xa).void
 
   /** Load the lifetime achievement counters (runs completed/won, win streak, total Shards spent,
-    * potions used) plus the two "which ids have I ever done this with" sets (potion types used,
-    * perks won a run with) - all four backing tables are read in one transaction. `consumable_stats`
-    * / `potion_type_used` / `perk_won_with` are separate tables from `achievement_stats` because
-    * `CREATE TABLE IF NOT EXISTS` cannot add columns to a table that already exists in a
-    * previously-shipped database (same reason `achievement_stats` itself was split out of `meta`).
+    * potions used, wins per difficulty) plus the two "which ids have I ever done this with" sets
+    * (potion types used, perks won a run with) - all five backing tables are read in one
+    * transaction. `consumable_stats` / `potion_type_used` / `perk_won_with` / `difficulty_win` are
+    * separate tables from `achievement_stats` because `CREATE TABLE IF NOT EXISTS` cannot add
+    * columns to a table that already exists in a previously-shipped database (same reason
+    * `achievement_stats` itself was split out of `meta`). A `difficulty_win` row naming a tier this
+    * version does not know is ignored.
     */
   def loadAchievementStats(): IO[AchievementStats] =
     val getCounters = sql"""SELECT runs_completed, runs_won, current_win_streak, total_shards_spent
@@ -133,11 +142,13 @@ class Database private (xa: Transactor[IO]):
       sql"SELECT consumables_used FROM consumable_stats WHERE id = 1".query[Int].unique
     val getPotionTypesUsed = sql"SELECT type_id FROM potion_type_used".query[String].to[Set]
     val getPerksWonWith    = sql"SELECT perk_id FROM perk_won_with".query[String].to[Set]
+    val getDifficultyWins  = sql"SELECT difficulty, wins FROM difficulty_win".query[(String, Int)].to[List]
     (for
       counters         <- getCounters
       consumablesUsed  <- getConsumablesUsed
       potionTypesUsed  <- getPotionTypesUsed
       perksWonWith     <- getPerksWonWith
+      difficultyWins   <- getDifficultyWins
     yield
       val (runsCompleted, runsWon, currentWinStreak, totalShardsSpent) = counters
       AchievementStats(runsCompleted,
@@ -146,7 +157,8 @@ class Database private (xa: Transactor[IO]):
                        totalShardsSpent,
                        consumablesUsed,
                        potionTypesUsed,
-                       perksWonWith
+                       perksWonWith,
+                       difficultyWins.flatMap((name, wins) => Database.parseDifficulty(name).map(_ -> wins)).toMap
       )
     ).transact(xa)
 
@@ -162,8 +174,8 @@ class Database private (xa: Transactor[IO]):
       .transact(xa)
       .void
 
-  /** Overwrite the lifetime achievement counters with their current values - both backing tables
-    * (`achievement_stats`, `consumable_stats`) in one transaction. Does not touch
+  /** Overwrite the lifetime achievement counters with their current values - the backing tables
+    * (`achievement_stats`, `consumable_stats`, `difficulty_win`) in one transaction. Does not touch
     * `potionTypesUsed`/`perksWonWith`: those are append-only sets, recorded one id at a time via
     * [[recordPotionTypeUsed]]/[[recordPerkWonWith]], never overwritten wholesale.
     */
@@ -176,7 +188,13 @@ class Database private (xa: Transactor[IO]):
           WHERE id = 1""".update.run
     val updateConsumablesUsed =
       sql"UPDATE consumable_stats SET consumables_used = ${stats.consumablesUsed} WHERE id = 1".update.run
-    (updateCounters *> updateConsumablesUsed).transact(xa).void
+    val updateDifficultyWins = stats.winsByDifficulty.toList.traverse_ {
+      (difficulty, wins) =>
+        val name = Database.difficultyName(difficulty)
+        sql"""INSERT INTO difficulty_win (difficulty, wins) VALUES ($name, $wins)
+              ON CONFLICT(difficulty) DO UPDATE SET wins = excluded.wins""".update.run
+    }
+    (updateCounters *> updateConsumablesUsed *> updateDifficultyWins).transact(xa).void
 
   /** Record a potion typeId as having been used at least once. Idempotent, same
     * INSERT-OR-IGNORE pattern as [[unlockAchievement]].
@@ -197,6 +215,14 @@ class Database private (xa: Transactor[IO]):
 object Database:
 
   private val Driver = "org.sqlite.JDBC"
+
+  /** How a [[Difficulty]] is stored in `difficulty_win`: its lowercase name, the same spelling as on
+    * the wire and in `data/difficulty.json`.
+    */
+  private def difficultyName(difficulty: Difficulty): String = difficulty.toString.toLowerCase
+
+  private def parseDifficulty(name: String): Option[Difficulty] =
+    Difficulty.values.find(difficultyName(_) == name)
 
   /** Acquire a file-backed [[Database]] as a managed [[Resource]].
     *

@@ -326,6 +326,21 @@ class AchievementCheckerSuite extends FunSuite:
     assertEquals(stats.currentWinStreak, 4)
   }
 
+  test("a victory is counted on its own difficulty, a defeat on none") {
+    val (stats, _) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(
+        GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard, activePerkId = None),
+        GameEvent.RunEnded(victory = true, difficulty = Difficulty.Easy, activePerkId = None),
+        GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard, activePerkId = None),
+        GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = None)
+      )
+    )
+    assertEquals(stats.winsByDifficulty, Map(Difficulty.Hard -> 2, Difficulty.Easy -> 1))
+  }
+
   test("ConsumableUsed increments consumablesUsed and adds the typeId to potionTypesUsed") {
     val (stats, _) = AchievementChecker.checkEvents(
       allDefs,

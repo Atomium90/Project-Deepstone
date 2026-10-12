@@ -1036,6 +1036,41 @@ class GameSessionSuite extends CatsEffectSuite:
         )
   }
 
+  db.test("a won run is saved as a win on its own difficulty") {
+    database =>
+      for
+        session <- GameSession.create(smWithBossRun, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, rng = Random(0L)
+                   )
+        _ <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                      difficulty = Some(Difficulty.Easy)
+             ))
+        _         <- session.handle(Interact("e1"))
+        _         <- session.handle(CombatAction(CombatActionType.Attack))
+        _         <- session.handle(Interact("door_to_sanctuary"))
+        afterWin  <- session.handle(Interact("sanct_1"))
+        statsInDb <- database.loadAchievementStats()
+      yield
+        assert(afterWin.victory, "expected the Sanctuary to end the run in victory")
+        assertEquals(statsInDb.winsByDifficulty, Map(Difficulty.Easy -> 1))
+  }
+
+  db.test("a lost run is saved as a win on no difficulty") {
+    database =>
+      for
+        session <- GameSession.create(smWithLethalEnemy, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs, rng = Random(0L)
+                   )
+        _         <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _         <- session.handle(Interact("e1"))
+        afterHit  <- session.handle(CombatAction(CombatActionType.Attack)) // enemy survives, counters, kills player
+        statsInDb <- database.loadAchievementStats()
+      yield
+        assertEquals(afterHit.phase, GamePhase.GameOver, s"expected defeat to end the run: ${afterHit.log}")
+        assertEquals(statsInDb.runsCompleted, 1)
+        assertEquals(statsInDb.winsByDifficulty, Map.empty[Difficulty, Int])
+  }
+
   db.test("purchasing upgrades whose cumulative cost crosses the big_spender threshold unlocks it") {
     database =>
       for

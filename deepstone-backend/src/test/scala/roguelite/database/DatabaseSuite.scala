@@ -1,6 +1,7 @@
 package roguelite.db
 
 import munit.CatsEffectSuite
+import roguelite.engine.Difficulty
 import roguelite.game.{ AchievementStats, MetaProgression, UpgradeCategory, UpgradeDef, UpgradeEffect }
 
 /** Tests for [[Database]]: schema initialisation, meta loading, currency persistence,
@@ -195,6 +196,35 @@ class DatabaseSuite extends CatsEffectSuite:
         _      <- db.saveAchievementStats(AchievementStats(consumablesUsed = 7))
         loaded <- db.loadAchievementStats()
       yield assertEquals(loaded.consumablesUsed, 7)
+  }
+
+  db.test("saveAchievementStats round-trips the wins of every difficulty") {
+    db =>
+      val stats = AchievementStats(runsWon = 3, winsByDifficulty = Map(Difficulty.Easy -> 2, Difficulty.Hard -> 1))
+      for
+        _      <- db.saveAchievementStats(stats)
+        loaded <- db.loadAchievementStats()
+      yield assertEquals(loaded.winsByDifficulty, stats.winsByDifficulty)
+  }
+
+  db.test("saveAchievementStats overwrites the wins of a difficulty and keeps the others") {
+    db =>
+      for
+        _ <- db.saveAchievementStats(
+          AchievementStats(winsByDifficulty = Map(Difficulty.Easy -> 1, Difficulty.Normal -> 4))
+        )
+        _      <- db.saveAchievementStats(AchievementStats(winsByDifficulty = Map(Difficulty.Normal -> 5)))
+        loaded <- db.loadAchievementStats()
+      yield assertEquals(loaded.winsByDifficulty, Map(Difficulty.Easy -> 1, Difficulty.Normal -> 5))
+  }
+
+  db.test("initialize can run again without losing the wins of a difficulty") {
+    db =>
+      for
+        _      <- db.saveAchievementStats(AchievementStats(winsByDifficulty = Map(Difficulty.Normal -> 2)))
+        _      <- db.initialize()
+        loaded <- db.loadAchievementStats()
+      yield assertEquals(loaded.winsByDifficulty, Map(Difficulty.Normal -> 2))
   }
 
   db.test("recordPotionTypeUsed adds the typeId, idempotently") {

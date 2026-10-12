@@ -63,14 +63,17 @@ object AchievementChecker:
     (updatedStats, satisfied.toList)
 
   private def applyEvent(stats: AchievementStats, event: GameEvent): AchievementStats = event match
-    case GameEvent.RunEnded(victory, _, activePerkId) =>
+    case GameEvent.RunEnded(victory, difficulty, activePerkId) =>
       stats.copy(
         runsCompleted = stats.runsCompleted + 1,
         runsWon = if victory then stats.runsWon + 1 else stats.runsWon,
         currentWinStreak = if victory then stats.currentWinStreak + 1 else 0,
         perksWonWith =
           if victory then activePerkId.map(stats.perksWonWith + _).getOrElse(stats.perksWonWith)
-          else stats.perksWonWith
+          else stats.perksWonWith,
+        winsByDifficulty =
+          if victory then stats.winsByDifficulty.updated(difficulty, stats.winsByDifficulty.getOrElse(difficulty, 0) + 1)
+          else stats.winsByDifficulty
       )
     case GameEvent.ConsumableUsed(typeId) =>
       stats.copy(consumablesUsed = stats.consumablesUsed + 1,

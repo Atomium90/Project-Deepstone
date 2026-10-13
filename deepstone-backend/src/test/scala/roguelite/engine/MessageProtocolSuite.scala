@@ -67,6 +67,12 @@ class MessageProtocolSuite extends FunSuite:
     val result = MessageProtocol.decodeAction(json)
     assertEquals(result, Right(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))))
 
+  test("decode CARD_SEEN"):
+    assertEquals(MessageProtocol.decodeAction("""{"type":"CARD_SEEN","cardId":"ch1"}"""), Right(CardSeen("ch1")))
+
+  test("decode CARD_SEEN without a card returns Left"):
+    assert(MessageProtocol.decodeAction("""{"type":"CARD_SEEN"}""").isLeft)
+
   test("decode SCENE_DONE without an answer"):
     assertEquals(MessageProtocol.decodeAction("""{"type":"SCENE_DONE"}"""), Right(SceneDone(None)))
 

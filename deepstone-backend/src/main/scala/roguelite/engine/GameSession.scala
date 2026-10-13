@@ -79,14 +79,20 @@ class GameSession private (
         handleInteract(action, targetId)
       case SceneDone(accept) =>
         handleSceneDone(accept)
+      case CardSeen(cardId) =>
+        handleCardSeen(cardId)
       case _ =>
         handleTransition(action)
     for
       update   <- result
       state    <- stateRef.get
       progress <- achievementRef.get
+      story    <- storyRef.get
       withDebug <- withDebugRooms(update, state)
-    yield withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state)
+    yield withPendingCard(
+      withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state),
+      story
+    )
 
   /** Return the current state snapshot without changing anything. Useful for sending the initial
     * state right after connection.
@@ -95,8 +101,19 @@ class GameSession private (
     for
       state     <- stateRef.get
       progress  <- achievementRef.get
+      story     <- storyRef.get
       withDebug <- withDebugRooms(state.toStateUpdate(), state)
-    yield withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state)
+    yield withPendingCard(
+      withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state),
+      story
+    )
+
+  /** Attach the story card still to be shown, if any (see `StateUpdate.pendingCard`). It is read
+    * from the story, not from the game state, so it is the same in every phase and survives a
+    * reconnection.
+    */
+  private def withPendingCard(update: StateUpdate, story: StoryProgress): StateUpdate =
+    update.copy(pendingCard = story.pendingCard)
 
   /** Attach how many runs the player has finished, and which difficulty tiers are unlocked, to the
     * hub view (see [[HubView]]), the same "enrich the update with live meta outside the pure state"
@@ -349,6 +366,19 @@ class GameSession private (
                 updateStory(progress, next) *> stateRef.set(done).as(done.toStateUpdate())
       case state => IO.pure(state.toStateUpdate(List("There is no conversation to finish.")))
 
+  /** The player has read the card on their screen. Only the card the server is waiting for counts,
+    * so a stale or made-up id changes nothing.
+    */
+  private def handleCardSeen(cardId: String): IO[StateUpdate] =
+    for
+      state    <- stateRef.get
+      progress <- storyRef.get
+      update <-
+        if progress.pendingCard.contains(cardId) then
+          updateStory(progress, progress.withCardSeen(cardId)).as(state.toStateUpdate())
+        else IO.pure(state.toStateUpdate(List("There is no such card to see.")))
+    yield update
+
   /** What a transition's facts change in the story: a potion drunk fails a vow against potions, and a
     * run that ends is judged (the running vow, the chapter a victory opens, the outcome the NPCs
     * comment on).
@@ -469,6 +499,9 @@ class GameSession private (
             _ <- stateRef.set(newState)
             label = upgradeDefs.get(upgradeId).map(_.label).getOrElse(upgradeId)
             newlyUnlocked <- processAchievementPurchase(spent, newMeta.unlockedUpgrades.size)
+            story         <- storyRef.get
+            // The first purchase is what the prologue card is for: earning it again later changes nothing.
+            _ <- updateStory(story, story.withCardEarned(StoryRules.PrologueCard))
           yield newState.toStateUpdate(List(s"$label purchased!")).copy(newlyUnlocked = newlyUnlocked)
     yield update
 

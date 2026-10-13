@@ -5,6 +5,12 @@ import roguelite.engine.Difficulty
 /** How the story moves forward, as pure transitions of [[StoryProgress]]. */
 object StoryRules:
 
+  /** The card the first purchase at the hub earns. */
+  val PrologueCard = "prologue"
+
+  /** The card a victory earns by opening `chapter`. */
+  def chapterCard(chapter: Int): String = s"ch$chapter"
+
   /** The chapter reached after a victory on `difficulty`: the next chapter when the victory is on
     * its difficulty or a harder one, never more than one chapter at a time, and the same chapter
     * otherwise.
@@ -14,8 +20,8 @@ object StoryRules:
       case Some(next) if difficulty.ordinal >= next.minDifficulty.ordinal => chapter + 1
       case _                                                              => chapter
 
-  /** A run is over. A won one advances the chapter, any one is remembered for the NPCs to comment on,
-    * and the vow still running is judged.
+  /** A run is over. A won one advances the chapter, and earns the card of the chapter it opens, any
+    * one is remembered for the NPCs to comment on, and the vow still running is judged.
     */
   def onRunEnded(chapters: Map[Int, ChapterDef],
                  progress: StoryProgress,
@@ -23,10 +29,9 @@ object StoryRules:
                  difficulty: Difficulty
   ): StoryProgress =
     val settled = VowRules.onRunEnded(progress, outcome)
-    settled.copy(
-      chapter = if outcome == RunOutcome.Won then advanceChapter(chapters, settled.chapter, difficulty) else settled.chapter,
-      lastRun = Some(outcome)
-    )
+    val reached = if outcome == RunOutcome.Won then advanceChapter(chapters, settled.chapter, difficulty) else settled.chapter
+    val ended   = settled.copy(chapter = reached, lastRun = Some(outcome))
+    if reached > settled.chapter then ended.withCardEarned(chapterCard(reached)) else ended
 
   /** The player has read `encounter` to its last line. Marks a scene as played, the NPC as having
     * commented on its vow, and records the answer to the vow the conversation offered.

@@ -804,6 +804,92 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(saved.lastRun, Some(RunOutcome.Won))
   }
 
+  db.test("the first purchase earns the prologue card, shown until it has been seen") {
+    database =>
+      for
+        _       <- database.saveCurrency(100)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        before  <- session.currentUpdate
+        bought  <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(before.pendingCard, None)
+        assertEquals(bought.pendingCard, Some("prologue"))
+        assertEquals(saved.cards, List(CardRecord("prologue")))
+  }
+
+  db.test("a later purchase does not bring the prologue back once it has been seen") {
+    database =>
+      for
+        _       <- database.saveCurrency(100)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        _       <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        _       <- session.handle(CardSeen("prologue"))
+        second  <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("potion_start")))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(second.pendingCard, None)
+        assertEquals(saved.cards, List(CardRecord("prologue", seen = true)))
+  }
+
+  db.test("winning a run that opens a chapter earns its card, on the victory update") {
+    database =>
+      for
+        session <- storySession(database)
+        _       <- startRun(session, Difficulty.Normal)
+        _       <- goThroughDoor(session) // Rest
+        _       <- goThroughDoor(session) // second Boss room
+        _       <- goThroughDoor(session) // Sanctuary room
+        won     <- session.handle(Interact("sanct_1"))
+        saved   <- database.loadStoryProgress()
+      yield
+        assert(won.victory, s"expected the Sanctuary to end the run in victory: ${won.log}")
+        assertEquals(won.pendingCard, Some("ch1"))
+        assertEquals(saved.cards, List(CardRecord("ch1")))
+  }
+
+  db.test("seeing the pending card marks it and saves it") {
+    database =>
+      for
+        _       <- database.recordCardEarned("ch1")
+        session <- storySession(database)
+        shown   <- session.currentUpdate
+        seen    <- session.handle(CardSeen("ch1"))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(shown.pendingCard, Some("ch1"))
+        assertEquals(seen.pendingCard, None)
+        assertEquals(saved.cards, List(CardRecord("ch1", seen = true)))
+  }
+
+  db.test("only the card that is waiting can be seen, and the cards come one at a time") {
+    database =>
+      for
+        _       <- database.recordCardEarned("prologue")
+        _       <- database.recordCardEarned("ch1")
+        session <- storySession(database)
+        early   <- session.handle(CardSeen("ch1"))
+        unknown <- session.handle(CardSeen("ch9"))
+        first   <- session.handle(CardSeen("prologue"))
+        second  <- session.handle(CardSeen("ch1"))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(early.pendingCard, Some("prologue"))
+        assert(early.log.exists(_.contains("no such card")), s"expected a refusal: ${early.log}")
+        assertEquals(unknown.pendingCard, Some("prologue"))
+        assertEquals(first.pendingCard, Some("ch1"))
+        assertEquals(second.pendingCard, None)
+        assertEquals(saved.cards.map(_.seen), List(true, true))
+  }
+
+  db.test("a card that was not seen is shown again by the next session") {
+    database =>
+      for
+        _     <- database.recordCardEarned("ch1")
+        again <- storySession(database).flatMap(_.currentUpdate)
+      yield assertEquals(again.pendingCard, Some("ch1"))
+  }
+
   db.test("a vow taken at the Rest is kept by winning the run, and left to be commented on") {
     database =>
       for

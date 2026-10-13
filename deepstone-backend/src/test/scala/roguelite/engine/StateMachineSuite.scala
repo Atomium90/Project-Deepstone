@@ -493,6 +493,12 @@ class StateMachineSuite extends FunSuite:
     assertEquals(next, state)
     assert(log.exists(_.contains("GameSession")), s"expected a hint about GameSession: $log")
 
+  test("a card cannot be marked as seen through the state machine"):
+    val state = explorationAt(3, 3)
+    val TransitionResult(next, log, _) = sm().applyActionPure(state, CardSeen("ch1"))
+    assertEquals(next, state)
+    assert(log.exists(_.contains("not valid")), s"expected a refusal: $log")
+
   /** Thorough revealSecretDoors behavior lives in InteractionResolverSuite. This test just confirms
     * the Move arm actually forwards InteractionResolver's events instead of dropping them. */
   test("Move that reveals a secret door forwards the SecretDoorRevealed event"):

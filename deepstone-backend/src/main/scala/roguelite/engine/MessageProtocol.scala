@@ -138,6 +138,11 @@ case class RewardChoice(itemId: Option[String] = None) extends PlayerAction
   */
 case class SceneDone(accept: Option[Boolean] = None) extends PlayerAction
 
+/** The player has read the card the server asked to show (see `StateUpdate.pendingCard`). The server
+  * only accepts the card it is waiting for, and marks it seen so it is not shown again.
+  */
+case class CardSeen(cardId: String) extends PlayerAction
+
 // ---------------------------------------------
 // Server → Client: state views (read-only snapshots)
 // ---------------------------------------------
@@ -530,6 +535,11 @@ case class StateUpdate(
       * `pendingEquipChoice` - see [[PendingSceneView]]. Resolved with a [[SceneDone]] action.
       */
     pendingScene: Option[PendingSceneView] = None,
+    /** The story card waiting to be shown full screen, the oldest one the player has not seen yet.
+      * Durable: it stays until the player answers with a [[CardSeen]], so a card never read is shown
+      * again at the next visit. The texts are the client's, under `story.card.<id>`.
+      */
+    pendingCard: Option[String] = None,
     abilities: List[AbilityView] = Nil,
     achievements: List[AchievementView] = Nil,
     sets: List[SetView] = Nil,
@@ -662,6 +672,8 @@ object MessageProtocol:
   given Decoder[RewardChoice] = deriveDecoder
   given Encoder[SceneDone]    = deriveEncoder
   given Decoder[SceneDone]    = deriveDecoder
+  given Encoder[CardSeen]     = deriveEncoder
+  given Decoder[CardSeen]     = deriveDecoder
 
   /** Decode a raw JSON string into a PlayerAction. The JSON must include a "type" discriminator
     * field: { "type": "MOVE", "direction": "UP" }
@@ -679,6 +691,7 @@ object MessageProtocol:
         case "EQUIP_CHOICE"  => cursor.as[EquipChoice].left.map(_.message)
         case "REWARD_CHOICE" => cursor.as[RewardChoice].left.map(_.message)
         case "SCENE_DONE"    => cursor.as[SceneDone].left.map(_.message)
+        case "CARD_SEEN"     => cursor.as[CardSeen].left.map(_.message)
         case other           => Left(s"Unknown action type: $other")
       }
     yield action

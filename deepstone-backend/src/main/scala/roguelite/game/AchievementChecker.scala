@@ -86,11 +86,11 @@ object AchievementChecker:
                            stats: AchievementStats
   ): Boolean =
     (condition, event) match
-      case (AchievementCondition.FirstKill, GameEvent.EnemyDefeated(_, _, _))         => true
-      case (AchievementCondition.DefeatBoss, GameEvent.EnemyDefeated(isBoss, _, _))   => isBoss
-      case (AchievementCondition.NoDamageVictory, GameEvent.EnemyDefeated(_, tookNoDamage, _)) =>
+      case (AchievementCondition.FirstKill, GameEvent.EnemyDefeated(_, _, _, _))         => true
+      case (AchievementCondition.DefeatBoss, GameEvent.EnemyDefeated(isBoss, _, _, _))   => isBoss
+      case (AchievementCondition.NoDamageVictory, GameEvent.EnemyDefeated(_, tookNoDamage, _, _)) =>
         tookNoDamage
-      case (AchievementCondition.DefeatElite, GameEvent.EnemyDefeated(_, _, wasElite)) => wasElite
+      case (AchievementCondition.DefeatElite, GameEvent.EnemyDefeated(_, _, wasElite, _)) => wasElite
       case (AchievementCondition.ReachLevel(lvl), GameEvent.LeveledUp(newLevel)) => newLevel >= lvl
       case (AchievementCondition.FillInventory, GameEvent.ItemPickedUp(full, _, _, _, _)) => full
       case (AchievementCondition.LootRarity(minRarity), GameEvent.ItemPickedUp(_, rarity, _, _, _)) =>

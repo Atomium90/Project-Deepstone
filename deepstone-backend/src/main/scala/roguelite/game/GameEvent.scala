@@ -13,8 +13,10 @@ import roguelite.engine.{ Difficulty, Player }
   * modeling over implicit (prev, next) state diffing or stringly-typed inference.
   */
 enum GameEvent:
-  /** An enemy was defeated in combat (win). */
-  case EnemyDefeated(isBoss: Boolean, tookNoDamage: Boolean, wasElite: Boolean)
+  /** An enemy was defeated in combat (win). `typeId` is the type of the enemy, from which the story
+    * knows which Devoted fell when it was a Boss.
+    */
+  case EnemyDefeated(isBoss: Boolean, tookNoDamage: Boolean, wasElite: Boolean, typeId: String)
 
   /** The player reached a new level. Emitted once per level gained: a single kill can emit
     * several if it crosses more than one XP threshold at once.

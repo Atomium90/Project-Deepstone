@@ -89,6 +89,17 @@ class ContentIntegritySuite extends CatsEffectSuite:
                    s"room '${room.id}' places enemy '${e.id}' with unknown typeId '${e.typeId}'"
             )
 
+  test("every enemy type of a Boss room is a Devoted, and no other room places one"):
+    for
+      enemies <- EnemyLoader.loadAll()
+      rooms   <- RoomLoader.loadAll()
+    yield
+      def typesIn(rooms: Iterable[Room]): Set[String] =
+        rooms.flatMap(_.entities.collect { case e: Enemy => e.typeId }).toSet
+      val (bossRooms, otherRooms) = rooms.values.partition(_.roomType == RoomType.Boss)
+      typesIn(bossRooms).foreach(typeId => assert(enemies(typeId).devoted.isDefined, s"'$typeId' stands in a Boss room but is no Devoted"))
+      typesIn(otherRooms).foreach(typeId => assertEquals(enemies(typeId).devoted, None, s"Devoted '$typeId' stands in a room that is not a Boss room"))
+
   test("every npc id placed in rooms.json is the npc of a scene in story.json"):
     for
       scenes <- StoryLoader.loadAll()

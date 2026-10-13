@@ -77,7 +77,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assertEquals(unlocked.map(_.id), List("first_blood"))
   }
@@ -87,7 +87,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assertEquals(unlocked, Nil)
   }
@@ -97,7 +97,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assert(unlocked.map(_.id).contains("boss_slayer"))
   }
@@ -107,7 +107,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assert(!unlocked.map(_.id).contains("boss_slayer"))
   }
@@ -117,7 +117,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false, typeId = "goblin"))
     )
     assert(unlocked.map(_.id).contains("untouchable"))
   }
@@ -127,7 +127,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assert(!unlocked.map(_.id).contains("untouchable"))
   }
@@ -137,7 +137,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = true))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = true, typeId = "goblin"))
     )
     assert(unlocked.map(_.id).contains("elite_hunter"))
   }
@@ -147,7 +147,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assert(!unlocked.map(_.id).contains("elite_hunter"))
   }
@@ -472,7 +472,7 @@ class AchievementCheckerSuite extends FunSuite:
       Set.empty,
       AchievementStats.empty,
       List(
-        GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false),
+        GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false, typeId = "goblin"),
         GameEvent.LeveledUp(5)
       )
     )

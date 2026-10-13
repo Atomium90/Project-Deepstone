@@ -571,7 +571,8 @@ class CombatResolver(rng: Random = Random(),
     val enemyDefeatedEvent =
       GameEvent.EnemyDefeated(isBoss = isBossKill,
                               tookNoDamage = !state.combat.tookDamage,
-                              wasElite = deadEnemy.isElite
+                              wasElite = deadEnemy.isElite,
+                              typeId = deadEnemy.typeId
       )
 
     val nextState = ExplorationState(

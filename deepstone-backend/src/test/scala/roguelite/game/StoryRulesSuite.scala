@@ -89,6 +89,19 @@ class StoryRulesSuite extends FunSuite:
     val declined = StoryRules.complete(StoryProgress.empty, Encounter.Scene(offering), Some(false)).toOption.get
     assertEquals(declined.vows("npc.1"), VowRecord(VowState.Declined))
 
+  test("the line of a Devoted changes nothing in the story once read"):
+    val progress = StoryProgress(chapter = 3, scenesSeen = Set("npc.1.s1"))
+    assertEquals(StoryRules.complete(progress, Encounter.DevotedBefore(1, late = false, enemyId = "e1"), None), Right(progress))
+    assertEquals(StoryRules.complete(progress, Encounter.DevotedAfter(1), None), Right(progress))
+
+  test("a Devoted's line offers no vow, so an answer to one is refused"):
+    assert(StoryRules.complete(StoryProgress.empty, Encounter.DevotedBefore(1, late = true, enemyId = "e1"), Some(true)).isLeft)
+    assert(StoryRules.complete(StoryProgress.empty, Encounter.DevotedAfter(1), Some(false)).isLeft)
+
+  test("a Devoted speaks as boss.<n>, which is what names it in the texts"):
+    assertEquals(Encounter.DevotedBefore(4, late = false, enemyId = "e1").speaker, "boss.4")
+    assertEquals(Encounter.DevotedAfter(6).speaker, "boss.6")
+
   test("an answer to a vow that was not offered is refused"):
     assert(StoryRules.complete(StoryProgress.empty, Encounter.Scene(plain), Some(true)).isLeft)
     assert(StoryRules.complete(StoryProgress.empty, Encounter.Idle("npc.1", IdleContext.General, None), Some(false)).isLeft)

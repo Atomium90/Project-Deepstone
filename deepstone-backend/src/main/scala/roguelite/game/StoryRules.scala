@@ -58,4 +58,6 @@ object StoryRules:
           case Encounter.Scene(scene)         => answered.copy(scenesSeen = answered.scenesSeen + scene.id)
           case Encounter.VowReport(npc, _, _) => if accept.isDefined then answered else VowRules.reported(answered, npc)
           case Encounter.Idle(_, _, _)        => answered
+          case Encounter.DevotedBefore(_, _, _) => answered
+          case Encounter.DevotedAfter(_)        => answered
         )

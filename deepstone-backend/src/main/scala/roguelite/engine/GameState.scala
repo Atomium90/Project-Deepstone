@@ -93,6 +93,10 @@ private def pendingSceneToView(pending: PendingScene): PendingSceneView =
         case IdleContext.AfterDeath   => "death"
         case IdleContext.AfterVictory => "victory"
       PendingSceneView(npc, "idle", context = Some(name), offerScene = pending.offerScene)
+    case Encounter.DevotedBefore(devoted, late, _) =>
+      PendingSceneView(s"boss.$devoted", "devoted", sceneId = Some(s"boss.$devoted.${if late then "pre2" else "pre1"}"))
+    case Encounter.DevotedAfter(devoted) =>
+      PendingSceneView(s"boss.$devoted", "devoted", sceneId = Some(s"boss.$devoted.post"))
 
 /** Project a player's equipment into the client-facing [[EquipmentView]]. */
 private def equipmentToView(player: Player): EquipmentView =

@@ -1100,6 +1100,86 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(dead.godLine, Some(GodLineView("death.depth", "a")))
   }
 
+  // ---------------------------------------------
+  // The Devoted
+  // ---------------------------------------------
+
+  /** The Boss run of [[smWithBossRun]], its Boss being the second Devoted. */
+  private def devotedSession(database: Database, boss: EnemyStats = weakGoblinStats): IO[GameSession] =
+    voiceSession(database, smWithBossRunOf(boss.copy(devoted = Some(2))))
+
+  private def startEasyRun(session: GameSession): IO[StateUpdate] =
+    session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Easy)))
+
+  db.test("a Devoted speaks before the fight, and the fight starts once the line is read") {
+    database =>
+      for
+        session  <- devotedSession(database)
+        _        <- startEasyRun(session)
+        speaking <- session.handle(Interact("e1"))
+        moved    <- session.handle(Move(Direction.Left))
+        fighting <- session.handle(SceneDone(None))
+      yield
+        assertEquals(speaking.phase, GamePhase.Exploration)
+        assertEquals(speaking.pendingScene, Some(PendingSceneView("boss.2", "devoted", sceneId = Some("boss.2.pre1"))))
+        assertEquals(moved.room.map(_.playerX), speaking.room.map(_.playerX))
+        assertEquals(fighting.phase, GamePhase.Combat)
+        assertEquals(fighting.pendingScene, None)
+  }
+
+  db.test("from chapter 4 the Devoted says its second line before the fight") {
+    database =>
+      for
+        _        <- database.saveStoryState(4, None)
+        session  <- devotedSession(database)
+        _        <- startEasyRun(session)
+        speaking <- session.handle(Interact("e1"))
+      yield assertEquals(speaking.pendingScene.flatMap(_.sceneId), Some("boss.2.pre2"))
+  }
+
+  db.test("an answer to a vow is refused on the line of a Devoted, which stays pending") {
+    database =>
+      for
+        session <- devotedSession(database)
+        _       <- startEasyRun(session)
+        _       <- session.handle(Interact("e1"))
+        refused <- session.handle(SceneDone(Some(true)))
+      yield
+        assert(refused.pendingScene.isDefined, "the line must stay pending")
+        assertEquals(refused.phase, GamePhase.Exploration)
+  }
+
+  db.test("a Devoted who falls says a last line before the player can move on") {
+    database =>
+      for
+        session <- devotedSession(database)
+        _       <- startEasyRun(session)
+        _       <- session.handle(Interact("e1"))
+        _       <- session.handle(SceneDone(None))
+        won     <- session.handle(CombatAction(CombatActionType.Attack))
+        blocked <- session.handle(Interact("door_to_sanctuary"))
+        done    <- session.handle(SceneDone(None))
+        door    <- session.handle(Interact("door_to_sanctuary"))
+      yield
+        assertEquals(won.phase, GamePhase.Exploration)
+        assertEquals(won.pendingScene, Some(PendingSceneView("boss.2", "devoted", sceneId = Some("boss.2.post"))))
+        assertEquals(blocked.room.map(_.roomId), won.room.map(_.roomId))
+        assertEquals(done.pendingScene, None)
+        assertEquals(door.pendingScene, None)
+        assertNotEquals(door.room.map(_.roomId), won.room.map(_.roomId))
+  }
+
+  db.test("an enemy that is no Devoted starts its fight at once, with no line") {
+    database =>
+      for
+        session  <- voiceSession(database, smWithBossRunOf(weakGoblinStats))
+        _        <- startEasyRun(session)
+        fighting <- session.handle(Interact("e1"))
+      yield
+        assertEquals(fighting.phase, GamePhase.Combat)
+        assertEquals(fighting.pendingScene, None)
+  }
+
   db.test("a win has no death line, and the next death starts a new streak") {
     database =>
       for

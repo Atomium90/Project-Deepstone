@@ -1,6 +1,7 @@
 package roguelite.game
 
-/** A conversation with a Rest NPC that the player has started and not read to its end, kept on
+/** A conversation with a Rest NPC, or a Devoted's line before or after a fight, that the player has
+  * started and not read to its end, kept on
   * [[roguelite.engine.ExplorationState]] until they answer with a `SceneDone` action. Durable like
   * [[PendingEquipChoice]]: it is part of every update until resolved, and blocks movement and
   * interaction meanwhile.

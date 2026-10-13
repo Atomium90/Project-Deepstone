@@ -85,6 +85,14 @@ class StorySelectorSuite extends FunSuite:
     val chosen = (1 to 20).map(_ => StorySelector.chooseOccupant(scenes, progress(chapter = 1), "npc.1", Set.empty, rng)).toSet
     assertEquals(chosen, Set("npc.1", "npc.2"))
 
+  // --- beforeFight ------------------------------------------------------------
+
+  test("a Devoted gives its first line before chapter 4 and its second from chapter 4 on"):
+    assertEquals(StorySelector.beforeFight(2, "e1", progress(chapter = 0)), Encounter.DevotedBefore(2, late = false, enemyId = "e1"))
+    assertEquals(StorySelector.beforeFight(2, "e1", progress(chapter = 3)), Encounter.DevotedBefore(2, late = false, enemyId = "e1"))
+    assertEquals(StorySelector.beforeFight(2, "e1", progress(chapter = 4)), Encounter.DevotedBefore(2, late = true, enemyId = "e1"))
+    assertEquals(StorySelector.beforeFight(2, "e1", progress(chapter = 6)), Encounter.DevotedBefore(2, late = true, enemyId = "e1"))
+
   // --- offerScene -----------------------------------------------------------
 
   test("a scene that offers a vow carries the texts of its own choice"):
@@ -92,6 +100,10 @@ class StorySelectorSuite extends FunSuite:
 
   test("a scene that offers no vow has no scene for a choice"):
     assertEquals(StorySelector.offerScene(scenes, Encounter.Scene(scenes("npc.1.s1"))), None)
+
+  test("the line of a Devoted offers no vow"):
+    assertEquals(StorySelector.offerScene(scenes, Encounter.DevotedBefore(1, late = false, enemyId = "e1")), None)
+    assertEquals(StorySelector.offerScene(scenes, Encounter.DevotedAfter(1)), None)
 
   test("a comment on a failed vow, or a short line, reuse the texts of the NPC's offering scene"):
     val report = Encounter.VowReport("npc.2", kept = false, offer = Some(VowType.NoPotion))

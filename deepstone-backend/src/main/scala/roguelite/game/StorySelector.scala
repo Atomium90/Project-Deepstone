@@ -46,6 +46,15 @@ object StorySelector:
           case Some(scene) => Encounter.Scene(scene)
           case None        => Encounter.Idle(npc, idleContext(progress), offer = vow.filter(_ => canOffer))
 
+  /** From this chapter on a Devoted says its second line before the fight: the first is a warning,
+    * the second admits that it guards the way out.
+    */
+  val DevotedLateFromChapter = 4
+
+  /** What the Devoted `devoted` says before the player fights the enemy `enemyId`. */
+  def beforeFight(devoted: Int, enemyId: String, progress: StoryProgress): Encounter =
+    Encounter.DevotedBefore(devoted, late = progress.chapter >= DevotedLateFromChapter, enemyId)
+
   /** The scene whose choice and reply texts belong to the vow `encounter` ends by offering, or `None`
     * when it offers none. A scene that offers the vow carries its own texts, any other conversation
     * (a comment on a failed vow, a short line) reuses the texts of the NPC's offering scene.

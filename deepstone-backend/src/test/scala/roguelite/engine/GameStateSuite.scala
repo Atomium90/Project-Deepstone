@@ -104,6 +104,19 @@ class GameStateSuite extends FunSuite:
                  PendingSceneView("npc.1", "vow_report", kept = Some(false), offerScene = Some("npc.1.s2"))
     )
 
+  test("the line of a Devoted before the fight is the first or the second one, by chapter"):
+    assertEquals(conversationView(Encounter.DevotedBefore(2, late = false, enemyId = "e1")),
+                 PendingSceneView("boss.2", "devoted", sceneId = Some("boss.2.pre1"))
+    )
+    assertEquals(conversationView(Encounter.DevotedBefore(2, late = true, enemyId = "e1")),
+                 PendingSceneView("boss.2", "devoted", sceneId = Some("boss.2.pre2"))
+    )
+
+  test("the last line of a Devoted is sent as its post line"):
+    assertEquals(conversationView(Encounter.DevotedAfter(5)),
+                 PendingSceneView("boss.5", "devoted", sceneId = Some("boss.5.post"))
+    )
+
   test("a short line names the pool its text comes from"):
     def context(c: IdleContext) = conversationView(Encounter.Idle("npc.1", c, None)).context
     assertEquals(context(IdleContext.General), Some("general"))

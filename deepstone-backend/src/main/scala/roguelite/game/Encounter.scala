@@ -9,9 +9,9 @@ enum IdleContext:
   /** The last finished run was won. */
   case AfterVictory
 
-/** What happens when the player speaks to the NPC of a Rest room, chosen by [[StorySelector]] from
-  * what the story remembers. Whatever is chosen is kept as the state of the conversation until the
-  * player has read it to the end (see [[StoryRules.complete]]).
+/** What happens when the player speaks to the NPC of a Rest room, or meets a Devoted, chosen by
+  * [[StorySelector]] from what the story remembers. Whatever is chosen is kept as the state of the
+  * conversation until the player has read it to the end (see [[StoryRules.complete]]).
   */
 enum Encounter:
   /** A scene of the story. When it offers a vow, the scene ends with the player's answer. */
@@ -27,11 +27,23 @@ enum Encounter:
     */
   case Idle(npc: String, context: IdleContext, offer: Option[VowType])
 
-  /** The NPC the player is speaking to. */
+  /** A Devoted speaks before the fight, one line, the second one from chapter 4 on (`late`). The fight
+    * with the enemy `enemyId` starts once the line has been read.
+    */
+  case DevotedBefore(devoted: Int, late: Boolean, enemyId: String)
+
+  /** A Devoted speaks as they fall, one line. */
+  case DevotedAfter(devoted: Int)
+
+  /** Who is speaking: an NPC id such as "npc.1", or "boss.<n>" for the Devoted number n, so that
+    * `story.<speaker>.name` is the name shown whichever of the two it is.
+    */
   def speaker: String = this match
-    case Scene(scene)         => scene.npc
-    case VowReport(npc, _, _) => npc
-    case Idle(npc, _, _)      => npc
+    case Scene(scene)                => scene.npc
+    case VowReport(npc, _, _)        => npc
+    case Idle(npc, _, _)             => npc
+    case DevotedBefore(devoted, _, _) => s"boss.$devoted"
+    case DevotedAfter(devoted)       => s"boss.$devoted"
 
   /** The vow this conversation ends by offering, if any. Its presence is what makes the player
     * answer yes or no before the conversation counts as over.
@@ -40,3 +52,5 @@ enum Encounter:
     case Scene(scene)           => scene.offersVow
     case VowReport(_, _, offer) => offer
     case Idle(_, _, offer)      => offer
+    case DevotedBefore(_, _, _) => None
+    case DevotedAfter(_)        => None

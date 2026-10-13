@@ -405,18 +405,21 @@ case class PendingEquipChoiceView(newItem: ItemView, options: List[EquipChoiceOp
   */
 case class PendingRewardChoiceView(options: List[ItemView])
 
-/** The conversation the player is in with a Rest NPC, awaiting a [[SceneDone]]. Durable, same
+/** The conversation the player is in with a Rest NPC, or the line of a Devoted before or after a
+  * fight, awaiting a [[SceneDone]]. Durable, same
   * discipline as [[PendingEquipChoiceView]]. The server only says which conversation it is: the
   * lines are texts of the client's language file, under keys built from these fields.
   *
   * @param npc
-  *   The speaking NPC, e.g. "npc.1". Its name is the text `story.npc.1.name`.
+  *   The speaking NPC, e.g. "npc.1", or "boss.2" for the second Devoted. The name shown is the text
+  *   `story.<npc>.name`.
   * @param kind
   *   "scene" (a scene of the story, lines under `story.<sceneId>`), "vow_report" (the NPC comments on
-  *   a vow, lines under `story.<npc>.vow.kept` or `story.<npc>.vow.failed`) or "idle" (a short line
-  *   under `story.<npc>.idle`).
+  *   a vow, lines under `story.<npc>.vow.kept` or `story.<npc>.vow.failed`), "idle" (a short line
+  *   under `story.<npc>.idle`) or "devoted" (the single line `story.<sceneId>` of a Devoted, said
+  *   before the fight or as they fall).
   * @param sceneId
-  *   Only for "scene".
+  *   Only for "scene" and "devoted".
   * @param kept
   *   Only for "vow_report": whether the vow was kept.
   * @param context

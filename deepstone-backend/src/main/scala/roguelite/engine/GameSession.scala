@@ -13,7 +13,7 @@ import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
-import roguelite.game.{ ChapterDef, DeathContext, GodMoment, GodVoice, MinimapLayout, Npc, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
+import roguelite.game.{ ChapterDef, DeathContext, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, Npc, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -269,6 +269,7 @@ class GameSession private (
     *   - `Hub → Exploration`  : apply purchased upgrade bonuses to the starting player
     *   - `Exploration → Exploration` into a Rest not visited yet: judge the running vow and seat the
     *                            NPC who will be there (see [[onRestEntered]])
+    *   - `Combat → Exploration`: the fight was won, and a Devoted who fell says a last line
     */
   private def handlePostTransition(prev: GameState, next: GameState): IO[(GameState, List[String])] =
     (prev, next) match
@@ -306,6 +307,14 @@ class GameSession private (
 
       case (before: ExplorationState, after: ExplorationState) if enteredNewRest(before, after) =>
         onRestEntered(after).map(seated => (seated, Nil))
+
+      case (before: CombatState, after: ExplorationState) =>
+        // The fight was won. A Devoted who fell says a last line before the player can move on.
+        before.enemyStats.get(before.combat.enemy.typeId).flatMap(_.devoted) match
+          case Some(devoted) =>
+            val speaking = after.copy(pendingScene = Some(PendingScene(Encounter.DevotedAfter(devoted))))
+            stateRef.set(speaking).as((speaking, Nil))
+          case None => IO.pure((next, Nil))
 
       case _ =>
         IO.pure((next, Nil))
@@ -362,8 +371,19 @@ class GameSession private (
           if exp.pendingEquipChoice.isEmpty && exp.pendingRewardChoice.isEmpty && exp.pendingScene.isEmpty =>
         exp.dungeon.currentRoom.entityById(targetId) match
           case Some(npc: Npc) => startConversation(exp, npc)
-          case _              => handleTransition(action)
+          case Some(enemy: Enemy) =>
+            // A Devoted speaks before the fight starts, once the line is read (see handleSceneDone).
+            exp.enemyStats.get(enemy.typeId).flatMap(_.devoted) match
+              case Some(devoted) => startDevotedLine(exp, enemy, devoted)
+              case None          => handleTransition(action)
+          case _ => handleTransition(action)
       case _ => handleTransition(action)
+
+  private def startDevotedLine(exp: ExplorationState, enemy: Enemy, devoted: Int): IO[StateUpdate] =
+    storyRef.get.flatMap:
+      progress =>
+        val next = exp.copy(pendingScene = Some(PendingScene(StorySelector.beforeFight(devoted, enemy.id, progress))))
+        stateRef.set(next).as(next.toStateUpdate())
 
   private def startConversation(exp: ExplorationState, npc: Npc): IO[StateUpdate] =
     storyRef.get.flatMap:
@@ -384,8 +404,12 @@ class GameSession private (
             StoryRules.complete(progress, exp.pendingScene.get.encounter, accept) match
               case Left(err) => IO.pure(exp.toStateUpdate(List(err)))
               case Right(next) =>
-                val done = exp.copy(pendingScene = None)
-                updateStory(progress, next) *> stateRef.set(done).as(done.toStateUpdate())
+                val done     = exp.copy(pendingScene = None)
+                val finished = updateStory(progress, next) *> stateRef.set(done)
+                exp.pendingScene.get.encounter match
+                  // The line of a Devoted was the last thing between the player and the fight.
+                  case Encounter.DevotedBefore(_, _, enemyId) => finished *> handleTransition(Interact(enemyId))
+                  case _                                      => finished.as(done.toStateUpdate())
       case state => IO.pure(state.toStateUpdate(List("There is no conversation to finish.")))
 
   /** The player has read the card on their screen. Only the card the server is waiting for counts,

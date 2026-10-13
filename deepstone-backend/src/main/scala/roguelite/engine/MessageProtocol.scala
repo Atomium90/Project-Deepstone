@@ -132,6 +132,12 @@ case class EquipChoice(targetSlot: Option[EquipSlot] = None) extends PlayerActio
   */
 case class RewardChoice(itemId: Option[String] = None) extends PlayerAction
 
+/** The player has read the pending conversation to its last line (see [[PendingSceneView]]).
+  * `accept` answers the vow it ended by offering: `Some(true)` takes it, `Some(false)` turns it
+  * down. It is present exactly when the conversation offered one, otherwise the server refuses it.
+  */
+case class SceneDone(accept: Option[Boolean] = None) extends PlayerAction
+
 // ---------------------------------------------
 // Server → Client: state views (read-only snapshots)
 // ---------------------------------------------
@@ -387,6 +393,34 @@ case class PendingEquipChoiceView(newItem: ItemView, options: List[EquipChoiceOp
   */
 case class PendingRewardChoiceView(options: List[ItemView])
 
+/** The conversation the player is in with a Rest NPC, awaiting a [[SceneDone]]. Durable, same
+  * discipline as [[PendingEquipChoiceView]]. The server only says which conversation it is: the
+  * lines are texts of the client's language file, under keys built from these fields.
+  *
+  * @param npc
+  *   The speaking NPC, e.g. "npc.1". Its name is the text `story.npc.1.name`.
+  * @param kind
+  *   "scene" (a scene of the story, lines under `story.<sceneId>`), "vow_report" (the NPC comments on
+  *   a vow, lines under `story.<npc>.vow.kept` or `story.<npc>.vow.failed`) or "idle" (a short line
+  *   under `story.<npc>.idle`).
+  * @param sceneId
+  *   Only for "scene".
+  * @param kept
+  *   Only for "vow_report": whether the vow was kept.
+  * @param context
+  *   Only for "idle": "general", "death" or "victory", the pool of lines the last run calls for.
+  * @param offerScene
+  *   The scene whose choice and reply texts apply when the conversation ends by offering a vow, which
+  *   is when the player must answer with `accept` in [[SceneDone]]. `None` when it offers none.
+  */
+case class PendingSceneView(npc: String,
+                            kind: String,
+                            sceneId: Option[String] = None,
+                            kept: Option[Boolean] = None,
+                            context: Option[String] = None,
+                            offerScene: Option[String] = None
+)
+
 /** One section of the dungeon map: a run of rooms drawn from a single theme, ending in its own boss.
   * The client draws one row per section.
   *
@@ -497,6 +531,10 @@ case class StateUpdate(
       * action.
       */
     pendingRewardChoice: Option[PendingRewardChoiceView] = None,
+    /** The conversation with a Rest NPC awaiting its end. Durable, same discipline as
+      * `pendingEquipChoice` - see [[PendingSceneView]]. Resolved with a [[SceneDone]] action.
+      */
+    pendingScene: Option[PendingSceneView] = None,
     abilities: List[AbilityView] = Nil,
     achievements: List[AchievementView] = Nil,
     sets: List[SetView] = Nil,
@@ -628,6 +666,8 @@ object MessageProtocol:
   given Decoder[EquipChoice]  = deriveDecoder
   given Encoder[RewardChoice] = deriveEncoder
   given Decoder[RewardChoice] = deriveDecoder
+  given Encoder[SceneDone]    = deriveEncoder
+  given Decoder[SceneDone]    = deriveDecoder
 
   /** Decode a raw JSON string into a PlayerAction. The JSON must include a "type" discriminator
     * field: { "type": "MOVE", "direction": "UP" }
@@ -644,6 +684,7 @@ object MessageProtocol:
         case "HUB_ACTION"    => cursor.as[HubAction].left.map(_.message)
         case "EQUIP_CHOICE"  => cursor.as[EquipChoice].left.map(_.message)
         case "REWARD_CHOICE" => cursor.as[RewardChoice].left.map(_.message)
+        case "SCENE_DONE"    => cursor.as[SceneDone].left.map(_.message)
         case other           => Left(s"Unknown action type: $other")
       }
     yield action
@@ -665,6 +706,7 @@ object MessageProtocol:
   given Encoder[EquipChoiceOptionView]   = deriveEncoder
   given Encoder[PendingEquipChoiceView]  = deriveEncoder
   given Encoder[PendingRewardChoiceView] = deriveEncoder
+  given Encoder[PendingSceneView]        = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[SetView]         = deriveEncoder

@@ -5,13 +5,16 @@ import roguelite.game.{
   Armor,
   Combat,
   Dungeon,
+  Encounter,
   EnemyStats,
+  IdleContext,
   Item,
   KeyKind,
   MetaProgression,
   MinimapBuilder,
   PendingEquipChoice,
   PendingRewardChoice,
+  PendingScene,
   PerkDef,
   RoomType,
   UpgradeDef,
@@ -76,6 +79,20 @@ private def pendingChoiceToView(pending: PendingEquipChoice, playerAffinityTags:
 /** Project a [[PendingRewardChoice]] into the client-facing [[PendingRewardChoiceView]]. */
 private def pendingRewardChoiceToView(pending: PendingRewardChoice, playerAffinityTags: Set[String]): PendingRewardChoiceView =
   PendingRewardChoiceView(options = pending.options.map(itemToView(_, playerAffinityTags)))
+
+/** Project a [[PendingScene]] into the client-facing [[PendingSceneView]]. */
+private def pendingSceneToView(pending: PendingScene): PendingSceneView =
+  pending.encounter match
+    case Encounter.Scene(scene) =>
+      PendingSceneView(scene.npc, "scene", sceneId = Some(scene.id), offerScene = pending.offerScene)
+    case Encounter.VowReport(npc, kept, _) =>
+      PendingSceneView(npc, "vow_report", kept = Some(kept), offerScene = pending.offerScene)
+    case Encounter.Idle(npc, context, _) =>
+      val name = context match
+        case IdleContext.General      => "general"
+        case IdleContext.AfterDeath   => "death"
+        case IdleContext.AfterVictory => "victory"
+      PendingSceneView(npc, "idle", context = Some(name), offerScene = pending.offerScene)
 
 /** Project a player's equipment into the client-facing [[EquipmentView]]. */
 private def equipmentToView(player: Player): EquipmentView =
@@ -152,6 +169,10 @@ case class HubState(player: Player,
   *   state, not a transient per-action signal - it survives until resolved by an `EquipChoice`
   *   action, so it is resolved into a view here on every call, not projected from `events` like
   *   `damageEvents`/`soundEvents`.
+  * @param pendingScene
+  *   A conversation with a Rest NPC the player has started and not read to its end (see
+  *   [[PendingScene]]). Durable like `pendingEquipChoice`, and it blocks movement and interaction
+  *   the same way.
   */
 case class ExplorationState(player: Player,
                             dungeon: Dungeon,
@@ -160,7 +181,8 @@ case class ExplorationState(player: Player,
                             difficulty: Difficulty = Difficulty.Normal,
                             enemyStats: Map[String, EnemyStats] = Map.empty,
                             pendingEquipChoice: Option[PendingEquipChoice] = None,
-                            pendingRewardChoice: Option[PendingRewardChoice] = None
+                            pendingRewardChoice: Option[PendingRewardChoice] = None,
+                            pendingScene: Option[PendingScene] = None
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
     StateUpdate(
@@ -170,6 +192,7 @@ case class ExplorationState(player: Player,
       equipment = equipmentToView(player),
       pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView(_, player.affinityTags)),
       pendingRewardChoice = pendingRewardChoice.map(pendingRewardChoiceToView(_, player.affinityTags)),
+      pendingScene = pendingScene.map(pendingSceneToView),
       log = log,
       dialogue = dialogue,
       minimap = Some(MinimapBuilder.build(dungeon))

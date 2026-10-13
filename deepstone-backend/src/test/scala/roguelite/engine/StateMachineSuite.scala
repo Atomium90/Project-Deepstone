@@ -471,6 +471,28 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Interact(chest.id))
     assertEquals(next, state)
 
+  private val conversation: PendingScene =
+    PendingScene(Encounter.Idle("npc.1", IdleContext.General, None))
+
+  test("Move is blocked while a conversation is unfinished"):
+    val state = explorationAt(3, 3).copy(pendingScene = Some(conversation))
+    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
+
+  test("Interact is blocked while a conversation is unfinished"):
+    val d     = door("r1", "r2")
+    val state = explorationAt(3, 3, entities = List(d)).copy(pendingScene = Some(conversation))
+    val TransitionResult(next, log, _, events) = sm().applyActionPure(state, Interact(d.id))
+    assertEquals(next, state)
+    assertEquals(log, Nil)
+    assertEquals(events, Nil)
+
+  test("a conversation cannot be finished through the state machine"):
+    val state = explorationAt(3, 3).copy(pendingScene = Some(conversation))
+    val TransitionResult(next, log, _, _) = sm().applyActionPure(state, SceneDone(None))
+    assertEquals(next, state)
+    assert(log.exists(_.contains("GameSession")), s"expected a hint about GameSession: $log")
+
   /** Thorough revealSecretDoors behavior lives in InteractionResolverSuite. This test just confirms
     * the Move arm actually forwards InteractionResolver's events instead of dropping them. */
   test("Move that reveals a secret door forwards the SecretDoorRevealed event"):

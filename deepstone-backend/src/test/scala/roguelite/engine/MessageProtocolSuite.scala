@@ -67,6 +67,16 @@ class MessageProtocolSuite extends FunSuite:
     val result = MessageProtocol.decodeAction(json)
     assertEquals(result, Right(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))))
 
+  test("decode SCENE_DONE without an answer"):
+    assertEquals(MessageProtocol.decodeAction("""{"type":"SCENE_DONE"}"""), Right(SceneDone(None)))
+
+  test("decode SCENE_DONE with the answer to a vow"):
+    assertEquals(MessageProtocol.decodeAction("""{"type":"SCENE_DONE","accept":true}"""), Right(SceneDone(Some(true))))
+    assertEquals(MessageProtocol.decodeAction("""{"type":"SCENE_DONE","accept":false}"""), Right(SceneDone(Some(false))))
+
+  test("decode SCENE_DONE with an answer that is not a boolean returns Left"):
+    assert(MessageProtocol.decodeAction("""{"type":"SCENE_DONE","accept":"yes"}""").isLeft)
+
   test("decode EQUIP_CHOICE with a weapon slot target"):
     val json   = """{"type":"EQUIP_CHOICE","targetSlot":"WEAPON"}"""
     val result = MessageProtocol.decodeAction(json)
@@ -211,6 +221,26 @@ class MessageProtocolSuite extends FunSuite:
     assertEquals(normal.get[Boolean]("unlocked"), Right(false))
     assertEquals(normal.downField("requirement").get[String]("winsAt"), Right("easy"))
     assertEquals(normal.downField("requirement").get[Int]("wins"), Right(1))
+
+  test("encodeUpdate sends the conversation the player is in"):
+    val update = StateUpdate(
+      phase = GamePhase.Exploration,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      pendingScene = Some(PendingSceneView("npc.1", "scene", sceneId = Some("npc.1.s2"), offerScene = Some("npc.1.s2")))
+    )
+    val scene = io.circe.parser.parse(MessageProtocol.encodeUpdate(update)).toOption.get.hcursor.downField("pendingScene")
+    assertEquals(scene.get[String]("npc"), Right("npc.1"))
+    assertEquals(scene.get[String]("kind"), Right("scene"))
+    assertEquals(scene.get[String]("sceneId"), Right("npc.1.s2"))
+    assertEquals(scene.get[String]("offerScene"), Right("npc.1.s2"))
 
   test("encodeUpdate with optional fields absent produces null or omitted fields"):
     val update = StateUpdate(

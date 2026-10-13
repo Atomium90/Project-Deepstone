@@ -73,6 +73,43 @@ class GameStateSuite extends FunSuite:
     val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
     assertEquals(state.toStateUpdate().pendingEquipChoice, None)
 
+  // --- Conversations --------------------------------------------------------------
+
+  private def conversationView(encounter: Encounter, offerScene: Option[String] = None): PendingSceneView =
+    ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1, pendingScene = Some(PendingScene(encounter, offerScene)))
+      .toStateUpdate()
+      .pendingScene
+      .getOrElse(fail("expected a pendingScene view"))
+
+  test("ExplorationState.toStateUpdate has no pendingScene when none is set"):
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
+    assertEquals(state.toStateUpdate().pendingScene, None)
+
+  test("a scene is sent with its id, and the scene that carries the texts of the vow it offers"):
+    val scene = SceneDef("npc.1.s2", "npc.1", 2, offersVow = Some(VowType.NoPotion))
+    assertEquals(conversationView(Encounter.Scene(scene), Some("npc.1.s2")),
+                 PendingSceneView("npc.1", "scene", sceneId = Some("npc.1.s2"), offerScene = Some("npc.1.s2"))
+    )
+
+  test("a scene that offers no vow is sent with no offerScene"):
+    assertEquals(conversationView(Encounter.Scene(SceneDef("npc.1.s1", "npc.1", 1))),
+                 PendingSceneView("npc.1", "scene", sceneId = Some("npc.1.s1"))
+    )
+
+  test("a comment on a vow says whether it was kept"):
+    assertEquals(conversationView(Encounter.VowReport("npc.1", kept = true, offer = None)),
+                 PendingSceneView("npc.1", "vow_report", kept = Some(true))
+    )
+    assertEquals(conversationView(Encounter.VowReport("npc.1", kept = false, offer = Some(VowType.NoPotion)), Some("npc.1.s2")),
+                 PendingSceneView("npc.1", "vow_report", kept = Some(false), offerScene = Some("npc.1.s2"))
+    )
+
+  test("a short line names the pool its text comes from"):
+    def context(c: IdleContext) = conversationView(Encounter.Idle("npc.1", c, None)).context
+    assertEquals(context(IdleContext.General), Some("general"))
+    assertEquals(context(IdleContext.AfterDeath), Some("death"))
+    assertEquals(context(IdleContext.AfterVictory), Some("victory"))
+
   // --- Minimap --------------------------------------------------------------------
 
   test("ExplorationState.toStateUpdate carries the map of its dungeon, with the player's room current"):

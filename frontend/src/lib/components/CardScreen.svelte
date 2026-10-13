@@ -9,7 +9,7 @@
     export let cardId: string | null = null;
 
     /** How long a line takes to follow the one before it. */
-    const LINE_DELAY_MS = 1400;
+    const LINE_DELAY_MS = 2000;
 
     /** A key press cannot close the card sooner than this after the last line appeared, so a held
      * key, or the press that revealed the rest of the card, does not skip it unread. */

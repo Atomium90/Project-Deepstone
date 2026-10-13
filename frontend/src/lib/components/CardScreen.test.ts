@@ -14,6 +14,9 @@ const fixture: Record<string, string> = {
     "story.card.t2.1": "Alone.",
 };
 
+/** How long a line takes to follow the one before it: the delay of CardScreen.svelte. */
+const LINE_DELAY_MS = 2000;
+
 const visible = (container: HTMLElement) =>
     Array.from(container.querySelectorAll(".card-line.visible")).map((line) => line.textContent);
 const pressKey = (key: string, init: KeyboardEventInit = {}) => fireEvent.keyDown(window, { key, ...init });
@@ -41,9 +44,9 @@ describe("CardScreen", () => {
     test("shows the first line at once and the others one after another", async () => {
         const { container } = render(CardScreen, { cardId: "t1" });
         expect(visible(container)).toEqual(["First."]);
-        await vi.advanceTimersByTimeAsync(1400);
+        await vi.advanceTimersByTimeAsync(LINE_DELAY_MS);
         expect(visible(container)).toEqual(["First.", "Second."]);
-        await vi.advanceTimersByTimeAsync(1400);
+        await vi.advanceTimersByTimeAsync(LINE_DELAY_MS);
         expect(visible(container)).toEqual(["First.", "Second.", "Third."]);
     });
 
@@ -55,7 +58,7 @@ describe("CardScreen", () => {
     test("the hint to go on appears with the last line", async () => {
         const { container } = render(CardScreen, { cardId: "t1" });
         expect(container.querySelector(".card-hint.visible")).toBeNull();
-        await vi.advanceTimersByTimeAsync(2800);
+        await vi.advanceTimersByTimeAsync(2 * LINE_DELAY_MS);
         expect(container.querySelector(".card-hint.visible")).not.toBeNull();
     });
 
@@ -70,7 +73,7 @@ describe("CardScreen", () => {
     test("once the card is complete a key press closes it, once", async () => {
         const send = vi.spyOn(client, "send");
         render(CardScreen, { cardId: "t1" });
-        await vi.advanceTimersByTimeAsync(2800);
+        await vi.advanceTimersByTimeAsync(2 * LINE_DELAY_MS);
         vi.advanceTimersByTime(400);
         await pressKey("e");
         await pressKey("e");
@@ -92,7 +95,7 @@ describe("CardScreen", () => {
     test("a line that has just appeared cannot be skipped by a key press", async () => {
         const send = vi.spyOn(client, "send");
         render(CardScreen, { cardId: "t1" });
-        await vi.advanceTimersByTimeAsync(2800);
+        await vi.advanceTimersByTimeAsync(2 * LINE_DELAY_MS);
         vi.advanceTimersByTime(399);
         await pressKey("e");
         expect(send).not.toHaveBeenCalled();
@@ -126,7 +129,7 @@ describe("CardScreen", () => {
 
     test("a different card starts again from its first line", async () => {
         const { container, component } = render(CardScreen, { cardId: "t1" });
-        await vi.advanceTimersByTimeAsync(2800);
+        await vi.advanceTimersByTimeAsync(2 * LINE_DELAY_MS);
         component.$set({ cardId: "t2" });
         await tick();
         expect(visible(container)).toEqual(["Alone."]);

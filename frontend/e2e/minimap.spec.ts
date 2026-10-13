@@ -8,6 +8,7 @@ import {
     interactTile,
     doorsFarthestFirst,
     skipTutorial,
+    finishPendingScene,
 } from "./helpers";
 
 /** Walks the player out of the room they are in, through its door. A fight is only taken when an
@@ -29,6 +30,10 @@ async function leaveRoom(page: Page, from: StateUpdate): Promise<StateUpdate> {
         if (state.phase === "COMBAT") {
             await page.locator("button.action-btn.attack").click();
             state = await waitForStateChange(page, state);
+            continue;
+        }
+        if (state.pendingScene) {
+            state = await finishPendingScene(page, state);
             continue;
         }
         if (state.pendingEquipChoice) {

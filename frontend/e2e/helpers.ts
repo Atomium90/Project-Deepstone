@@ -127,6 +127,34 @@ export function doorsFarthestFirst(doors: EntityView[], entry: { x: number; y: n
     );
 }
 
+/**
+ * Reads the line a Devoted says before its fight, or as it falls, to its end, and returns the state
+ * that follows. A Boss opens a one-line conversation that blocks every move until it is read, and
+ * the dialogue ignores a key for 400 ms after a line appears, so the E that ends it waits a little.
+ */
+export async function finishPendingScene(page: Page, state: StateUpdate): Promise<StateUpdate> {
+    await page.waitForTimeout(450);
+    await page.keyboard.press("e");
+    return waitForStateChange(page, state);
+}
+
+/**
+ * Closes every story card the server is waiting for, one after another, before anything else on
+ * screen can be clicked: a card covers the whole page. The first key press shows the rest of a card
+ * and the next one closes it, which the card refuses for 400 ms after the last line appeared.
+ */
+export async function dismissPendingCards(page: Page): Promise<void> {
+    for (let cards = 0; cards < 3; cards++) {
+        const state = await currentState(page);
+        if (!state?.pendingCard) return;
+        await expect(page.locator(".card")).toBeVisible();
+        await page.keyboard.press("e");
+        await page.waitForTimeout(450);
+        await page.keyboard.press("e");
+        await waitForStateChange(page, state);
+    }
+}
+
 export interface RunOutcome {
     /** The last state seen: GAMEOVER when the run ended, anything else when the budget ran out. */
     state: StateUpdate;
@@ -138,7 +166,8 @@ export interface RunOutcome {
 /**
  * Plays a run from the state it is in until the Game Over screen, through the real page: walks to
  * chests, enemies, the Sanctuary and doors in that order, fights by attacking, and declines every
- * keep/replace and Shrine choice. The page must already be in a run, with the keyboard focus on it.
+ * keep/replace and Shrine choice, and reads a Devoted's lines to their end. The page must already
+ * be in a run, with the keyboard focus on it.
  */
 export async function playRunToGameOver(page: Page, from: StateUpdate): Promise<RunOutcome> {
     let state = from;
@@ -170,6 +199,11 @@ export async function playRunToGameOver(page: Page, from: StateUpdate): Promise<
             const next = await waitForStateChange(page, state);
             if (next.phase !== "COMBAT") combatsResolved++;
             state = next;
+            continue;
+        }
+
+        if (state.pendingScene) {
+            state = await finishPendingScene(page, state);
             continue;
         }
 

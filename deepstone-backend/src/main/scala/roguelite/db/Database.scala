@@ -5,7 +5,7 @@ import doobie.implicits.*
 import cats.implicits.*
 import cats.effect.IO
 import roguelite.engine.Difficulty
-import roguelite.game.{ AchievementStats, MetaProgression, RunOutcome, StoryProgress, VowRecord, VowState }
+import roguelite.game.{ AchievementStats, CardRecord, MetaProgression, RunOutcome, StoryProgress, VowRecord, VowState }
 import cats.effect.kernel.Resource
 import scala.concurrent.ExecutionContext
 import java.util.concurrent.Executors
@@ -98,6 +98,12 @@ class Database private (xa: Transactor[IO]):
                 npc_id   TEXT PRIMARY KEY,
                 state    TEXT NOT NULL,
                 reported INTEGER NOT NULL DEFAULT 1
+              )
+            """.update.run *>
+        sql"""
+              CREATE TABLE IF NOT EXISTS story_card (
+                card_id TEXT PRIMARY KEY,
+                seen    INTEGER NOT NULL DEFAULT 0
               )
             """.update.run *>
         sql"""
@@ -235,25 +241,28 @@ class Database private (xa: Transactor[IO]):
       .transact(xa)
       .void
 
-  /** Load what the story remembers: the chapter reached, how the last run ended, the scenes seen and
-    * each NPC's vow, all four in one transaction. A vow row or a last-run value this version does
-    * not know is ignored.
+  /** Load what the story remembers: the chapter reached, how the last run ended, the scenes seen,
+    * each NPC's vow and the cards earned (in the order they were earned), all in one transaction. A
+    * vow row or a last-run value this version does not know is ignored.
     */
   def loadStoryProgress(): IO[StoryProgress] =
     val getState  = sql"SELECT chapter, last_run FROM story_state WHERE id = 1".query[(Int, Option[String])].unique
     val getScenes = sql"SELECT scene_id FROM story_scene_seen".query[String].to[Set]
     val getVows   = sql"SELECT npc_id, state, reported FROM story_vow".query[(String, String, Boolean)].to[List]
+    val getCards  = sql"SELECT card_id, seen FROM story_card ORDER BY rowid".query[(String, Boolean)].to[List]
     (for
       state  <- getState
       scenes <- getScenes
       vows   <- getVows
+      cards  <- getCards
     yield
       val (chapter, lastRun) = state
       StoryProgress(
         chapter = chapter,
         lastRun = lastRun.flatMap(Database.parseRunOutcome),
         scenesSeen = scenes,
-        vows = vows.flatMap((npcId, name, reported) => Database.parseVowState(name).map(npcId -> VowRecord(_, reported))).toMap
+        vows = vows.flatMap((npcId, name, reported) => Database.parseVowState(name).map(npcId -> VowRecord(_, reported))).toMap,
+        cards = cards.map((id, seen) => CardRecord(id, seen))
       )
     ).transact(xa)
 
@@ -267,6 +276,14 @@ class Database private (xa: Transactor[IO]):
     */
   def recordSceneSeen(sceneId: String): IO[Unit] =
     sql"INSERT OR IGNORE INTO story_scene_seen (scene_id) VALUES ($sceneId)".update.run.transact(xa).void
+
+  /** Record a card as earned, not seen yet. Idempotent: a card the save already has keeps its state. */
+  def recordCardEarned(cardId: String): IO[Unit] =
+    sql"INSERT OR IGNORE INTO story_card (card_id) VALUES ($cardId)".update.run.transact(xa).void
+
+  /** Record a card as seen. A card that was never earned is not created. */
+  def markCardSeen(cardId: String): IO[Unit] =
+    sql"UPDATE story_card SET seen = 1 WHERE card_id = $cardId".update.run.transact(xa).void
 
   /** Save an NPC's vow, replacing the one it had. */
   def saveVow(npcId: String, vow: VowRecord): IO[Unit] =

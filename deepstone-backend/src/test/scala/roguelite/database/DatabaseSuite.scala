@@ -4,6 +4,7 @@ import munit.CatsEffectSuite
 import roguelite.engine.Difficulty
 import roguelite.game.{
   AchievementStats,
+  CardRecord,
   MetaProgression,
   RunOutcome,
   StoryProgress,
@@ -322,18 +323,49 @@ class DatabaseSuite extends CatsEffectSuite:
       )
   }
 
+  db.test("recordCardEarned keeps the cards in the order they were earned, idempotently") {
+    db =>
+      for
+        _      <- db.recordCardEarned("ch1")
+        _      <- db.recordCardEarned("prologue")
+        _      <- db.recordCardEarned("ch1")
+        loaded <- db.loadStoryProgress()
+      yield assertEquals(loaded.cards, List(CardRecord("ch1"), CardRecord("prologue")))
+  }
+
+  db.test("markCardSeen marks only that card, and a card seen stays seen when earned again") {
+    db =>
+      for
+        _      <- db.recordCardEarned("prologue")
+        _      <- db.recordCardEarned("ch1")
+        _      <- db.markCardSeen("prologue")
+        _      <- db.recordCardEarned("prologue")
+        loaded <- db.loadStoryProgress()
+      yield assertEquals(loaded.cards, List(CardRecord("prologue", seen = true), CardRecord("ch1")))
+  }
+
+  db.test("markCardSeen does not create a card that was never earned") {
+    db =>
+      for
+        _      <- db.markCardSeen("ch3")
+        loaded <- db.loadStoryProgress()
+      yield assertEquals(loaded.cards, Nil)
+  }
+
   db.test("initialize can run again without losing the story progress") {
     db =>
       for
         _      <- db.saveStoryState(2, Some(RunOutcome.Won))
         _      <- db.recordSceneSeen("npc.1.s1")
         _      <- db.saveVow("npc.1", VowRecord(VowState.Active))
+        _      <- db.recordCardEarned("ch1")
         _      <- db.initialize()
         loaded <- db.loadStoryProgress()
       yield
         assertEquals(loaded.chapter, 2)
         assertEquals(loaded.scenesSeen, Set("npc.1.s1"))
         assertEquals(loaded.vows, Map("npc.1" -> VowRecord(VowState.Active)))
+        assertEquals(loaded.cards, List(CardRecord("ch1")))
   }
 
   // -----------------------------------------------------------------------

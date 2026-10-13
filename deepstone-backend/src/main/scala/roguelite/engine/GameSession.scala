@@ -651,7 +651,7 @@ object GameSession:
     )
 
   /** Save what changed between two states of the story: the chapter and the last outcome, the scenes
-    * newly played and every vow that is not as it was.
+    * newly played, every vow that is not as it was and the cards newly earned or seen.
     */
   private def persistStory(database: Database, prev: StoryProgress, next: StoryProgress): IO[Unit] =
     for
@@ -662,6 +662,8 @@ object GameSession:
       _ <- next.vows.toList
         .filterNot((npc, record) => prev.vows.get(npc).contains(record))
         .traverse_((npc, record) => database.saveVow(npc, record))
+      _ <- next.cards.filterNot(card => prev.cards.exists(_.id == card.id)).traverse_(card => database.recordCardEarned(card.id))
+      _ <- next.cards.filter(card => card.seen && !prev.cards.contains(card)).traverse_(card => database.markCardSeen(card.id))
     yield ()
 
   /** Number of perks offered per hub visit, out of the full catalog. */

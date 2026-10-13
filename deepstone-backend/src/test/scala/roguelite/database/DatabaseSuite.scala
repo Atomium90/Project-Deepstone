@@ -323,6 +323,16 @@ class DatabaseSuite extends CatsEffectSuite:
       )
   }
 
+  db.test("saveDeathStreak round-trips the number of deaths in a row and can be reset") {
+    db =>
+      for
+        _     <- db.saveDeathStreak(4)
+        first <- db.loadStoryProgress()
+        _     <- db.saveDeathStreak(0)
+        again <- db.loadStoryProgress()
+      yield assertEquals((first.deathStreak, again.deathStreak), (4, 0))
+  }
+
   db.test("recordCardEarned keeps the cards in the order they were earned, idempotently") {
     db =>
       for
@@ -359,6 +369,7 @@ class DatabaseSuite extends CatsEffectSuite:
         _      <- db.recordSceneSeen("npc.1.s1")
         _      <- db.saveVow("npc.1", VowRecord(VowState.Active))
         _      <- db.recordCardEarned("ch1")
+        _      <- db.saveDeathStreak(2)
         _      <- db.initialize()
         loaded <- db.loadStoryProgress()
       yield
@@ -366,6 +377,7 @@ class DatabaseSuite extends CatsEffectSuite:
         assertEquals(loaded.scenesSeen, Set("npc.1.s1"))
         assertEquals(loaded.vows, Map("npc.1" -> VowRecord(VowState.Active)))
         assertEquals(loaded.cards, List(CardRecord("ch1")))
+        assertEquals(loaded.deathStreak, 2)
   }
 
   // -----------------------------------------------------------------------

@@ -204,6 +204,18 @@ case class EntityView(
     state: Option[String] = None
 )
 
+/** A line of the god's voice to show, said at the start of a run or when the player dies. The server
+  * only says which kind of line and in which tone: the lines are texts of the client's language file,
+  * under `story.god.<moment>.<phase>.<n>`, and the client picks one of them.
+  *
+  * @param moment
+  *   When the voice speaks: "start", or "death.first", "death.streak", "death.boss", "death.depth" or
+  *   "death.ordinary" for what it says about a death.
+  * @param phase
+  *   The tone of the voice: "a" (grateful host), "b" (possessive) or "c" (afraid of being forgotten).
+  */
+case class GodLineView(moment: String, phase: String)
+
 /** The current room's layout and its entities.
   *
   * @param theme
@@ -540,6 +552,10 @@ case class StateUpdate(
       * again at the next visit. The texts are the client's, under `story.card.<id>`.
       */
     pendingCard: Option[String] = None,
+    /** The line the god's voice says on this update, at the start of a run or on a death. Transient:
+      * only present on the single update the moment happened on, same convention as `newlyUnlocked`.
+      */
+    godLine: Option[GodLineView] = None,
     abilities: List[AbilityView] = Nil,
     achievements: List[AchievementView] = Nil,
     sets: List[SetView] = Nil,
@@ -717,6 +733,7 @@ object MessageProtocol:
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[SetView]         = deriveEncoder
+  given Encoder[GodLineView]     = deriveEncoder
   given Encoder[MinimapSectionView] = deriveEncoder
   given Encoder[MinimapNodeView]    = deriveEncoder
   given Encoder[MinimapEdgeView]    = deriveEncoder

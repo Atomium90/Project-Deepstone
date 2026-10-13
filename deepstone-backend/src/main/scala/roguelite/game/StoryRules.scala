@@ -21,7 +21,8 @@ object StoryRules:
       case _                                                              => chapter
 
   /** A run is over. A won one advances the chapter, and earns the card of the chapter it opens, any
-    * one is remembered for the NPCs to comment on, and the vow still running is judged.
+    * one is remembered for the NPCs to comment on, a death lengthens the streak of deaths and a win
+    * ends it, and the vow still running is judged.
     */
   def onRunEnded(chapters: Map[Int, ChapterDef],
                  progress: StoryProgress,
@@ -30,7 +31,8 @@ object StoryRules:
   ): StoryProgress =
     val settled = VowRules.onRunEnded(progress, outcome)
     val reached = if outcome == RunOutcome.Won then advanceChapter(chapters, settled.chapter, difficulty) else settled.chapter
-    val ended   = settled.copy(chapter = reached, lastRun = Some(outcome))
+    val streak  = if outcome == RunOutcome.Won then 0 else settled.deathStreak + 1
+    val ended   = settled.copy(chapter = reached, lastRun = Some(outcome), deathStreak = streak)
     if reached > settled.chapter then ended.withCardEarned(chapterCard(reached)) else ended
 
   /** The player has read `encounter` to its last line. Marks a scene as played, the NPC as having

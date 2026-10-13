@@ -318,7 +318,10 @@ class GameSessionSuite extends CatsEffectSuite:
     * deterministic whatever the seed. To win: Interact "e1", Attack, Interact "door_to_sanctuary",
     * Interact "sanct_1".
     */
-  def smWithBossRun: StateMachine =
+  def smWithBossRun: StateMachine = smWithBossRunOf(weakGoblinStats)
+
+  /** [[smWithBossRun]] with the given stats for the Boss, to make the fight winnable or deadly. */
+  def smWithBossRunOf(boss: EnemyStats): StateMachine =
     val tiles           = makeTiles()
     val doorToSanctuary = Door("door_to_sanctuary", x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next))
     val bossRoom = Room("boss",
@@ -332,7 +335,7 @@ class GameSessionSuite extends CatsEffectSuite:
     val sanctuaryRoom = Room("s1", RoomType.Sanctuary, "dungeon", 8, 6, tiles, List(Sanctuary("sanct_1", x = 2, y = 1)))
     StateMachine(
       Map("boss" -> bossRoom, "s1" -> sanctuaryRoom),
-      Map("goblin" -> weakGoblinStats),
+      Map("goblin" -> boss),
       Map.empty,
       testClassDefs,
       testUpgradeDefs,
@@ -968,6 +971,151 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(afterHit.phase, GamePhase.GameOver, s"expected defeat to end the run: ${afterHit.log}")
         assertEquals(afterReturn.phase, GamePhase.Hub)
         assertEquals(afterReturn.hub.get.perks.length, 3)
+  }
+
+  // ---------------------------------------------
+  // The god's voice
+  // ---------------------------------------------
+
+  /** A Random whose every draw is `value` (kept under the bound), so a test decides each dice roll. */
+  private class FixedRandom(value: Int) extends Random:
+    override def nextInt(bound: Int): Int = math.min(value, bound - 1)
+
+  /** A save that has already died a few times, so the next death is not the first of it. */
+  private def seedPastDeaths(database: Database): IO[Unit] =
+    database.saveAchievementStats(AchievementStats(runsCompleted = 4, runsWon = 1))
+
+  private def voiceSession(database: Database, machine: StateMachine, rng: Random = Random(0L)): IO[GameSession] =
+    GameSession.create(machine, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs, rng = rng)
+
+  /** Starts a run and loses its first fight. */
+  private def dieInFirstFight(session: GameSession): IO[StateUpdate] =
+    session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))) *>
+      session.handle(Interact("e1")) *>
+      session.handle(CombatAction(CombatActionType.Attack))
+
+  db.test("the voice greets a run when the dice say so, in the tone of the chapter reached") {
+    database =>
+      for
+        _       <- database.saveStoryState(3, None)
+        session <- voiceSession(database, sm, FixedRandom(0))
+        started <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assertEquals(started.godLine, Some(GodLineView("start", "b")))
+  }
+
+  db.test("the voice stays silent at the start of a run when the dice say so") {
+    database =>
+      for
+        session <- voiceSession(database, sm, FixedRandom(1))
+        started <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+      yield assertEquals(started.godLine, None)
+  }
+
+  db.test("the first death of a save has its own line") {
+    database =>
+      for
+        session <- voiceSession(database, smWithLethalEnemy)
+        dead    <- dieInFirstFight(session)
+      yield
+        assertEquals(dead.phase, GamePhase.GameOver)
+        assertEquals(dead.godLine, Some(GodLineView("death.first", "a")))
+  }
+
+  db.test("a later death by an ordinary enemy has the plain line, which leaves a streak of one") {
+    database =>
+      for
+        _       <- seedPastDeaths(database)
+        session <- voiceSession(database, smWithLethalEnemy)
+        dead    <- dieInFirstFight(session)
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(dead.godLine, Some(GodLineView("death.ordinary", "a")))
+        assertEquals(saved.deathStreak, 1)
+  }
+
+  db.test("the third death in a row has the streak line, and the streak is saved") {
+    database =>
+      for
+        _       <- seedPastDeaths(database)
+        _       <- database.saveDeathStreak(2)
+        session <- voiceSession(database, smWithLethalEnemy)
+        dead    <- dieInFirstFight(session)
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(dead.godLine, Some(GodLineView("death.streak", "a")))
+        assertEquals(saved.deathStreak, 3)
+  }
+
+  db.test("a death at a Boss has the Boss line") {
+    database =>
+      for
+        _       <- seedPastDeaths(database)
+        session <- voiceSession(database, smWithBossRunOf(lethalGoblinStats))
+        dead    <- dieInFirstFight(session)
+      yield assertEquals(dead.godLine, Some(GodLineView("death.boss", "a")))
+  }
+
+  db.test("the first death of a save has no line in the later phases, the next case speaks instead") {
+    database =>
+      for
+        _       <- database.saveStoryState(5, None)
+        session <- voiceSession(database, smWithLethalEnemy)
+        dead    <- dieInFirstFight(session)
+      yield assertEquals(dead.godLine, Some(GodLineView("death.ordinary", "c")))
+  }
+
+  /** Combat, Boss and Rest rooms, the Combat one holding a deadly enemy. A Normal run goes Combat, Boss,
+    * Rest, Combat, Boss, Sanctuary, so the second Combat room is the first fight of the second section.
+    */
+  private def smWithDeadlySecondSection: StateMachine =
+    def room(id: String, roomType: RoomType, extra: Entity*): Room =
+      Room(id, roomType, "dungeon", 8, 6, makeTiles(),
+           List(storyDoor("door_entrance", ConnectorRole.Prev), storyDoor("door_exit", ConnectorRole.Next)) ::: extra.toList
+      )
+    val sanctuary = Room("sanct", RoomType.Sanctuary, "dungeon", 8, 6, makeTiles(),
+                         List(storyDoor("door_entrance", ConnectorRole.Prev), Sanctuary("sanct_1", x = 2, y = 1))
+    )
+    StateMachine(
+      Map("c1" -> room("c1", RoomType.Combat, Enemy("e1", x = 2, y = 1, typeId = "goblin", label = "Goblin")),
+          "b1" -> room("b1", RoomType.Boss),
+          "r1" -> room("r1", RoomType.Rest),
+          "sanct" -> sanctuary
+      ),
+      Map("goblin" -> lethalGoblinStats), Map.empty, testClassDefs, testUpgradeDefs, CombatResolver(Random(0L))
+    )
+
+  db.test("a death in the second section has the line for having gone deeper") {
+    database =>
+      for
+        _       <- seedPastDeaths(database)
+        session <- voiceSession(database, smWithDeadlySecondSection)
+        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        _       <- goThroughDoor(session) // first Combat room to the first Boss room
+        _       <- goThroughDoor(session) // Boss room to the Rest
+        inFight <- goThroughDoor(session) // Rest to the first Combat room of the second section
+        _       <- session.handle(Interact("e1"))
+        dead    <- session.handle(CombatAction(CombatActionType.Attack))
+      yield
+        assertEquals(inFight.room.map(_.roomId), Some("c1#2"))
+        assertEquals(dead.godLine, Some(GodLineView("death.depth", "a")))
+  }
+
+  db.test("a win has no death line, and the next death starts a new streak") {
+    database =>
+      for
+        _       <- seedPastDeaths(database)
+        _       <- database.saveDeathStreak(2)
+        session <- voiceSession(database, smWithBossRunOf(weakGoblinStats))
+        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Easy)))
+        _       <- session.handle(Interact("e1"))
+        _       <- session.handle(CombatAction(CombatActionType.Attack))
+        _       <- session.handle(Interact("door_to_sanctuary"))
+        won     <- session.handle(Interact("sanct_1"))
+        saved   <- database.loadStoryProgress()
+      yield
+        assert(won.victory, s"expected a win: ${won.log}")
+        assertEquals(won.godLine, None)
+        assertEquals(saved.deathStreak, 0)
   }
 
   db.test("BuyUpgrade does not reroll the offered perks") {

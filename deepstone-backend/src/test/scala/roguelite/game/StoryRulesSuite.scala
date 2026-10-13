@@ -59,6 +59,12 @@ class StoryRulesSuite extends FunSuite:
     assertEquals(StoryRules.chapterCard(3), "ch3")
     assertEquals(StoryRules.PrologueCard, "prologue")
 
+  test("deaths in a row are counted and a win ends the streak"):
+    val first  = StoryRules.onRunEnded(chapters, StoryProgress(), RunOutcome.Lost, Difficulty.Easy)
+    val second = StoryRules.onRunEnded(chapters, first, RunOutcome.Lost, Difficulty.Easy)
+    assertEquals((first.deathStreak, second.deathStreak), (1, 2))
+    assertEquals(StoryRules.onRunEnded(chapters, second, RunOutcome.Won, Difficulty.Easy).deathStreak, 0)
+
   test("the end of a run judges the vow that was running"):
     val running = StoryProgress(vows = Map("npc.1" -> VowRecord(VowState.Active)))
     assertEquals(StoryRules.onRunEnded(chapters, running, RunOutcome.Won, Difficulty.Easy).vows("npc.1"),

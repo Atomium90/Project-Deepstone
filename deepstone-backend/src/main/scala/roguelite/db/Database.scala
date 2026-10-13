@@ -107,7 +107,16 @@ class Database private (xa: Transactor[IO]):
               )
             """.update.run *>
         sql"""
+              CREATE TABLE IF NOT EXISTS story_death_streak (
+                id     INTEGER PRIMARY KEY CHECK (id = 1),
+                streak INTEGER NOT NULL DEFAULT 0
+              )
+            """.update.run *>
+        sql"""
               INSERT OR IGNORE INTO story_state (id) VALUES (1)
+            """.update.run *>
+        sql"""
+              INSERT OR IGNORE INTO story_death_streak (id) VALUES (1)
             """.update.run *>
         sql"""
               INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)
@@ -242,19 +251,21 @@ class Database private (xa: Transactor[IO]):
       .void
 
   /** Load what the story remembers: the chapter reached, how the last run ended, the scenes seen,
-    * each NPC's vow and the cards earned (in the order they were earned), all in one transaction. A
-    * vow row or a last-run value this version does not know is ignored.
+    * each NPC's vow, the cards earned (in the order they were earned) and the streak of deaths, all
+    * in one transaction. A vow row or a last-run value this version does not know is ignored.
     */
   def loadStoryProgress(): IO[StoryProgress] =
     val getState  = sql"SELECT chapter, last_run FROM story_state WHERE id = 1".query[(Int, Option[String])].unique
     val getScenes = sql"SELECT scene_id FROM story_scene_seen".query[String].to[Set]
     val getVows   = sql"SELECT npc_id, state, reported FROM story_vow".query[(String, String, Boolean)].to[List]
     val getCards  = sql"SELECT card_id, seen FROM story_card ORDER BY rowid".query[(String, Boolean)].to[List]
+    val getStreak = sql"SELECT streak FROM story_death_streak WHERE id = 1".query[Int].unique
     (for
       state  <- getState
       scenes <- getScenes
       vows   <- getVows
       cards  <- getCards
+      streak <- getStreak
     yield
       val (chapter, lastRun) = state
       StoryProgress(
@@ -262,7 +273,8 @@ class Database private (xa: Transactor[IO]):
         lastRun = lastRun.flatMap(Database.parseRunOutcome),
         scenesSeen = scenes,
         vows = vows.flatMap((npcId, name, reported) => Database.parseVowState(name).map(npcId -> VowRecord(_, reported))).toMap,
-        cards = cards.map((id, seen) => CardRecord(id, seen))
+        cards = cards.map((id, seen) => CardRecord(id, seen)),
+        deathStreak = streak
       )
     ).transact(xa)
 
@@ -270,6 +282,10 @@ class Database private (xa: Transactor[IO]):
   def saveStoryState(chapter: Int, lastRun: Option[RunOutcome]): IO[Unit] =
     val name = lastRun.map(Database.runOutcomeName)
     sql"UPDATE story_state SET chapter = $chapter, last_run = $name WHERE id = 1".update.run.transact(xa).void
+
+  /** Overwrite the number of runs in a row that ended in death. */
+  def saveDeathStreak(streak: Int): IO[Unit] =
+    sql"UPDATE story_death_streak SET streak = $streak WHERE id = 1".update.run.transact(xa).void
 
   /** Record a scene as played to its last line. Idempotent, same INSERT-OR-IGNORE pattern as
     * [[unlockAchievement]].

@@ -4,7 +4,6 @@ import {
     gameState,
     gamePhase,
     combatLog,
-    npcDialogue,
     pendingScene,
     achievementToast,
     combatDamageEvents,
@@ -57,7 +56,6 @@ describe("StateStore derived stores", () => {
     test("every derived store defaults to its empty value before first connection", () => {
         expect(get(gamePhase)).toBeNull();
         expect(get(combatLog)).toEqual([]);
-        expect(get(npcDialogue)).toBeNull();
         expect(get(achievementToast)).toEqual([]);
         expect(get(combatDamageEvents)).toEqual([]);
         expect(get(soundEvents)).toEqual([]);
@@ -72,22 +70,19 @@ describe("StateStore derived stores", () => {
         expect(get(gamePhase)).toBe("COMBAT");
     });
 
-    test("transient fields (dialogue/newlyUnlocked/damageEvents/soundEvents) clear on the next update that omits them", () => {
+    test("transient fields (newlyUnlocked/damageEvents/soundEvents) clear on the next update that omits them", () => {
         gameState.set(
             makeState({
-                dialogue: { npcName: "Wren", line: "Hi." },
                 newlyUnlocked: [{ id: "a1", label: "L", description: "D", unlocked: true }],
                 damageEvents: [{ targetIsPlayer: false, amount: 5, kind: "damage", crit: false }],
                 soundEvents: ["pickup"],
             })
         );
-        expect(get(npcDialogue)).toEqual({ npcName: "Wren", line: "Hi." });
         expect(get(achievementToast)).toHaveLength(1);
         expect(get(combatDamageEvents)).toHaveLength(1);
         expect(get(soundEvents)).toEqual(["pickup"]);
 
         gameState.set(makeState());
-        expect(get(npcDialogue)).toBeNull();
         expect(get(achievementToast)).toEqual([]);
         expect(get(combatDamageEvents)).toEqual([]);
         expect(get(soundEvents)).toEqual([]);

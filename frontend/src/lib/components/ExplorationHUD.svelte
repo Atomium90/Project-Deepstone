@@ -1,14 +1,14 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { fly } from "svelte/transition";
-    import { gameState, client, combatLog, npcDialogue, debugRoomsCache, minimap } from "../engine/StateStore";
+    import { gameState, client, combatLog, pendingScene, debugRoomsCache, minimap } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
     import { Renderer } from "../engine/Renderer";
     import { keyCommand, type KeyCommand } from "../engine/explorationKeys";
     import { RESOURCE_BAR_COLORS, HP_BAR_COLOR, COLOR_ENTITY_FALLBACK } from "../engine/constants";
     import StatBar from "./StatBar.svelte";
     import CombatLog from "./CombatLog.svelte";
-    import NpcDialogue from "./NpcDialogue.svelte";
+    import SceneDialogue from "./SceneDialogue.svelte";
     import EquipSlotBox from "./EquipSlotBox.svelte";
 
     let canvasEl: HTMLCanvasElement;
@@ -87,7 +87,7 @@
     /** Which key does what, and that the run is paused behind the Character screen, is decided by
      * keyCommand. Guarded against native key-repeat: a held key acts once. */
     function handleKeyDown(e: KeyboardEvent): void {
-        const command = keyCommand(e.key, $characterTab, $minimap !== null);
+        const command = keyCommand(e.key, $characterTab, $minimap !== null, $pendingScene !== null);
         if (!command || heldKeys.has(e.key)) return;
 
         // Also keeps the arrow keys from scrolling the page.
@@ -186,7 +186,7 @@
             {/if}
         {/key}
 
-        <NpcDialogue dialogue={$npcDialogue} />
+        <SceneDialogue scene={$pendingScene} />
 
         {#if player}
             <aside class="stats-panel">

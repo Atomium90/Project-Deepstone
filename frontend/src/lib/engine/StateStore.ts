@@ -50,10 +50,6 @@ export const gamePhase = derived(gameState, ($s) => $s?.phase ?? null);
 /** Derived convenience: combat log lines for the current state. */
 export const combatLog = derived(gameState, ($s) => $s?.log ?? []);
 
-/** Derived convenience: the current NPC dialogue line to show, or null. Only present on the
- * StateUpdate an NPC interaction produced - any other action clears it back to null. */
-export const npcDialogue = derived(gameState, ($s) => $s?.dialogue ?? null);
-
 /** Derived convenience: achievements newly earned by the most recent action, if any - cleared back
  * to [] on the next update that doesn't earn a new one. Drives AchievementToast.svelte. */
 export const achievementToast = derived(gameState, ($s) => $s?.newlyUnlocked ?? []);
@@ -67,8 +63,8 @@ export const combatDamageEvents = derived(gameState, ($s) => $s?.damageEvents ??
  * transient convention as `combatDamageEvents`. Consumed by AudioManager.ts. */
 export const soundEvents = derived(gameState, ($s) => $s?.soundEvents ?? []);
 
-/** Derived convenience: a pickup awaiting a keep/replace decision, or null. Unlike `npcDialogue`
- * and the other transient fields above, this one is durable server-side (still present on the
+/** Derived convenience: a pickup awaiting a keep/replace decision, or null. Unlike
+ * the transient fields above, this one is durable server-side (still present on the
  * next update until actually resolved), so it needs no extra latch/dedup logic here - it's a
  * direct reflection of server state, not a one-shot signal. Drives EquipChoiceModal.svelte. */
 export const pendingEquipChoice = derived(gameState, ($s) => $s?.pendingEquipChoice ?? null);

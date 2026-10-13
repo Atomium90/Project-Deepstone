@@ -1,10 +1,21 @@
 <script lang="ts">
+    import { get } from "svelte/store";
     import { gameState, client } from "../engine/StateStore";
     import { PLAYER_CLASS_COLORS } from "../engine/constants";
+    import { dictionaries, language, lookup } from "../engine/i18n";
+    import { pickGodLine } from "../engine/godVoice";
     import Sprite from "./Sprite.svelte";
 
     $: player  = $gameState?.player;
     $: victory = $gameState?.victory ?? false;
+
+    // The god says a line about a death, picked once when the screen appears: the server sends it on
+    // this very update, and picking again on every later one would change the line under the player.
+    const update = get(gameState);
+    const godText =
+        update?.godLine && !update.victory
+            ? pickGodLine(update.godLine, (key) => lookup(dictionaries, get(language), key))
+            : null;
 
     function returnToHub(): void {
         client.send({ type: "HUB_ACTION", action: "RETURNTOHUB" });
@@ -25,6 +36,9 @@
         <p class="subtitle">
             {victory ? "You have conquered the dungeon." : "The dungeon claims another soul."}
         </p>
+        {#if godText}
+            <p class="god-line">{godText}</p>
+        {/if}
 
         <!-- Run stats -->
         {#if player}
@@ -96,6 +110,13 @@
         font-size: 0.8rem;
         color: #444;
         letter-spacing: 0.05em;
+    }
+
+    .god-line {
+        font-size: 0.85rem;
+        font-style: italic;
+        line-height: 1.5;
+        color: #b8ad88;
     }
 
     /* ── Stats ── */

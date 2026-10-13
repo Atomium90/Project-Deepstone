@@ -1,7 +1,8 @@
-import { describe, test, expect, beforeEach, vi } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/svelte";
 import GameOverScreen from "./GameOverScreen.svelte";
 import { gameState, client } from "../engine/StateStore";
+import { dictionaries } from "../engine/i18n";
 import type { StateUpdate } from "../engine/protocol";
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -52,6 +53,44 @@ describe("GameOverScreen", () => {
         const { container } = render(GameOverScreen);
         const values = Array.from(container.querySelectorAll(".stat-value")).map((el) => el.textContent);
         expect(values).toEqual(["5", "999 XP", "◈ 123"]);
+    });
+
+    describe("the god's voice", () => {
+        /** A line of its own, added to the real dictionary for the length of a test. */
+        const fixture: Record<string, string> = { "story.god.death.test.z.1": "Rest now, said the test." };
+        const death = { moment: "death.test", phase: "z" };
+
+        beforeEach(() => void Object.assign(dictionaries.en, fixture));
+        afterEach(() => {
+            for (const key of Object.keys(fixture)) delete dictionaries.en[key];
+        });
+
+        test("says a line about the death under the title", () => {
+            gameState.set(makeState({ godLine: death }));
+            const { container } = render(GameOverScreen);
+            expect(container.querySelector(".god-line")?.textContent).toBe("Rest now, said the test.");
+        });
+
+        test("says nothing on a victory, which has its card instead", () => {
+            gameState.set(makeState({ victory: true, godLine: death }));
+            const { container } = render(GameOverScreen);
+            expect(container.querySelector(".god-line")).toBeNull();
+        });
+
+        test("says nothing when the update carries no line, or the language file has none for it", () => {
+            gameState.set(makeState());
+            expect(render(GameOverScreen).container.querySelector(".god-line")).toBeNull();
+            gameState.set(makeState({ godLine: { moment: "death.test", phase: "y" } }));
+            expect(render(GameOverScreen).container.querySelector(".god-line")).toBeNull();
+        });
+
+        test("keeps the line it picked when a later update arrives", async () => {
+            gameState.set(makeState({ godLine: death }));
+            const { container } = render(GameOverScreen);
+            gameState.set(makeState());
+            await Promise.resolve();
+            expect(container.querySelector(".god-line")?.textContent).toBe("Rest now, said the test.");
+        });
     });
 
     test("Return to Hub sends RETURNTOHUB", async () => {

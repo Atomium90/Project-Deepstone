@@ -17,6 +17,7 @@
     import RewardChoiceModal from "./lib/components/RewardChoiceModal.svelte";
     import HintCard from "./lib/components/HintCard.svelte";
     import CardScreen from "./lib/components/CardScreen.svelte";
+    import GodLineBanner from "./lib/components/GodLineBanner.svelte";
 
     onMount(() => {
         connectToServer();
@@ -61,6 +62,7 @@
     <EquipChoiceModal />
     <RewardChoiceModal />
     <HintCard />
+    <GodLineBanner />
     <CardScreen cardId={$pendingCard} />
 </main>
 

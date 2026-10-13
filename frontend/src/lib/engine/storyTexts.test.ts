@@ -15,6 +15,11 @@ interface Scene {
 
 const scenes: Scene[] = JSON.parse(storyFile);
 const chapters: { id: number }[] = JSON.parse(chaptersFile);
+/** What the server can ask the god's voice to say: the moments and the tones of `GodVoice`. A death
+ * for the first time only has a line in the first tone, the server falls to the next case after it. */
+const GOD_MOMENTS = ["start", "death.first", "death.streak", "death.boss", "death.depth", "death.ordinary"];
+const GOD_PHASES = ["a", "b", "c"];
+
 /** The cards the server can ask to show: the prologue, and the one each chapter earns. */
 const cardIds = ["prologue", ...chapters.map((chapter) => `ch${chapter.id}`)];
 const texts = dictionaries.en;
@@ -80,6 +85,25 @@ describe("the texts of the story catalog", () => {
     test("every card of the story has its lines", () => {
         for (const id of cardIds) {
             expect(numberedTexts(`story.card.${id}`, find).length, `card ${id} has no text`).toBeGreaterThan(0);
+        }
+    });
+
+    test("the god's voice has lines for every moment and tone the server can ask for", () => {
+        for (const moment of GOD_MOMENTS) {
+            for (const phase of GOD_PHASES) {
+                if (moment === "death.first" && phase !== "a") continue;
+                expect(numberedTexts(`story.god.${moment}.${phase}`, find).length, `no god line for ${moment} in tone ${phase}`).toBeGreaterThan(0);
+            }
+        }
+    });
+
+    test("every text under story.god belongs to a moment and a tone the server can ask for", () => {
+        for (const key of storyKeys.filter((k) => k.startsWith("story.god."))) {
+            const [, , ...rest] = key.split(".");
+            const phase = rest[rest.length - 2];
+            const moment = rest.slice(0, -2).join(".");
+            expect(GOD_MOMENTS, `${key} is a line for a moment the server never asks for`).toContain(moment);
+            expect(GOD_PHASES, `${key} is a line in a tone the server never asks for`).toContain(phase);
         }
     });
 

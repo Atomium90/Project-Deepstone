@@ -95,6 +95,15 @@ export type PlayerAction =
 // Server → Client views
 // ---------------------------------------------
 
+/** A line of the god's voice to show, said at the start of a run or when the player dies. Only the
+ * kind of line and its tone: the lines are `story.god.<moment>.<phase>.<n>` in the language file. */
+export interface GodLineView {
+  /** "start", or "death.first", "death.streak", "death.boss", "death.depth" or "death.ordinary". */
+  moment: string;
+  /** The tone of the voice: "a" (grateful host), "b" (possessive) or "c" (afraid of being forgotten). */
+  phase: string;
+}
+
 export interface PlayerView {
   classId: ClassId;
   hp: number;
@@ -431,6 +440,9 @@ export interface StateUpdate {
   /** The story card waiting to be shown full screen, the oldest one not seen yet, or null. Durable:
    * it stays until the player answers with a CardSeenAction. Its texts are `story.card.<id>.<n>`. */
   pendingCard?: string | null;
+  /** The line the god's voice says on this update, at the start of a run or on a death. Transient:
+   * only present on the single update the moment happened on. */
+  godLine?: GodLineView | null;
   /** Achievements newly earned by the action that produced this update. Transient: only present
    * on the single update where one or more achievements were just unlocked. A list, not a single
    * value, since one action can plausibly earn more than one at once. */

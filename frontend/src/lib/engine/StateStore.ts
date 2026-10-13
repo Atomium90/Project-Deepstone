@@ -82,6 +82,11 @@ export const pendingScene = derived(gameState, ($s) => $s?.pendingScene ?? null)
  * state, durable like `pendingScene`. Drives CardScreen.svelte. */
 export const pendingCard = derived(gameState, ($s) => $s?.pendingCard ?? null);
 
+/** Derived convenience: the line the god's voice says on the latest update, or null. Transient like
+ * `soundEvents`: it is only there on the update of the moment it belongs to. Drives GodLineBanner
+ * (the start of a run) and GameOverScreen (a death). */
+export const godLine = derived(gameState, ($s) => $s?.godLine ?? null);
+
 /** Derived convenience: the dungeon map while exploring a run, or null. A direct reflection of
  * server state like `pendingEquipChoice`, resent on every update. Drives MinimapPanel.svelte. */
 export const minimap = derived(gameState, ($s) => $s?.minimap ?? null);

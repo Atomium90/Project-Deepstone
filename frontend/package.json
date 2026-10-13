@@ -28,6 +28,6 @@
     "svelte-check": "^3.6.0",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.3"
   }
 }

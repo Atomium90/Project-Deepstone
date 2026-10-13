@@ -153,7 +153,7 @@ class StateMachineSuite extends FunSuite:
   // --- Hub -----------------------------------------------------------------
 
   test("StartRun transitions to Exploration"):
-    val TransitionResult(next, _, _, _) =
+    val TransitionResult(next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer))
       )
@@ -186,7 +186,7 @@ class StateMachineSuite extends FunSuite:
     val thickTiles =
       Vector.tabulate(7, 8)((row, col) => if row <= 1 || row == 6 || col == 0 || col == 7 then Tile.Wall else Tile.Floor)
     val thickEntrance = Room("entrance", RoomType.Combat, "dungeon", 8, 7, thickTiles, Nil)
-    val TransitionResult(next, _, _, _) =
+    val TransitionResult(next, _, _) =
       sm(roomPool = defaultRoomPool + ("entrance" -> thickEntrance))
         .applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     val exp = next.asInstanceOf[ExplorationState]
@@ -196,21 +196,21 @@ class StateMachineSuite extends FunSuite:
     )
 
   test("StartRun creates player with chosen class"):
-    val TransitionResult(next, _, _, _) =
+    val TransitionResult(next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Mage))
       )
     assertEquals(next.player.classId, ClassId.Mage)
 
   test("StartRun player has correct affinityTags from classDef"):
-    val TransitionResult(next, _, _, _) =
+    val TransitionResult(next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer))
       )
     assertEquals(next.player.affinityTags, Set("ranged"))
 
   test("StartRun without classId stays in Hub"):
-    val TransitionResult(next, _, _, _) =
+    val TransitionResult(next, _, _) =
       sm().applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = None))
     assert(next.isInstanceOf[HubState])
 
@@ -218,7 +218,7 @@ class StateMachineSuite extends FunSuite:
 
   test("StartRun with a locked class is rejected and stays in Hub"):
     val hub = HubState(hubPlayer, testUpgradeDefs, MetaProgression.empty)
-    val TransitionResult(next, log, _, _) = sm(upgradeDefs = testUpgradeDefs)
+    val TransitionResult(next, log, _) = sm(upgradeDefs = testUpgradeDefs)
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
     assert(next.isInstanceOf[HubState])
     assert(log.exists(_.contains("Ranger's Path")), s"expected lock message: $log")
@@ -226,13 +226,13 @@ class StateMachineSuite extends FunSuite:
   test("StartRun with an unlocked class succeeds"):
     val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("archer_unlock"))
     val hub  = HubState(hubPlayer, testUpgradeDefs, meta)
-    val TransitionResult(next, _, _, _) = sm(upgradeDefs = testUpgradeDefs)
+    val TransitionResult(next, _, _) = sm(upgradeDefs = testUpgradeDefs)
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
     assert(next.isInstanceOf[ExplorationState])
 
   test("StartRun with Warrior is never gated (no matching UnlockClass upgrade)"):
     val hub = HubState(hubPlayer, testUpgradeDefs, MetaProgression.empty)
-    val TransitionResult(next, _, _, _) = sm(upgradeDefs = testUpgradeDefs)
+    val TransitionResult(next, _, _) = sm(upgradeDefs = testUpgradeDefs)
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[ExplorationState])
 
@@ -270,7 +270,7 @@ class StateMachineSuite extends FunSuite:
   test("StartRun grants the starting kit once its class's kit-unlock upgrade is purchased"):
     val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("warrior_kit"))
     val hub  = HubState(hubPlayer, Map("warrior_kit" -> warriorKitUpgrade), meta)
-    val TransitionResult(next, _, _, _) = smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
+    val TransitionResult(next, _, _) = smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     // The pickup gets a freshly generated instance id (see Item's prototype pattern), so compare
     // by typeId rather than the whole object.
@@ -278,7 +278,7 @@ class StateMachineSuite extends FunSuite:
 
   test("StartRun starts with an empty kit when the kit-unlock upgrade hasn't been purchased"):
     val hub = HubState(hubPlayer, Map("warrior_kit" -> warriorKitUpgrade), MetaProgression.empty)
-    val TransitionResult(next, _, _, _) = smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
+    val TransitionResult(next, _, _) = smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assertEquals(next.asInstanceOf[ExplorationState].player.equippedWeapon, None)
 
@@ -286,7 +286,7 @@ class StateMachineSuite extends FunSuite:
     // Confirms the two gates are independent: Warrior is always selectable (no lockedBehind match),
     // but still starts with nothing until its own kit-unlock upgrade is bought.
     val hub = HubState(hubPlayer, Map.empty, MetaProgression.empty)
-    val TransitionResult(next, _, _, _) = smWithWarriorKit(Map.empty)
+    val TransitionResult(next, _, _) = smWithWarriorKit(Map.empty)
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     val exp = next.asInstanceOf[ExplorationState]
     assert(exp.isInstanceOf[ExplorationState], "Warrior must still be selectable")
@@ -302,21 +302,21 @@ class StateMachineSuite extends FunSuite:
     middles ++ defaultRoomPool
 
   test("StartRun without difficulty defaults to Normal"):
-    val TransitionResult(next, _, _, _) =
+    val TransitionResult(next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))
       )
     assertEquals(next.asInstanceOf[ExplorationState].difficulty, Difficulty.Normal)
 
   test("StartRun room count scales with difficulty"):
-    val TransitionResult(easyNext, _, _, _) = sm(richRoomPool).applyActionPure(
+    val TransitionResult(easyNext, _, _) = sm(richRoomPool).applyActionPure(
       HubState(hubPlayer),
       HubAction(HubActionType.StartRun,
                 classId = Some(ClassId.Warrior),
                 difficulty = Some(Difficulty.Easy)
       )
     )
-    val TransitionResult(hardNext, _, _, _) = sm(richRoomPool).applyActionPure(
+    val TransitionResult(hardNext, _, _) = sm(richRoomPool).applyActionPure(
       HubState(hubPlayer),
       HubAction(HubActionType.StartRun,
                 classId = Some(ClassId.Warrior),
@@ -328,7 +328,7 @@ class StateMachineSuite extends FunSuite:
     assert(hardRooms > easyRooms, s"expected Hard ($hardRooms) > Easy ($easyRooms)")
 
   test("Invalid action in Hub produces log"):
-    val TransitionResult(next, log, _, _) = sm().applyActionPure(HubState(hubPlayer), Move(Direction.Up))
+    val TransitionResult(next, log, _) = sm().applyActionPure(HubState(hubPlayer), Move(Direction.Up))
     assert(next.isInstanceOf[HubState])
     assert(log.nonEmpty)
 
@@ -337,7 +337,7 @@ class StateMachineSuite extends FunSuite:
     // an entry at runtime - still worth covering the defensive branch directly.
     val incompleteClassDefs = testClassDefs - ClassId.Archer
     val incompleteSm = StateMachine(defaultRoomPool, enemyStatsMap, Map.empty, incompleteClassDefs, Map.empty, CombatResolver(Random(0L)))
-    val TransitionResult(next, log, _, _) =
+    val TransitionResult(next, log, _) =
       incompleteSm.applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
     assert(next.isInstanceOf[HubState])
     assert(log.exists(_.contains("Unknown class")), s"expected an unknown-class message: $log")
@@ -345,13 +345,13 @@ class StateMachineSuite extends FunSuite:
   test("BuyUpgrade reaching StateMachine directly is rejected as a safety net"):
     // BuyUpgrade is normally intercepted by GameSession (needs DB access) before StateMachine ever
     // sees it - this confirms the fallback match arm itself, in case that routing ever breaks.
-    val TransitionResult(next, log, _, _) =
+    val TransitionResult(next, log, _) =
       sm().applyActionPure(HubState(hubPlayer), HubAction(HubActionType.BuyUpgrade, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[HubState])
     assert(log.exists(_.contains("GameSession")), s"expected a routing-safety-net message: $log")
 
   test("StartRun with a room pool that can't build a dungeon stays in Hub with an error"):
-    val TransitionResult(next, log, _, _) =
+    val TransitionResult(next, log, _) =
       sm(roomPool = Map.empty).applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[HubState])
     assert(log.exists(_.contains("Failed to build dungeon")), s"expected a dungeon-build-failure message: $log")
@@ -360,7 +360,7 @@ class StateMachineSuite extends FunSuite:
 
   test("StartRun with an offered perk applies its effect and sets activePerkId"):
     val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
-    val TransitionResult(next, log, _, _) = sm(itemDefs = Map("health_potion" -> healthPotion))
+    val TransitionResult(next, log, _) = sm(itemDefs = Map("health_potion" -> healthPotion))
       .applyActionPure(hub,
                        HubAction(HubActionType.StartRun,
                                  classId = Some(ClassId.Warrior),
@@ -374,7 +374,7 @@ class StateMachineSuite extends FunSuite:
 
   test("StartRun with a perkId not currently offered is silently ignored"):
     val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
-    val TransitionResult(next, _, _, _) = sm(itemDefs = Map("health_potion" -> healthPotion))
+    val TransitionResult(next, _, _) = sm(itemDefs = Map("health_potion" -> healthPotion))
       .applyActionPure(hub,
                        HubAction(HubActionType.StartRun,
                                  classId = Some(ClassId.Warrior),
@@ -387,7 +387,7 @@ class StateMachineSuite extends FunSuite:
 
   test("StartRun without a perkId leaves activePerkId unset"):
     val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
-    val TransitionResult(next, _, _, _) =
+    val TransitionResult(next, _, _) =
       sm().applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assertEquals(next.asInstanceOf[ExplorationState].player.activePerkId, None)
 
@@ -405,34 +405,34 @@ class StateMachineSuite extends FunSuite:
       test(s"StartRun with a $id perk (no StartRun-time effect) sets activePerkId without throwing"):
         val perk = PerkDef(id, id, "test perk", icon = "*", effect = effect)
         val hub  = HubState(hubPlayer, perkOptions = List(perk))
-        val TransitionResult(next, _, _, _) =
+        val TransitionResult(next, _, _) =
           sm().applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), perkId = Some(id)))
         assertEquals(next.asInstanceOf[ExplorationState].player.activePerkId, Some(id))
 
   // --- Exploration: movement -----------------------------------------------
 
   test("Move Up decreases playerY"):
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Up))
+    val TransitionResult(next, _, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 2)
 
   test("Move Left decreases playerX"):
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Left))
+    val TransitionResult(next, _, _) = sm().applyActionPure(explorationAt(3, 3), Move(Direction.Left))
     assertEquals(next.asInstanceOf[ExplorationState].playerX, 2)
 
   test("Move into wall is blocked"):
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(explorationAt(1, 1), Move(Direction.Up))
+    val TransitionResult(next, _, _) = sm().applyActionPure(explorationAt(1, 1), Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 1)
 
   test("Move into an entity's tile is blocked"):
     val enemy = Enemy("e1", x = 3, y = 2, typeId = "goblin", label = "Goblin")
     val state = explorationAt(3, 3, entities = List(enemy))
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
 
   test("Move into a Sanctuary's tile triggers its interact instead of a silent block"):
     val sanctuary = Sanctuary("sanct_1", x = 3, y = 2)
     val state     = explorationAt(3, 3, entities = List(sanctuary))
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, Move(Direction.Up))
     next match
       case gameOver: GameOverState => assertEquals(gameOver.victory, true)
       case other                   => fail(s"expected GameOverState(victory = true), got $other")
@@ -442,14 +442,14 @@ class StateMachineSuite extends FunSuite:
     val existingWeapon = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
     val pending = PendingEquipChoice(newWeapon, Map(EquipSlot.WeaponSlot -> existingWeapon))
     val state   = explorationAt(3, 3).copy(pendingEquipChoice = Some(pending))
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
 
   test("Move is blocked while a pending reward choice is unresolved"):
     val option  = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
     val pending = PendingRewardChoice(List(option))
     val state   = explorationAt(3, 3).copy(pendingRewardChoice = Some(pending))
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
 
   test("Interact is blocked while a pending equip choice is unresolved"):
@@ -458,7 +458,7 @@ class StateMachineSuite extends FunSuite:
     val pending = PendingEquipChoice(newWeapon, Map(EquipSlot.WeaponSlot -> existingWeapon))
     val d       = door("r1", "r2")
     val state   = explorationAt(3, 3, entities = List(d)).copy(pendingEquipChoice = Some(pending))
-    val TransitionResult(next, log, _, events) = sm().applyActionPure(state, Interact(d.id))
+    val TransitionResult(next, log, events) = sm().applyActionPure(state, Interact(d.id))
     assertEquals(next, state)
     assertEquals(log, Nil)
     assertEquals(events, Nil)
@@ -468,7 +468,7 @@ class StateMachineSuite extends FunSuite:
     val pending = PendingRewardChoice(List(option))
     val chest   = Chest("c1", x = 3, y = 3)
     val state   = explorationAt(3, 3, entities = List(chest)).copy(pendingRewardChoice = Some(pending))
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Interact(chest.id))
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, Interact(chest.id))
     assertEquals(next, state)
 
   private val conversation: PendingScene =
@@ -476,20 +476,20 @@ class StateMachineSuite extends FunSuite:
 
   test("Move is blocked while a conversation is unfinished"):
     val state = explorationAt(3, 3).copy(pendingScene = Some(conversation))
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(next.asInstanceOf[ExplorationState].playerY, 3)
 
   test("Interact is blocked while a conversation is unfinished"):
     val d     = door("r1", "r2")
     val state = explorationAt(3, 3, entities = List(d)).copy(pendingScene = Some(conversation))
-    val TransitionResult(next, log, _, events) = sm().applyActionPure(state, Interact(d.id))
+    val TransitionResult(next, log, events) = sm().applyActionPure(state, Interact(d.id))
     assertEquals(next, state)
     assertEquals(log, Nil)
     assertEquals(events, Nil)
 
   test("a conversation cannot be finished through the state machine"):
     val state = explorationAt(3, 3).copy(pendingScene = Some(conversation))
-    val TransitionResult(next, log, _, _) = sm().applyActionPure(state, SceneDone(None))
+    val TransitionResult(next, log, _) = sm().applyActionPure(state, SceneDone(None))
     assertEquals(next, state)
     assert(log.exists(_.contains("GameSession")), s"expected a hint about GameSession: $log")
 
@@ -505,7 +505,7 @@ class StateMachineSuite extends FunSuite:
                           revealed = false
     )
     val state = explorationAt(3, 3, entities = List(secretDoor))
-    val TransitionResult(_, _, _, events) = sm().applyActionPure(state, Move(Direction.Up))
+    val TransitionResult(_, _, events) = sm().applyActionPure(state, Move(Direction.Up))
     assertEquals(events, List(GameEvent.SecretDoorRevealed))
 
   // --- Exploration: interaction --------------------------------------------
@@ -517,7 +517,7 @@ class StateMachineSuite extends FunSuite:
   test("Interact action routes through to InteractionResolver"):
     val d         = door("r1", "r2")
     val state     = explorationAt(3, 3, entities = List(d))
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, Interact(d.id))
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, Interact(d.id))
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
 
   test("EquipChoice action routes through to EquipmentResolver.resolveChoice"):
@@ -527,7 +527,7 @@ class StateMachineSuite extends FunSuite:
       PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(existingWeapon))
     val pending = PendingEquipChoice(newWeapon, Map(EquipSlot.WeaponSlot -> existingWeapon))
     val state   = explorationAt(3, 3).copy(player = playerWithPending, pendingEquipChoice = Some(pending))
-    val TransitionResult(next, _, _, events) =
+    val TransitionResult(next, _, events) =
       sm().applyActionPure(state, EquipChoice(Some(EquipSlot.WeaponSlot)))
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.player.equippedWeapon, Some(newWeapon))
@@ -538,7 +538,7 @@ class StateMachineSuite extends FunSuite:
     val option  = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, attackBonus = 3)
     val pending = PendingRewardChoice(List(option))
     val state   = explorationAt(3, 3).copy(pendingRewardChoice = Some(pending))
-    val TransitionResult(next, _, _, events) = sm().applyActionPure(state, RewardChoice(Some(option.id)))
+    val TransitionResult(next, _, events) = sm().applyActionPure(state, RewardChoice(Some(option.id)))
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.player.equippedWeapon, Some(option))
     assertEquals(nextExp.pendingRewardChoice, None)
@@ -550,7 +550,7 @@ class StateMachineSuite extends FunSuite:
     val enemy     = Enemy("e1", 3, 3, typeId = "goblin", label = "Goblin")
     val instance  = EnemyInstance.fromStats("e1", goblinStats)
     val state     = CombatState(hubPlayer, simpleDungeon(List(enemy)), 1, 1, Combat(instance), "e1")
-    val TransitionResult(next, _, _, _) = sm().applyActionPure(state, CombatAction(CombatActionType.Attack))
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, CombatAction(CombatActionType.Attack))
     assert(
       next.isInstanceOf[CombatState] || next.isInstanceOf[ExplorationState] ||
         next.isInstanceOf[GameOverState]
@@ -575,7 +575,7 @@ class StateMachineSuite extends FunSuite:
     assertEquals(GameOverState(hubPlayer, victory = true).toStateUpdate().victory, true)
 
   test("StateUpdate equipment is empty at run start with an empty startingKit"):
-    val TransitionResult(next, _, _, _) =
+    val TransitionResult(next, _, _) =
       sm().applyActionPure(HubState(hubPlayer),
                            HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior))
       )

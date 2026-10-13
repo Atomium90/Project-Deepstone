@@ -52,12 +52,12 @@ class GameStateSuite extends FunSuite:
 
   // --- ExplorationState --------------------------------------------------------------
 
-  test("ExplorationState.toStateUpdate has EXPLORATION phase and carries the room/dialogue"):
+  test("ExplorationState.toStateUpdate has EXPLORATION phase and carries the room and the log"):
     val state  = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
-    val update = state.toStateUpdate(dialogue = Some(DialogueView("Wren", "Hello.")))
+    val update = state.toStateUpdate(List("hello"))
     assertEquals(update.phase, GamePhase.Exploration)
     assert(update.room.isDefined)
-    assertEquals(update.dialogue, Some(DialogueView("Wren", "Hello.")))
+    assertEquals(update.log, List("hello"))
 
   test("ExplorationState.toStateUpdate resolves a pending equip choice into a view, with the same affinity-doubled statLine as the equipped items"):
     val player  = PlayerFixtures.startingPlayer(ClassId.Warrior) // affinityTags = Set("heavy")

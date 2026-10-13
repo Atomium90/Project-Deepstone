@@ -69,7 +69,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         TransitionResult(exp, Nil)
     }
 
-  /** Lifts a handler that never produces dialogue or events into the richer return type `interact`
+  /** Lifts a handler that reports no events into the richer return type `interact`
     * needs, so every existing per-entity handler below can stay untouched. */
   private def lift(r: (GameState, List[String])): TransitionResult = TransitionResult(r._1, r._2)
 

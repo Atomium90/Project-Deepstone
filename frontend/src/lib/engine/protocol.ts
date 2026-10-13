@@ -123,13 +123,6 @@ export interface EntityView {
   state?: "closed" | "open_full" | "open_empty" | "sprung";
 }
 
-/** One line of NPC dialogue, shown in a transient overlay. Only present on the single
- * StateUpdate the interaction produced - it's gone again on the next action. */
-export interface DialogueView {
-  npcName: string;
-  line: string;
-}
-
 export interface RoomView {
   roomId: string;
   width: number;
@@ -178,7 +171,7 @@ export interface CombatView {
 }
 
 /** One damage or heal event produced by the action that generated this StateUpdate. Transient -
- * only present on the single update the event happened on, same convention as DialogueView. */
+ * only present on the single update the event happened on. */
 export interface DamageEventView {
   /** True if the player took the hit/heal, false if the enemy did. */
   targetIsPlayer: boolean;
@@ -309,7 +302,7 @@ export interface EquipChoiceOptionView {
 
 /** A pickup offered to the player because every slot matching `newItem`'s kind was already
  * occupied: weapon/armor degenerate to a single `options` entry, accessories/potions can offer up
- * to 2-3. Durable, not transient like `dialogue` or the other optional/list fields on StateUpdate
+ * to 2-3. Durable, not transient like the damage and unlock lists on StateUpdate
  * below - it must still be present after a reconnect, or if the player sends an unrelated action
  * before resolving it with an EquipChoiceAction. */
 export interface PendingEquipChoiceView {
@@ -425,13 +418,11 @@ export interface StateUpdate {
   /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
   victory: boolean;
   log: string[];
-  dialogue?: DialogueView;
   /** The conversation with a Rest NPC awaiting its end. Durable, like `pendingEquipChoice`. */
   pendingScene?: PendingSceneView | null;
   /** Achievements newly earned by the action that produced this update. Transient: only present
-   * on the single update where one or more achievements were just unlocked, same convention as
-   * `dialogue`. A list, not a single value, since one action can plausibly earn more than one at
-   * once. */
+   * on the single update where one or more achievements were just unlocked. A list, not a single
+   * value, since one action can plausibly earn more than one at once. */
   newlyUnlocked: AchievementView[];
   /** Damage/heal events produced by the action that generated this update. Transient, same
    * convention as `newlyUnlocked` - a list since a single action can produce more than one (e.g.

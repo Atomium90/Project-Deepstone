@@ -199,11 +199,6 @@ case class EntityView(
     state: Option[String] = None
 )
 
-/** One line of NPC dialogue to show the player, produced by an [[Interact]] on an [[roguelite.game.Npc]].
-  * Transient - only present on the single [[StateUpdate]] the interaction produced, not persisted.
-  */
-case class DialogueView(npcName: String, line: String)
-
 /** The current room's layout and its entities.
   *
   * @param theme
@@ -270,7 +265,7 @@ case class CombatView(
 )
 
 /** One damage or heal event produced by the action that generated this [[StateUpdate]]. Transient:
-  * only present on the single update the event happened on, same convention as [[DialogueView]].
+  * only present on the single update the event happened on.
   *
   * @param targetIsPlayer
   *   True if the player took the hit/heal, false if the enemy did.
@@ -380,7 +375,7 @@ case class EquipChoiceOptionView(slot: EquipSlot, current: ItemView)
 
 /** A pickup offered to the player because every slot matching `newItem`'s kind was already
   * occupied: weapon/armor degenerate to a single `options` entry, accessories/potions can offer
-  * up to 2-3. Durable, not transient like [[DialogueView]] or the other `Option`/`List` fields on
+  * up to 2-3. Durable, not transient like the damage and unlock lists on
   * [[StateUpdate]] below - it must still be present after a reconnect, or if the player sends an
   * unrelated action before resolving it with an [[EquipChoice]].
   */
@@ -543,11 +538,10 @@ case class StateUpdate(
       */
     victory: Boolean = false,
     log: List[String] = Nil,
-    dialogue: Option[DialogueView] = None,
     /** Achievements newly earned by the action that produced this update. Transient: only
-      * non-empty on the single update where one or more achievements were just unlocked, same
-      * convention as [[dialogue]]. A list, not an Option, since a single action can plausibly earn
-      * more than one at once (e.g. a kill that is simultaneously a first kill and a level-up).
+      * non-empty on the single update where one or more achievements were just unlocked. A list,
+      * not an Option, since a single action can plausibly earn more than one at once (e.g. a kill
+      * that is simultaneously a first kill and a level-up).
       */
     newlyUnlocked: List[AchievementView] = Nil,
     /** Damage/heal events produced by the action that generated this update. Transient, same
@@ -710,7 +704,6 @@ object MessageProtocol:
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[SetView]         = deriveEncoder
-  given Encoder[DialogueView]    = deriveEncoder
   given Encoder[MinimapSectionView] = deriveEncoder
   given Encoder[MinimapNodeView]    = deriveEncoder
   given Encoder[MinimapEdgeView]    = deriveEncoder

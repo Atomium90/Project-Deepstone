@@ -193,7 +193,7 @@ class GameSession private (
       newlyUnlocked <- processAchievementEvents(transitionResult.events)
       _             <- processStoryEvents(transitionResult.events)
     yield finalNext
-      .toStateUpdate(transitionResult.log ++ extraLog, transitionResult.dialogue)
+      .toStateUpdate(transitionResult.log ++ extraLog)
       .copy(newlyUnlocked = newlyUnlocked,
             damageEvents = toDamageEventViews(transitionResult.events),
             soundEvents = toSoundEventTags(transitionResult.events)

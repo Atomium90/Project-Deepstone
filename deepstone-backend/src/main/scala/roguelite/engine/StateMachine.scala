@@ -92,8 +92,7 @@ class StateMachine(roomPool: Map[String, Room],
     }
 
   /** Lifts a plain (state, log) transition result into the richer type `applyActionPure` returns,
-    * so every action that never produces dialogue (everything except Interact on an Npc) can keep
-    * its existing shape untouched. */
+    * so every action that reports no events can keep its existing shape untouched. */
   private def lift(r: (GameState, List[String])): TransitionResult = TransitionResult(r._1, r._2)
 
   def transition(state: GameState, action: PlayerAction): IO[TransitionResult] =

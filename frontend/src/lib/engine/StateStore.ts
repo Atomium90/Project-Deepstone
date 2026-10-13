@@ -78,6 +78,10 @@ export const pendingRewardChoice = derived(gameState, ($s) => $s?.pendingRewardC
  * SceneDialogue.svelte. */
 export const pendingScene = derived(gameState, ($s) => $s?.pendingScene ?? null);
 
+/** Derived convenience: the story card waiting to be shown, or null. A direct reflection of server
+ * state, durable like `pendingScene`. Drives CardScreen.svelte. */
+export const pendingCard = derived(gameState, ($s) => $s?.pendingCard ?? null);
+
 /** Derived convenience: the dungeon map while exploring a run, or null. A direct reflection of
  * server state like `pendingEquipChoice`, resent on every update. Drives MinimapPanel.svelte. */
 export const minimap = derived(gameState, ($s) => $s?.minimap ?? null);

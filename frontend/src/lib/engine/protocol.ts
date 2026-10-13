@@ -74,6 +74,13 @@ export interface SceneDoneAction {
   accept?: boolean;
 }
 
+/** The player has read the story card on their screen (see `StateUpdate.pendingCard`). The server
+ * only accepts the card it is waiting for, and stops asking for it. */
+export interface CardSeenAction {
+  type: "CARD_SEEN";
+  cardId: string;
+}
+
 export type PlayerAction =
   | MoveAction
   | InteractAction
@@ -81,7 +88,8 @@ export type PlayerAction =
   | HubAction
   | EquipChoiceAction
   | RewardChoiceAction
-  | SceneDoneAction;
+  | SceneDoneAction
+  | CardSeenAction;
 
 // ---------------------------------------------
 // Server → Client views
@@ -420,6 +428,9 @@ export interface StateUpdate {
   log: string[];
   /** The conversation with a Rest NPC awaiting its end. Durable, like `pendingEquipChoice`. */
   pendingScene?: PendingSceneView | null;
+  /** The story card waiting to be shown full screen, the oldest one not seen yet, or null. Durable:
+   * it stays until the player answers with a CardSeenAction. Its texts are `story.card.<id>.<n>`. */
+  pendingCard?: string | null;
   /** Achievements newly earned by the action that produced this update. Transient: only present
    * on the single update where one or more achievements were just unlocked. A list, not a single
    * value, since one action can plausibly earn more than one at once. */

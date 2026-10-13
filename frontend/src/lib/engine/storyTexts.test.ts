@@ -1,5 +1,6 @@
 import { describe, test, expect } from "vitest";
 import storyFile from "../../../../deepstone-backend/src/main/resources/data/story.json?raw";
+import chaptersFile from "../../../../deepstone-backend/src/main/resources/data/chapters.json?raw";
 import { dictionaries, lookup } from "./i18n";
 import { numberedTexts, type TextLookup } from "./sceneText";
 
@@ -13,6 +14,9 @@ interface Scene {
 }
 
 const scenes: Scene[] = JSON.parse(storyFile);
+const chapters: { id: number }[] = JSON.parse(chaptersFile);
+/** The cards the server can ask to show: the prologue, and the one each chapter earns. */
+const cardIds = ["prologue", ...chapters.map((chapter) => `ch${chapter.id}`)];
 const texts = dictionaries.en;
 const find: TextLookup = (key) => lookup(dictionaries, "en", key);
 const npcs = [...new Set(scenes.map((scene) => scene.npc))];
@@ -70,6 +74,18 @@ describe("the texts of the story catalog", () => {
     test("no text uses a dash or a semicolon, the style of the writing", () => {
         for (const key of storyKeys) {
             expect(texts[key], `${key} has a dash or a semicolon`).not.toMatch(/[—–;]/);
+        }
+    });
+
+    test("every card of the story has its lines", () => {
+        for (const id of cardIds) {
+            expect(numberedTexts(`story.card.${id}`, find).length, `card ${id} has no text`).toBeGreaterThan(0);
+        }
+    });
+
+    test("every text under story.card belongs to a card the story can earn", () => {
+        for (const key of storyKeys.filter((k) => k.startsWith("story.card."))) {
+            expect(cardIds, `${key} belongs to a card nobody earns`).toContain(key.split(".")[2]);
         }
     });
 

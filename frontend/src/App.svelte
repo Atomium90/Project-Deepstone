@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { fade } from "svelte/transition";
-    import { gameState, gamePhase, connectToServer } from "./lib/engine/StateStore";
+    import { gameState, gamePhase, pendingCard, connectToServer } from "./lib/engine/StateStore";
     import { assets } from "./lib/engine/AssetManager";
     import { audio } from "./lib/engine/AudioManager";
     import { isNewSave } from "./lib/engine/FirstRun";
@@ -16,6 +16,7 @@
     import EquipChoiceModal from "./lib/components/EquipChoiceModal.svelte";
     import RewardChoiceModal from "./lib/components/RewardChoiceModal.svelte";
     import HintCard from "./lib/components/HintCard.svelte";
+    import CardScreen from "./lib/components/CardScreen.svelte";
 
     onMount(() => {
         connectToServer();
@@ -60,6 +61,7 @@
     <EquipChoiceModal />
     <RewardChoiceModal />
     <HintCard />
+    <CardScreen cardId={$pendingCard} />
 </main>
 
 <style>

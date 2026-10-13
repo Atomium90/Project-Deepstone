@@ -1,0 +1,104 @@
+package roguelite.game
+
+import munit.FunSuite
+import roguelite.engine.Difficulty
+
+class StoryRulesSuite extends FunSuite:
+
+  private val chapters: Map[Int, ChapterDef] = List(
+    ChapterDef(1, Difficulty.Easy),
+    ChapterDef(2, Difficulty.Easy),
+    ChapterDef(3, Difficulty.Normal),
+    ChapterDef(4, Difficulty.Hard)
+  ).map(chapter => chapter.id -> chapter).toMap
+
+  private val offering = SceneDef("npc.1.s2", "npc.1", 2, offersVow = Some(VowType.NoPotion))
+  private val plain    = SceneDef("npc.1.s1", "npc.1", 1)
+
+  // --- advanceChapter -------------------------------------------------------
+
+  test("a victory on the difficulty of the next chapter opens it"):
+    assertEquals(StoryRules.advanceChapter(chapters, 0, Difficulty.Easy), 1)
+    assertEquals(StoryRules.advanceChapter(chapters, 2, Difficulty.Normal), 3)
+
+  test("a victory on a harder difficulty than the next chapter asks for opens it too"):
+    assertEquals(StoryRules.advanceChapter(chapters, 0, Difficulty.Hard), 1)
+
+  test("a victory on an easier difficulty than the next chapter asks for opens nothing"):
+    assertEquals(StoryRules.advanceChapter(chapters, 2, Difficulty.Easy), 2)
+    assertEquals(StoryRules.advanceChapter(chapters, 3, Difficulty.Normal), 3)
+
+  test("a victory opens one chapter at a time"):
+    assertEquals(StoryRules.advanceChapter(chapters, 0, Difficulty.Hard), 1)
+    assertEquals(StoryRules.advanceChapter(chapters, 1, Difficulty.Hard), 2)
+
+  test("no chapter opens after the last one"):
+    assertEquals(StoryRules.advanceChapter(chapters, 4, Difficulty.Hard), 4)
+
+  // --- onRunEnded -----------------------------------------------------------
+
+  test("a won run opens the next chapter and is remembered"):
+    val after = StoryRules.onRunEnded(chapters, StoryProgress(chapter = 1), RunOutcome.Won, Difficulty.Easy)
+    assertEquals(after.chapter, 2)
+    assertEquals(after.lastRun, Some(RunOutcome.Won))
+
+  test("a lost run opens nothing and is remembered"):
+    val after = StoryRules.onRunEnded(chapters, StoryProgress(chapter = 1), RunOutcome.Lost, Difficulty.Hard)
+    assertEquals(after.chapter, 1)
+    assertEquals(after.lastRun, Some(RunOutcome.Lost))
+
+  test("the end of a run judges the vow that was running"):
+    val running = StoryProgress(vows = Map("npc.1" -> VowRecord(VowState.Active)))
+    assertEquals(StoryRules.onRunEnded(chapters, running, RunOutcome.Won, Difficulty.Easy).vows("npc.1"),
+                 VowRecord(VowState.Kept, reported = false)
+    )
+    assertEquals(StoryRules.onRunEnded(chapters, running, RunOutcome.Lost, Difficulty.Easy).vows("npc.1"),
+                 VowRecord(VowState.Failed, reported = false)
+    )
+
+  // --- complete -------------------------------------------------------------
+
+  test("reading a scene to its last line marks it as played"):
+    assertEquals(StoryRules.complete(StoryProgress.empty, Encounter.Scene(plain), None), Right(StoryProgress(scenesSeen = Set("npc.1.s1"))))
+
+  test("a scene that offers a vow needs an answer, and taking it starts the vow"):
+    assert(StoryRules.complete(StoryProgress.empty, Encounter.Scene(offering), None).isLeft)
+    val taken = StoryRules.complete(StoryProgress.empty, Encounter.Scene(offering), Some(true)).toOption.get
+    assertEquals(taken.vows("npc.1"), VowRecord(VowState.Active))
+    assertEquals(taken.scenesSeen, Set("npc.1.s2"))
+
+  test("turning a vow down records it as declined"):
+    val declined = StoryRules.complete(StoryProgress.empty, Encounter.Scene(offering), Some(false)).toOption.get
+    assertEquals(declined.vows("npc.1"), VowRecord(VowState.Declined))
+
+  test("an answer to a vow that was not offered is refused"):
+    assert(StoryRules.complete(StoryProgress.empty, Encounter.Scene(plain), Some(true)).isLeft)
+    assert(StoryRules.complete(StoryProgress.empty, Encounter.Idle("npc.1", IdleContext.General, None), Some(false)).isLeft)
+
+  test("a vow cannot be taken while another one runs"):
+    val busy = StoryProgress(vows = Map("npc.2" -> VowRecord(VowState.Active)))
+    assert(StoryRules.complete(busy, Encounter.Scene(offering), Some(true)).isLeft)
+    assert(StoryRules.complete(busy, Encounter.Scene(offering), Some(false)).isRight)
+
+  test("commenting on a kept vow marks it as reported"):
+    val judged = StoryProgress(vows = Map("npc.1" -> VowRecord(VowState.Kept, reported = false)))
+    val after  = StoryRules.complete(judged, Encounter.VowReport("npc.1", kept = true, offer = None), None).toOption.get
+    assertEquals(after.vows("npc.1"), VowRecord(VowState.Kept))
+
+  test("commenting on a failed vow ends with the answer to its new offer"):
+    val judged = StoryProgress(vows = Map("npc.1" -> VowRecord(VowState.Failed, reported = false)))
+    val report = Encounter.VowReport("npc.1", kept = false, offer = Some(VowType.NoPotion))
+    assert(StoryRules.complete(judged, report, None).isLeft)
+    assertEquals(StoryRules.complete(judged, report, Some(true)).toOption.get.vows("npc.1"), VowRecord(VowState.Active))
+    assertEquals(StoryRules.complete(judged, report, Some(false)).toOption.get.vows("npc.1"), VowRecord(VowState.Declined))
+
+  test("a failed vow with nothing to offer is still marked as reported"):
+    val judged = StoryProgress(vows = Map("npc.1" -> VowRecord(VowState.Failed, reported = false)))
+    val after  = StoryRules.complete(judged, Encounter.VowReport("npc.1", kept = false, offer = None), None).toOption.get
+    assertEquals(after.vows("npc.1"), VowRecord(VowState.Failed))
+
+  test("a short line leaves the progress alone, or answers the vow it offered again"):
+    val declined = StoryProgress(vows = Map("npc.1" -> VowRecord(VowState.Declined)))
+    val line     = Encounter.Idle("npc.1", IdleContext.General, Some(VowType.NoPotion))
+    assertEquals(StoryRules.complete(StoryProgress.empty, Encounter.Idle("npc.1", IdleContext.General, None), None), Right(StoryProgress.empty))
+    assertEquals(StoryRules.complete(declined, line, Some(true)).toOption.get.vows("npc.1"), VowRecord(VowState.Active))

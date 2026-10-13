@@ -398,6 +398,34 @@ class ContentIntegritySuite extends CatsEffectSuite:
                s"scene '${scene.id}' asks for chapter ${scene.minChapter}, which chapters.json does not define"
         )
 
+  test("every relic a scene asks to have been read belongs to a Devoted of enemies.json"):
+    for
+      enemies <- EnemyLoader.loadAll()
+      scenes  <- StoryLoader.loadAll()
+    yield
+      val devoted = enemies.values.flatMap(_.devoted).toSet
+      scenes.values.flatMap(scene => scene.requiresRelicRead.map(scene.id -> _)).foreach:
+        (sceneId, n) => assert(devoted.contains(n), s"scene '$sceneId' asks for the relic of Devoted $n, which no enemy is")
+
+  test("the scene that gives an NPC's name away is a scene of that NPC"):
+    for
+      npcs   <- NpcLoader.loadAll()
+      scenes <- StoryLoader.loadAll()
+    yield npcs.values.foreach:
+      npc =>
+        npc.revealedBy.foreach:
+          sceneId =>
+            assert(scenes.get(sceneId).exists(_.npc == npc.id), s"'${npc.id}' is revealed by '$sceneId', which is not one of its scenes")
+
+  test("every NPC has four scenes in a row, offers one vow and ends on a scene that needs it kept"):
+    for scenes <- StoryLoader.loadAll()
+    yield scenes.values.groupBy(_.npc).foreach:
+      (npc, npcScenes) =>
+        assertEquals(npcScenes.map(_.id).toSet, (1 to 4).map(n => s"$npc.s$n").toSet, s"$npc must have scenes s1 to s4")
+        assertEquals(npcScenes.count(_.offersVow.isDefined), 1, s"$npc must offer exactly one vow")
+        assert(npcScenes.find(_.id == s"$npc.s4").exists(_.requiresVowKept), s"the last scene of $npc must need its vow kept")
+        (2 to 4).foreach(n => assertEquals(npcScenes.find(_.id == s"$npc.s$n").flatMap(_.requires), Some(s"$npc.s${n - 1}")))
+
   test("a dungeon built from the real pool follows its tier's themes and never meets a Boss twice"):
     for
       tiers <- DifficultyLoader.loadAll()

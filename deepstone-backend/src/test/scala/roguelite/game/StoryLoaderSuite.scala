@@ -15,7 +15,8 @@ class StoryLoaderSuite extends CatsEffectSuite:
       |  {"id":"npc.1.s1","npc":"npc.1","minChapter":1},
       |  {"id":"npc.1.s2","npc":"npc.1","minChapter":2,"requires":"npc.1.s1","offersVow":{"type":"NoPotion"}},
       |  {"id":"npc.1.s3","npc":"npc.1","minChapter":5,"requires":"npc.1.s2","requiresVowKept":true},
-      |  {"id":"npc.2.s1","npc":"npc.2","minChapter":1}
+      |  {"id":"npc.2.s1","npc":"npc.2","minChapter":1},
+      |  {"id":"npc.3.s1","npc":"npc.3","minChapter":4,"requiresRelicRead":4}
       |]""".stripMargin
 
   private def assertFails(json: String): IO[Unit] =
@@ -23,7 +24,7 @@ class StoryLoaderSuite extends CatsEffectSuite:
 
   test("loadAllFromJson keys each scene by its id"):
     for scenes <- StoryLoader.loadAllFromJson(fixture)
-    yield assertEquals(scenes.keySet, Set("npc.1.s1", "npc.1.s2", "npc.1.s3", "npc.2.s1"))
+    yield assertEquals(scenes.keySet, Set("npc.1.s1", "npc.1.s2", "npc.1.s3", "npc.2.s1", "npc.3.s1"))
 
   test("a plain scene has no requirement, no vow and no kept-vow condition"):
     for scenes <- StoryLoader.loadAllFromJson(fixture)
@@ -40,6 +41,15 @@ class StoryLoaderSuite extends CatsEffectSuite:
     yield
       assert(scenes("npc.1.s3").requiresVowKept)
       assertEquals(scenes("npc.1.s3").minChapter, 5)
+
+  test("a scene decodes the relic it asks to have been read, and most scenes ask for none"):
+    for scenes <- StoryLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(scenes("npc.3.s1").requiresRelicRead, Some(4))
+      assertEquals(scenes("npc.1.s1").requiresRelicRead, None)
+
+  test("a scene asking for the relic of Devoted 0 fails to parse"):
+    assertFails("""[{"id":"npc.1.s1","npc":"npc.1","minChapter":1,"requiresRelicRead":0}]""")
 
   test("every kind of vow decodes from its name"):
     val names = List("NoPotion", "NoOrdinaryKill", "DefeatElite", "GainTwoLevels", "FindRareItem")

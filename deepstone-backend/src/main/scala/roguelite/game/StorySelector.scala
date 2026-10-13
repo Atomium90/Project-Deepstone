@@ -72,7 +72,8 @@ object StorySelector:
 
   /** The scenes the story can play now: not played yet, asked for a chapter already reached, after the
     * scene they follow, and, for the ones that offer a vow, while no other vow is running. A scene
-    * that needs a kept vow waits for the NPC to have commented on it.
+    * that needs a kept vow waits for the NPC to have commented on it, and one that needs a relic
+    * waits for the player to have read it.
     */
   def eligibleScenes(scenes: Map[String, SceneDef], progress: StoryProgress): List[SceneDef] =
     val vowRunning = VowRules.hasActive(progress)
@@ -82,6 +83,7 @@ object StorySelector:
         scene.minChapter <= progress.chapter &&
         scene.requires.forall(progress.scenesSeen.contains) &&
         (!scene.requiresVowKept || vowKept(progress, scene.npc)) &&
+        scene.requiresRelicRead.forall(progress.relicsRead.contains) &&
         (scene.offersVow.isEmpty || !vowRunning)
       }
       .sortBy(_.id)

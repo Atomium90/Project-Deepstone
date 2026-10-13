@@ -45,6 +45,9 @@ enum VowType(val achievement: Boolean, val goal: Int):
   *   The vow the NPC puts to the player at the end of the scene, if any. An NPC has at most one.
   * @param requiresVowKept
   *   The scene only plays once the NPC's vow has been kept and the NPC has commented on it.
+  * @param requiresRelicRead
+  *   The scene only plays once the relic of this Devoted has been read, i.e. once that Devoted fell
+  *   while its inscription could be read (see [[StoryProgress.relicsRead]]).
   */
 case class SceneDef(
     id: String,
@@ -52,5 +55,6 @@ case class SceneDef(
     minChapter: Int,
     requires: Option[String] = None,
     offersVow: Option[VowType] = None,
-    requiresVowKept: Boolean = false
+    requiresVowKept: Boolean = false,
+    requiresRelicRead: Option[Int] = None
 )

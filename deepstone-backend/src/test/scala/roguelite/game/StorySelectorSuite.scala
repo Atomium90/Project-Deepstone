@@ -22,8 +22,9 @@ class StorySelectorSuite extends FunSuite:
   private def progress(chapter: Int = 0,
                        seen: Set[String] = Set.empty,
                        vows: Map[String, VowRecord] = Map.empty,
-                       lastRun: Option[RunOutcome] = None
-  ): StoryProgress = StoryProgress(chapter, lastRun, seen, vows)
+                       lastRun: Option[RunOutcome] = None,
+                       relicsRead: Set[Int] = Set.empty
+  ): StoryProgress = StoryProgress(chapter, lastRun, seen, vows, relicsRead = relicsRead)
 
   private def ids(list: List[SceneDef]): List[String] = list.map(_.id)
 
@@ -84,6 +85,21 @@ class StorySelectorSuite extends FunSuite:
     val rng    = Random(42L)
     val chosen = (1 to 20).map(_ => StorySelector.chooseOccupant(scenes, progress(chapter = 1), "npc.1", Set.empty, rng)).toSet
     assertEquals(chosen, Set("npc.1", "npc.2"))
+
+  // --- the relic a scene waits for --------------------------------------------------
+
+  private val waitingForARelic = Map(
+    "npc.3.s1" -> SceneDef("npc.3.s1", "npc.3", 1, requiresRelicRead = Some(4))
+  )
+
+  test("a scene that asks for a relic waits until it has been read"):
+    assertEquals(ids(StorySelector.eligibleScenes(waitingForARelic, progress(chapter = 3))), Nil)
+    assertEquals(ids(StorySelector.eligibleScenes(waitingForARelic, progress(chapter = 3, relicsRead = Set(1, 2)))), Nil)
+    assertEquals(ids(StorySelector.eligibleScenes(waitingForARelic, progress(chapter = 3, relicsRead = Set(4)))), List("npc.3.s1"))
+
+  test("a relic read does not make a scene play before its chapter"):
+    assertEquals(ids(StorySelector.eligibleScenes(Map("npc.3.s1" -> SceneDef("npc.3.s1", "npc.3", 4, requiresRelicRead = Some(4))),
+                                                  progress(chapter = 3, relicsRead = Set(4)))), Nil)
 
   // --- beforeFight ------------------------------------------------------------
 

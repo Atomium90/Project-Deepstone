@@ -28,10 +28,11 @@ object StoryLoader extends JsonResourceLoader[SceneDef, String]:
       _        <- Either.cond(j.npc.nonEmpty, (), s"Scene '${j.id}' has no npc")
       _        <- Either.cond(j.id.startsWith(s"${j.npc}."), (), s"Scene id '${j.id}' must start with its npc id '${j.npc}.'")
       _        <- Either.cond(j.minChapter >= 1, (), s"Scene '${j.id}' must ask for chapter 1 or later")
+      _        <- Either.cond(j.requiresRelicRead.forall(_ >= 1), (), s"Scene '${j.id}' must ask for a relic of Devoted 1 or later")
       offersVow <- j.offersVow match
         case None    => Right(None)
         case Some(v) => parseVowType(v.`type`).map(Some(_))
-    yield SceneDef(j.id, j.npc, j.minChapter, j.requires, offersVow, j.requiresVowKept.getOrElse(false))
+    yield SceneDef(j.id, j.npc, j.minChapter, j.requires, offersVow, j.requiresVowKept.getOrElse(false), j.requiresRelicRead)
 
   private def parseVowType(name: String): Either[String, VowType] =
     name match
@@ -99,7 +100,8 @@ object StoryLoader extends JsonResourceLoader[SceneDef, String]:
                                minChapter: Int,
                                requires: Option[String],
                                offersVow: Option[VowJson],
-                               requiresVowKept: Option[Boolean]
+                               requiresVowKept: Option[Boolean],
+                               requiresRelicRead: Option[Int]
   )
 
   private given Decoder[VowJson] = Decoder.instance:
@@ -114,4 +116,5 @@ object StoryLoader extends JsonResourceLoader[SceneDef, String]:
         requires        <- c.get[Option[String]]("requires")
         offersVow       <- c.get[Option[VowJson]]("offersVow")
         requiresVowKept <- c.get[Option[Boolean]]("requiresVowKept")
-      yield SceneJson(id, npc, minChapter, requires, offersVow, requiresVowKept)
+        requiresRelicRead <- c.get[Option[Int]]("requiresRelicRead")
+      yield SceneJson(id, npc, minChapter, requires, offersVow, requiresVowKept, requiresRelicRead)

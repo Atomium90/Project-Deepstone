@@ -2,10 +2,31 @@ package roguelite.game
 
 /** What an NPC asks of the player for a vow. Each kind is judged against the events of the run,
   * between the Rest where the vow was taken and the next one.
+  *
+  * A vow is either held to (`achievement` false): it is kept as long as nothing goes against it, and
+  * failed the moment something does. Or it is achieved (`achievement` true): it is kept the moment
+  * the player has done what was asked, `goal` times, and failed if the stretch ends first.
+  *
+  * @param achievement
+  *   Whether the vow asks the player to do something rather than to hold back from something.
+  * @param goal
+  *   How many times an achievement has to be done.
   */
-enum VowType:
+enum VowType(val achievement: Boolean, val goal: Int):
   /** Use no potion. */
-  case NoPotion
+  case NoPotion extends VowType(false, 1)
+
+  /** Kill no ordinary enemy: a Boss may be killed, a MiniBoss counts as an ordinary enemy. */
+  case NoOrdinaryKill extends VowType(false, 1)
+
+  /** Defeat an Elite. */
+  case DefeatElite extends VowType(true, 1)
+
+  /** Gain two levels. */
+  case GainTwoLevels extends VowType(true, 2)
+
+  /** Pick up an item of Rare quality or better. */
+  case FindRareItem extends VowType(true, 1)
 
 /** One scene of an NPC, loaded from `data/story.json`. The server only decides which scene plays and
   * when: the lines themselves are texts of the client's language file, under the keys

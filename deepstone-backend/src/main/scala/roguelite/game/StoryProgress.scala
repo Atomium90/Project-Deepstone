@@ -50,6 +50,10 @@ case class CardRecord(id: String, seen: Boolean = false)
   * @param relicsRead
   *   The Devoted whose relic has been read: they fell while the inscription could be read. A later
   *   scene can ask for it, never removed.
+  * @param vowProgress
+  *   The steps made towards the running vow, for the ones that ask for more than one (two levels).
+  *   Not saved: a vow still running when a session starts is failed, so there is never any progress
+  *   to restore.
   */
 case class StoryProgress(
     chapter: Int = 0,
@@ -58,7 +62,8 @@ case class StoryProgress(
     vows: Map[String, VowRecord] = Map.empty,
     cards: List[CardRecord] = Nil,
     deathStreak: Int = 0,
-    relicsRead: Set[Int] = Set.empty
+    relicsRead: Set[Int] = Set.empty,
+    vowProgress: Int = 0
 ):
 
   /** The relic of the Devoted `devoted` has been read. */

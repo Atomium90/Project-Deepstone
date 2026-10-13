@@ -32,9 +32,10 @@ object StoryRules:
   def onRunEnded(chapters: Map[Int, ChapterDef],
                  progress: StoryProgress,
                  outcome: RunOutcome,
-                 difficulty: Difficulty
+                 difficulty: Difficulty,
+                 vows: Map[String, VowType] = Map.empty
   ): StoryProgress =
-    val settled = VowRules.onRunEnded(progress, outcome)
+    val settled = VowRules.onRunEnded(progress, outcome, vows)
     val reached = if outcome == RunOutcome.Won then advanceChapter(chapters, settled.chapter, difficulty) else settled.chapter
     val streak  = if outcome == RunOutcome.Won then 0 else settled.deathStreak + 1
     val ended   = settled.copy(chapter = reached, lastRun = Some(outcome), deathStreak = streak)
@@ -57,7 +58,7 @@ object StoryRules:
         val answered = accept match
           case Some(taken) =>
             val state = if taken then VowState.Active else VowState.Declined
-            progress.copy(vows = progress.vows.updated(encounter.speaker, VowRecord(state)))
+            progress.copy(vows = progress.vows.updated(encounter.speaker, VowRecord(state)), vowProgress = 0)
           case None => progress
         Right(encounter match
           case Encounter.Scene(scene)         => answered.copy(scenesSeen = answered.scenesSeen + scene.id)

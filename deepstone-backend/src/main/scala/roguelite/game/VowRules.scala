@@ -4,10 +4,11 @@ package roguelite.game
   *
   * A vow is offered at the end of a scene. Turned down, it stays `Declined` and can be offered
   * again at a later visit. Taken, it is `Active` for a stretch of the run: from the Rest where it was
-  * taken to the next Rest, or to the end of the run when there is none. A fact of the run that goes
-  * against it fails it at once, otherwise it is kept when the stretch ends. Either way the NPC
-  * comments on it at the next visit (`reported = false` until then), and a failed vow is offered
-  * again.
+  * taken to the next Rest, or to the end of the run when there is none. A vow held to (see
+  * [[VowType.achievement]]) is failed at once by a fact of the run that goes against it, and kept when
+  * the stretch ends. A vow to achieve is kept at once when the player has done what was asked, and
+  * failed when the stretch ends first. Either way the NPC comments on it at the next visit
+  * (`reported = false` until then), and a failed vow is offered again.
   */
 object VowRules:
 
@@ -19,27 +20,51 @@ object VowRules:
   def hasActive(progress: StoryProgress): Boolean =
     progress.vows.values.exists(_.state == VowState.Active)
 
-  /** Whether `event` goes against `vow`. */
+  /** Whether `event` goes against `vow`, which fails it. */
   def breaks(vow: VowType, event: GameEvent): Boolean = (vow, event) match
-    case (VowType.NoPotion, GameEvent.ConsumableUsed(_)) => true
-    case _                                               => false
+    case (VowType.NoPotion, GameEvent.ConsumableUsed(_))                => true
+    case (VowType.NoOrdinaryKill, GameEvent.EnemyDefeated(isBoss, _, _, _)) => !isBoss
+    case _                                                              => false
 
-  /** Fails the running vow when one of the `events` of the run goes against it. */
+  /** Whether `event` is a step towards `vow`, which is kept once `vow.goal` steps are made. */
+  def advances(vow: VowType, event: GameEvent): Boolean = (vow, event) match
+    case (VowType.DefeatElite, GameEvent.EnemyDefeated(_, _, wasElite, _)) => wasElite
+    case (VowType.GainTwoLevels, GameEvent.LeveledUp(_))                   => true
+    case (VowType.FindRareItem, GameEvent.ItemPickedUp(_, rarity, _, _, _)) =>
+      rarity.ordinal >= Rarity.Rare.ordinal
+    case _ => false
+
+  /** Moves the running vow on with the `events` of the run: a fact that goes against it fails it at
+    * once, the steps made towards an achievement keep it as soon as there are enough of them.
+    */
   def onEvents(progress: StoryProgress, vows: Map[String, VowType], events: List[GameEvent]): StoryProgress =
-    progress.vows
-      .collectFirst { case (npc, record) if record.state == VowState.Active => npc }
-      .filter(npc => vows.get(npc).exists(vow => events.exists(breaks(vow, _))))
-      .fold(progress)(npc => progress.copy(vows = progress.vows.updated(npc, VowRecord(VowState.Failed, reported = false))))
+    val running = for
+      (npc, record) <- progress.vows.find((_, record) => record.state == VowState.Active)
+      vow           <- vows.get(npc)
+    yield (npc, vow)
+    running.fold(progress):
+      (npc, vow) =>
+        def judged(state: VowState) =
+          progress.copy(vows = progress.vows.updated(npc, VowRecord(state, reported = false)), vowProgress = 0)
+        val steps = progress.vowProgress + events.count(advances(vow, _))
+        if events.exists(breaks(vow, _)) then judged(VowState.Failed)
+        else if vow.achievement && steps >= vow.goal then judged(VowState.Kept)
+        else progress.copy(vowProgress = steps)
 
-  /** The player walked into a Rest: the stretch of the running vow is over, and it was kept. */
-  def onRestEntered(progress: StoryProgress): StoryProgress = settleActive(progress, kept = true)
+  /** The player walked into a Rest: the stretch of the running vow is over. A vow held to was kept, a
+    * vow to achieve was not achieved in time.
+    */
+  def onRestEntered(progress: StoryProgress, vows: Map[String, VowType]): StoryProgress =
+    settleActive(progress, vows, vow => !vow.achievement)
 
-  /** The run is over: a running vow is kept by winning the run, and failed by losing it. */
-  def onRunEnded(progress: StoryProgress, outcome: RunOutcome): StoryProgress =
-    settleActive(progress, kept = outcome == RunOutcome.Won)
+  /** The run is over: a running vow held to is kept by winning the run and failed by losing it, a vow to
+    * achieve that is still running was not achieved.
+    */
+  def onRunEnded(progress: StoryProgress, outcome: RunOutcome, vows: Map[String, VowType]): StoryProgress =
+    settleActive(progress, vows, vow => !vow.achievement && outcome == RunOutcome.Won)
 
   /** A vow still running when a session starts belongs to a run that is gone, so it failed. */
-  def onSessionStart(progress: StoryProgress): StoryProgress = settleActive(progress, kept = false)
+  def onSessionStart(progress: StoryProgress): StoryProgress = settleActive(progress, Map.empty, _ => false)
 
   /** The NPC has commented on its judged vow. */
   def reported(progress: StoryProgress, npc: String): StoryProgress =
@@ -58,9 +83,19 @@ object VowRules:
     !hasActive(progress) &&
       progress.vows.get(npc).exists(record => record.state == VowState.Declined || record.state == VowState.Failed)
 
-  private def settleActive(progress: StoryProgress, kept: Boolean): StoryProgress =
-    val settled = if kept then VowState.Kept else VowState.Failed
-    progress.copy(vows = progress.vows.map {
-      case (npc, record) if record.state == VowState.Active => npc -> VowRecord(settled, reported = false)
-      case other                                            => other
-    })
+  /** Judges the running vow at the end of its stretch: kept when `keptAtEnd` says so of its type, failed
+    * otherwise, and failed too when the type is unknown.
+    */
+  private def settleActive(progress: StoryProgress,
+                           vows: Map[String, VowType],
+                           keptAtEnd: VowType => Boolean
+  ): StoryProgress =
+    progress.copy(
+      vows = progress.vows.map {
+        case (npc, record) if record.state == VowState.Active =>
+          val kept = vows.get(npc).exists(keptAtEnd)
+          npc -> VowRecord(if kept then VowState.Kept else VowState.Failed, reported = false)
+        case other => other
+      },
+      vowProgress = 0
+    )

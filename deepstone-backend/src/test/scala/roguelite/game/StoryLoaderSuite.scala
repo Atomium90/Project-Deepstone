@@ -41,6 +41,12 @@ class StoryLoaderSuite extends CatsEffectSuite:
       assert(scenes("npc.1.s3").requiresVowKept)
       assertEquals(scenes("npc.1.s3").minChapter, 5)
 
+  test("every kind of vow decodes from its name"):
+    val names = List("NoPotion", "NoOrdinaryKill", "DefeatElite", "GainTwoLevels", "FindRareItem")
+    val json  = names.zipWithIndex.map((name, i) => s"""{"id":"npc.$i.s1","npc":"npc.$i","minChapter":1,"offersVow":{"type":"$name"}}""")
+    val decoded = StoryLoader.loadAllFromJson("[" + json.mkString(",") + "]")
+    decoded.map(scenes => assertEquals(scenes.values.toList.sortBy(_.id).flatMap(_.offersVow), VowType.values.toList))
+
   test("an unknown vow type fails to parse"):
     assertFails("""[{"id":"npc.1.s1","npc":"npc.1","minChapter":1,"offersVow":{"type":"Nonsense"}}]""")
 

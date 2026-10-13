@@ -35,8 +35,12 @@ object StoryLoader extends JsonResourceLoader[SceneDef, String]:
 
   private def parseVowType(name: String): Either[String, VowType] =
     name match
-      case "NoPotion" => Right(VowType.NoPotion)
-      case other      => Left(s"Unknown vow type: '$other'")
+      case "NoPotion"       => Right(VowType.NoPotion)
+      case "NoOrdinaryKill" => Right(VowType.NoOrdinaryKill)
+      case "DefeatElite"    => Right(VowType.DefeatElite)
+      case "GainTwoLevels"  => Right(VowType.GainTwoLevels)
+      case "FindRareItem"   => Right(VowType.FindRareItem)
+      case other            => Left(s"Unknown vow type: '$other'")
 
   private def rejectDuplicateIds(scenes: List[SceneDef]): Either[String, List[SceneDef]] =
     scenes.groupBy(_.id).collectFirst { case (id, defs) if defs.size > 1 => id } match

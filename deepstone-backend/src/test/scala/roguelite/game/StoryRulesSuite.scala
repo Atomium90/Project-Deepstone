@@ -67,10 +67,11 @@ class StoryRulesSuite extends FunSuite:
 
   test("the end of a run judges the vow that was running"):
     val running = StoryProgress(vows = Map("npc.1" -> VowRecord(VowState.Active)))
-    assertEquals(StoryRules.onRunEnded(chapters, running, RunOutcome.Won, Difficulty.Easy).vows("npc.1"),
+    val vows = Map("npc.1" -> VowType.NoPotion)
+    assertEquals(StoryRules.onRunEnded(chapters, running, RunOutcome.Won, Difficulty.Easy, vows).vows("npc.1"),
                  VowRecord(VowState.Kept, reported = false)
     )
-    assertEquals(StoryRules.onRunEnded(chapters, running, RunOutcome.Lost, Difficulty.Easy).vows("npc.1"),
+    assertEquals(StoryRules.onRunEnded(chapters, running, RunOutcome.Lost, Difficulty.Easy, vows).vows("npc.1"),
                  VowRecord(VowState.Failed, reported = false)
     )
 
@@ -84,6 +85,10 @@ class StoryRulesSuite extends FunSuite:
     val taken = StoryRules.complete(StoryProgress.empty, Encounter.Scene(offering), Some(true)).toOption.get
     assertEquals(taken.vows("npc.1"), VowRecord(VowState.Active))
     assertEquals(taken.scenesSeen, Set("npc.1.s2"))
+
+  test("taking a vow starts it from no steps, even if the last one left some behind"):
+    val taken = StoryRules.complete(StoryProgress(vowProgress = 1), Encounter.Scene(offering), Some(true)).toOption.get
+    assertEquals(taken.vowProgress, 0)
 
   test("turning a vow down records it as declined"):
     val declined = StoryRules.complete(StoryProgress.empty, Encounter.Scene(offering), Some(false)).toOption.get

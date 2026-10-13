@@ -356,7 +356,7 @@ class GameSession private (
   private def onRestEntered(exp: ExplorationState): IO[ExplorationState] =
     for
       progress <- storyRef.get
-      judged = VowRules.onRestEntered(progress)
+      judged = VowRules.onRestEntered(progress, vowTypes)
       room   = exp.dungeon.currentRoom
       met = exp.dungeon.visitedRoomIds
         .filterNot(_ == room.id)
@@ -457,7 +457,7 @@ class GameSession private (
           val afterRun = events.foldLeft(afterFacts):
             case (current, GameEvent.RunEnded(victory, difficulty, _)) =>
               val outcome = if victory then RunOutcome.Won else RunOutcome.Lost
-              StoryRules.onRunEnded(chapterDefs, current, outcome, difficulty)
+              StoryRules.onRunEnded(chapterDefs, current, outcome, difficulty, vowTypes)
             case (current, _) => current
           updateStory(progress, afterRun)
 

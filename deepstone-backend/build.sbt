@@ -72,8 +72,8 @@ lazy val root = (project in file("."))
       "org.xerial"    % "sqlite-jdbc"   % "3.53.4.0",
 
       // Logging
-      "org.typelevel" %% "log4cats-slf4j"  % "2.6.0",
-      "ch.qos.logback" % "logback-classic" % "1.5.38",
+      "org.typelevel" %% "log4cats-slf4j"  % "2.8.0",
+      "ch.qos.logback" % "logback-classic" % "1.6.5",
 
       // Testing
       "org.scalameta" %% "munit"               % munitVersion % Test,

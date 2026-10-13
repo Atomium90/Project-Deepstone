@@ -51,11 +51,9 @@ class InteractionResolverSuite extends FunSuite:
 
   def resolver(itemDefs: Map[String, Item] = Map.empty,
                rng: Random = Random(),
-               npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
-               clock: () => Long = () => System.currentTimeMillis(),
                perkDefs: Map[String, PerkDef] = Map.empty
   ): InteractionResolver =
-    InteractionResolver(enemyStatsMap, itemDefs, rng, npcDialogueDefs, clock, perkDefs = perkDefs)
+    InteractionResolver(enemyStatsMap, itemDefs, rng, perkDefs = perkDefs)
 
   def dungeonWith(entities: List[Entity] = Nil, extraRooms: Map[String, Room] = Map.empty): Dungeon =
     val r1 = makeRoom("r1", entities = entities)
@@ -968,123 +966,9 @@ class InteractionResolverSuite extends FunSuite:
 
   // --- Npc -----------------------------------------------------------------------
 
-  /** Deterministic time source for the cooldown tests: starts at an arbitrary non-zero instant
-    * (so "now - lastShownAt" arithmetic can't accidentally look like the very first interaction)
-    * and only moves forward when a test explicitly calls `advance`. */
-  class FakeClock(startAt: Long = 1_000_000L):
-    private var current: Long = startAt
-    def now(): Long             = current
-    def advance(ms: Long): Unit = current += ms
-
-  def npc(id: String = "sage"): Npc = Npc(id = id, x = 3, y = 3, name = "Sage")
-
-  def dialogueDef(id: String = "sage",
-                  dialogue: List[String] = List("Line one.", "Line two."),
-                  fallbackDialogue: List[String] = List("Fallback one.", "Fallback two.")
-  ): NpcDialogueDef =
-    NpcDialogueDef(id = id, name = "Sage", dialogue = dialogue, fallbackDialogue = fallbackDialogue)
-
-  val cooldown: Long = InteractionResolver.NpcInteractCooldownMillis + 100L
-
-  test("First interact with an Npc shows the first line, advances the index, and logs nothing"):
-    val clock                 = FakeClock()
-    val state                 = explorationAt(3, 3, entities = List(npc()))
-    val TransitionResult(next, log, dialogue, _) =
-      resolver(npcDialogueDefs = Map("sage" -> dialogueDef()), clock = clock.now)
-        .interact(state, "sage")
-    assertEquals(dialogue.map(_.npcName), Some("Sage"))
-    assertEquals(dialogue.map(_.line), Some("Line one."))
+  test("Interact with an Npc changes nothing here, GameSession opens the conversation"):
+    val state = explorationAt(3, 3, entities = List(Npc(id = "npc.1", x = 3, y = 3, name = "Wren")))
+    val TransitionResult(next, log, _, events) = resolver().interact(state, "npc.1")
+    assertEquals(next, state)
     assertEquals(log, Nil)
-    val persisted =
-      next.asInstanceOf[ExplorationState].dungeon.currentRoom.entityById("sage").collect { case n: Npc => n }
-    assertEquals(persisted.map(_.dialogueIndex), Some(1))
-
-  test("Re-interacting within the cooldown redisplays the same line without advancing"):
-    val clock    = FakeClock()
-    val resolve  = resolver(npcDialogueDefs = Map("sage" -> dialogueDef()), clock = clock.now)
-    val state    = explorationAt(3, 3, entities = List(npc()))
-    val TransitionResult(next1, _, d1, _) = resolve.interact(state, "sage")
-    clock.advance(500L)
-    val TransitionResult(next2, _, d2, _) = resolve.interact(next1.asInstanceOf[ExplorationState], "sage")
-    assertEquals(d1.map(_.line), Some("Line one."))
-    assertEquals(d2.map(_.line), Some("Line one."))
-    val persisted =
-      next2.asInstanceOf[ExplorationState].dungeon.currentRoom.entityById("sage").collect { case n: Npc => n }
-    assertEquals(persisted.map(_.dialogueIndex), Some(1))
-
-  test("Re-interacting after the cooldown elapses advances to the next line"):
-    val clock   = FakeClock()
-    val resolve = resolver(npcDialogueDefs = Map("sage" -> dialogueDef()), clock = clock.now)
-    val state   = explorationAt(3, 3, entities = List(npc()))
-    val TransitionResult(next1, _, _, _) = resolve.interact(state, "sage")
-    clock.advance(cooldown)
-    val TransitionResult(_, _, d2, _) = resolve.interact(next1.asInstanceOf[ExplorationState], "sage")
-    assertEquals(d2.map(_.line), Some("Line two."))
-
-  test("Exhausting the main dialogue falls back and rotates without repeating the same line twice in a row"):
-    val clock   = FakeClock()
-    val defs    = Map("sage" -> dialogueDef(dialogue = List("Only line.")))
-    val resolve = resolver(npcDialogueDefs = defs, clock = clock.now)
-    val initial = explorationAt(3, 3, entities = List(npc()))
-
-    val TransitionResult(afterFirst, _, firstLine, _) = resolve.interact(initial, "sage")
-    assertEquals(firstLine.map(_.line), Some("Only line."))
-
-    val (_, shownFallbacks) = (1 to 4).foldLeft((afterFirst.asInstanceOf[ExplorationState], List.empty[String])):
-      case ((state, acc), _) =>
-        clock.advance(cooldown)
-        val TransitionResult(next, _, d, _) = resolve.interact(state, "sage")
-        (next.asInstanceOf[ExplorationState], acc :+ d.map(_.line).getOrElse(fail("expected a dialogue line")))
-
-    assert(shownFallbacks.forall(l => List("Fallback one.", "Fallback two.").contains(l)),
-           s"expected only fallback lines: $shownFallbacks"
-    )
-    shownFallbacks.sliding(2).foreach:
-      case Seq(a, b) => assertNotEquals(a, b)
-      case _         => ()
-
-  test("Single-entry fallback pool always shows that one line"):
-    val clock   = FakeClock()
-    val defs    = Map(
-      "sage" -> dialogueDef(dialogue = List("Only line."), fallbackDialogue = List("The one fallback."))
-    )
-    val resolve = resolver(npcDialogueDefs = defs, clock = clock.now)
-    val initial = explorationAt(3, 3, entities = List(npc()))
-
-    val TransitionResult(afterFirst, _, _, _) = resolve.interact(initial, "sage")
-
-    val (_, shown) = (1 to 3).foldLeft((afterFirst.asInstanceOf[ExplorationState], List.empty[String])):
-      case ((state, acc), _) =>
-        clock.advance(cooldown)
-        val TransitionResult(next, _, d, _) = resolve.interact(state, "sage")
-        (next.asInstanceOf[ExplorationState], acc :+ d.map(_.line).getOrElse(fail("expected a dialogue line")))
-
-    assertEquals(shown, List("The one fallback.", "The one fallback.", "The one fallback."))
-
-  test("Empty fallback pool keeps re-showing the last main line"):
-    val clock   = FakeClock()
-    val defs    = Map("sage" -> dialogueDef(dialogue = List("First.", "Last."), fallbackDialogue = Nil))
-    val resolve = resolver(npcDialogueDefs = defs, clock = clock.now)
-    val initial = explorationAt(3, 3, entities = List(npc()))
-
-    val TransitionResult(afterFirst, _, d1, _) = resolve.interact(initial, "sage")
-    assertEquals(d1.map(_.line), Some("First."))
-
-    clock.advance(cooldown)
-    val TransitionResult(afterSecond, _, d2, _) = resolve.interact(afterFirst.asInstanceOf[ExplorationState], "sage")
-    assertEquals(d2.map(_.line), Some("Last."))
-
-    clock.advance(cooldown)
-    val TransitionResult(afterThird, _, d3, _) = resolve.interact(afterSecond.asInstanceOf[ExplorationState], "sage")
-    assertEquals(d3.map(_.line), Some("Last."))
-
-    clock.advance(cooldown)
-    val TransitionResult(_, _, d4, _) = resolve.interact(afterThird.asInstanceOf[ExplorationState], "sage")
-    assertEquals(d4.map(_.line), Some("Last."))
-
-  test("Interact with an Npc missing from the dialogue catalog degrades gracefully"):
-    val state                 = explorationAt(3, 3, entities = List(npc()))
-    val TransitionResult(next, log, dialogue, _) = resolver().interact(state, "sage")
-    assert(next.isInstanceOf[ExplorationState])
-    assertEquals(dialogue, None)
-    assert(log.exists(_.contains("nothing to say")), s"expected fallback message: $log")
+    assertEquals(events, Nil)

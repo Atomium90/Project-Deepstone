@@ -180,33 +180,24 @@ case class LockedDoor(
   def toView: EntityView =
     EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString, direction = Some(direction.toString.toUpperCase))
 
-/** A static, friendly character. Interacting with it shows one line of dialogue and advances to the
-  * next on later interactions - see [[InteractionResolver]] for the cooldown/rotation rules.
+/** A static, friendly character standing in a Rest room. Speaking to it opens a conversation that
+  * depends on what the story remembers, see [[roguelite.engine.GameSession]]. The conversation is
+  * never kept on the entity: it lives on [[roguelite.engine.ExplorationState.pendingScene]].
   *
+  * @param id
+  *   The id of the story NPC that stands here, e.g. `npc.1` (the NPC of a scene in story.json). A
+  *   room is authored with the NPC that stands there when nothing else has a scene to play, and
+  *   [[roguelite.engine.GameSession]] gives the entity the id of whoever it seats on entering the
+  *   room. The texts shown, the name included, come from the language file under that id.
   * @param name
-  *   Duplicated from the matching entry in npcs.json (same pattern as [[Enemy.label]] duplicating
-  *   enemies.json), so [[toView]] never needs the dialogue catalog just to render a label.
-  * @param dialogueIndex
-  *   How many lines of the main `dialogue` list have been shown so far. Internal only, never
-  *   exposed via [[toView]] (same convention as [[Chest.trapped]]/[[Door.doorKind]]).
-  * @param fallbackIndex
-  *   `None` until the main list is exhausted and the first fallback line is shown; `Some(i)` means
-  *   fallback line `i` was shown last, so the next one is `(i + 1) % fallbackDialogue.length`.
-  *   Kept as `Option` rather than defaulting to 0 so the first fallback trigger doesn't skip
-  *   `fallbackDialogue(0)`.
-  * @param lastShown
-  *   The (timestamp, line) last displayed, both set together. While defined and within
-  *   [[InteractionResolver.NpcInteractCooldownMillis]] of now, re-interacting redisplays this same
-  *   line instead of advancing - so a misclick can't skip past a line before it's been read.
+  *   An authoring label only, never shown: the name the player sees is the text
+  *   `story.<id>.name`.
   */
 case class Npc(
     id: String,
     x: Int,
     y: Int,
-    name: String,
-    dialogueIndex: Int = 0,
-    fallbackIndex: Option[Int] = None,
-    lastShown: Option[(Long, String)] = None
+    name: String
 ) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "npc", x = x, y = y, label = name)
 

@@ -22,7 +22,6 @@ import roguelite.game.{
   DifficultyLoader,
   EnemyLoader,
   ItemLoader,
-  NpcDialogueLoader,
   PerkLoader,
   RoomLoader,
   SetLoader,
@@ -88,7 +87,6 @@ object Main extends IOApp:
             classDefs   <- ClassLoader.loadAll()
             abilityDefs <- AbilityLoader.loadAll()
             upgradeDefs <- UpgradeLoader.loadAll()
-            npcDialogueDefs <- NpcDialogueLoader.loadAll()
             achievementDefs <- AchievementLoader.loadAll()
             setDefs <- SetLoader.loadAll()
             perkDefs <- PerkLoader.loadAll()
@@ -97,7 +95,7 @@ object Main extends IOApp:
             chapterDefs <- ChapterLoader.loadAll()
             _ <- logger.info(
               s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
-                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, ${npcDialogueDefs.size} npc dialogues, " +
+                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, " +
                 s"${achievementDefs.size} achievements, ${setDefs.size} equipment sets, ${perkDefs.size} run perks, " +
                 s"${difficultyDefs.size} difficulty tiers, ${sceneDefs.size} NPC scenes, ${chapterDefs.size} chapters."
             )
@@ -111,7 +109,6 @@ object Main extends IOApp:
                                         classDefs,
                                         upgradeDefs,
                                         resolver,
-                                        npcDialogueDefs = npcDialogueDefs,
                                         setDefs = setDefs,
                                         perkDefs = perkDefs,
                                         difficultyDefs = difficultyDefs

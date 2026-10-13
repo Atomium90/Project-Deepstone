@@ -11,7 +11,6 @@ import roguelite.game.{
   EquipmentResolver,
   InteractionResolver,
   Item,
-  NpcDialogueDef,
   PerkDef,
   PerkEffect,
   PickupOutcome,
@@ -50,9 +49,6 @@ import roguelite.game.UpgradeEffect
   * @param rng
   *   Random instance for dungeon assembly and chest loot rolls. Inject a seeded one for
   *   deterministic tests.
-  * @param npcDialogueDefs
-  *   NPC dialogue catalog (see [[roguelite.game.NpcDialogueLoader]]), passed through to
-  *   [[InteractionResolver]].
   * @param perkDefs
   *   The loaded run-perk catalog, passed through to [[InteractionResolver]] for the Lucky Find
   *   chest hook. `StartRun`'s own perk validation doesn't need this separately - it reads the
@@ -69,13 +65,12 @@ class StateMachine(roomPool: Map[String, Room],
                    upgradeDefs: Map[String, UpgradeDef],
                    resolver: CombatResolver,
                    rng: Random = Random(),
-                   npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
                    setDefs: Map[String, SetDef] = Map.empty,
                    perkDefs: Map[String, PerkDef] = Map.empty,
                    difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty
 ):
   private val interactionResolver =
-    InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs, setDefs = setDefs, perkDefs = perkDefs)
+    InteractionResolver(enemyStats, itemDefs, rng, setDefs = setDefs, perkDefs = perkDefs)
 
   /** Dev tooling only: builds an `ExplorationState` containing just the given single room,
     * bypassing `DungeonBuilder` entirely - used by the Tiled room-authoring debug tool (see

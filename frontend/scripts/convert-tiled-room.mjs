@@ -108,8 +108,9 @@
 //        door:         direction (UP|DOWN|LEFT|RIGHT), role (prev|next) - both required; branch
 //                      (string, optional - only for a Fork room's two distinct exits)
 //        locked_door:  direction, targetRoomId (required), doorTag (string, optional)
-//        npc:          name (string, OPTIONAL - "TODO" placeholder + warning if left blank, must
-//                      eventually match a name in npcs.json for dialogue to resolve)
+//        npc:          name (string, OPTIONAL - "TODO" placeholder + warning if left blank, an
+//                      authoring label only). Its `id` must be the id of a story NPC (npc.1
+//                      today), which is who stands there unless another NPC has a scene to play.
 //        sanctuary:    no extra fields - id/x/y only. The single object a Sanctuary room needs is
 //                      typically the halo sprite's own placement - see "lightHalo" above.
 //

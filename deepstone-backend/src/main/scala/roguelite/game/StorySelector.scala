@@ -46,6 +46,21 @@ object StorySelector:
           case Some(scene) => Encounter.Scene(scene)
           case None        => Encounter.Idle(npc, idleContext(progress), offer = vow.filter(_ => canOffer))
 
+  /** The scene whose choice and reply texts belong to the vow `encounter` ends by offering, or `None`
+    * when it offers none. A scene that offers the vow carries its own texts, any other conversation
+    * (a comment on a failed vow, a short line) reuses the texts of the NPC's offering scene.
+    */
+  def offerScene(scenes: Map[String, SceneDef], encounter: Encounter): Option[String] =
+    encounter match
+      case _ if encounter.offeredVow.isEmpty => None
+      case Encounter.Scene(scene)            => Some(scene.id)
+      case other =>
+        scenes.values.toList
+          .filter(scene => scene.npc == other.speaker && scene.offersVow.isDefined)
+          .sortBy(_.id)
+          .headOption
+          .map(_.id)
+
   /** The scenes the story can play now: not played yet, asked for a chapter already reached, after the
     * scene they follow, and, for the ones that offer a vow, while no other vow is running. A scene
     * that needs a kept vow waits for the NPC to have commented on it.

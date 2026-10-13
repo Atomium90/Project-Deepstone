@@ -85,6 +85,23 @@ class StorySelectorSuite extends FunSuite:
     val chosen = (1 to 20).map(_ => StorySelector.chooseOccupant(scenes, progress(chapter = 1), "npc.1", Set.empty, rng)).toSet
     assertEquals(chosen, Set("npc.1", "npc.2"))
 
+  // --- offerScene -----------------------------------------------------------
+
+  test("a scene that offers a vow carries the texts of its own choice"):
+    assertEquals(StorySelector.offerScene(scenes, Encounter.Scene(scenes("npc.1.s2"))), Some("npc.1.s2"))
+
+  test("a scene that offers no vow has no scene for a choice"):
+    assertEquals(StorySelector.offerScene(scenes, Encounter.Scene(scenes("npc.1.s1"))), None)
+
+  test("a comment on a failed vow, or a short line, reuse the texts of the NPC's offering scene"):
+    val report = Encounter.VowReport("npc.2", kept = false, offer = Some(VowType.NoPotion))
+    val line   = Encounter.Idle("npc.1", IdleContext.General, Some(VowType.NoPotion))
+    assertEquals(StorySelector.offerScene(scenes, report), Some("npc.2.s2"))
+    assertEquals(StorySelector.offerScene(scenes, line), Some("npc.1.s2"))
+
+  test("a conversation that offers no vow has no scene for a choice"):
+    assertEquals(StorySelector.offerScene(scenes, Encounter.Idle("npc.1", IdleContext.General, None)), None)
+
   // --- chooseEncounter ------------------------------------------------------
 
   test("an NPC plays its next scene"):

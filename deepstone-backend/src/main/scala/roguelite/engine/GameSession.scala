@@ -2,6 +2,7 @@ package roguelite.engine
 
 import cats.effect.IO
 import cats.effect.kernel.Ref
+import cats.syntax.foldable.*
 import roguelite.game.MetaProgression
 import roguelite.db.Database
 import roguelite.game.Item
@@ -12,6 +13,7 @@ import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
+import roguelite.game.{ ChapterDef, Npc, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -32,6 +34,7 @@ class GameSession private (
     stateRef: Ref[IO, GameState],
     metaRef: Ref[IO, MetaProgression],
     achievementRef: Ref[IO, AchievementProgress],
+    storyRef: Ref[IO, StoryProgress],
     stateMachine: StateMachine,
     database: Database,
     itemDefs: Map[String, Item],
@@ -44,8 +47,13 @@ class GameSession private (
     perkDefs: Map[String, PerkDef] = Map.empty,
     rng: Random = Random(),
     abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
-    difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty
+    difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty,
+    sceneDefs: Map[String, SceneDef] = Map.empty,
+    chapterDefs: Map[Int, ChapterDef] = Map.empty
 ):
+
+  /** The vow each NPC offers, from the scene catalog. */
+  private val vowTypes = VowRules.vowTypes(sceneDefs)
 
   /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
     * action or replaced by the next fresh hub entry, or nothing while perks are still locked. See
@@ -67,6 +75,10 @@ class GameSession private (
         handleStartRun(action, difficulty.getOrElse(StateMachine.DefaultDifficulty))
       case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId)) =>
         if debugMode then handleDebugLoadRoom(roomId) else rejectDebugLoadRoom
+      case Interact(targetId) =>
+        handleInteract(action, targetId)
+      case SceneDone(accept) =>
+        handleSceneDone(accept)
       case _ =>
         handleTransition(action)
     for
@@ -179,6 +191,7 @@ class GameSession private (
       postResult    <- handlePostTransition(prev, transitionResult.state)
       (finalNext, extraLog) = postResult
       newlyUnlocked <- processAchievementEvents(transitionResult.events)
+      _             <- processStoryEvents(transitionResult.events)
     yield finalNext
       .toStateUpdate(transitionResult.log ++ extraLog, transitionResult.dialogue)
       .copy(newlyUnlocked = newlyUnlocked,
@@ -215,6 +228,8 @@ class GameSession private (
     *   - `GameOver → HubState`: enrich the placeholder HubState with real MetaProgression, after
     *                            topping up the Shards of a player stuck without a kit
     *   - `Hub → Exploration`  : apply purchased upgrade bonuses to the starting player
+    *   - `Exploration → Exploration` into a Rest not visited yet: judge the running vow and seat the
+    *                            NPC who will be there (see [[onRestEntered]])
     */
   private def handlePostTransition(prev: GameState, next: GameState): IO[(GameState, List[String])] =
     (prev, next) match
@@ -250,8 +265,110 @@ class GameSession private (
             val boosted = applyMetaBonuses(exp, meta)
             stateRef.set(boosted) *> IO.pure((boosted, Nil))
 
+      case (before: ExplorationState, after: ExplorationState) if enteredNewRest(before, after) =>
+        onRestEntered(after).map(seated => (seated, Nil))
+
       case _ =>
         IO.pure((next, Nil))
+
+  /** Whether `after` is the first time the player walks into a Rest room: a room that is neither the
+    * one they were in nor one they have already left. Going back into a Rest they know is not an
+    * entry, so nothing is judged or seated a second time.
+    */
+  private def enteredNewRest(before: ExplorationState, after: ExplorationState): Boolean =
+    val room = after.dungeon.currentRoom
+    room.roomType == RoomType.Rest &&
+    room.id != before.dungeon.currentRoomId &&
+    !before.dungeon.visitedRoomIds.contains(room.id)
+
+  /** The player has walked into a new Rest. The vow that was running ends here, kept, and the NPC
+    * of the room is chosen from what the story remembers: its [[Npc]] entity, authored with the NPC
+    * that stands there when nothing else has a scene to play, takes the chosen NPC's id. The NPCs
+    * already met at the Rests of this run are the ones left on the rooms the player has visited.
+    */
+  private def onRestEntered(exp: ExplorationState): IO[ExplorationState] =
+    for
+      progress <- storyRef.get
+      judged = VowRules.onRestEntered(progress)
+      room   = exp.dungeon.currentRoom
+      met = exp.dungeon.visitedRoomIds
+        .filterNot(_ == room.id)
+        .flatMap(exp.dungeon.rooms.get)
+        .filter(_.roomType == RoomType.Rest)
+        .flatMap(_.entities.collect { case npc: Npc => npc.id })
+      seated = room.entities.collectFirst { case npc: Npc => npc }.fold(exp) {
+        slot =>
+          val occupant = StorySelector.chooseOccupant(sceneDefs, judged, slot.id, met, rng)
+          val seatedRoom = room.updateEntity(slot.id):
+            case npc: Npc => npc.copy(id = occupant)
+            case other    => other
+          exp.copy(dungeon = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(room.id, seatedRoom)))
+      }
+      _ <- updateStory(progress, judged)
+      _ <- stateRef.set(seated)
+    yield seated
+
+  // -----------------------------------------------------------------------
+  // Internal: conversations with the NPCs of the Rest rooms
+  // -----------------------------------------------------------------------
+
+  /** Speaking to a Rest NPC opens a conversation, which depends on what the story remembers, so it is
+    * decided here rather than in the pure state machine. Interacting with anything else goes through
+    * the state machine as usual, and so does speaking while a choice or a conversation is pending
+    * (the state machine blocks it).
+    */
+  private def handleInteract(action: PlayerAction, targetId: String): IO[StateUpdate] =
+    stateRef.get.flatMap:
+      case exp: ExplorationState
+          if exp.pendingEquipChoice.isEmpty && exp.pendingRewardChoice.isEmpty && exp.pendingScene.isEmpty =>
+        exp.dungeon.currentRoom.entityById(targetId) match
+          case Some(npc: Npc) => startConversation(exp, npc)
+          case _              => handleTransition(action)
+      case _ => handleTransition(action)
+
+  private def startConversation(exp: ExplorationState, npc: Npc): IO[StateUpdate] =
+    storyRef.get.flatMap:
+      progress =>
+        val encounter = StorySelector.chooseEncounter(sceneDefs, progress, npc.id)
+        val next      = exp.copy(pendingScene = Some(PendingScene(encounter, StorySelector.offerScene(sceneDefs, encounter))))
+        stateRef.set(next).as(next.toStateUpdate())
+
+  /** The player has read the pending conversation to its last line, and answered the vow it offered
+    * if it did. What changes is checked and saved, and the conversation ends. An answer the
+    * conversation did not call for, or none when it did, leaves it pending.
+    */
+  private def handleSceneDone(accept: Option[Boolean]): IO[StateUpdate] =
+    stateRef.get.flatMap:
+      case exp: ExplorationState if exp.pendingScene.isDefined =>
+        storyRef.get.flatMap:
+          progress =>
+            StoryRules.complete(progress, exp.pendingScene.get.encounter, accept) match
+              case Left(err) => IO.pure(exp.toStateUpdate(List(err)))
+              case Right(next) =>
+                val done = exp.copy(pendingScene = None)
+                updateStory(progress, next) *> stateRef.set(done).as(done.toStateUpdate())
+      case state => IO.pure(state.toStateUpdate(List("There is no conversation to finish.")))
+
+  /** What a transition's facts change in the story: a potion drunk fails a vow against potions, and a
+    * run that ends is judged (the running vow, the chapter a victory opens, the outcome the NPCs
+    * comment on).
+    */
+  private def processStoryEvents(events: List[GameEvent]): IO[Unit] =
+    if events.isEmpty then IO.unit
+    else
+      storyRef.get.flatMap:
+        progress =>
+          val afterFacts = VowRules.onEvents(progress, vowTypes, events)
+          val afterRun = events.foldLeft(afterFacts):
+            case (current, GameEvent.RunEnded(victory, difficulty, _)) =>
+              val outcome = if victory then RunOutcome.Won else RunOutcome.Lost
+              StoryRules.onRunEnded(chapterDefs, current, outcome, difficulty)
+            case (current, _) => current
+          updateStory(progress, afterRun)
+
+  /** Save what changed between two states of the story, then keep the new one. */
+  private def updateStory(prev: StoryProgress, next: StoryProgress): IO[Unit] =
+    GameSession.persistStory(database, prev, next) *> storyRef.set(next)
 
   /** Add a [[ShardTopUp.Grant]] to the balance, in memory and in the database. */
   private def applyShardTopUp(meta: MetaProgression, grant: ShardTopUp.Grant): IO[MetaProgression] =
@@ -468,6 +585,11 @@ object GameSession:
     * @param difficultyDefs The loaded difficulty tier catalog (see [[roguelite.game.DifficultyLoader]]),
     *                      which decides the tiers a `StartRun` may name and when the run perks open.
     *                      Empty by default, which leaves every tier available.
+    * @param sceneDefs     The loaded NPC scene catalog (see [[roguelite.game.StoryLoader]]), which
+    *                      decides who stands in a Rest room and what they say. Empty by default, in
+    *                      which case an NPC only ever says a short line.
+    * @param chapterDefs   The loaded chapter catalog (see [[roguelite.game.ChapterLoader]]), which
+    *                      decides what a victory opens. Empty by default, in which case none does.
     */
   def create(stateMachine: StateMachine,
              database: Database,
@@ -479,12 +601,18 @@ object GameSession:
              perkDefs: Map[String, PerkDef] = Map.empty,
              rng: Random = Random(),
              debugMode: Boolean = false,
-             difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty
+             difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty,
+             sceneDefs: Map[String, SceneDef] = Map.empty,
+             chapterDefs: Map[Int, ChapterDef] = Map.empty
   ): IO[GameSession] =
     for
       meta                 <- database.loadMeta()
       achievementStats     <- database.loadAchievementStats()
       unlockedAchievements <- database.loadUnlockedAchievements()
+      savedStory           <- database.loadStoryProgress()
+      // A vow still running was taken in a run that this session cannot continue.
+      story = VowRules.onSessionStart(savedStory)
+      _ <- persistStory(database, savedStory, story)
       initPlayer = Player(classId = ClassId.Warrior,
                           hp = 100,
                           maxHp = 100,
@@ -498,11 +626,13 @@ object GameSession:
       stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions))
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
+      storyRef       <- Ref.of[IO, StoryProgress](story)
       abilityCatalog = abilityDefs.values.map(toAbilityView).toList
       setCatalog     = setDefs.values.map(toSetView).toList
     yield new GameSession(stateRef,
                           metaRef,
                           achievementRef,
+                          storyRef,
                           stateMachine,
                           database,
                           itemDefs,
@@ -515,8 +645,24 @@ object GameSession:
                           perkDefs,
                           rng,
                           abilityDefs,
-                          difficultyDefs
+                          difficultyDefs,
+                          sceneDefs,
+                          chapterDefs
     )
+
+  /** Save what changed between two states of the story: the chapter and the last outcome, the scenes
+    * newly played and every vow that is not as it was.
+    */
+  private def persistStory(database: Database, prev: StoryProgress, next: StoryProgress): IO[Unit] =
+    for
+      _ <- IO.whenA(next.chapter != prev.chapter || next.lastRun != prev.lastRun)(
+        database.saveStoryState(next.chapter, next.lastRun)
+      )
+      _ <- (next.scenesSeen -- prev.scenesSeen).toList.traverse_(database.recordSceneSeen)
+      _ <- next.vows.toList
+        .filterNot((npc, record) => prev.vows.get(npc).contains(record))
+        .traverse_((npc, record) => database.saveVow(npc, record))
+    yield ()
 
   /** Number of perks offered per hub visit, out of the full catalog. */
   private val PerkOptionsCount = 3

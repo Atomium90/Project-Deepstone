@@ -642,6 +642,231 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(enough.hub.get.difficulties.map(_.unlocked), List(true, true, true))
   }
 
+  // ---------------------------------------------
+  // The story at the Rest rooms
+  // ---------------------------------------------
+
+  private def storyDoor(id: String, role: ConnectorRole): Door =
+    if role == ConnectorRole.Next then Door(id, x = 4, y = 5, direction = Direction.Down, link = DoorLink.Unresolved(role))
+    else Door(id, x = 4, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(role))
+
+  /** Boss and Rest rooms only, since neither ever rolls a trapped door: walking through a dungeon built
+    * from it is deterministic whatever the seed. A Normal run is Boss, Rest, Boss, Sanctuary and a
+    * Hard one Boss, Rest, Boss, Rest, Boss, Sanctuary. Doors are crossed with `Interact("door_exit")`,
+    * the server not checking distances, and the Rest's NPC is authored as `npc.1`.
+    */
+  private def smWithRest: StateMachine =
+    def room(id: String, roomType: RoomType, extra: Entity*): Room =
+      Room(id, roomType, "dungeon", 8, 6, makeTiles(),
+           List(storyDoor("door_entrance", ConnectorRole.Prev), storyDoor("door_exit", ConnectorRole.Next)) ::: extra.toList
+      )
+    val sanctuary = Room("sanct", RoomType.Sanctuary, "dungeon", 8, 6, makeTiles(),
+                         List(storyDoor("door_entrance", ConnectorRole.Prev), Sanctuary("sanct_1", x = 2, y = 1))
+    )
+    StateMachine(
+      Map("b1" -> room("b1", RoomType.Boss),
+          "r1" -> room("r1", RoomType.Rest, Npc("npc.1", x = 4, y = 2, name = "Wren")),
+          "sanct" -> sanctuary
+      ),
+      Map.empty, Map.empty, testClassDefs, testUpgradeDefs, CombatResolver(Random(0L))
+    )
+
+  private val testScenes: Map[String, SceneDef] = List(
+    SceneDef("npc.1.s1", "npc.1", 1),
+    SceneDef("npc.1.s2", "npc.1", 2, requires = Some("npc.1.s1"), offersVow = Some(VowType.NoPotion)),
+    SceneDef("npc.2.s1", "npc.2", 1)
+  ).map(scene => scene.id -> scene).toMap
+
+  private val testChapters: Map[Int, ChapterDef] =
+    Map(1 -> ChapterDef(1, Difficulty.Easy), 2 -> ChapterDef(2, Difficulty.Easy))
+
+  private def storySession(database: Database): IO[GameSession] =
+    GameSession.create(smWithRest, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                       rng = Random(0L), sceneDefs = testScenes, chapterDefs = testChapters
+    )
+
+  private def startRun(session: GameSession, difficulty: Difficulty): IO[StateUpdate] =
+    session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(difficulty)))
+
+  private def goThroughDoor(session: GameSession): IO[StateUpdate] = session.handle(Interact("door_exit"))
+
+  /** The id of the NPC the room shows, as the client would see it. */
+  private def npcIn(update: StateUpdate): Option[String] =
+    update.room.flatMap(_.entities.find(_.kind == "npc")).map(_.id)
+
+  /** Starts a Normal run and walks into its Rest. */
+  private def walkToRest(session: GameSession): IO[StateUpdate] =
+    startRun(session, Difficulty.Normal) *> goThroughDoor(session)
+
+  db.test("a Rest keeps the NPC its room was authored with when nobody has a scene to play") {
+    database =>
+      for
+        session <- storySession(database)
+        inRest  <- walkToRest(session)
+      yield assertEquals(npcIn(inRest), Some("npc.1"))
+  }
+
+  db.test("a Rest seats the NPC who has a scene to play") {
+    database =>
+      for
+        _       <- database.saveStoryState(1, None)
+        _       <- database.recordSceneSeen("npc.1.s1")
+        session <- storySession(database)
+        inRest  <- walkToRest(session)
+      yield assertEquals(npcIn(inRest), Some("npc.2"))
+  }
+
+  db.test("speaking to the NPC of a Rest opens its next scene and holds the player there") {
+    database =>
+      for
+        _        <- database.saveStoryState(1, None)
+        _        <- database.recordSceneSeen("npc.2.s1")
+        session  <- storySession(database)
+        inRest   <- walkToRest(session)
+        speaking <- session.handle(Interact("npc.1"))
+        moved    <- session.handle(Move(Direction.Left))
+        doorTry  <- goThroughDoor(session)
+      yield
+        assertEquals(speaking.pendingScene, Some(PendingSceneView("npc.1", "scene", sceneId = Some("npc.1.s1"))))
+        assertEquals(moved.room.map(_.playerX), inRest.room.map(_.playerX))
+        assertEquals(doorTry.room.map(_.roomId), inRest.room.map(_.roomId))
+        assert(doorTry.pendingScene.isDefined, "the conversation must stay pending")
+  }
+
+  db.test("finishing a scene marks it as played and saves it") {
+    database =>
+      for
+        _       <- database.saveStoryState(1, None)
+        _       <- database.recordSceneSeen("npc.2.s1")
+        session <- storySession(database)
+        _       <- walkToRest(session)
+        _       <- session.handle(Interact("npc.1"))
+        done    <- session.handle(SceneDone(None))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(done.pendingScene, None)
+        assert(saved.scenesSeen.contains("npc.1.s1"), s"expected the scene in the save: ${saved.scenesSeen}")
+  }
+
+  db.test("a scene that offers a vow stays pending until it is answered, and taking the vow is saved") {
+    database =>
+      for
+        _        <- database.saveStoryState(2, None)
+        _        <- database.recordSceneSeen("npc.1.s1")
+        _        <- database.recordSceneSeen("npc.2.s1")
+        session  <- storySession(database)
+        _        <- walkToRest(session)
+        speaking <- session.handle(Interact("npc.1"))
+        noAnswer <- session.handle(SceneDone(None))
+        answered <- session.handle(SceneDone(Some(true)))
+        saved    <- database.loadStoryProgress()
+      yield
+        assertEquals(speaking.pendingScene.flatMap(_.offerScene), Some("npc.1.s2"))
+        assert(noAnswer.pendingScene.isDefined, "a vow offered must be answered")
+        assert(noAnswer.log.exists(_.contains("vow")), s"expected a hint about the vow: ${noAnswer.log}")
+        assertEquals(answered.pendingScene, None)
+        assertEquals(saved.vows("npc.1"), VowRecord(VowState.Active))
+  }
+
+  db.test("an answer to a vow that was not offered is refused and leaves the scene pending") {
+    database =>
+      for
+        _        <- database.saveStoryState(1, None)
+        _        <- database.recordSceneSeen("npc.2.s1")
+        session  <- storySession(database)
+        _        <- walkToRest(session)
+        _        <- session.handle(Interact("npc.1"))
+        refused  <- session.handle(SceneDone(Some(true)))
+      yield assert(refused.pendingScene.isDefined, "the scene must stay pending")
+  }
+
+  db.test("finishing a conversation when there is none changes nothing") {
+    database =>
+      for
+        session <- storySession(database)
+        update  <- session.handle(SceneDone(None))
+      yield assert(update.log.exists(_.contains("no conversation")), s"expected a message: ${update.log}")
+  }
+
+  db.test("winning a run opens the next chapter and is remembered") {
+    database =>
+      for
+        session <- storySession(database)
+        _       <- startRun(session, Difficulty.Normal)
+        _       <- goThroughDoor(session) // Rest
+        _       <- goThroughDoor(session) // second Boss room
+        _       <- goThroughDoor(session) // Sanctuary room
+        won     <- session.handle(Interact("sanct_1"))
+        saved   <- database.loadStoryProgress()
+      yield
+        assert(won.victory, s"expected the Sanctuary to end the run in victory: ${won.log}")
+        assertEquals(saved.chapter, 1)
+        assertEquals(saved.lastRun, Some(RunOutcome.Won))
+  }
+
+  db.test("a vow taken at the Rest is kept by winning the run, and left to be commented on") {
+    database =>
+      for
+        _       <- database.saveStoryState(2, None)
+        _       <- database.recordSceneSeen("npc.1.s1")
+        _       <- database.recordSceneSeen("npc.2.s1")
+        session <- storySession(database)
+        _       <- walkToRest(session)
+        _       <- session.handle(Interact("npc.1"))
+        _       <- session.handle(SceneDone(Some(true)))
+        _       <- goThroughDoor(session)
+        _       <- goThroughDoor(session)
+        _       <- session.handle(Interact("sanct_1"))
+        saved   <- database.loadStoryProgress()
+      yield assertEquals(saved.vows("npc.1"), VowRecord(VowState.Kept, reported = false))
+  }
+
+  db.test("walking back into a Rest already visited does not judge the running vow") {
+    database =>
+      for
+        _       <- database.saveStoryState(2, None)
+        _       <- database.recordSceneSeen("npc.1.s1")
+        _       <- database.recordSceneSeen("npc.2.s1")
+        session <- storySession(database)
+        _       <- walkToRest(session)
+        _       <- session.handle(Interact("npc.1"))
+        _       <- session.handle(SceneDone(Some(true)))
+        _       <- session.handle(Interact("door_entrance")) // back to the Boss room
+        _       <- goThroughDoor(session)                    // and into the same Rest again
+        saved   <- database.loadStoryProgress()
+      yield assertEquals(saved.vows("npc.1"), VowRecord(VowState.Active))
+  }
+
+  db.test("the next Rest of a Hard run judges the vow, and its NPC is the one waiting to comment") {
+    database =>
+      for
+        _        <- database.saveStoryState(2, None)
+        _        <- database.recordSceneSeen("npc.1.s1")
+        _        <- database.recordSceneSeen("npc.2.s1")
+        session  <- storySession(database)
+        _        <- startRun(session, Difficulty.Hard)
+        _        <- goThroughDoor(session) // first Rest
+        _        <- session.handle(Interact("npc.1"))
+        _        <- session.handle(SceneDone(Some(true)))
+        _        <- goThroughDoor(session) // second Boss room
+        secondRest <- goThroughDoor(session)
+        saved    <- database.loadStoryProgress()
+        speaking <- session.handle(Interact("npc.1"))
+      yield
+        assertEquals(saved.vows("npc.1"), VowRecord(VowState.Kept, reported = false))
+        assertEquals(npcIn(secondRest), Some("npc.1"))
+        assertEquals(speaking.pendingScene, Some(PendingSceneView("npc.1", "vow_report", kept = Some(true))))
+  }
+
+  db.test("a vow still running when a session starts is failed, its run being gone") {
+    database =>
+      for
+        _     <- database.saveVow("npc.1", VowRecord(VowState.Active))
+        _     <- storySession(database)
+        saved <- database.loadStoryProgress()
+      yield assertEquals(saved.vows("npc.1"), VowRecord(VowState.Failed, reported = false))
+  }
+
   db.test("ReturnToHub after a run rerolls the offered perks") {
     database =>
       for

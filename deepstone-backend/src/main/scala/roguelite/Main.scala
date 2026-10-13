@@ -16,6 +16,7 @@ import roguelite.engine.{ RequestGuard, SecurityHeaders, ServerLimits, StateMach
 import roguelite.game.{
   AbilityLoader,
   AchievementLoader,
+  ChapterLoader,
   ClassLoader,
   CombatResolver,
   DifficultyLoader,
@@ -25,6 +26,7 @@ import roguelite.game.{
   PerkLoader,
   RoomLoader,
   SetLoader,
+  StoryLoader,
   UpgradeLoader
 }
 import roguelite.db.Database
@@ -91,11 +93,13 @@ object Main extends IOApp:
             setDefs <- SetLoader.loadAll()
             perkDefs <- PerkLoader.loadAll()
             difficultyDefs <- DifficultyLoader.loadAll()
+            sceneDefs <- StoryLoader.loadAll()
+            chapterDefs <- ChapterLoader.loadAll()
             _ <- logger.info(
               s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
                 s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, ${npcDialogueDefs.size} npc dialogues, " +
                 s"${achievementDefs.size} achievements, ${setDefs.size} equipment sets, ${perkDefs.size} run perks, " +
-                s"${difficultyDefs.size} difficulty tiers."
+                s"${difficultyDefs.size} difficulty tiers, ${sceneDefs.size} NPC scenes, ${chapterDefs.size} chapters."
             )
 
             resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs, setDefs = setDefs,
@@ -114,7 +118,8 @@ object Main extends IOApp:
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
                                      achievementDefs, setDefs = setDefs, perkDefs = perkDefs,
-                                     debugMode = options.debugMode, difficultyDefs = difficultyDefs
+                                     debugMode = options.debugMode, difficultyDefs = difficultyDefs,
+                                     sceneDefs = sceneDefs, chapterDefs = chapterDefs
             )
 
             // Serves the frontend's built static files (copied into resources/static/ by

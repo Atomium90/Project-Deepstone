@@ -5,7 +5,7 @@ import doobie.implicits.*
 import cats.implicits.*
 import cats.effect.IO
 import roguelite.engine.Difficulty
-import roguelite.game.{ AchievementStats, MetaProgression }
+import roguelite.game.{ AchievementStats, MetaProgression, RunOutcome, StoryProgress, VowRecord, VowState }
 import cats.effect.kernel.Resource
 import scala.concurrent.ExecutionContext
 import java.util.concurrent.Executors
@@ -79,6 +79,29 @@ class Database private (xa: Transactor[IO]):
                 difficulty TEXT PRIMARY KEY,
                 wins       INTEGER NOT NULL DEFAULT 0
               )
+            """.update.run *>
+        sql"""
+              CREATE TABLE IF NOT EXISTS story_state (
+                id       INTEGER PRIMARY KEY CHECK (id = 1),
+                chapter  INTEGER NOT NULL DEFAULT 0,
+                last_run TEXT
+              )
+            """.update.run *>
+        sql"""
+              CREATE TABLE IF NOT EXISTS story_scene_seen (
+                scene_id TEXT PRIMARY KEY,
+                seen_at  INTEGER NOT NULL DEFAULT (unixepoch())
+              )
+            """.update.run *>
+        sql"""
+              CREATE TABLE IF NOT EXISTS story_vow (
+                npc_id   TEXT PRIMARY KEY,
+                state    TEXT NOT NULL,
+                reported INTEGER NOT NULL DEFAULT 1
+              )
+            """.update.run *>
+        sql"""
+              INSERT OR IGNORE INTO story_state (id) VALUES (1)
             """.update.run *>
         sql"""
               INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)
@@ -212,9 +235,60 @@ class Database private (xa: Transactor[IO]):
       .transact(xa)
       .void
 
+  /** Load what the story remembers: the chapter reached, how the last run ended, the scenes seen and
+    * each NPC's vow, all four in one transaction. A vow row or a last-run value this version does
+    * not know is ignored.
+    */
+  def loadStoryProgress(): IO[StoryProgress] =
+    val getState  = sql"SELECT chapter, last_run FROM story_state WHERE id = 1".query[(Int, Option[String])].unique
+    val getScenes = sql"SELECT scene_id FROM story_scene_seen".query[String].to[Set]
+    val getVows   = sql"SELECT npc_id, state, reported FROM story_vow".query[(String, String, Boolean)].to[List]
+    (for
+      state  <- getState
+      scenes <- getScenes
+      vows   <- getVows
+    yield
+      val (chapter, lastRun) = state
+      StoryProgress(
+        chapter = chapter,
+        lastRun = lastRun.flatMap(Database.parseRunOutcome),
+        scenesSeen = scenes,
+        vows = vows.flatMap((npcId, name, reported) => Database.parseVowState(name).map(npcId -> VowRecord(_, reported))).toMap
+      )
+    ).transact(xa)
+
+  /** Overwrite the chapter reached and the outcome of the last run. */
+  def saveStoryState(chapter: Int, lastRun: Option[RunOutcome]): IO[Unit] =
+    val name = lastRun.map(Database.runOutcomeName)
+    sql"UPDATE story_state SET chapter = $chapter, last_run = $name WHERE id = 1".update.run.transact(xa).void
+
+  /** Record a scene as played to its last line. Idempotent, same INSERT-OR-IGNORE pattern as
+    * [[unlockAchievement]].
+    */
+  def recordSceneSeen(sceneId: String): IO[Unit] =
+    sql"INSERT OR IGNORE INTO story_scene_seen (scene_id) VALUES ($sceneId)".update.run.transact(xa).void
+
+  /** Save an NPC's vow, replacing the one it had. */
+  def saveVow(npcId: String, vow: VowRecord): IO[Unit] =
+    val name = Database.vowStateName(vow.state)
+    sql"""INSERT INTO story_vow (npc_id, state, reported) VALUES ($npcId, $name, ${vow.reported})
+          ON CONFLICT(npc_id) DO UPDATE SET state = excluded.state, reported = excluded.reported""".update.run
+      .transact(xa)
+      .void
+
 object Database:
 
   private val Driver = "org.sqlite.JDBC"
+
+  private def runOutcomeName(outcome: RunOutcome): String = outcome.toString.toLowerCase
+
+  private def parseRunOutcome(name: String): Option[RunOutcome] =
+    RunOutcome.values.find(runOutcomeName(_) == name)
+
+  private def vowStateName(state: VowState): String = state.toString.toLowerCase
+
+  private def parseVowState(name: String): Option[VowState] =
+    VowState.values.find(vowStateName(_) == name)
 
   /** How a [[Difficulty]] is stored in `difficulty_win`: its lowercase name, the same spelling as on
     * the wire and in `data/difficulty.json`.

@@ -2,7 +2,17 @@ package roguelite.db
 
 import munit.CatsEffectSuite
 import roguelite.engine.Difficulty
-import roguelite.game.{ AchievementStats, MetaProgression, UpgradeCategory, UpgradeDef, UpgradeEffect }
+import roguelite.game.{
+  AchievementStats,
+  MetaProgression,
+  RunOutcome,
+  StoryProgress,
+  UpgradeCategory,
+  UpgradeDef,
+  UpgradeEffect,
+  VowRecord,
+  VowState
+}
 
 /** Tests for [[Database]]: schema initialisation, meta loading, currency persistence,
   * and upgrade purchase atomicity.
@@ -245,6 +255,85 @@ class DatabaseSuite extends CatsEffectSuite:
         _      <- db.recordPerkWonWith("lucky_find")
         loaded <- db.loadAchievementStats()
       yield assertEquals(loaded.perksWonWith, Set("heavy_hand", "lucky_find"))
+  }
+
+  // -----------------------------------------------------------------------
+  // Story progress
+  // -----------------------------------------------------------------------
+
+  db.test("a fresh database has no story progress") {
+    db =>
+      db.loadStoryProgress().map(progress => assertEquals(progress, StoryProgress.empty))
+  }
+
+  db.test("saveStoryState round-trips the chapter and the outcome of the last run") {
+    db =>
+      for
+        _      <- db.saveStoryState(3, Some(RunOutcome.Lost))
+        loaded <- db.loadStoryProgress()
+      yield
+        assertEquals(loaded.chapter, 3)
+        assertEquals(loaded.lastRun, Some(RunOutcome.Lost))
+  }
+
+  db.test("saveStoryState overwrites the previous values and can clear the last run") {
+    db =>
+      for
+        _      <- db.saveStoryState(2, Some(RunOutcome.Won))
+        _      <- db.saveStoryState(4, None)
+        loaded <- db.loadStoryProgress()
+      yield
+        assertEquals(loaded.chapter, 4)
+        assertEquals(loaded.lastRun, None)
+  }
+
+  db.test("recordSceneSeen adds the scene id, idempotently") {
+    db =>
+      for
+        _      <- db.recordSceneSeen("npc.1.s1")
+        _      <- db.recordSceneSeen("npc.1.s1")
+        _      <- db.recordSceneSeen("npc.1.s2")
+        loaded <- db.loadStoryProgress()
+      yield assertEquals(loaded.scenesSeen, Set("npc.1.s1", "npc.1.s2"))
+  }
+
+  db.test("saveVow round-trips an NPC's vow, awaiting its report or not") {
+    db =>
+      for
+        _      <- db.saveVow("npc.1", VowRecord(VowState.Failed, reported = false))
+        _      <- db.saveVow("npc.2", VowRecord(VowState.Declined))
+        loaded <- db.loadStoryProgress()
+      yield assertEquals(loaded.vows,
+                         Map("npc.1" -> VowRecord(VowState.Failed, reported = false),
+                             "npc.2" -> VowRecord(VowState.Declined)
+                         )
+      )
+  }
+
+  db.test("saveVow replaces the vow an NPC had and leaves the others alone") {
+    db =>
+      for
+        _      <- db.saveVow("npc.1", VowRecord(VowState.Active))
+        _      <- db.saveVow("npc.2", VowRecord(VowState.Kept))
+        _      <- db.saveVow("npc.1", VowRecord(VowState.Kept, reported = false))
+        loaded <- db.loadStoryProgress()
+      yield assertEquals(loaded.vows,
+                         Map("npc.1" -> VowRecord(VowState.Kept, reported = false), "npc.2" -> VowRecord(VowState.Kept))
+      )
+  }
+
+  db.test("initialize can run again without losing the story progress") {
+    db =>
+      for
+        _      <- db.saveStoryState(2, Some(RunOutcome.Won))
+        _      <- db.recordSceneSeen("npc.1.s1")
+        _      <- db.saveVow("npc.1", VowRecord(VowState.Active))
+        _      <- db.initialize()
+        loaded <- db.loadStoryProgress()
+      yield
+        assertEquals(loaded.chapter, 2)
+        assertEquals(loaded.scenesSeen, Set("npc.1.s1"))
+        assertEquals(loaded.vows, Map("npc.1" -> VowRecord(VowState.Active)))
   }
 
   // -----------------------------------------------------------------------

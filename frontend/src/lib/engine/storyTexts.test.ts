@@ -1,6 +1,7 @@
 import { describe, test, expect } from "vitest";
 import storyFile from "../../../../deepstone-backend/src/main/resources/data/story.json?raw";
 import chaptersFile from "../../../../deepstone-backend/src/main/resources/data/chapters.json?raw";
+import enemiesFile from "../../../../deepstone-backend/src/main/resources/data/enemies.json?raw";
 import { dictionaries, lookup } from "./i18n";
 import { numberedTexts, type TextLookup } from "./sceneText";
 
@@ -15,6 +16,11 @@ interface Scene {
 
 const scenes: Scene[] = JSON.parse(storyFile);
 const chapters: { id: number }[] = JSON.parse(chaptersFile);
+/** The Devoted of the game: the numbers the enemy catalog gives its Boss types. */
+const devotedNumbers: number[] = (JSON.parse(enemiesFile) as { devoted?: number }[])
+    .map((enemy) => enemy.devoted)
+    .filter((n): n is number => n !== undefined);
+
 /** What the server can ask the god's voice to say: the moments and the tones of `GodVoice`. A death
  * for the first time only has a line in the first tone, the server falls to the next case after it. */
 const GOD_MOMENTS = ["start", "death.first", "death.streak", "death.boss", "death.depth", "death.ordinary"];
@@ -104,6 +110,26 @@ describe("the texts of the story catalog", () => {
             const moment = rest.slice(0, -2).join(".");
             expect(GOD_MOMENTS, `${key} is a line for a moment the server never asks for`).toContain(moment);
             expect(GOD_PHASES, `${key} is a line in a tone the server never asks for`).toContain(phase);
+        }
+    });
+
+    test("every Devoted has a name, two lines before the fight, one as it falls and a relic inscription", () => {
+        for (const n of devotedNumbers) {
+            for (const slot of ["name", "pre1", "pre2", "post", "relic"]) {
+                expect(find(`story.boss.${n}.${slot}`), `Devoted ${n} has no ${slot}`).not.toBeNull();
+            }
+        }
+    });
+
+    test("the worn-smooth inscription has its text", () => {
+        expect(find("story.boss.unreadable")).not.toBeNull();
+    });
+
+    test("every text under story.boss belongs to a Devoted of the enemy catalog", () => {
+        for (const key of storyKeys.filter((k) => k.startsWith("story.boss."))) {
+            const n = key.split(".")[2];
+            if (n === "unreadable") continue;
+            expect(devotedNumbers.map(String), `${key} belongs to a Devoted no enemy is`).toContain(n);
         }
     });
 

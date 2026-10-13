@@ -18,9 +18,12 @@ const fixture: Record<string, string> = {
     "story.npc.t.s2.choice.decline": "No thanks.",
     "story.npc.t.s2.reply.accept": "Great.",
     "story.npc.t.s2.reply.decline": "Shame.",
+    "story.boss.t.name": "Warden",
+    "story.boss.t.pre1": "Turn back.",
 };
 
 const plain: PendingSceneView = { npc: "npc.t", kind: "scene", sceneId: "npc.t.s1" };
+const devoted: PendingSceneView = { npc: "boss.t", kind: "devoted", sceneId: "boss.t.pre1" };
 const offering: PendingSceneView = { npc: "npc.t", kind: "scene", sceneId: "npc.t.s2", offerScene: "npc.t.s2" };
 
 const text = (container: HTMLElement, selector: string) => container.querySelector(selector)?.textContent ?? null;
@@ -141,6 +144,16 @@ describe("SceneDialogue", () => {
         const { container } = render(SceneDialogue, { scene: offering });
         await pressKey("2");
         expect(text(container, ".dialogue-line")).toBe("Shame.");
+    });
+
+    test("the line of a Devoted is one bubble said by the Devoted, and E ends it with no answer", async () => {
+        const send = vi.spyOn(client, "send");
+        const { container } = render(SceneDialogue, { scene: devoted });
+        expect(text(container, ".dialogue-name")).toBe("Warden");
+        expect(text(container, ".dialogue-line")).toBe("Turn back.");
+        vi.advanceTimersByTime(400);
+        await pressKey("e");
+        expect(send).toHaveBeenCalledWith({ type: "SCENE_DONE" });
     });
 
     test("keys do nothing while the Character screen is open", async () => {

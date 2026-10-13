@@ -1,7 +1,8 @@
-import { describe, test, expect, beforeEach, vi } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/svelte";
 import RewardChoiceModal from "./RewardChoiceModal.svelte";
 import { gameState, client } from "../engine/StateStore";
+import { dictionaries } from "../engine/i18n";
 import type { StateUpdate, ItemView } from "../engine/protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
@@ -62,6 +63,30 @@ describe("RewardChoiceModal", () => {
 
         await fireEvent.click(container.querySelector(".leave-btn")!);
         expect(sendSpy).toHaveBeenCalledWith({ type: "REWARD_CHOICE" });
+    });
+
+    describe("the relic of a Devoted", () => {
+        beforeEach(() => void (dictionaries.en["story.boss.9.relic"] = "NINE. Kept the test. Stayed."));
+        afterEach(() => void delete dictionaries.en["story.boss.9.relic"]);
+
+        test("shows its inscription when it can be read", () => {
+            gameState.set(makeState({ pendingRewardChoice: { options: [makeItem()], relic: { devoted: 9, readable: true } } }));
+            const { container } = render(RewardChoiceModal);
+            expect(container.querySelector(".relic")?.textContent?.trim()).toBe("NINE. Kept the test. Stayed.");
+        });
+
+        test("says the letters are worn smooth when it cannot be read yet", () => {
+            gameState.set(makeState({ pendingRewardChoice: { options: [makeItem()], relic: { devoted: 9, readable: false } } }));
+            const { container } = render(RewardChoiceModal);
+            expect(container.querySelector(".relic")?.textContent?.trim()).toBe(dictionaries.en["story.boss.unreadable"]);
+            expect(container.querySelector(".relic")?.textContent).not.toContain("NINE");
+        });
+
+        test("is not shown for a Shrine that holds none", () => {
+            gameState.set(makeState({ pendingRewardChoice: { options: [makeItem()] } }));
+            const { container } = render(RewardChoiceModal);
+            expect(container.querySelector(".relic")).toBeNull();
+        });
     });
 
     test("dims an option's stat line when its typeTag isn't in the player's affinity", () => {

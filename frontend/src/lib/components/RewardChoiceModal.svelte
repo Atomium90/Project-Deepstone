@@ -1,5 +1,6 @@
 <script lang="ts">
     import { gameState, pendingRewardChoice, client } from "../engine/StateStore";
+    import { t } from "../engine/i18n";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
 
@@ -23,6 +24,12 @@
     <div class="backdrop">
         <div class="modal">
             <p class="modal-title">Shrine's offering - choose one</p>
+
+            {#if choice.relic}
+                <p class="relic">
+                    {$t(choice.relic.readable ? `story.boss.${choice.relic.devoted}.relic` : "story.boss.unreadable")}
+                </p>
+            {/if}
 
             <div class="options">
                 {#each choice.options as option (option.id)}
@@ -72,6 +79,17 @@
         text-transform: uppercase;
         letter-spacing: 0.12em;
         color: #555;
+    }
+
+    /* The inscription of the relic the Boss left, as if cut into stone. */
+    .relic {
+        padding: 0.6rem 0.75rem;
+        border-left: 2px solid #5a5238;
+        background: #151510;
+        color: #a89d74;
+        font-size: 0.78rem;
+        font-style: italic;
+        line-height: 1.5;
     }
 
     .options {

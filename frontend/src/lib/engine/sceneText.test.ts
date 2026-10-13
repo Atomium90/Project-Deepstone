@@ -19,6 +19,9 @@ const texts: Record<string, string> = {
     "story.npc.1.idle.general.2": "General two.",
     "story.npc.1.idle.death.1": "Death one.",
     "story.npc.1.idle.victory.1": "Victory one.",
+    "story.boss.2.name": "Osric",
+    "story.boss.2.pre1": "This door is closed.",
+    "story.boss.2.post": "Door's open now.",
 };
 const lookup: TextLookup = (key) => texts[key] ?? null;
 
@@ -102,6 +105,23 @@ describe("buildScript", () => {
 
     test("an NPC without a name text is shown by its id", () => {
         expect(buildScript({ npc: "npc.9", kind: "idle" }, lookup).speaker).toBe("npc.9");
+    });
+
+    test("the line of a Devoted is the one text under its own key, said by the Devoted", () => {
+        const script = buildScript({ npc: "boss.2", kind: "devoted", sceneId: "boss.2.pre1" }, lookup);
+        expect(script.speaker).toBe("Osric");
+        expect(script.lines).toEqual(["This door is closed."]);
+        expect(script.offer).toBeNull();
+        expect(buildScript({ npc: "boss.2", kind: "devoted", sceneId: "boss.2.post" }, lookup).lines).toEqual(["Door's open now."]);
+    });
+
+    test("a Devoted whose line is missing shows the key of the line, so the gap is visible", () => {
+        const script = buildScript({ npc: "boss.2", kind: "devoted", sceneId: "boss.2.pre2" }, lookup);
+        expect(script.lines).toEqual(["story.boss.2.pre2"]);
+    });
+
+    test("a Devoted without a name text is shown by its id", () => {
+        expect(buildScript({ npc: "boss.7", kind: "devoted", sceneId: "boss.7.pre1" }, lookup).speaker).toBe("boss.7");
     });
 
     test("an offer whose choice texts are missing still gets buttons, labelled by their keys", () => {

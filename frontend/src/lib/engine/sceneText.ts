@@ -60,6 +60,8 @@ function linesKey(scene: PendingSceneView): string {
             return `story.${scene.npc}.vow.${scene.kept ? "kept" : "failed"}`;
         case "idle":
             return `story.${scene.npc}.idle`;
+        case "devoted":
+            return `story.${scene.sceneId}`;
     }
 }
 
@@ -78,10 +80,16 @@ export function buildScript(
     last: Map<string, string> = lastIdleLines,
 ): SceneScript {
     const key = linesKey(scene);
+    // The line of a Devoted is one text under its own key, every other conversation has numbered lines.
+    const single = lookup(key);
     const lines =
         scene.kind === "idle"
             ? idleLines(scene, lookup, random, last)
-            : numberedTexts(key, lookup);
+            : scene.kind === "devoted"
+              ? single === null
+                  ? []
+                  : [single]
+              : numberedTexts(key, lookup);
 
     const text = (textKey: string) => lookup(textKey) ?? textKey;
     const offerScene = scene.offerScene;

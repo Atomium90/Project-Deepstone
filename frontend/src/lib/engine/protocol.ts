@@ -235,15 +235,17 @@ export interface DifficultyView {
   requirement: TierRequirementView | null;
 }
 
-/** The conversation the player is in with a Rest NPC, awaiting a SCENE_DONE. Durable like
- * PendingEquipChoiceView. The server only says which conversation it is, the lines are texts of
+/** The conversation the player is in with a Rest NPC, or the line of a Devoted before or after a
+ * fight, awaiting a SCENE_DONE. Durable like PendingEquipChoiceView. The server only says which conversation it is, the lines are texts of
  * the language file under keys built from these fields (see sceneText.ts). */
 export interface PendingSceneView {
-  /** The speaking NPC, e.g. "npc.1": its name is the text `story.npc.1.name`. */
+  /** The speaking NPC, e.g. "npc.1", or "boss.2" for the second Devoted: its name is the text
+   * `story.<npc>.name`. */
   npc: string;
-  /** "scene": a scene of the story. "vow_report": the NPC comments on a vow. "idle": a short line. */
-  kind: "scene" | "vow_report" | "idle";
-  /** Only for "scene". */
+  /** "scene": a scene of the story. "vow_report": the NPC comments on a vow. "idle": a short line.
+   * "devoted": the single line `story.<sceneId>` of a Devoted, said before the fight or as they fall. */
+  kind: "scene" | "vow_report" | "idle" | "devoted";
+  /** Only for "scene" and "devoted". */
   sceneId?: string | null;
   /** Only for "vow_report": whether the vow was kept. */
   kept?: boolean | null;
@@ -331,6 +333,17 @@ export interface PendingEquipChoiceView {
  * PendingEquipChoiceView - resolved with a RewardChoiceAction, picking by an option's own `id`. */
 export interface PendingRewardChoiceView {
   options: ItemView[];
+  /** The relic the Boss left with this Shrine, when it was a Devoted. */
+  relic?: RelicView | null;
+}
+
+/** The relic of a Devoted, which bears its name. The inscription is the text
+ * `story.boss.<devoted>.relic` when it can be read, else `story.boss.unreadable`. */
+export interface RelicView {
+  /** Which Devoted, from 1. */
+  devoted: number;
+  /** False while the inscription is worn smooth: the story has not gone far enough to read it. */
+  readable: boolean;
 }
 
 /** Static description of one class's combat ability, sent by the server so the client never

@@ -13,7 +13,7 @@ import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
-import roguelite.game.{ ChapterDef, DeathContext, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, Npc, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
+import roguelite.game.{ ChapterDef, DeathContext, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -49,7 +49,8 @@ class GameSession private (
     abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
     difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty,
     sceneDefs: Map[String, SceneDef] = Map.empty,
-    chapterDefs: Map[Int, ChapterDef] = Map.empty
+    chapterDefs: Map[Int, ChapterDef] = Map.empty,
+    npcDefs: Map[String, NpcDef] = Map.empty
 ):
 
   /** The vow each NPC offers, from the scene catalog. */
@@ -110,11 +111,19 @@ class GameSession private (
 
   /** Add what only the story knows: the card still to be shown, if any (see `StateUpdate.pendingCard`),
     * which is read from the story and not from the game state so it is the same in every phase and
-    * survives a reconnection, and whether the inscription of a relic on offer can be read yet.
+    * survives a reconnection, whether the inscription of a relic on offer can be read yet, and what
+    * the NPC catalog says of the NPCs on screen: their sprite, and whether the one speaking has given
+    * its real name away.
     */
   private def withStory(update: StateUpdate, story: StoryProgress): StateUpdate =
     val readable = story.chapter >= StoryRules.RelicReadableFromChapter
+    def withSprite(entity: EntityView): EntityView =
+      if entity.kind == "npc" then entity.copy(spriteId = npcDefs.get(entity.id).map(_.spriteId)) else entity
+    def withName(scene: PendingSceneView): PendingSceneView =
+      scene.copy(revealed = npcDefs.get(scene.npc).flatMap(_.revealedBy).forall(story.scenesSeen.contains))
     update.copy(
+      room = update.room.map(room => room.copy(entities = room.entities.map(withSprite))),
+      pendingScene = update.pendingScene.map(withName),
       pendingCard = story.pendingCard,
       pendingRewardChoice =
         update.pendingRewardChoice.map(choice => choice.copy(relic = choice.relic.map(_.copy(readable = readable))))
@@ -679,6 +688,9 @@ object GameSession:
     *                      which case an NPC only ever says a short line.
     * @param chapterDefs   The loaded chapter catalog (see [[roguelite.game.ChapterLoader]]), which
     *                      decides what a victory opens. Empty by default, in which case none does.
+    * @param npcDefs       The loaded NPC catalog (see [[roguelite.game.NpcLoader]]), which gives each
+    *                      NPC its sprite and tells when its real name is known. Empty by default, in
+    *                      which case an NPC has no sprite of its own and is always known by its name.
     */
   def create(stateMachine: StateMachine,
              database: Database,
@@ -692,7 +704,8 @@ object GameSession:
              debugMode: Boolean = false,
              difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty,
              sceneDefs: Map[String, SceneDef] = Map.empty,
-             chapterDefs: Map[Int, ChapterDef] = Map.empty
+             chapterDefs: Map[Int, ChapterDef] = Map.empty,
+             npcDefs: Map[String, NpcDef] = Map.empty
   ): IO[GameSession] =
     for
       meta                 <- database.loadMeta()
@@ -736,7 +749,8 @@ object GameSession:
                           abilityDefs,
                           difficultyDefs,
                           sceneDefs,
-                          chapterDefs
+                          chapterDefs,
+                          npcDefs
     )
 
   /** Save what changed between two states of the story: the chapter and the last outcome, the scenes

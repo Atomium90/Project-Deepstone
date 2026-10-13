@@ -437,13 +437,19 @@ case class RelicView(devoted: Int, readable: Boolean)
   * @param offerScene
   *   The scene whose choice and reply texts apply when the conversation ends by offering a vow, which
   *   is when the player must answer with `accept` in [[SceneDone]]. `None` when it offers none.
+  * @param revealed
+  *   Whether the player knows the real name of the speaker, which some NPC give away in a scene of
+  *   theirs (see [[roguelite.game.NpcDef.revealedBy]]). Until then the client shows the title,
+  *   `story.<npc>.name`, afterwards `story.<npc>.name_revealed` when it exists. True for every NPC
+  *   that gives its name from the start, and for a Devoted.
   */
 case class PendingSceneView(npc: String,
                             kind: String,
                             sceneId: Option[String] = None,
                             kept: Option[Boolean] = None,
                             context: Option[String] = None,
-                            offerScene: Option[String] = None
+                            offerScene: Option[String] = None,
+                            revealed: Boolean = true
 )
 
 /** One section of the dungeon map: a run of rooms drawn from a single theme, ending in its own boss.

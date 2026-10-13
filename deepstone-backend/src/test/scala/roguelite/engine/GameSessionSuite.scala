@@ -683,9 +683,15 @@ class GameSessionSuite extends CatsEffectSuite:
   private val testChapters: Map[Int, ChapterDef] =
     Map(1 -> ChapterDef(1, Difficulty.Easy), 2 -> ChapterDef(2, Difficulty.Easy))
 
+  /** npc.2 goes by its title until it has been seen in its first scene. */
+  private val testNpcs: Map[String, NpcDef] = List(
+    NpcDef("npc.1", "npc_a"),
+    NpcDef("npc.2", "npc_b", revealedBy = Some("npc.2.s1"))
+  ).map(npc => npc.id -> npc).toMap
+
   private def storySession(database: Database): IO[GameSession] =
     GameSession.create(smWithRest, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
-                       rng = Random(0L), sceneDefs = testScenes, chapterDefs = testChapters
+                       rng = Random(0L), sceneDefs = testScenes, chapterDefs = testChapters, npcDefs = testNpcs
     )
 
   private def startRun(session: GameSession, difficulty: Difficulty): IO[StateUpdate] =
@@ -789,6 +795,54 @@ class GameSessionSuite extends CatsEffectSuite:
         session <- storySession(database)
         update  <- session.handle(SceneDone(None))
       yield assert(update.log.exists(_.contains("no conversation")), s"expected a message: ${update.log}")
+  }
+
+  db.test("an NPC in a Rest room is drawn with the sprite of the NPC catalog") {
+    database =>
+      for
+        _       <- database.saveStoryState(1, None)
+        _       <- database.recordSceneSeen("npc.1.s1") // only npc.2 has a scene left to play
+        session <- storySession(database)
+        inRest  <- walkToRest(session)
+      yield
+        assertEquals(npcIn(inRest), Some("npc.2"))
+        assertEquals(inRest.room.flatMap(_.entities.find(_.kind == "npc")).flatMap(_.spriteId), Some("npc_b"))
+  }
+
+  db.test("an NPC the catalog does not know is drawn with no sprite of its own") {
+    database =>
+      for
+        session <- GameSession.create(smWithRest, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      rng = Random(0L), sceneDefs = testScenes, chapterDefs = testChapters
+                   )
+        inRest  <- walkToRest(session)
+      yield assertEquals(inRest.room.flatMap(_.entities.find(_.kind == "npc")).flatMap(_.spriteId), None)
+  }
+
+  db.test("an NPC that gives its name away goes by its title until it has been seen in that scene") {
+    database =>
+      for
+        _        <- database.saveStoryState(1, None)
+        _        <- database.recordSceneSeen("npc.1.s1")
+        session  <- storySession(database)
+        _        <- walkToRest(session)
+        first    <- session.handle(Interact("npc.2"))
+        _        <- session.handle(SceneDone(None))
+        later    <- session.handle(Interact("npc.2"))
+      yield
+        assertEquals(first.pendingScene.map(_.revealed), Some(false))
+        assertEquals(later.pendingScene.map(_.revealed), Some(true))
+  }
+
+  db.test("an NPC that gives its name from the start is always known by it") {
+    database =>
+      for
+        _        <- database.saveStoryState(1, None)
+        _        <- database.recordSceneSeen("npc.2.s1")
+        session  <- storySession(database)
+        _        <- walkToRest(session)
+        speaking <- session.handle(Interact("npc.1"))
+      yield assertEquals(speaking.pendingScene.map(_.revealed), Some(true))
   }
 
   db.test("winning a run opens the next chapter and is remembered") {

@@ -18,7 +18,7 @@ import roguelite.game.AbilityDef
 import roguelite.game.AchievementDef
 import roguelite.game.SetDef
 import roguelite.game.PerkDef
-import roguelite.game.{ ChapterDef, DifficultyTierDef, SceneDef }
+import roguelite.game.{ ChapterDef, DifficultyTierDef, NpcDef, SceneDef }
 
 /** Builds the HTTP routes for the game server.
   *
@@ -36,7 +36,8 @@ class WebSocketRouter(stateMachine: StateMachine,
                       perkDefs: Map[String, PerkDef] = Map.empty,
                       difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty,
                       sceneDefs: Map[String, SceneDef] = Map.empty,
-                      chapterDefs: Map[Int, ChapterDef] = Map.empty
+                      chapterDefs: Map[Int, ChapterDef] = Map.empty,
+                      npcDefs: Map[String, NpcDef] = Map.empty
 )(using logger: Logger[IO]):
 
   def routes(wsb: WebSocketBuilder2[IO]): HttpRoutes[IO] =
@@ -46,7 +47,8 @@ class WebSocketRouter(stateMachine: StateMachine,
           session <-
             GameSession.create(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
                                achievementDefs, setDefs, perkDefs, debugMode = debugMode,
-                               difficultyDefs = difficultyDefs, sceneDefs = sceneDefs, chapterDefs = chapterDefs
+                               difficultyDefs = difficultyDefs, sceneDefs = sceneDefs, chapterDefs = chapterDefs,
+                               npcDefs = npcDefs
             )
           // Bounded queue used to push outgoing frames from the receive handler: a client that stops
           // reading makes it fill, and the receive side then waits instead of piling up answers

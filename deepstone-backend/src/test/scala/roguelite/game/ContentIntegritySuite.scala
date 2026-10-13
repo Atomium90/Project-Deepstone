@@ -112,6 +112,15 @@ class ContentIntegritySuite extends CatsEffectSuite:
             n =>
               assert(storyNpcs.contains(n.id), s"room '${room.id}' places npc '${n.id}', which no scene in story.json belongs to")
 
+  test("every NPC of the story catalog has an entry in npcs.json, with a sprite"):
+    for
+      scenes <- StoryLoader.loadAll()
+      npcs   <- NpcLoader.loadAll()
+    yield scenes.values.map(_.npc).toSet.foreach:
+      npc =>
+        assert(npcs.contains(npc), s"story.json has scenes for '$npc', which npcs.json does not define")
+        assert(npcs(npc).spriteId.nonEmpty, s"'$npc' has no sprite")
+
   test("every set has exactly 4 pieces: 1 weapon, 1 armor, 2 accessories"):
     for
       items <- ItemLoader.loadAll()

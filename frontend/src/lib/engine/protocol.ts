@@ -67,13 +67,21 @@ export interface RewardChoiceAction {
   itemId?: string;
 }
 
+/** The player has read the pending conversation to its last line. `accept` answers the vow it
+ * ended by offering, and is present exactly when it offered one (the server refuses it otherwise). */
+export interface SceneDoneAction {
+  type: "SCENE_DONE";
+  accept?: boolean;
+}
+
 export type PlayerAction =
   | MoveAction
   | InteractAction
   | CombatAction
   | HubAction
   | EquipChoiceAction
-  | RewardChoiceAction;
+  | RewardChoiceAction
+  | SceneDoneAction;
 
 // ---------------------------------------------
 // Server → Client views
@@ -215,6 +223,25 @@ export interface DifficultyView {
   id: Difficulty;
   unlocked: boolean;
   requirement: TierRequirementView | null;
+}
+
+/** The conversation the player is in with a Rest NPC, awaiting a SCENE_DONE. Durable like
+ * PendingEquipChoiceView. The server only says which conversation it is, the lines are texts of
+ * the language file under keys built from these fields (see sceneText.ts). */
+export interface PendingSceneView {
+  /** The speaking NPC, e.g. "npc.1": its name is the text `story.npc.1.name`. */
+  npc: string;
+  /** "scene": a scene of the story. "vow_report": the NPC comments on a vow. "idle": a short line. */
+  kind: "scene" | "vow_report" | "idle";
+  /** Only for "scene". */
+  sceneId?: string | null;
+  /** Only for "vow_report": whether the vow was kept. */
+  kept?: boolean | null;
+  /** Only for "idle": which pool of lines the last run calls for. */
+  context?: "general" | "death" | "victory" | null;
+  /** The scene whose choice and reply texts apply when the conversation ends by offering a vow,
+   * which is when SCENE_DONE must carry `accept`. Null when it offers none. */
+  offerScene?: string | null;
 }
 
 export interface HubView {
@@ -399,6 +426,8 @@ export interface StateUpdate {
   victory: boolean;
   log: string[];
   dialogue?: DialogueView;
+  /** The conversation with a Rest NPC awaiting its end. Durable, like `pendingEquipChoice`. */
+  pendingScene?: PendingSceneView | null;
   /** Achievements newly earned by the action that produced this update. Transient: only present
    * on the single update where one or more achievements were just unlocked, same convention as
    * `dialogue`. A list, not a single value, since one action can plausibly earn more than one at

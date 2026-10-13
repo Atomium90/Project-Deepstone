@@ -77,6 +77,11 @@ export const pendingEquipChoice = derived(gameState, ($s) => $s?.pendingEquipCho
  * durable-state discipline as `pendingEquipChoice` above. Drives RewardChoiceModal.svelte. */
 export const pendingRewardChoice = derived(gameState, ($s) => $s?.pendingRewardChoice ?? null);
 
+/** Derived convenience: the conversation with a Rest NPC awaiting its end, or null. Durable
+ * server-side like `pendingEquipChoice`, so a direct reflection of server state. Drives
+ * SceneDialogue.svelte. */
+export const pendingScene = derived(gameState, ($s) => $s?.pendingScene ?? null);
+
 /** Derived convenience: the dungeon map while exploring a run, or null. A direct reflection of
  * server state like `pendingEquipChoice`, resent on every update. Drives MinimapPanel.svelte. */
 export const minimap = derived(gameState, ($s) => $s?.minimap ?? null);

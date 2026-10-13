@@ -129,6 +129,16 @@ describe("candidateHints", () => {
         });
     });
 
+    describe("during a conversation", () => {
+        test("offers no hint, nothing talks over it", () => {
+            const state = makeState({
+                pendingScene: { npc: "npc.1", kind: "idle", context: "general" },
+                equipment: makeEquipment({ weapon: makeItem() }),
+            });
+            expect(candidateHints(state)).toEqual([]);
+        });
+    });
+
     describe("in the Hub", () => {
         const hub = (runsCompleted: number, perks = 0): StateUpdate["hub"] => ({
             upgrades: [],

@@ -5,6 +5,7 @@ import {
     gamePhase,
     combatLog,
     npcDialogue,
+    pendingScene,
     achievementToast,
     combatDamageEvents,
     soundEvents,
@@ -61,6 +62,7 @@ describe("StateStore derived stores", () => {
         expect(get(combatDamageEvents)).toEqual([]);
         expect(get(soundEvents)).toEqual([]);
         expect(get(pendingEquipChoice)).toBeNull();
+        expect(get(pendingScene)).toBeNull();
         expect(get(equippedSetCounts)).toEqual({});
         expect(get(minimap)).toBeNull();
     });
@@ -89,6 +91,18 @@ describe("StateStore derived stores", () => {
         expect(get(achievementToast)).toEqual([]);
         expect(get(combatDamageEvents)).toEqual([]);
         expect(get(soundEvents)).toEqual([]);
+    });
+
+    test("pendingScene is a durable reflection of server state, and null once the server omits it", () => {
+        const scene = { npc: "npc.1", kind: "scene" as const, sceneId: "npc.1.s1" };
+        gameState.set(makeState({ pendingScene: scene }));
+        expect(get(pendingScene)).toEqual(scene);
+        gameState.set(makeState({ pendingScene: scene }));
+        expect(get(pendingScene)).toEqual(scene);
+        gameState.set(makeState({ pendingScene: null }));
+        expect(get(pendingScene)).toBeNull();
+        gameState.set(makeState());
+        expect(get(pendingScene)).toBeNull();
     });
 
     test("pendingEquipChoice is a durable reflection of server state, not a transient one-shot", () => {

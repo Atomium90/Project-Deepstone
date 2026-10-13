@@ -1,11 +1,29 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import { get } from "svelte/store";
-import { dictionaries, language, t, translate, type Dictionaries } from "./i18n";
+import { dictionaries, language, lookup, t, translate, type Dictionaries } from "./i18n";
 
 const sample: Dictionaries = {
     en: { "greeting": "Hello", "found": "Found {count} {thing}", "english.only": "Only in English" },
     fr: { "greeting": "Bonjour", "found": "{count} {thing} trouve" },
 };
+
+describe("lookup", () => {
+    test("returns the text of the requested language", () => {
+        expect(lookup(sample, "fr", "greeting")).toBe("Bonjour");
+    });
+
+    test("falls back to English when the language lacks the key", () => {
+        expect(lookup(sample, "fr", "english.only")).toBe("Only in English");
+    });
+
+    test("is null when no language has the key, instead of giving the key back", () => {
+        expect(lookup(sample, "fr", "missing.key")).toBeNull();
+    });
+
+    test("leaves the placeholders as written", () => {
+        expect(lookup(sample, "en", "found")).toBe("Found {count} {thing}");
+    });
+});
 
 describe("translate", () => {
     test("returns the text of the requested language", () => {

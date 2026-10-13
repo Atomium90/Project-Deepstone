@@ -89,7 +89,7 @@ class GameSession private (
       progress <- achievementRef.get
       story    <- storyRef.get
       withDebug <- withDebugRooms(update, state)
-    yield withPendingCard(
+    yield withStory(
       withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state),
       story
     )
@@ -103,17 +103,22 @@ class GameSession private (
       progress  <- achievementRef.get
       story     <- storyRef.get
       withDebug <- withDebugRooms(state.toStateUpdate(), state)
-    yield withPendingCard(
+    yield withStory(
       withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state),
       story
     )
 
-  /** Attach the story card still to be shown, if any (see `StateUpdate.pendingCard`). It is read
-    * from the story, not from the game state, so it is the same in every phase and survives a
-    * reconnection.
+  /** Add what only the story knows: the card still to be shown, if any (see `StateUpdate.pendingCard`),
+    * which is read from the story and not from the game state so it is the same in every phase and
+    * survives a reconnection, and whether the inscription of a relic on offer can be read yet.
     */
-  private def withPendingCard(update: StateUpdate, story: StoryProgress): StateUpdate =
-    update.copy(pendingCard = story.pendingCard)
+  private def withStory(update: StateUpdate, story: StoryProgress): StateUpdate =
+    val readable = story.chapter >= StoryRules.RelicReadableFromChapter
+    update.copy(
+      pendingCard = story.pendingCard,
+      pendingRewardChoice =
+        update.pendingRewardChoice.map(choice => choice.copy(relic = choice.relic.map(_.copy(readable = readable))))
+    )
 
   /** Attach how many runs the player has finished, and which difficulty tiers are unlocked, to the
     * hub view (see [[HubView]]), the same "enrich the update with live meta outside the pure state"
@@ -313,7 +318,12 @@ class GameSession private (
         before.enemyStats.get(before.combat.enemy.typeId).flatMap(_.devoted) match
           case Some(devoted) =>
             val speaking = after.copy(pendingScene = Some(PendingScene(Encounter.DevotedAfter(devoted))))
-            stateRef.set(speaking).as((speaking, Nil))
+            for
+              story <- storyRef.get
+              // A relic that could be read when its Devoted fell counts as read.
+              _ <- IO.whenA(story.chapter >= StoryRules.RelicReadableFromChapter)(updateStory(story, story.withRelicRead(devoted)))
+              _ <- stateRef.set(speaking)
+            yield (speaking, Nil)
           case None => IO.pure((next, Nil))
 
       case _ =>
@@ -730,8 +740,8 @@ object GameSession:
     )
 
   /** Save what changed between two states of the story: the chapter and the last outcome, the scenes
-    * newly played, every vow that is not as it was, the streak of deaths and the cards newly earned or
-    * seen.
+    * newly played, every vow that is not as it was, the streak of deaths, the relics newly read and the
+    * cards newly earned or seen.
     */
   private def persistStory(database: Database, prev: StoryProgress, next: StoryProgress): IO[Unit] =
     for
@@ -743,6 +753,7 @@ object GameSession:
         .filterNot((npc, record) => prev.vows.get(npc).contains(record))
         .traverse_((npc, record) => database.saveVow(npc, record))
       _ <- IO.whenA(next.deathStreak != prev.deathStreak)(database.saveDeathStreak(next.deathStreak))
+      _ <- (next.relicsRead -- prev.relicsRead).toList.sorted.traverse_(database.recordRelicRead)
       _ <- next.cards.filterNot(card => prev.cards.exists(_.id == card.id)).traverse_(card => database.recordCardEarned(card.id))
       _ <- next.cards.filter(card => card.seen && !prev.cards.contains(card)).traverse_(card => database.markCardSeen(card.id))
     yield ()

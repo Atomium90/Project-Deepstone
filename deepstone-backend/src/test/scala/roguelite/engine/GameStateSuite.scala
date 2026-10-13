@@ -117,6 +117,18 @@ class GameStateSuite extends FunSuite:
                  PendingSceneView("boss.5", "devoted", sceneId = Some("boss.5.post"))
     )
 
+  test("a reward choice from a Devoted's Shrine names the relic, unreadable until the story says otherwise"):
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1,
+                                 pendingRewardChoice = Some(PendingRewardChoice(Nil, devoted = Some(3)))
+    )
+    assertEquals(state.toStateUpdate().pendingRewardChoice.flatMap(_.relic), Some(RelicView(3, readable = false)))
+
+  test("a reward choice from any other Shrine has no relic"):
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1,
+                                 pendingRewardChoice = Some(PendingRewardChoice(Nil))
+    )
+    assertEquals(state.toStateUpdate().pendingRewardChoice.flatMap(_.relic), None)
+
   test("a short line names the pool its text comes from"):
     def context(c: IdleContext) = conversationView(Encounter.Idle("npc.1", c, None)).context
     assertEquals(context(IdleContext.General), Some("general"))

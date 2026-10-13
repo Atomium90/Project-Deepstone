@@ -403,7 +403,17 @@ case class PendingEquipChoiceView(newItem: ItemView, options: List[EquipChoiceOp
   * entry's `id` (each already carries its own distinct instance id, unlike an equip choice's
   * slot-keyed options).
   */
-case class PendingRewardChoiceView(options: List[ItemView])
+case class PendingRewardChoiceView(options: List[ItemView], relic: Option[RelicView] = None)
+
+/** The relic a Boss left with its Shrine, which bears the name of the Devoted it belonged to.
+  *
+  * @param devoted
+  *   Which Devoted, from 1. The inscription is the text `story.boss.<devoted>.relic`.
+  * @param readable
+  *   False while the inscription is worn smooth, before the story has gone far enough for the player
+  *   to read it: the client then shows `story.boss.unreadable` instead.
+  */
+case class RelicView(devoted: Int, readable: Boolean)
 
 /** The conversation the player is in with a Rest NPC, or the line of a Devoted before or after a
   * fight, awaiting a [[SceneDone]]. Durable, same
@@ -731,6 +741,7 @@ object MessageProtocol:
   given Encoder[EquipmentView] = deriveEncoder
   given Encoder[EquipChoiceOptionView]   = deriveEncoder
   given Encoder[PendingEquipChoiceView]  = deriveEncoder
+  given Encoder[RelicView] = deriveEncoder
   given Encoder[PendingRewardChoiceView] = deriveEncoder
   given Encoder[PendingSceneView]        = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder

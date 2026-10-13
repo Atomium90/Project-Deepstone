@@ -260,6 +260,18 @@ class CombatResolverSuite extends FunSuite:
       CombatResolver(Random(0), itemDefs).resolve(combatStateInMiniBossRoom(enemy), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState], s"expected ExplorationState, got $next")
 
+  test("the Shrine of a Devoted Boss carries its Devoted, the Shrine of any other Boss none"):
+    val wraith = EnemyStats(typeId = "wraith", label = "Wraith", spriteId = "mob_x_idle", maxHp = 80, attack = 26,
+                            defense = 3, xpReward = 100, actions = List(EnemyActionWeight("ATTACK", 100)), devoted = Some(1)
+    )
+    def shrineOf(state: GameState): Option[Shrine] =
+      state.asInstanceOf[ExplorationState].dungeon.currentRoom.entities.collectFirst { case s: Shrine => s }
+    val devotedState = combatStateInBossRoom(weakEnemy(hp = 1).copy(typeId = "wraith")).copy(enemyStats = Map("wraith" -> wraith))
+    val (devotedNext, _, _) = resolver().resolve(devotedState, CombatAction(CombatActionType.Attack))
+    assertEquals(shrineOf(devotedNext).map(_.devoted), Some(Some(1)))
+    val (plainNext, _, _) = resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    assertEquals(shrineOf(plainNext).map(_.devoted), Some(None))
+
   test("defeating a MiniBoss spawns a Chest at its position instead of the usual loot roll"):
     val itemDefs: Map[String, Item] = Map(
       "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))

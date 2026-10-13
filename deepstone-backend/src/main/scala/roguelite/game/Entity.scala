@@ -219,6 +219,10 @@ case class Sanctuary(id: String, x: Int, y: Int) extends Entity:
   * [[CombatResolver.victory]]) - never authored in rooms.json, only ever created at runtime.
   * Interacting with it rolls 3 candidate items and offers a choice (see
   * [[roguelite.game.RewardChoiceResolver]]), unlike [[Chest]]'s single immediate-resolve drop.
+  *
+  * @param devoted
+  *   Which Devoted the relic belongs to, when the Boss that fell was one: the Shrine then shows the
+  *   inscription of that relic (see [[roguelite.game.EnemyStats.devoted]]).
   */
-case class Shrine(id: String, x: Int, y: Int) extends Entity:
+case class Shrine(id: String, x: Int, y: Int, devoted: Option[Int] = None) extends Entity:
   def toView: EntityView = EntityView(id = id, kind = "shrine", x = x, y = y, label = "Shrine")

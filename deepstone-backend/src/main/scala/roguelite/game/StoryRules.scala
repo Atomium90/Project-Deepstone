@@ -8,6 +8,11 @@ object StoryRules:
   /** The card the first purchase at the hub earns. */
   val PrologueCard = "prologue"
 
+  /** From this chapter on the inscription of a relic can be read, and a Devoted who falls leaves its
+    * relic read.
+    */
+  val RelicReadableFromChapter = 2
+
   /** The card a victory earns by opening `chapter`. */
   def chapterCard(chapter: Int): String = s"ch$chapter"
 

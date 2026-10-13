@@ -502,7 +502,8 @@ class CombatResolver(rng: Random = Random(),
     val updatedRoom =
       deadEnemyPosition match {
         case Some((x, y)) if isBossKill =>
-          roomAfterRemoval.withEntities(List(Shrine(id = s"shrine_${deadEnemy.entityId}", x = x, y = y)))
+          val devoted = state.enemyStats.get(deadEnemy.typeId).flatMap(_.devoted)
+          roomAfterRemoval.withEntities(List(Shrine(id = s"shrine_${deadEnemy.entityId}", x = x, y = y, devoted = devoted)))
         case Some((x, y)) if isMiniBossKill =>
           roomAfterRemoval.withEntities(List(Chest(id = s"chest_${deadEnemy.entityId}", x = x, y = y)))
         case _ => roomAfterRemoval

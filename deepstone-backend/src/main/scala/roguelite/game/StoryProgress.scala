@@ -32,7 +32,7 @@ case class CardRecord(id: String, seen: Boolean = false)
 /** What the story remembers between runs, loaded from SQLite at session start and kept in a
   * `Ref[IO, StoryProgress]` inside [[roguelite.engine.GameSession]], the story counterpart of
   * [[AchievementProgress]]. Persisted across dedicated tables (`story_state`, `story_scene_seen`,
-  * `story_vow`, `story_card`, `story_death_streak`), see [[roguelite.db.Database]].
+  * `story_vow`, `story_card`, `story_death_streak`, `story_relic_read`), see [[roguelite.db.Database]].
   *
   * @param chapter
   *   The last chapter reached, 0 before the first one. Scenes ask for a minimum chapter.
@@ -47,6 +47,9 @@ case class CardRecord(id: String, seen: Boolean = false)
   *   The cards earned, in the order they were earned, never removed.
   * @param deathStreak
   *   How many runs in a row ended in death, 0 after a win. The god's voice remarks on a long one.
+  * @param relicsRead
+  *   The Devoted whose relic has been read: they fell while the inscription could be read. A later
+  *   scene can ask for it, never removed.
   */
 case class StoryProgress(
     chapter: Int = 0,
@@ -54,8 +57,12 @@ case class StoryProgress(
     scenesSeen: Set[String] = Set.empty,
     vows: Map[String, VowRecord] = Map.empty,
     cards: List[CardRecord] = Nil,
-    deathStreak: Int = 0
+    deathStreak: Int = 0,
+    relicsRead: Set[Int] = Set.empty
 ):
+
+  /** The relic of the Devoted `devoted` has been read. */
+  def withRelicRead(devoted: Int): StoryProgress = copy(relicsRead = relicsRead + devoted)
 
   /** The card to show next: the oldest one the player has not seen yet. */
   def pendingCard: Option[String] = cards.find(!_.seen).map(_.id)

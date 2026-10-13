@@ -1169,6 +1169,54 @@ class GameSessionSuite extends CatsEffectSuite:
         assertNotEquals(door.room.map(_.roomId), won.room.map(_.roomId))
   }
 
+  /** Wins the fight with the Devoted, reads its last line and opens its Shrine. */
+  private def defeatDevotedAndOpenShrine(session: GameSession): IO[StateUpdate] =
+    startEasyRun(session) *>
+      session.handle(Interact("e1")) *>
+      session.handle(SceneDone(None)) *>
+      session.handle(CombatAction(CombatActionType.Attack)) *>
+      session.handle(SceneDone(None)) *>
+      session.handle(Interact("shrine_e1"))
+
+  db.test("the relic of a Devoted can be read from chapter 2, and counts as read once its Devoted has fallen") {
+    database =>
+      for
+        _       <- database.saveStoryState(2, None)
+        session <- devotedSession(database)
+        shrine  <- defeatDevotedAndOpenShrine(session)
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(shrine.pendingRewardChoice.flatMap(_.relic), Some(RelicView(2, readable = true)))
+        assertEquals(saved.relicsRead, Set(2))
+  }
+
+  db.test("before chapter 2 the inscription is worn smooth, and the relic does not count as read") {
+    database =>
+      for
+        _       <- database.saveStoryState(1, None)
+        session <- devotedSession(database)
+        shrine  <- defeatDevotedAndOpenShrine(session)
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(shrine.pendingRewardChoice.flatMap(_.relic), Some(RelicView(2, readable = false)))
+        assertEquals(saved.relicsRead, Set.empty[Int])
+  }
+
+  db.test("the Shrine of a Boss that is no Devoted shows no relic and reads none") {
+    database =>
+      for
+        _       <- database.saveStoryState(3, None)
+        session <- voiceSession(database, smWithBossRun)
+        _       <- startEasyRun(session)
+        _       <- session.handle(Interact("e1"))
+        _       <- session.handle(CombatAction(CombatActionType.Attack))
+        shrine  <- session.handle(Interact("shrine_e1"))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(shrine.pendingRewardChoice.map(_.relic), Some(None))
+        assertEquals(saved.relicsRead, Set.empty[Int])
+  }
+
   db.test("an enemy that is no Devoted starts its fight at once, with no line") {
     database =>
       for

@@ -119,6 +119,11 @@ class Database private (xa: Transactor[IO]):
               INSERT OR IGNORE INTO story_death_streak (id) VALUES (1)
             """.update.run *>
         sql"""
+              CREATE TABLE IF NOT EXISTS story_relic_read (
+                devoted INTEGER PRIMARY KEY
+              )
+            """.update.run *>
+        sql"""
               INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)
             """.update.run *>
         sql"""
@@ -251,8 +256,8 @@ class Database private (xa: Transactor[IO]):
       .void
 
   /** Load what the story remembers: the chapter reached, how the last run ended, the scenes seen,
-    * each NPC's vow, the cards earned (in the order they were earned) and the streak of deaths, all
-    * in one transaction. A vow row or a last-run value this version does not know is ignored.
+    * each NPC's vow, the cards earned (in the order they were earned), the streak of deaths and the
+    * relics read, all in one transaction. A vow row or a last-run value this version does not know is ignored.
     */
   def loadStoryProgress(): IO[StoryProgress] =
     val getState  = sql"SELECT chapter, last_run FROM story_state WHERE id = 1".query[(Int, Option[String])].unique
@@ -260,12 +265,14 @@ class Database private (xa: Transactor[IO]):
     val getVows   = sql"SELECT npc_id, state, reported FROM story_vow".query[(String, String, Boolean)].to[List]
     val getCards  = sql"SELECT card_id, seen FROM story_card ORDER BY rowid".query[(String, Boolean)].to[List]
     val getStreak = sql"SELECT streak FROM story_death_streak WHERE id = 1".query[Int].unique
+    val getRelics = sql"SELECT devoted FROM story_relic_read".query[Int].to[Set]
     (for
       state  <- getState
       scenes <- getScenes
       vows   <- getVows
       cards  <- getCards
       streak <- getStreak
+      relics <- getRelics
     yield
       val (chapter, lastRun) = state
       StoryProgress(
@@ -274,7 +281,8 @@ class Database private (xa: Transactor[IO]):
         scenesSeen = scenes,
         vows = vows.flatMap((npcId, name, reported) => Database.parseVowState(name).map(npcId -> VowRecord(_, reported))).toMap,
         cards = cards.map((id, seen) => CardRecord(id, seen)),
-        deathStreak = streak
+        deathStreak = streak,
+        relicsRead = relics
       )
     ).transact(xa)
 
@@ -286,6 +294,10 @@ class Database private (xa: Transactor[IO]):
   /** Overwrite the number of runs in a row that ended in death. */
   def saveDeathStreak(streak: Int): IO[Unit] =
     sql"UPDATE story_death_streak SET streak = $streak WHERE id = 1".update.run.transact(xa).void
+
+  /** Record the relic of a Devoted as read. Idempotent. */
+  def recordRelicRead(devoted: Int): IO[Unit] =
+    sql"INSERT OR IGNORE INTO story_relic_read (devoted) VALUES ($devoted)".update.run.transact(xa).void
 
   /** Record a scene as played to its last line. Idempotent, same INSERT-OR-IGNORE pattern as
     * [[unlockAchievement]].

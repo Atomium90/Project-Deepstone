@@ -430,6 +430,16 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(next, _, _) = resolver().interact(state, "s1")
     assertEquals(next.asInstanceOf[ExplorationState].pendingRewardChoice.map(_.options), Some(Nil))
 
+  test("Interact with the Shrine of a Devoted keeps whose relic it is on the pending choice"):
+    val state = explorationAt(3, 3, entities = List(Shrine("s1", x = 3, y = 3, devoted = Some(4))))
+    val TransitionResult(next, _, _) = resolver().interact(state, "s1")
+    assertEquals(next.asInstanceOf[ExplorationState].pendingRewardChoice.flatMap(_.devoted), Some(4))
+
+  test("Interact with a Shrine that holds no relic leaves the pending choice with no Devoted"):
+    val state = explorationAt(3, 3, entities = List(Shrine("s1", x = 3, y = 3)))
+    val TransitionResult(next, _, _) = resolver().interact(state, "s1")
+    assertEquals(next.asInstanceOf[ExplorationState].pendingRewardChoice.map(_.devoted), Some(None))
+
   test("Interact with Shrine emits no events"):
     val shrine = Shrine("s1", x = 3, y = 3)
     val state  = explorationAt(3, 3, entities = List(shrine))

@@ -329,7 +329,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     val updatedDungeon    = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(roomWithoutShrine.id, roomWithoutShrine))
     val options           = LootTable.rollShrineChoices(itemDefs, rng, difficulty = exp.difficulty)
     val nextState = exp.copy(dungeon = updatedDungeon,
-                             pendingRewardChoice = Some(PendingRewardChoice(options))
+                             pendingRewardChoice = Some(PendingRewardChoice(options, shrine.devoted))
     )
     (nextState, List("The shrine offers you a choice."))
 

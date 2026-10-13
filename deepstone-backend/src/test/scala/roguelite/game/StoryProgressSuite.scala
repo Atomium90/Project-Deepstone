@@ -23,6 +23,10 @@ class StoryProgressSuite extends FunSuite:
     val seen = earned.withCardSeen("ch1")
     assertEquals(seen.withCardEarned("ch1"), seen)
 
+  test("a relic read is remembered, once however many times it is read"):
+    val progress = StoryProgress.empty.withRelicRead(4).withRelicRead(4).withRelicRead(1)
+    assertEquals(progress.relicsRead, Set(1, 4))
+
   test("seeing a card that was never earned changes nothing"):
     val progress = StoryProgress.empty.withCardEarned("ch1")
     assertEquals(progress.withCardSeen("ch2"), progress)

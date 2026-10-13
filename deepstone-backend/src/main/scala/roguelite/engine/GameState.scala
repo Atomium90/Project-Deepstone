@@ -78,7 +78,10 @@ private def pendingChoiceToView(pending: PendingEquipChoice, playerAffinityTags:
 
 /** Project a [[PendingRewardChoice]] into the client-facing [[PendingRewardChoiceView]]. */
 private def pendingRewardChoiceToView(pending: PendingRewardChoice, playerAffinityTags: Set[String]): PendingRewardChoiceView =
-  PendingRewardChoiceView(options = pending.options.map(itemToView(_, playerAffinityTags)))
+  PendingRewardChoiceView(options = pending.options.map(itemToView(_, playerAffinityTags)),
+                          // Whether the inscription can be read depends on the story, which GameSession adds.
+                          relic = pending.devoted.map(RelicView(_, readable = false))
+  )
 
 /** Project a [[PendingScene]] into the client-facing [[PendingSceneView]]. */
 private def pendingSceneToView(pending: PendingScene): PendingSceneView =

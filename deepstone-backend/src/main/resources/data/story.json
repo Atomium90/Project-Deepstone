@@ -1,0 +1,18 @@
+[
+  { "id": "npc.1.s1", "npc": "npc.1", "minChapter": 1 },
+  {
+    "id": "npc.1.s2",
+    "npc": "npc.1",
+    "minChapter": 2,
+    "requires": "npc.1.s1",
+    "offersVow": { "type": "NoPotion" }
+  },
+  { "id": "npc.1.s3", "npc": "npc.1", "minChapter": 3, "requires": "npc.1.s2" },
+  {
+    "id": "npc.1.s4",
+    "npc": "npc.1",
+    "minChapter": 5,
+    "requires": "npc.1.s3",
+    "requiresVowKept": true
+  }
+]

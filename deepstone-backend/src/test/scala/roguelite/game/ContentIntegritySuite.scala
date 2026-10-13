@@ -366,6 +366,16 @@ class ContentIntegritySuite extends CatsEffectSuite:
                  s"${tier.difficulty}: theme '${tier.themes.last}' has no Sanctuary room"
           )
 
+  test("every scene of story.json asks for a chapter that exists in chapters.json"):
+    for
+      chapters <- ChapterLoader.loadAll()
+      scenes   <- StoryLoader.loadAll()
+    yield scenes.values.foreach:
+      scene =>
+        assert(chapters.contains(scene.minChapter),
+               s"scene '${scene.id}' asks for chapter ${scene.minChapter}, which chapters.json does not define"
+        )
+
   test("a dungeon built from the real pool follows its tier's themes and never meets a Boss twice"):
     for
       tiers <- DifficultyLoader.loadAll()

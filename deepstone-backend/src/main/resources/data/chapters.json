@@ -1,0 +1,8 @@
+[
+  { "id": 1, "minDifficulty": "easy" },
+  { "id": 2, "minDifficulty": "easy" },
+  { "id": 3, "minDifficulty": "normal" },
+  { "id": 4, "minDifficulty": "normal" },
+  { "id": 5, "minDifficulty": "hard" },
+  { "id": 6, "minDifficulty": "hard" }
+]

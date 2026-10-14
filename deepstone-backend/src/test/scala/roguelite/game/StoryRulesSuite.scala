@@ -69,6 +69,16 @@ class StoryRulesSuite extends FunSuite:
     val last = StoryProgress(chapter = 4)
     assertEquals(StoryRules.openChapter(chapters, last, Difficulty.Hard), last)
 
+  test("the last scene of an NPC who took the player's place earns the card of that answer"):
+    val replaced = StoryProgress(ending = Some(Ending.Replaced("npc.3")))
+    val after    = StoryRules.complete(replaced, Encounter.Farewell("npc.3"), None).toOption.get
+    assertEquals(after.cards, List(CardRecord("end2")))
+
+  test("a farewell offers no vow, and is refused when one is answered"):
+    assertEquals(Encounter.Farewell("npc.3").offeredVow, None)
+    assertEquals(Encounter.Farewell("npc.3").speaker, "npc.3")
+    assert(StoryRules.complete(StoryProgress.empty, Encounter.Farewell("npc.3"), Some(true)).isLeft)
+
   test("a card is named after its chapter, and the first purchase has its own"):
     assertEquals(StoryRules.chapterCard(3), "ch3")
     assertEquals(StoryRules.PrologueCard, "prologue")

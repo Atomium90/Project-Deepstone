@@ -13,7 +13,7 @@ import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
-import roguelite.game.{ ChapterDef, DeathContext, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
+import roguelite.game.{ ChapterDef, DeathContext, Ending, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -82,6 +82,8 @@ class GameSession private (
         handleSceneDone(accept)
       case CardSeen(cardId) =>
         handleCardSeen(cardId)
+      case EndingChoice(answer, npc) =>
+        handleEndingChoice(answer, npc)
       case _ =>
         handleTransition(action)
     for
@@ -224,6 +226,15 @@ class GameSession private (
           val transitionResult = stateMachine.applyActionPure(state, action)
           (transitionResult.state, (state, transitionResult))
       (prev, transitionResult) = result
+      update <- settle(prev, transitionResult)
+    yield update
+
+  /** Everything that follows a transition once the state is decided: the enrichment of the new state,
+    * the achievements and the story the transition's facts change, and the update for the client. The
+    * state is already `transitionResult.state` in the session.
+    */
+  private def settle(prev: GameState, transitionResult: TransitionResult): IO[StateUpdate] =
+    for
       postResult    <- handlePostTransition(prev, transitionResult.state)
       (finalNext, extraLog) = postResult
       newlyUnlocked <- processAchievementEvents(transitionResult.events)
@@ -310,7 +321,9 @@ class GameSession private (
         for
           currentMeta <- metaRef.get
           progress    <- achievementRef.get
-          grant = ShardTopUp.grantFor(currentMeta, progress.stats, upgradeDefs)
+          story       <- storyRef.get
+          // With the altar shut there is nothing left to top the Shards up for.
+          grant = if story.shopClosed then None else ShardTopUp.grantFor(currentMeta, progress.stats, upgradeDefs)
           meta        <- grant.fold(IO.pure(currentMeta))(applyShardTopUp(currentMeta, _))
           perkOptions <- rollPerkOptions()
           enriched = hub.copy(
@@ -445,7 +458,9 @@ class GameSession private (
                 exp.pendingScene.get.encounter match
                   // The line of a Devoted was the last thing between the player and the fight.
                   case Encounter.DevotedBefore(_, _, enemyId) => finished *> handleTransition(Interact(enemyId))
-                  case _                                      => finished.as(done.toStateUpdate())
+                  // The NPC who took the player's place has said their last words: the run ends.
+                  case Encounter.Farewell(_) => finished *> endRun(done, List("They step into the light in your place."))
+                  case _                     => finished.as(done.toStateUpdate())
       case state => IO.pure(state.toStateUpdate(List("There is no conversation to finish.")))
 
   /** The player has read the card on their screen. Only the card the server is waiting for counts,
@@ -495,11 +510,49 @@ class GameSession private (
             else exp
           case other => other
 
-  /** The story opens the Hardcore tier: the tier becomes available, and its announcement card is
-    * earned. Nothing in the game calls it yet, the ending that leaves the cult will.
+  // -----------------------------------------------------------------------
+  // Internal: the answer to the light
+  // -----------------------------------------------------------------------
+
+  /** The player answers the question the Sanctuary asked. The answer is checked against the story (an
+    * NPC can only take the player's place once their story is over), then what it changes is saved.
+    * An answer that makes no sense leaves the question pending.
     */
-  private[engine] def unlockHardcore: IO[Unit] =
-    storyRef.get.flatMap(story => updateStory(story, StoryRules.unlockHardcore(story)))
+  private def handleEndingChoice(answer: EndingAnswer, npc: Option[String]): IO[StateUpdate] =
+    stateRef.get.flatMap:
+      case exp: ExplorationState if exp.pendingEndingChoice =>
+        storyRef.get.flatMap:
+          story =>
+            val candidates = EndingRules.candidates(npcDefs, sceneDefs, story)
+            EndingRules.ending(answer, npc, candidates) match
+              case Left(err)     => IO.pure(exp.toStateUpdate(List(err)))
+              case Right(ending) => answerLight(exp, story, ending)
+      case state => IO.pure(state.toStateUpdate(List("There is no question to answer.")))
+
+  /** The answer is valid: the story keeps it, and the run goes on to its end. Entering the light and
+    * refusing it end the run now (refusing first takes every Shard away: the altar is shut, and the
+    * hub saves the balance as the run ends). Letting someone take the player's place first plays that
+    * NPC's last scene, and the run ends when it has been read.
+    */
+  private def answerLight(exp: ExplorationState, story: StoryProgress, ending: Ending): IO[StateUpdate] =
+    val next: IO[StateUpdate] = ending match
+      case Ending.Entered =>
+        endRun(exp, List("You step into the light."))
+      case Ending.Refused =>
+        endRun(exp.copy(player = exp.player.copy(metaCurrency = 0)), List("You turn away from the light, and leave everything you gave behind."))
+      case Ending.Replaced(who) =>
+        val farewell =
+          exp.copy(pendingEndingChoice = false, pendingScene = Some(PendingScene(Encounter.Farewell(who))))
+        stateRef.set(farewell).as(farewell.toStateUpdate(List("Someone steps forward to take your place.")))
+    updateStory(story, EndingRules.answered(story, ending)) *> next
+
+  /** The run ends in victory, once the light has been answered: the same end as a Sanctuary that asks
+    * nothing, with the same facts for the achievements and the story.
+    */
+  private def endRun(exp: ExplorationState, log: List[String]): IO[StateUpdate] =
+    val over = GameOverState(exp.player, victory = true)
+    val ended = GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId)
+    stateRef.set(over) *> settle(exp, TransitionResult(over, log, List(ended)))
 
   /** Save what changed between two states of the story, then keep the new one. */
   private def updateStory(prev: StoryProgress, next: StoryProgress): IO[Unit] =

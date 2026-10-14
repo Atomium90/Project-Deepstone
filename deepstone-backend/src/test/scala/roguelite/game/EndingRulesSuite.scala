@@ -1,7 +1,7 @@
 package roguelite.game
 
 import munit.FunSuite
-import roguelite.engine.Difficulty
+import roguelite.engine.{ Difficulty, EndingAnswer }
 
 class EndingRulesSuite extends FunSuite:
 
@@ -61,3 +61,60 @@ class EndingRulesSuite extends FunSuite:
 
   test("several ready candidates come in id order"):
     assertEquals(EndingRules.candidates(npcs, scenes, seen("npc.3.s1", "npc.2.s1", "npc.2.s2")), List("npc.2", "npc.3"))
+
+  // --- what an answer means -------------------------------------------------------
+
+  test("each answer has its own card"):
+    assertEquals(EndingRules.endCard(Ending.Entered), "end1")
+    assertEquals(EndingRules.endCard(Ending.Replaced("npc.2")), "end2")
+    assertEquals(EndingRules.endCard(Ending.Refused), "end3")
+
+  test("entering and refusing name nobody, and are always allowed"):
+    assertEquals(EndingRules.ending(EndingAnswer.Enter, None, Nil), Right(Ending.Entered))
+    assertEquals(EndingRules.ending(EndingAnswer.Refuse, None, List("npc.2")), Right(Ending.Refused))
+
+  test("letting someone take the place needs one of the candidates the question listed"):
+    assertEquals(EndingRules.ending(EndingAnswer.Replace, Some("npc.2"), List("npc.2", "npc.3")), Right(Ending.Replaced("npc.2")))
+    assert(EndingRules.ending(EndingAnswer.Replace, Some("npc.5"), List("npc.2")).isLeft)
+    assert(EndingRules.ending(EndingAnswer.Replace, Some("npc.2"), Nil).isLeft)
+    assert(EndingRules.ending(EndingAnswer.Replace, None, List("npc.2")).isLeft)
+
+  test("entering or refusing while naming an NPC is refused"):
+    assert(EndingRules.ending(EndingAnswer.Enter, Some("npc.2"), List("npc.2")).isLeft)
+    assert(EndingRules.ending(EndingAnswer.Refuse, Some("npc.2"), List("npc.2")).isLeft)
+
+  // --- what an answer changes ---------------------------------------------------------
+
+  test("entering the light is remembered and brings its card, and nothing else"):
+    val after = EndingRules.answered(StoryProgress.empty, Ending.Entered)
+    assertEquals(after.ending, Some(Ending.Entered))
+    assertEquals(after.cards, List(CardRecord("end1")))
+    assertEquals(after.hardcoreUnlocked, false)
+
+  test("refusing the light is remembered, brings its card then the one of Hardcore, and opens Hardcore"):
+    val after = EndingRules.answered(StoryProgress.empty, Ending.Refused)
+    assertEquals(after.ending, Some(Ending.Refused))
+    assertEquals(after.cards, List(CardRecord("end3"), CardRecord("hardcore")))
+    assertEquals(after.hardcoreUnlocked, true)
+    assertEquals(after.shopClosed, true)
+
+  test("letting someone take the place is remembered at once, but its card waits for their last scene"):
+    val after = EndingRules.answered(StoryProgress.empty, Ending.Replaced("npc.3"))
+    assertEquals(after.ending, Some(Ending.Replaced("npc.3")))
+    assertEquals(after.cards, Nil)
+    assertEquals(EndingRules.farewellOver(after).cards, List(CardRecord("end2")))
+
+  test("the last scene of an NPC brings no card unless it was a replacement that was chosen"):
+    assertEquals(EndingRules.farewellOver(StoryProgress.empty), StoryProgress.empty)
+    val refused = EndingRules.answered(StoryProgress.empty, Ending.Refused)
+    assertEquals(EndingRules.farewellOver(refused), refused)
+
+  test("entering the light again does not bring its card back once it was seen"):
+    val seen  = EndingRules.answered(StoryProgress.empty, Ending.Entered).withCardSeen("end1")
+    val again = EndingRules.answered(seen, Ending.Entered)
+    assertEquals(again.pendingCard, None)
+    assertEquals(again.cards, List(CardRecord("end1", seen = true)))
+
+  test("a final answer after entering the light replaces the earlier answer"):
+    val entered = EndingRules.answered(StoryProgress.empty, Ending.Entered)
+    assertEquals(EndingRules.answered(entered, Ending.Refused).ending, Some(Ending.Refused))

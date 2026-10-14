@@ -83,4 +83,5 @@ object StoryRules:
           case Encounter.Idle(_, _, _)        => answered
           case Encounter.DevotedBefore(_, _, _) => answered
           case Encounter.DevotedAfter(_)        => answered
+          case Encounter.Farewell(_)            => EndingRules.farewellOver(answered)
         )

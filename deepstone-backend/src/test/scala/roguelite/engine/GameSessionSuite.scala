@@ -648,34 +648,6 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(started.phase, GamePhase.Exploration)
   }
 
-  db.test("the story opening Hardcore shows the tier, saves it and brings its announcement card") {
-    database =>
-      for
-        session <- tierSession(database)
-        before  <- session.currentUpdate
-        _       <- session.unlockHardcore
-        after   <- session.currentUpdate
-        saved   <- database.loadStoryProgress()
-      yield
-        assertEquals(before.hub.get.difficulties.map(_.id), List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard))
-        assertEquals(before.pendingCard, None)
-        assertEquals(after.hub.get.difficulties.map(_.id).last, Difficulty.Hardcore)
-        assertEquals(after.pendingCard, Some("hardcore"))
-        assertEquals(saved.hardcoreUnlocked, true)
-        assertEquals(saved.cards, List(CardRecord("hardcore")))
-  }
-
-  db.test("opening Hardcore twice earns its card once, and a card that was seen is not shown again") {
-    database =>
-      for
-        session <- tierSession(database)
-        _       <- session.unlockHardcore
-        _       <- session.handle(CardSeen("hardcore"))
-        _       <- session.unlockHardcore
-        after   <- session.currentUpdate
-      yield assertEquals(after.pendingCard, None)
-  }
-
   db.test("a hidden achievement is left out of the catalog until it is unlocked") {
     database =>
       val secret = AchievementDef("secret", "Secret", "d", 99, AchievementCondition.FirstKill, hidden = true)
@@ -1103,6 +1075,122 @@ class GameSessionSuite extends CatsEffectSuite:
         assert(normal.victory, s"expected a plain victory on Normal: ${normal.log}")
         assertEquals(final_.pendingEndingChoice, None)
         assertEquals(normal.pendingEndingChoice, None)
+  }
+
+  /** Walks a Hard run to the Sanctuary, walks into it, and reads the chapter card the way the client does,
+    * so that the next card to come is the one of the answer.
+    */
+  private def askTheLight(session: GameSession): IO[StateUpdate] =
+    walkToSanctuary(session) *> session.handle(Interact("sanct_1")) <* session.handle(CardSeen("ch6"))
+
+  db.test("entering the light ends the run in victory, keeps the Shards, and brings the first card of the end") {
+    database =>
+      for
+        _       <- database.saveStoryState(5, None)
+        _       <- database.saveCurrency(120)
+        session <- endingSession(database)
+        _       <- askTheLight(session)
+        entered <- session.handle(EndingChoice(EndingAnswer.Enter))
+        saved   <- database.loadStoryProgress()
+        meta    <- database.loadMeta()
+      yield
+        assertEquals(entered.phase, GamePhase.GameOver)
+        assert(entered.victory, s"expected a victory: ${entered.log}")
+        assertEquals(entered.pendingEndingChoice, None)
+        assertEquals(entered.pendingCard, Some("end1"))
+        assertEquals(saved.ending, Some(Ending.Entered))
+        assertEquals(saved.lastRun, Some(RunOutcome.Won), "the run is judged now that it has ended")
+        assertEquals(saved.cards.map(_.id), List("ch6", "end1"))
+        assertEquals(meta.currency, 120)
+  }
+
+  db.test("refusing the light takes every Shard, shuts the altar, opens Hardcore, and no top-up gives the Shards back") {
+    database =>
+      for
+        _       <- database.saveStoryState(5, None)
+        _       <- database.saveCurrency(120)
+        _       <- database.saveAchievementStats(AchievementStats(runsCompleted = 5))
+        session <- endingSession(database)
+        _       <- askTheLight(session)
+        refused <- session.handle(EndingChoice(EndingAnswer.Refuse))
+        _       <- session.handle(CardSeen("end3"))
+        next    <- session.currentUpdate
+        saved   <- database.loadStoryProgress()
+        meta    <- database.loadMeta()
+        _       <- session.handle(CardSeen("hardcore"))
+        back    <- session.handle(HubAction(HubActionType.ReturnToHub))
+        metaEnd <- database.loadMeta()
+      yield
+        assertEquals(refused.phase, GamePhase.GameOver)
+        assert(refused.victory, s"expected a victory: ${refused.log}")
+        assertEquals(refused.player.metaCurrency, 0)
+        assertEquals(refused.pendingCard, Some("end3"))
+        assertEquals(next.pendingCard, Some("hardcore"), "the card of Hardcore follows the one of the answer")
+        assertEquals(saved.ending, Some(Ending.Refused))
+        assertEquals(saved.shopClosed, true)
+        assertEquals(saved.hardcoreUnlocked, true)
+        assertEquals(saved.cards.map(_.id), List("ch6", "end3", "hardcore"))
+        assertEquals(meta.currency, 0, "the Shards are gone from the save, not only from the screen")
+        assertEquals(back.phase, GamePhase.Hub)
+        assertEquals(back.player.metaCurrency, 0)
+        assert(!back.log.exists(_.contains("bonus Shards")), s"no top-up once the altar is shut: ${back.log}")
+        assertEquals(metaEnd.currency, 0)
+  }
+
+  db.test("letting an NPC take the place plays their last scene first, and ends the run when it has been read") {
+    database =>
+      for
+        _        <- database.saveStoryState(5, None)
+        _        <- database.recordSceneSeen("npc.2.s1")
+        session  <- endingSession(database)
+        _        <- askTheLight(session)
+        replaced <- session.handle(EndingChoice(EndingAnswer.Replace, Some("npc.2")))
+        midway   <- database.loadStoryProgress()
+        over     <- session.handle(SceneDone())
+        saved    <- database.loadStoryProgress()
+      yield
+        assertEquals(replaced.phase, GamePhase.Exploration)
+        assertEquals(replaced.pendingEndingChoice, None)
+        assertEquals(replaced.pendingScene.map(s => (s.npc, s.kind, s.sceneId)), Some(("npc.2", "scene", Some("npc.2.end"))))
+        assertEquals(replaced.pendingCard, None, "the card comes after the NPC's last words")
+        assertEquals(midway.ending, Some(Ending.Replaced("npc.2")))
+        assertEquals(midway.lastRun, None, "the run has not ended yet")
+        assertEquals(over.phase, GamePhase.GameOver)
+        assert(over.victory, s"expected a victory: ${over.log}")
+        assertEquals(over.pendingCard, Some("end2"))
+        assertEquals(saved.lastRun, Some(RunOutcome.Won))
+        assertEquals(saved.replacedNpc, Some("npc.2"))
+  }
+
+  db.test("an answer that makes no sense leaves the question pending") {
+    database =>
+      for
+        _        <- database.saveStoryState(5, None)
+        session  <- endingSession(database)
+        _        <- askTheLight(session)
+        nobody   <- session.handle(EndingChoice(EndingAnswer.Replace, Some("npc.2")))
+        unnamed  <- session.handle(EndingChoice(EndingAnswer.Replace))
+        named    <- session.handle(EndingChoice(EndingAnswer.Enter, Some("npc.2")))
+        saved    <- database.loadStoryProgress()
+      yield
+        List(nobody, unnamed, named).foreach:
+          refused =>
+            assertEquals(refused.phase, GamePhase.Exploration)
+            assert(refused.pendingEndingChoice.isDefined, s"the question must stay pending: ${refused.log}")
+            assert(refused.log.nonEmpty, "expected a reason")
+        assertEquals(saved.ending, None)
+  }
+
+  db.test("an answer to the light when none was asked changes nothing") {
+    database =>
+      for
+        session <- endingSession(database)
+        hub     <- session.handle(EndingChoice(EndingAnswer.Refuse))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(hub.phase, GamePhase.Hub)
+        assert(hub.log.exists(_.contains("no question")), s"expected a refusal: ${hub.log}")
+        assertEquals(saved.ending, None)
   }
 
   db.test("the first purchase earns the prologue card, shown until it has been seen") {

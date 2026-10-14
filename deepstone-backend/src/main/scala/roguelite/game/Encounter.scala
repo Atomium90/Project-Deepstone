@@ -35,6 +35,11 @@ enum Encounter:
   /** A Devoted speaks as they fall, one line. */
   case DevotedAfter(devoted: Int)
 
+  /** The last scene of an NPC who takes the player's place in the light. The run ends once it has
+    * been read.
+    */
+  case Farewell(npc: String)
+
   /** Who is speaking: an NPC id such as "npc.1", or "boss.<n>" for the Devoted number n, so that
     * `story.<speaker>.name` is the name shown whichever of the two it is.
     */
@@ -44,6 +49,7 @@ enum Encounter:
     case Idle(npc, _, _)             => npc
     case DevotedBefore(devoted, _, _) => s"boss.$devoted"
     case DevotedAfter(devoted)       => s"boss.$devoted"
+    case Farewell(npc)               => npc
 
   /** The vow this conversation ends by offering, if any. Its presence is what makes the player
     * answer yes or no before the conversation counts as over.
@@ -54,3 +60,4 @@ enum Encounter:
     case Idle(_, _, offer)      => offer
     case DevotedBefore(_, _, _) => None
     case DevotedAfter(_)        => None
+    case Farewell(_)            => None

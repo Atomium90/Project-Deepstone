@@ -125,8 +125,9 @@ export interface EntityView {
   x: number;
   y: number;
   label: string;
-  /** Atlas sprite key to draw (see public/atlas/entities.json). Only set for enemies - resolved
-   * server-side from enemies.json, never a mapping the client needs to keep in sync itself. */
+  /** Atlas sprite key to draw (see public/atlas/entities.json). Only set for enemies and NPCs -
+   * resolved server-side from enemies.json and npcs.json, never a mapping the client needs to keep
+   * in sync itself. */
   spriteId?: string;
   /** Only set for enemies. Rolled once per run at dungeon build time - unlike a trapped chest or
    * secret door, Elite status is meant to be visible before the player engages, not a surprise. */

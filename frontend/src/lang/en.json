@@ -336,6 +336,8 @@
     "credits.dungeon-tileset-ii.use": "The tiles of the dungeon rooms, chests and the door leaf.",
     "credits.dungeon-tileset-ii.note": "Some wall pieces were realigned, and a sheet of banners, half floors and fountains was added.",
     "credits.dark-dungeon.use": "The tiles of the dark dungeon rooms.",
+    "credits.fantasy-rpg-characters.use": "The sprites of the characters met at the Rest rooms.",
+    "credits.fantasy-rpg-characters.note": "The idle frames of each character are assembled into one strip.",
     "credits.pixel-crawler.use": "The enemy sprites.",
     "credits.pixel-crawler.terms": "Free for commercial use, credit appreciated.",
     "credits.kyrise-icons.use": "Class icons, the currency icon and several item icons.",

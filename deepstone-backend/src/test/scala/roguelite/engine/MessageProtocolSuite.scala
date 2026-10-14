@@ -1,7 +1,7 @@
 package roguelite.engine
 
 import munit.FunSuite
-import roguelite.game.EquipSlot
+import roguelite.game.{ EquipSlot, Rarity }
 
 class MessageProtocolSuite extends FunSuite:
 
@@ -51,6 +51,27 @@ class MessageProtocolSuite extends FunSuite:
         )
       )
     )
+
+  test("decode HUB_ACTION start run on hardcore"):
+    val json = """{"type":"HUB_ACTION","action":"STARTRUN","classId":"warrior","difficulty":"hardcore"}"""
+    assertEquals(
+      MessageProtocol.decodeAction(json),
+      Right(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Hardcore)))
+    )
+
+  test("hardcore is named in lowercase on the wire, like the other tiers"):
+    import io.circe.syntax.*
+    import MessageProtocol.given
+    assertEquals(Difficulty.values.toList.map(_.asJson.asString), List("easy", "normal", "hard", "hardcore").map(Some(_)))
+
+  test("hardcore has the sections, Elites, traps and loot of Hard, with enemies half again as strong"):
+    assertEquals(Difficulty.Hardcore.statMultiplier, 1.5)
+    assert(Difficulty.Hardcore.statMultiplier > Difficulty.Hard.statMultiplier)
+    assertEquals(Difficulty.Hardcore.biomeCount, Difficulty.Hard.biomeCount)
+    assertEquals(Difficulty.Hardcore.eliteChance, Difficulty.Hard.eliteChance)
+    assertEquals(Difficulty.Hardcore.trappedChestChance, Difficulty.Hard.trappedChestChance)
+    assertEquals(Difficulty.Hardcore.trappedDoorChance, Difficulty.Hard.trappedDoorChance)
+    assertEquals(Difficulty.Hardcore.rarityWeightMultiplier(Rarity.Uncommon), Difficulty.Hard.rarityWeightMultiplier(Rarity.Uncommon))
 
   test("decode HUB_ACTION start run without difficulty leaves it None"):
     val json   = """{"type":"HUB_ACTION","action":"STARTRUN","classId":"warrior"}"""

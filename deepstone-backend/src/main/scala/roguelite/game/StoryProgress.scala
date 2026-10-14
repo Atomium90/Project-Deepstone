@@ -1,5 +1,7 @@
 package roguelite.game
 
+import roguelite.engine.Difficulty
+
 /** How a run ended, as far as the story is concerned. */
 enum RunOutcome:
   case Won, Lost
@@ -32,7 +34,8 @@ case class CardRecord(id: String, seen: Boolean = false)
 /** What the story remembers between runs, loaded from SQLite at session start and kept in a
   * `Ref[IO, StoryProgress]` inside [[roguelite.engine.GameSession]], the story counterpart of
   * [[AchievementProgress]]. Persisted across dedicated tables (`story_state`, `story_scene_seen`,
-  * `story_vow`, `story_card`, `story_death_streak`, `story_relic_read`), see [[roguelite.db.Database]].
+  * `story_vow`, `story_card`, `story_death_streak`, `story_relic_read`, `story_hardcore`), see
+  * [[roguelite.db.Database]].
   *
   * @param chapter
   *   The last chapter reached, 0 before the first one. Scenes ask for a minimum chapter.
@@ -54,6 +57,8 @@ case class CardRecord(id: String, seen: Boolean = false)
   *   The steps made towards the running vow, for the ones that ask for more than one (two levels).
   *   Not saved: a vow still running when a session starts is failed, so there is never any progress
   *   to restore.
+  * @param hardcoreUnlocked
+  *   Whether the story has opened the Hardcore tier, which nothing else does. Never taken back.
   */
 case class StoryProgress(
     chapter: Int = 0,
@@ -63,8 +68,13 @@ case class StoryProgress(
     cards: List[CardRecord] = Nil,
     deathStreak: Int = 0,
     relicsRead: Set[Int] = Set.empty,
-    vowProgress: Int = 0
+    vowProgress: Int = 0,
+    hardcoreUnlocked: Boolean = false
 ):
+
+  /** The difficulty tiers the story has opened, for [[DifficultyUnlocks]]. */
+  def openedTiers: Set[Difficulty] = if hardcoreUnlocked then Set(Difficulty.Hardcore) else Set.empty
+
 
   /** The relic of the Devoted `devoted` has been read. */
   def withRelicRead(devoted: Int): StoryProgress = copy(relicsRead = relicsRead + devoted)

@@ -35,10 +35,28 @@ object DifficultyUnlocks:
     }
 
   /** Whether `difficulty` can be started. A tier with no requirement, or absent from the catalog,
-    * is always available.
+    * is always available. A tier only the story opens (see [[DifficultyTierDef.storyLocked]]) is
+    * available once the story has opened it, whatever the stats say.
+    *
+    * @param storyOpened
+    *   The tiers the story has opened so far (see [[StoryProgress.openedTiers]]).
     */
-  def isUnlocked(catalog: Map[Difficulty, DifficultyTierDef], difficulty: Difficulty, stats: AchievementStats): Boolean =
-    progress(catalog, difficulty, stats).forall(_.met)
+  def isUnlocked(catalog: Map[Difficulty, DifficultyTierDef],
+                 difficulty: Difficulty,
+                 stats: AchievementStats,
+                 storyOpened: Set[Difficulty] = Set.empty
+  ): Boolean =
+    if catalog.get(difficulty).exists(_.storyLocked) then storyOpened.contains(difficulty)
+    else progress(catalog, difficulty, stats).forall(_.met)
 
-  def unlockedTiers(catalog: Map[Difficulty, DifficultyTierDef], stats: AchievementStats): Set[Difficulty] =
-    Difficulty.values.filter(isUnlocked(catalog, _, stats)).toSet
+  def unlockedTiers(catalog: Map[Difficulty, DifficultyTierDef],
+                    stats: AchievementStats,
+                    storyOpened: Set[Difficulty] = Set.empty
+  ): Set[Difficulty] =
+    Difficulty.values.filter(isUnlocked(catalog, _, stats, storyOpened)).toSet
+
+  /** Whether the hub shows `difficulty`: every tier, except one only the story opens that it has not
+    * opened yet, so that nothing in the hub gives the story away.
+    */
+  def isShown(catalog: Map[Difficulty, DifficultyTierDef], difficulty: Difficulty, storyOpened: Set[Difficulty]): Boolean =
+    !catalog.get(difficulty).exists(_.storyLocked) || storyOpened.contains(difficulty)

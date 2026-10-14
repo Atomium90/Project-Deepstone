@@ -4,18 +4,42 @@ import munit.FunSuite
 import roguelite.engine.Difficulty
 
 /** Tests for [[DifficultyUnlocks]]. The catalog mirrors the shipped rules (Normal after a win on
-  * Easy, Hard after 4 wins on Normal and 300 Shards spent) but is a fixture of its own, so a change
-  * to `data/difficulty.json` never breaks these.
+  * Easy, Hard after 4 wins on Normal and 300 Shards spent, Hardcore only when the story opens it)
+  * but is a fixture of its own, so a change to `data/difficulty.json` never breaks these.
   */
 class DifficultyUnlocksSuite extends FunSuite:
 
   private val catalog: Map[Difficulty, DifficultyTierDef] = Map(
     Difficulty.Easy -> DifficultyTierDef(Difficulty.Easy, None, List("a")),
     Difficulty.Normal -> DifficultyTierDef(Difficulty.Normal, Some(TierRequirement(Difficulty.Easy, 1, 0)), List("a", "b")),
-    Difficulty.Hard -> DifficultyTierDef(Difficulty.Hard, Some(TierRequirement(Difficulty.Normal, 4, 300)), List("a", "b", "b"))
+    Difficulty.Hard -> DifficultyTierDef(Difficulty.Hard, Some(TierRequirement(Difficulty.Normal, 4, 300)), List("a", "b", "b")),
+    Difficulty.Hardcore -> DifficultyTierDef(Difficulty.Hardcore, None, List("a", "b", "b"), storyLocked = true)
   )
 
   private def unlocked(stats: AchievementStats): Set[Difficulty] = DifficultyUnlocks.unlockedTiers(catalog, stats)
+
+  private val everything =
+    AchievementStats(runsWon = 50, totalShardsSpent = 5000, winsByDifficulty = Map(Difficulty.Normal -> 50, Difficulty.Hard -> 20))
+
+  test("a tier only the story opens stays locked however much has been won and spent"):
+    assert(!DifficultyUnlocks.isUnlocked(catalog, Difficulty.Hardcore, everything))
+    assert(!DifficultyUnlocks.unlockedTiers(catalog, everything).contains(Difficulty.Hardcore))
+
+  test("a tier only the story opens is unlocked once the story has opened it, and the others do not change"):
+    val opened = Set(Difficulty.Hardcore)
+    assert(DifficultyUnlocks.isUnlocked(catalog, Difficulty.Hardcore, AchievementStats.empty, opened))
+    assertEquals(DifficultyUnlocks.unlockedTiers(catalog, AchievementStats.empty, opened), Set(Difficulty.Easy, Difficulty.Hardcore))
+
+  test("the story opening a tier does not open the tiers that victories open"):
+    assert(!DifficultyUnlocks.isUnlocked(catalog, Difficulty.Normal, AchievementStats.empty, Set(Difficulty.Hardcore)))
+
+  test("the hub shows every tier but a story tier the story has not opened yet"):
+    assert(DifficultyUnlocks.isShown(catalog, Difficulty.Hard, Set.empty))
+    assert(!DifficultyUnlocks.isShown(catalog, Difficulty.Hardcore, Set.empty))
+    assert(DifficultyUnlocks.isShown(catalog, Difficulty.Hardcore, Set(Difficulty.Hardcore)))
+
+  test("a tier the catalog does not list is shown"):
+    assert(DifficultyUnlocks.isShown(catalog - Difficulty.Hardcore, Difficulty.Hardcore, Set.empty))
 
   test("a new save has only the lowest tier"):
     assertEquals(unlocked(AchievementStats.empty), Set(Difficulty.Easy))

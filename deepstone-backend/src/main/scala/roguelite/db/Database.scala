@@ -153,8 +153,8 @@ class Database private (xa: Transactor[IO]):
       .void
 
   /** Load what the story remembers: the chapter reached, how the last run ended, the scenes seen,
-    * each NPC's vow, the cards earned (in the order they were earned), the streak of deaths and the
-    * relics read, all in one transaction. A vow row or a last-run value this version does not know is ignored.
+    * each NPC's vow, the cards earned (in the order they were earned), the streak of deaths, the
+    * relics read and whether Hardcore is opened, all in one transaction. A vow row or a last-run value this version does not know is ignored.
     */
   def loadStoryProgress(): IO[StoryProgress] =
     val getState  = sql"SELECT chapter, last_run FROM story_state WHERE id = 1".query[(Int, Option[String])].unique
@@ -163,6 +163,7 @@ class Database private (xa: Transactor[IO]):
     val getCards  = sql"SELECT card_id, seen FROM story_card ORDER BY rowid".query[(String, Boolean)].to[List]
     val getStreak = sql"SELECT streak FROM story_death_streak WHERE id = 1".query[Int].unique
     val getRelics = sql"SELECT devoted FROM story_relic_read".query[Int].to[Set]
+    val getHardcore = sql"SELECT unlocked FROM story_hardcore WHERE id = 1".query[Boolean].unique
     (for
       state  <- getState
       scenes <- getScenes
@@ -170,6 +171,7 @@ class Database private (xa: Transactor[IO]):
       cards  <- getCards
       streak <- getStreak
       relics <- getRelics
+      hardcore <- getHardcore
     yield
       val (chapter, lastRun) = state
       StoryProgress(
@@ -179,7 +181,8 @@ class Database private (xa: Transactor[IO]):
         vows = vows.flatMap((npcId, name, reported) => Database.parseVowState(name).map(npcId -> VowRecord(_, reported))).toMap,
         cards = cards.map((id, seen) => CardRecord(id, seen)),
         deathStreak = streak,
-        relicsRead = relics
+        relicsRead = relics,
+        hardcoreUnlocked = hardcore
       )
     ).transact(xa)
 
@@ -191,6 +194,10 @@ class Database private (xa: Transactor[IO]):
   /** Overwrite the number of runs in a row that ended in death. */
   def saveDeathStreak(streak: Int): IO[Unit] =
     sql"UPDATE story_death_streak SET streak = $streak WHERE id = 1".update.run.transact(xa).void
+
+  /** Record that the story has opened the Hardcore tier. It is never taken back, so there is no way to clear it. */
+  def saveHardcoreUnlocked(): IO[Unit] =
+    sql"UPDATE story_hardcore SET unlocked = 1 WHERE id = 1".update.run.transact(xa).void
 
   /** Record the relic of a Devoted as read. Idempotent. */
   def recordRelicRead(devoted: Int): IO[Unit] =
@@ -316,11 +323,18 @@ object Database:
         devoted INTEGER PRIMARY KEY
       )
     """,
+    """
+      CREATE TABLE IF NOT EXISTS story_hardcore (
+        id       INTEGER PRIMARY KEY CHECK (id = 1),
+        unlocked INTEGER NOT NULL DEFAULT 0
+      )
+    """,
     "INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)",
     "INSERT OR IGNORE INTO achievement_stats (id) VALUES (1)",
     "INSERT OR IGNORE INTO consumable_stats (id) VALUES (1)",
     "INSERT OR IGNORE INTO story_state (id) VALUES (1)",
-    "INSERT OR IGNORE INTO story_death_streak (id) VALUES (1)"
+    "INSERT OR IGNORE INTO story_death_streak (id) VALUES (1)",
+    "INSERT OR IGNORE INTO story_hardcore (id) VALUES (1)"
   )
 
   private def runOutcomeName(outcome: RunOutcome): String = outcome.toString.toLowerCase

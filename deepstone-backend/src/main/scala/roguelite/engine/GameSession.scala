@@ -91,7 +91,7 @@ class GameSession private (
       story    <- storyRef.get
       withDebug <- withDebugRooms(update, state)
     yield withStory(
-      withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state),
+      withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress, story), state),
       story
     )
 
@@ -105,7 +105,7 @@ class GameSession private (
       story     <- storyRef.get
       withDebug <- withDebugRooms(state.toStateUpdate(), state)
     yield withStory(
-      withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress), state),
+      withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress, story), state),
       story
     )
 
@@ -133,19 +133,20 @@ class GameSession private (
     * hub view (see [[HubView]]), the same "enrich the update with live meta outside the pure state"
     * step as [[withAchievements]]. A no-op outside the hub.
     */
-  private def withHubProgress(update: StateUpdate, progress: AchievementProgress): StateUpdate =
+  private def withHubProgress(update: StateUpdate, progress: AchievementProgress, story: StoryProgress): StateUpdate =
     update.copy(hub =
       update.hub.map(
-        _.copy(runsCompleted = progress.stats.runsCompleted, difficulties = difficultyViews(progress.stats))
+        _.copy(runsCompleted = progress.stats.runsCompleted, difficulties = difficultyViews(progress.stats, story))
       )
     )
 
-  private def difficultyViews(stats: AchievementStats): List[DifficultyView] =
-    Difficulty.values.toList.map:
+  /** The tiers the hub shows. A tier only the story opens is left out until the story has opened it. */
+  private def difficultyViews(stats: AchievementStats, story: StoryProgress): List[DifficultyView] =
+    Difficulty.values.toList.filter(DifficultyUnlocks.isShown(difficultyDefs, _, story.openedTiers)).map:
       difficulty =>
         DifficultyView(
           id = difficulty,
-          unlocked = DifficultyUnlocks.isUnlocked(difficultyDefs, difficulty, stats),
+          unlocked = DifficultyUnlocks.isUnlocked(difficultyDefs, difficulty, stats, story.openedTiers),
           requirement = DifficultyUnlocks.progress(difficultyDefs, difficulty, stats).map:
             p =>
               TierRequirementView(winsAt = p.requirement.winsAt,
@@ -542,10 +543,14 @@ class GameSession private (
     * session. Every other run start goes through the state machine as usual.
     */
   private def handleStartRun(action: PlayerAction, difficulty: Difficulty): IO[StateUpdate] =
-    achievementRef.get.flatMap:
-      progress =>
-        if DifficultyUnlocks.isUnlocked(difficultyDefs, difficulty, progress.stats) then handleTransition(action)
+    for
+      progress <- achievementRef.get
+      story    <- storyRef.get
+      update <-
+        if DifficultyUnlocks.isUnlocked(difficultyDefs, difficulty, progress.stats, story.openedTiers) then
+          handleTransition(action)
         else stateRef.get.map(_.toStateUpdate(List(s"$difficulty is not unlocked yet.")))
+    yield update
 
   /** Validate, persist, and apply an upgrade purchase atomically from the session's perspective.
     *

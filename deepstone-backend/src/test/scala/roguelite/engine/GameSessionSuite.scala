@@ -193,7 +193,8 @@ class GameSessionSuite extends CatsEffectSuite:
     Difficulty.Hard -> DifficultyTierDef(Difficulty.Hard,
                                          Some(TierRequirement(Difficulty.Normal, 4, 300)),
                                          List("dungeon", "darkDungeon", "darkDungeon")
-    )
+    ),
+    Difficulty.Hardcore -> DifficultyTierDef(Difficulty.Hardcore, None, List("dungeon", "darkDungeon", "darkDungeon"), storyLocked = true)
   )
 
   /** Minimal achievement catalog mirroring achievements.json, avoids file I/O in unit tests.
@@ -600,6 +601,51 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(tiers(0).requirement, None)
         assertEquals(tiers(1).requirement, Some(TierRequirementView(Difficulty.Easy, 1, 0, 0, 0)))
         assertEquals(tiers(2).requirement, Some(TierRequirementView(Difficulty.Normal, 4, 0, 300, 0)))
+  }
+
+  private val wonEverything =
+    AchievementStats(runsWon = 50, totalShardsSpent = 5000, winsByDifficulty = Map(Difficulty.Easy -> 1, Difficulty.Normal -> 40, Difficulty.Hard -> 9))
+
+  db.test("the hub does not show Hardcore while the story has not opened it") {
+    database =>
+      for
+        _       <- database.saveAchievementStats(wonEverything)
+        session <- tierSession(database)
+        update  <- session.currentUpdate
+      yield assertEquals(update.hub.get.difficulties.map(_.id), List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard))
+  }
+
+  db.test("a run on Hardcore is refused while the story has not opened it, however much was won") {
+    database =>
+      for
+        _       <- database.saveAchievementStats(wonEverything)
+        session <- tierSession(database)
+        refused <- startRunOn(session, Some(Difficulty.Hardcore))
+      yield
+        assertEquals(refused.phase, GamePhase.Hub)
+        assert(refused.log.exists(_.contains("not unlocked")), s"expected a locked-tier message: ${refused.log}")
+  }
+
+  db.test("once the story opens Hardcore the hub shows it unlocked, with no requirement, last") {
+    database =>
+      for
+        _       <- database.saveHardcoreUnlocked()
+        session <- tierSession(database)
+        update  <- session.currentUpdate
+      yield
+        val tiers = update.hub.get.difficulties
+        assertEquals(tiers.map(_.id), List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard, Difficulty.Hardcore))
+        assertEquals(tiers.last.unlocked, true)
+        assertEquals(tiers.last.requirement, None)
+  }
+
+  db.test("a run on Hardcore starts once the story has opened it, on a save that has won nothing") {
+    database =>
+      for
+        _       <- database.saveHardcoreUnlocked()
+        session <- tierSession(database)
+        started <- startRunOn(session, Some(Difficulty.Hardcore))
+      yield assertEquals(started.phase, GamePhase.Exploration)
   }
 
   db.test("a win on Easy unlocks Normal at the next hub visit") {

@@ -29,6 +29,19 @@ class DifficultyLoaderSuite extends CatsEffectSuite:
     for tiers <- DifficultyLoader.loadAllFromJson(fixture)
     yield assertEquals(tiers(Difficulty.Easy).requirement, None)
 
+  test("a tier is opened by victories unless it says the story opens it"):
+    for tiers <- DifficultyLoader.loadAllFromJson(fixture)
+    yield assertEquals(tiers.values.map(_.storyLocked).toSet, Set(false))
+
+  test("a tier opened by the story decodes as such, with no requirement"):
+    for tiers <- DifficultyLoader.loadAllFromJson("""[{"difficulty":"hardcore","storyLocked":true,"themes":["a"]}]""")
+    yield
+      assert(tiers(Difficulty.Hardcore).storyLocked)
+      assertEquals(tiers(Difficulty.Hardcore).requirement, None)
+
+  test("a tier opened by the story cannot also have a requirement"):
+    assertFails("""[{"difficulty":"hardcore","storyLocked":true,"requirement":{"winsAt":"hard","wins":1,"shardsSpent":0},"themes":["a"]}]""")
+
   test("a requirement decodes its tier, win count and Shards spent"):
     for tiers <- DifficultyLoader.loadAllFromJson(fixture)
     yield

@@ -29,7 +29,9 @@ object DifficultyLoader extends JsonResourceLoader[DifficultyTierDef, Difficulty
         case None    => Right(None)
         case Some(r) => toRequirement(difficulty, r).map(Some(_))
       _ <- Either.cond(j.themes.nonEmpty, (), s"Difficulty '${j.difficulty}' lists no theme")
-    yield DifficultyTierDef(difficulty, requirement, j.themes)
+      storyLocked = j.storyLocked.getOrElse(false)
+      _ <- Either.cond(!storyLocked || requirement.isEmpty, (), s"Difficulty '${j.difficulty}' is opened by the story, so it has no requirement")
+    yield DifficultyTierDef(difficulty, requirement, j.themes, storyLocked)
 
   private def toRequirement(difficulty: Difficulty, r: RequirementJson): Either[String, TierRequirement] =
     for
@@ -56,7 +58,11 @@ object DifficultyLoader extends JsonResourceLoader[DifficultyTierDef, Difficulty
 
   private case class RequirementJson(winsAt: String, wins: Int, shardsSpent: Int)
 
-  private case class TierJson(difficulty: String, requirement: Option[RequirementJson], themes: List[String])
+  private case class TierJson(difficulty: String,
+                              requirement: Option[RequirementJson],
+                              themes: List[String],
+                              storyLocked: Option[Boolean]
+  )
 
   private given Decoder[RequirementJson] = Decoder.instance:
     (c: HCursor) =>
@@ -72,4 +78,5 @@ object DifficultyLoader extends JsonResourceLoader[DifficultyTierDef, Difficulty
         difficulty  <- c.get[String]("difficulty")
         requirement <- c.get[Option[RequirementJson]]("requirement")
         themes      <- c.get[List[String]]("themes")
-      yield TierJson(difficulty, requirement, themes)
+        storyLocked <- c.get[Option[Boolean]]("storyLocked")
+      yield TierJson(difficulty, requirement, themes, storyLocked)

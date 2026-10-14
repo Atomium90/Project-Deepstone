@@ -333,6 +333,21 @@ class DatabaseSuite extends CatsEffectSuite:
       yield assertEquals((first.deathStreak, again.deathStreak), (4, 0))
   }
 
+  db.test("Hardcore is locked on a fresh save, and once the story opens it stays opened") {
+    db =>
+      for
+        fresh  <- db.loadStoryProgress()
+        _      <- db.saveHardcoreUnlocked()
+        _      <- db.saveHardcoreUnlocked()
+        _      <- db.initialize()
+        loaded <- db.loadStoryProgress()
+      yield
+        assertEquals(fresh.hardcoreUnlocked, false)
+        assertEquals(fresh.openedTiers, Set.empty[Difficulty])
+        assertEquals(loaded.hardcoreUnlocked, true)
+        assertEquals(loaded.openedTiers, Set(Difficulty.Hardcore))
+  }
+
   db.test("recordRelicRead remembers each Devoted whose relic was read, idempotently") {
     db =>
       for

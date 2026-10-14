@@ -27,15 +27,20 @@ enum ClassId:
 /** Run difficulty, chosen alongside the class at StartRun.
   *
   * Values are starting points meant to be adjusted after playtesting.
+  *
+  * `Hardcore` is the descent without the god: it has the sections, Elites, traps and loot of `Hard`,
+  * its enemies are half again as strong (x1.5, to be brought down to Hard's x1.25 if that proves too
+  * much), and the run takes no blessing. It is opened by the story, not by victories.
   */
 enum Difficulty:
-  case Easy, Normal, Hard
+  case Easy, Normal, Hard, Hardcore
 
   /** Multiplier applied to enemy maxHp/attack/defense/xpReward at instance creation. */
   def statMultiplier: Double = this match
     case Difficulty.Easy   => 0.75
     case Difficulty.Normal => 1.0
-    case Difficulty.Hard   => 1.25
+    case Difficulty.Hard     => 1.25
+    case Difficulty.Hardcore => 1.5
 
   /** Number of sequential sections in a run, passed to [[roguelite.game.DungeonBuilder.build]].
     * Every section follows the same fixed room template and ends in its own
@@ -47,7 +52,7 @@ enum Difficulty:
   def biomeCount: Int = this match
     case Difficulty.Easy   => 1
     case Difficulty.Normal => 2
-    case Difficulty.Hard   => 3
+    case Difficulty.Hard | Difficulty.Hardcore => 3
 
   /** Per-enemy probability of rolling Elite at dungeon build time (see
     * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties.
@@ -55,7 +60,7 @@ enum Difficulty:
   def eliteChance: Double = this match
     case Difficulty.Easy   => 0.08
     case Difficulty.Normal => 0.10
-    case Difficulty.Hard   => 0.12
+    case Difficulty.Hard | Difficulty.Hardcore => 0.12
 
   /** Per-chest probability of being trapped, rolled at dungeon build time (see
     * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties. A room never holds more than
@@ -65,7 +70,7 @@ enum Difficulty:
   def trappedChestChance: Double = this match
     case Difficulty.Easy   => 0.08
     case Difficulty.Normal => 0.12
-    case Difficulty.Hard   => 0.16
+    case Difficulty.Hard | Difficulty.Hardcore => 0.16
 
   /** Per-door probability of being trapped, rolled at dungeon build time (see
     * [[roguelite.game.DungeonBuilder]]). Lower than [[trappedChestChance]]: a trapped door forces a
@@ -74,13 +79,13 @@ enum Difficulty:
   def trappedDoorChance: Double = this match
     case Difficulty.Easy   => 0.04
     case Difficulty.Normal => 0.06
-    case Difficulty.Hard   => 0.08
+    case Difficulty.Hard | Difficulty.Hardcore => 0.08
 
   /** Relative weight multiplier applied to a loot candidate based on its rarity. Only Hard biases
     * toward Uncommon for now; Easy/Normal keep today's unweighted behavior.
     */
   def rarityWeightMultiplier(rarity: Rarity): Double = (this, rarity) match
-    case (Difficulty.Hard, Rarity.Uncommon) => 2.0
+    case (Difficulty.Hard | Difficulty.Hardcore, Rarity.Uncommon) => 2.0
     case _                                  => 1.0
 
 // ---------------------------------------------

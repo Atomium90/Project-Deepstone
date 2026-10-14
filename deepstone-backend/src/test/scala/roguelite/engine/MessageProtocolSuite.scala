@@ -104,6 +104,11 @@ class MessageProtocolSuite extends FunSuite:
       Right(EndingChoice(EndingAnswer.Replace, Some("npc.2")))
     )
 
+  test("the answers to the light are written in capitals, as the client sends them"):
+    import io.circe.syntax.*
+    import MessageProtocol.given
+    assertEquals(EndingAnswer.values.toList.map(_.asJson.asString), List("ENTER", "REPLACE", "REFUSE").map(Some(_)))
+
   test("decode ENDING_CHOICE with an unknown answer or none returns Left"):
     assert(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"FLEE"}""").isLeft)
     assert(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE"}""").isLeft)

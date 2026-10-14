@@ -193,6 +193,15 @@ class StorySelectorSuite extends FunSuite:
     val gone = progress(chapter = 1, vows = Map("npc.2" -> VowRecord(VowState.Kept, reported = false)), ending = Some(Ending.Replaced("npc.2")))
     assertEquals(StorySelector.chooseOccupant(scenes, gone, "npc.9", Set.empty, Random(0L)), "npc.1")
 
+  test("of two NPCs waiting to comment on a vow, the one who is still there is met, in id order"):
+    val both = progress(
+      chapter = 1,
+      vows = Map("npc.1" -> VowRecord(VowState.Kept, reported = false), "npc.2" -> VowRecord(VowState.Kept, reported = false)),
+      ending = Some(Ending.Replaced("npc.2"))
+    )
+    assertEquals(StorySelector.chooseOccupant(scenes, both, "npc.9", Set.empty, Random(0L)), "npc.1")
+    assertEquals(StorySelector.chooseOccupant(scenes, both.copy(ending = None), "npc.9", Set.empty, Random(0L)), "npc.1")
+
   test("an NPC whose story is over has something to say about each ending, if the catalog gives them an epilogue"):
     for ending <- List(Ending.Entered, Ending.Replaced("npc.2"), Ending.Refused) do
       val done = progress(chapter = 6, seen = allSeen, ending = Some(ending))

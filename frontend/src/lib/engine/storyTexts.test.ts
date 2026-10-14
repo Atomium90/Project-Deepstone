@@ -19,6 +19,8 @@ interface Scene {
 interface NpcEntry {
     id: string;
     revealedBy?: string;
+    candidate?: boolean;
+    epilogue?: boolean;
 }
 
 const scenes: Scene[] = JSON.parse(storyFile);
@@ -33,10 +35,12 @@ const devotedNumbers: number[] = (JSON.parse(enemiesFile) as { devoted?: number 
  * for the first time only has a line in the first tone, the server falls to the next case after it. */
 const GOD_MOMENTS = ["start", "death.first", "death.streak", "death.boss", "death.depth", "death.ordinary"];
 const GOD_PHASES = ["a", "b", "c"];
+/** The first death after an ending has one line per ending, in the last tone only. */
+const GOD_END_MOMENTS = ["death.end1", "death.end2", "death.end3"];
 
-/** The cards the server can ask to show: the prologue, the one each chapter earns, and the one that
- * announces Hardcore. */
-const cardIds = ["prologue", ...chapters.map((chapter) => `ch${chapter.id}`), "hardcore"];
+/** The cards the server can ask to show: the prologue, the one each chapter earns, the one that
+ * announces Hardcore, and the one of each ending. */
+const cardIds = ["prologue", ...chapters.map((chapter) => `ch${chapter.id}`), "hardcore", "end1", "end2", "end3"];
 const texts = dictionaries.en;
 const find: TextLookup = (key) => lookup(dictionaries, "en", key);
 const npcs = [...new Set(scenes.map((scene) => scene.npc))];
@@ -137,8 +141,39 @@ describe("the texts of the story catalog", () => {
             const [, , ...rest] = key.split(".");
             const phase = rest[rest.length - 2];
             const moment = rest.slice(0, -2).join(".");
-            expect(GOD_MOMENTS, `${key} is a line for a moment the server never asks for`).toContain(moment);
+            expect([...GOD_MOMENTS, ...GOD_END_MOMENTS], `${key} is a line for a moment the server never asks for`).toContain(moment);
             expect(GOD_PHASES, `${key} is a line in a tone the server never asks for`).toContain(phase);
+            if (GOD_END_MOMENTS.includes(moment)) expect(phase, `${key} is not in the last tone`).toBe("c");
+        }
+    });
+
+    test("the voice has a line for each ending, in the last tone", () => {
+        for (const moment of GOD_END_MOMENTS) {
+            expect(numberedTexts(`story.god.${moment}.c`, find).length, `no god line for ${moment}`).toBeGreaterThan(0);
+        }
+    });
+
+    test("every NPC that can take the player's place has a last scene", () => {
+        const candidates = npcEntries.filter((npc) => npc.candidate);
+        expect(candidates.length).toBeGreaterThan(0);
+        for (const npc of candidates) {
+            expect(numberedTexts(`story.${npc.id}.end`, find).length, `${npc.id} has no last scene`).toBeGreaterThan(0);
+        }
+    });
+
+    test("every NPC with something to say about the ending has a line for each ending", () => {
+        const speakers = npcEntries.filter((npc) => npc.epilogue);
+        expect(speakers.length).toBeGreaterThan(0);
+        for (const npc of speakers) {
+            for (const ending of ["end1", "end2", "end3"]) {
+                expect(numberedTexts(`story.${npc.id}.epilogue.${ending}`, find).length, `${npc.id} says nothing for ${ending}`).toBeGreaterThan(0);
+            }
+        }
+    });
+
+    test("the question of the light has its texts", () => {
+        for (const key of ["enter", "replace", "refuse", "nobody", "who"]) {
+            expect(find(`story.ending.${key}`), `story.ending.${key} is missing`).not.toBeNull();
         }
     });
 

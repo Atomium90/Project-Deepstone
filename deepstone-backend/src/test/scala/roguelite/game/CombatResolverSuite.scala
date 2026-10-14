@@ -179,6 +179,14 @@ class CombatResolverSuite extends FunSuite:
     assert(next.player.metaCurrency > fullHpPlayer().metaCurrency)
     assert(log.exists(_.contains("Shard")), s"expected the Shards in the log: $log")
 
+  test("Victory counts the Shards it earns, one per 5 XP, and says Shard for exactly one"):
+    def xpLine(xpReward: Int): Option[String] =
+      val state = combatState(weakEnemy(hp = 1).copy(xpReward = xpReward))
+      val (_, log, _) = resolver().resolve(state, CombatAction(CombatActionType.Attack))
+      log.find(_.startsWith("You gain"))
+    assertEquals(xpLine(xpReward = 3), Some("You gain 3 XP and 1 Shard."))
+    assertEquals(xpLine(xpReward = 15), Some("You gain 15 XP and 3 Shards."))
+
   test("Victory earns no Shard on a Hardcore run, and does not mention them"):
     val hardcore = combatState(weakEnemy(hp = 1)).copy(difficulty = Difficulty.Hardcore)
     val (next, log, _) = resolver().resolve(hardcore, CombatAction(CombatActionType.Attack))

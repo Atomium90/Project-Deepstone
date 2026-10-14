@@ -23,6 +23,15 @@ enum GodMoment(val id: String):
   case DepthDeath    extends GodMoment("death.depth")
   case OrdinaryDeath extends GodMoment("death.ordinary")
 
+  /** The first death after the player went into the light. */
+  case EndEntered extends GodMoment("death.end1")
+
+  /** The first death after an NPC took the player's place. */
+  case EndReplaced extends GodMoment("death.end2")
+
+  /** The first death after the player refused the light, the last thing the voice says. */
+  case EndRefused extends GodMoment("death.end3")
+
 /** What the voice reacts to when the player dies.
   *
   * @param firstDeath
@@ -63,3 +72,35 @@ object GodVoice:
 
   /** Whether the voice greets the run that is starting. */
   def speaksAtRunStart(rng: Random): Boolean = rng.nextInt(RunStartOneIn) == 0
+
+  /** The marker kept among the scenes seen once the voice has said the line of `ending`. */
+  def endLineMarker(ending: Ending): String = s"god.${EndingRules.endCard(ending)}"
+
+  /** The line of the first death after the light was answered, if the voice has not said it yet: it
+    * says it once, then goes back to its usual lines, which are the last it has ever said when the
+    * light was refused. It comes before every other death line.
+    */
+  def afterEnd(progress: StoryProgress): Option[GodMoment] =
+    progress.ending
+      .filterNot(ending => progress.scenesSeen.contains(endLineMarker(ending)))
+      .map:
+        case Ending.Entered     => GodMoment.EndEntered
+        case Ending.Replaced(_) => GodMoment.EndReplaced
+        case Ending.Refused     => GodMoment.EndRefused
+
+  /** What the story remembers once the voice has said `moment`: the line of an ending is said once. */
+  def said(progress: StoryProgress, moment: GodMoment): StoryProgress = moment match
+    case GodMoment.EndEntered | GodMoment.EndReplaced | GodMoment.EndRefused =>
+      progress.ending.fold(progress)(ending => progress.copy(scenesSeen = progress.scenesSeen + endLineMarker(ending)))
+    case _ => progress
+
+  /** Whether the voice still greets the runs that start: it does not once the light was refused, the
+    * god being forgotten.
+    */
+  def greetsRuns(progress: StoryProgress): Boolean = !progress.ending.contains(Ending.Refused)
+
+  /** Whether the voice still speaks when the player dies: not once the light was refused and the line
+    * of that ending was said, after which it is silent for good.
+    */
+  def speaksAtDeath(progress: StoryProgress): Boolean =
+    !(progress.ending.contains(Ending.Refused) && progress.scenesSeen.contains(endLineMarker(Ending.Refused)))

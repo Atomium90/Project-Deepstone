@@ -13,7 +13,7 @@ import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
-import roguelite.game.{ ChapterDef, DeathContext, Ending, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
+import roguelite.game.{ ChapterDef, DeathContext, Ending, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, VoicePhase, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -245,31 +245,38 @@ class GameSession private (
       _             <- syncStoryFlags
       story         <- storyRef.get
       stats         <- achievementRef.get.map(_.stats)
+      line = godLine(prev, finalNext, story, stats)
+      // The line of an ending is said once: the story remembers that it was.
+      _ <- line.traverse_((moment, _) => updateStory(story, GodVoice.said(story, moment)))
     yield finalNext
       .toStateUpdate(transitionResult.log ++ extraLog)
       .copy(newlyUnlocked = newlyUnlocked,
             damageEvents = toDamageEventViews(transitionResult.events),
             soundEvents = toSoundEventTags(transitionResult.events),
-            godLine = godLine(prev, finalNext, story, stats)
+            godLine = line.map((moment, phase) => GodLineView(moment.id, phase.id))
       )
 
   /** The line the god's voice says on a transition, if it is a moment it speaks at: a run starting
     * (one time in [[GodVoice.RunStartOneIn]]) or a death, for which it reacts to what killed the
     * player. `story` and `stats` are the ones after the transition, so a death is already counted.
     */
-  private def godLine(prev: GameState, next: GameState, story: StoryProgress, stats: AchievementStats): Option[GodLineView] =
+  private def godLine(prev: GameState, next: GameState, story: StoryProgress, stats: AchievementStats): Option[(GodMoment, VoicePhase)] =
     val phase = GodVoice.phase(story.chapter)
     (prev, next) match
       case (_: HubState, _: ExplorationState) =>
-        Option.when(GodVoice.speaksAtRunStart(rng))(GodLineView(GodMoment.RunStart.id, phase.id))
-      case (combat: CombatState, over: GameOverState) if !over.victory =>
-        val context = DeathContext(
-          firstDeath = stats.runsCompleted - stats.runsWon == 1,
-          streak = story.deathStreak,
-          killedByBoss = combat.dungeon.isAtBoss,
-          section = MinimapLayout.of(combat.dungeon).slots.get(combat.dungeon.currentRoomId).map(_.section).getOrElse(0)
-        )
-        Some(GodLineView(GodVoice.deathMoment(context, phase).id, phase.id))
+        Option.when(GodVoice.greetsRuns(story) && GodVoice.speaksAtRunStart(rng))((GodMoment.RunStart, phase))
+      case (combat: CombatState, over: GameOverState) if !over.victory && GodVoice.speaksAtDeath(story) =>
+        // The first death after the light was answered has a line of its own, before every other.
+        GodVoice.afterEnd(story) match
+          case Some(moment) => Some((moment, phase))
+          case None =>
+            val context = DeathContext(
+              firstDeath = stats.runsCompleted - stats.runsWon == 1,
+              streak = story.deathStreak,
+              killedByBoss = combat.dungeon.isAtBoss,
+              section = MinimapLayout.of(combat.dungeon).slots.get(combat.dungeon.currentRoomId).map(_.section).getOrElse(0)
+            )
+            Some((GodVoice.deathMoment(context, phase), phase))
       case _ => None
 
   /** Pure projection of the damage/heal facts in a transition's events - no DB/IO needed, unlike

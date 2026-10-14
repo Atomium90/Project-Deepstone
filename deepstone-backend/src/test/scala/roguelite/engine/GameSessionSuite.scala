@@ -1489,6 +1489,55 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(dead.godLine, Some(GodLineView("death.ordinary", "c")))
   }
 
+  db.test("after entering the light, the first death has the line of that ending, then the usual ones come back") {
+    database =>
+      for
+        _       <- seedPastDeaths(database)
+        _       <- database.saveStoryState(6, Some(RunOutcome.Won))
+        _       <- database.saveEnding(Ending.Entered)
+        session <- voiceSession(database, smWithLethalEnemy)
+        first   <- dieInFirstFight(session)
+        _       <- session.handle(HubAction(HubActionType.ReturnToHub))
+        second  <- dieInFirstFight(session)
+      yield
+        assertEquals(first.godLine, Some(GodLineView("death.end1", "c")))
+        assertEquals(second.godLine, Some(GodLineView("death.ordinary", "c")))
+  }
+
+  db.test("after refusing the light, the voice says one last line at a death, then is silent for good") {
+    database =>
+      for
+        _       <- seedPastDeaths(database)
+        _       <- database.saveStoryState(6, Some(RunOutcome.Won))
+        _       <- database.saveEnding(Ending.Refused)
+        session <- voiceSession(database, smWithLethalEnemy)
+        first   <- dieInFirstFight(session)
+        _       <- session.handle(HubAction(HubActionType.ReturnToHub))
+        second  <- dieInFirstFight(session)
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(first.godLine, Some(GodLineView("death.end3", "c")))
+        assertEquals(second.godLine, None)
+        assert(saved.scenesSeen.contains("god.end3"), "the last line must be remembered")
+  }
+
+  db.test("the voice greets a run after entering the light, but no longer after refusing it") {
+    database =>
+      for
+        _       <- database.saveStoryState(6, Some(RunOutcome.Won))
+        _       <- database.saveEnding(Ending.Entered)
+        entered <- voiceSession(database, sm, FixedRandom(0)).flatMap(
+          _.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        )
+        _       <- database.saveEnding(Ending.Refused)
+        refused <- voiceSession(database, sm, FixedRandom(0)).flatMap(
+          _.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+        )
+      yield
+        assertEquals(entered.godLine, Some(GodLineView("start", "c")))
+        assertEquals(refused.godLine, None)
+  }
+
   /** Combat, Boss and Rest rooms, the Combat one holding a deadly enemy. A Normal run goes Combat, Boss,
     * Rest, Combat, Boss, Sanctuary, so the second Combat room is the first fight of the second section.
     * A Combat room may roll a trapped door when the dungeon is built, which the dice decide: `combatExit`

@@ -13,7 +13,7 @@ import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
-import roguelite.game.{ ChapterDef, DeathContext, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
+import roguelite.game.{ ChapterDef, DeathContext, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -124,6 +124,8 @@ class GameSession private (
     update.copy(
       room = update.room.map(room => room.copy(entities = room.entities.map(withSprite))),
       pendingScene = update.pendingScene.map(withName),
+      pendingEndingChoice =
+        update.pendingEndingChoice.map(_.copy(candidates = EndingRules.candidates(npcDefs, sceneDefs, story))),
       pendingCard = story.pendingCard,
       pendingRewardChoice =
         update.pendingRewardChoice.map(choice => choice.copy(relic = choice.relic.map(_.copy(readable = readable))))
@@ -226,7 +228,7 @@ class GameSession private (
       (finalNext, extraLog) = postResult
       newlyUnlocked <- processAchievementEvents(transitionResult.events)
       _             <- processStoryEvents(transitionResult.events)
-      _             <- syncTrapsInert
+      _             <- syncStoryFlags
       story         <- storyRef.get
       stats         <- achievementRef.get.map(_.stats)
     yield finalNext
@@ -288,6 +290,8 @@ class GameSession private (
     *   - `Exploration → Exploration` into a Rest not visited yet: judge the running vow and seat the
     *                            NPC who will be there (see [[onRestEntered]])
     *   - `Combat → Exploration`: the fight was won, and a Devoted who fell says a last line
+    *   - `Exploration → Exploration` into the question of the light: the victory that brought the
+    *                            player to the Sanctuary opens its chapter, whose card comes first
     */
   private def handlePostTransition(prev: GameState, next: GameState): IO[(GameState, List[String])] =
     (prev, next) match
@@ -323,6 +327,13 @@ class GameSession private (
             // The effects of the hub upgrades are blessings: a run that takes none keeps its player as it is.
             val boosted = if exp.difficulty.usesBlessings then applyMetaBonuses(exp, meta) else exp
             stateRef.set(boosted) *> IO.pure((boosted, Nil))
+
+      case (before: ExplorationState, after: ExplorationState)
+          if after.pendingEndingChoice && !before.pendingEndingChoice =>
+        // The run does not end at the Sanctuary yet, but the victory is won: the chapter it opens and
+        // its card, which says what the choice is, must come before the question.
+        storyRef.get.flatMap:
+          story => updateStory(story, StoryRules.openChapter(chapterDefs, story, after.difficulty)).as((after, Nil))
 
       case (before: ExplorationState, after: ExplorationState) if enteredNewRest(before, after) =>
         onRestEntered(after).map(seated => (seated, Nil))
@@ -392,7 +403,8 @@ class GameSession private (
   private def handleInteract(action: PlayerAction, targetId: String): IO[StateUpdate] =
     stateRef.get.flatMap:
       case exp: ExplorationState
-          if exp.pendingEquipChoice.isEmpty && exp.pendingRewardChoice.isEmpty && exp.pendingScene.isEmpty =>
+          if exp.pendingEquipChoice.isEmpty && exp.pendingRewardChoice.isEmpty && exp.pendingScene.isEmpty &&
+            !exp.pendingEndingChoice =>
         exp.dungeon.currentRoom.entityById(targetId) match
           case Some(npc: Npc) => startConversation(exp, npc)
           case Some(enemy: Enemy) =>
@@ -429,7 +441,7 @@ class GameSession private (
               case Left(err) => IO.pure(exp.toStateUpdate(List(err)))
               case Right(next) =>
                 val done     = exp.copy(pendingScene = None)
-                val finished = updateStory(progress, next) *> stateRef.set(done) *> syncTrapsInert
+                val finished = updateStory(progress, next) *> stateRef.set(done) *> syncStoryFlags
                 exp.pendingScene.get.encounter match
                   // The line of a Devoted was the last thing between the player and the fight.
                   case Encounter.DevotedBefore(_, _, enemyId) => finished *> handleTransition(Interact(enemyId))
@@ -466,17 +478,22 @@ class GameSession private (
             case (current, _) => current
           updateStory(progress, afterRun)
 
-  /** Keeps [[ExplorationState.trapsInert]] in step with the vow now running, which the pure resolvers
-    * cannot see. Done after every transition that can start, fail or end a vow, which also gives it
-    * back to the states a combat builds anew.
+  /** Keeps what the pure resolvers cannot see of the story in step with it: [[ExplorationState.trapsInert]]
+    * with the vow now running, and [[ExplorationState.endingOpen]] with whether the story asks the
+    * question of the light on this run. Done after every transition that can start, fail or end a
+    * vow, which also gives them to a run that has just begun and back to the states a combat builds
+    * anew.
     */
-  private val syncTrapsInert: IO[Unit] =
+  private val syncStoryFlags: IO[Unit] =
     storyRef.get.flatMap:
       story =>
         val inert = VowRules.runningVow(story, vowTypes).exists(_.inertTraps)
         stateRef.update:
-          case exp: ExplorationState if exp.trapsInert != inert => exp.copy(trapsInert = inert)
-          case other                                            => other
+          case exp: ExplorationState =>
+            val open = EndingRules.isOffered(story, exp.difficulty)
+            if exp.trapsInert != inert || exp.endingOpen != open then exp.copy(trapsInert = inert, endingOpen = open)
+            else exp
+          case other => other
 
   /** The story opens the Hardcore tier: the tier becomes available, and its announcement card is
     * earned. Nothing in the game calls it yet, the ending that leaves the cult will.

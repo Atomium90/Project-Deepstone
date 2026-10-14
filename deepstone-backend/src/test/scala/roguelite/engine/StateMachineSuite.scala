@@ -523,6 +523,25 @@ class StateMachineSuite extends FunSuite:
     assertEquals(next, state)
     assert(log.exists(_.contains("GameSession")), s"expected a hint about GameSession: $log")
 
+  test("Move is blocked while the question of the light is pending"):
+    val state = explorationAt(3, 3).copy(pendingEndingChoice = true)
+    val TransitionResult(next, _, _) = sm().applyActionPure(state, Move(Direction.Up))
+    assertEquals(next, state)
+
+  test("Interact is blocked while the question of the light is pending"):
+    val d     = door("r1", "r2")
+    val state = explorationAt(3, 3, entities = List(d)).copy(pendingEndingChoice = true)
+    val TransitionResult(next, log, events) = sm().applyActionPure(state, Interact(d.id))
+    assertEquals(next, state)
+    assertEquals(log, Nil)
+    assertEquals(events, Nil)
+
+  test("the light cannot be answered through the state machine"):
+    val state = explorationAt(3, 3).copy(pendingEndingChoice = true)
+    val TransitionResult(next, log, _) = sm().applyActionPure(state, EndingChoice(EndingAnswer.Enter))
+    assertEquals(next, state)
+    assert(log.exists(_.contains("GameSession")), s"expected a hint about GameSession: $log")
+
   test("a card cannot be marked as seen through the state machine"):
     val state = explorationAt(3, 3)
     val TransitionResult(next, log, _) = sm().applyActionPure(state, CardSeen("ch1"))

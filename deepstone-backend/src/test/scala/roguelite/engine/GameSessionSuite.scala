@@ -991,6 +991,120 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(saved.lastRun, Some(RunOutcome.Won))
   }
 
+  // ---------------------------------------------
+  // The light at the end of the story
+  // ---------------------------------------------
+
+  private val endingChapters: Map[Int, ChapterDef] = Map(
+    1 -> ChapterDef(1, Difficulty.Easy),
+    2 -> ChapterDef(2, Difficulty.Easy),
+    3 -> ChapterDef(3, Difficulty.Normal),
+    4 -> ChapterDef(4, Difficulty.Normal),
+    5 -> ChapterDef(5, Difficulty.Hard),
+    6 -> ChapterDef(6, Difficulty.Hard)
+  )
+
+  /** npc.2 can take the player's place once its only scene, `npc.2.s1`, has been played. */
+  private val endingNpcs: Map[String, NpcDef] =
+    testNpcs + ("npc.2" -> NpcDef("npc.2", "npc_b", revealedBy = Some("npc.2.s1"), candidate = true))
+
+  private def endingSession(database: Database): IO[GameSession] =
+    GameSession.create(smWithRest, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                       rng = Random(0L), sceneDefs = testScenes, chapterDefs = endingChapters, npcDefs = endingNpcs
+    )
+
+  /** Starts a Hard run and walks to the Sanctuary room: Boss, Rest, Boss, Rest, Boss, Sanctuary. */
+  private def walkToSanctuary(session: GameSession): IO[Unit] =
+    startRun(session, Difficulty.Hard) *> List.fill(5)(goThroughDoor(session)).foldLeft(IO.unit)((acc, door) => acc *> door.void)
+
+  db.test("on Hard, from chapter 5, the Sanctuary asks the question of the light instead of ending the run") {
+    database =>
+      for
+        _       <- database.saveStoryState(5, None)
+        session <- endingSession(database)
+        _       <- walkToSanctuary(session)
+        asked   <- session.handle(Interact("sanct_1"))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(asked.phase, GamePhase.Exploration)
+        assertEquals(asked.victory, false)
+        assertEquals(asked.pendingEndingChoice, Some(PendingEndingChoiceView(Nil)))
+        assertEquals(saved.lastRun, None, "the run has not ended, so nothing about it is judged yet")
+  }
+
+  db.test("the victory that brings the player to the light opens the last chapter, whose card comes before the question") {
+    database =>
+      for
+        _       <- database.saveStoryState(5, None)
+        session <- endingSession(database)
+        _       <- walkToSanctuary(session)
+        before  <- session.currentUpdate
+        asked   <- session.handle(Interact("sanct_1"))
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(before.pendingCard, None)
+        assertEquals(saved.chapter, 6)
+        assertEquals(asked.pendingCard, Some("ch6"))
+  }
+
+  db.test("the question lists the NPCs whose story is over, and none when nobody has finished") {
+    database =>
+      for
+        _       <- database.saveStoryState(5, None)
+        none    <- endingSession(database).flatMap(session => walkToSanctuary(session) *> session.handle(Interact("sanct_1")))
+        _       <- database.recordSceneSeen("npc.2.s1")
+        ready   <- endingSession(database).flatMap(session => walkToSanctuary(session) *> session.handle(Interact("sanct_1")))
+      yield
+        assertEquals(none.pendingEndingChoice.map(_.candidates), Some(Nil))
+        assertEquals(ready.pendingEndingChoice.map(_.candidates), Some(List("npc.2")))
+  }
+
+  db.test("the player can neither move nor leave while the question of the light is pending") {
+    database =>
+      for
+        _       <- database.saveStoryState(5, None)
+        session <- endingSession(database)
+        _       <- walkToSanctuary(session)
+        asked   <- session.handle(Interact("sanct_1"))
+        moved   <- session.handle(Move(Direction.Right))
+        left    <- session.handle(Interact("door_entrance"))
+      yield
+        assertEquals(moved.room.map(r => (r.playerX, r.playerY)), asked.room.map(r => (r.playerX, r.playerY)))
+        assertEquals(left.room.map(_.roomId), asked.room.map(_.roomId))
+        assertEquals(left.pendingEndingChoice, asked.pendingEndingChoice)
+  }
+
+  db.test("entering the light leaves the question to be asked again, without a new chapter") {
+    database =>
+      for
+        _       <- database.saveStoryState(6, Some(RunOutcome.Won))
+        _       <- database.saveEnding(Ending.Entered)
+        session <- endingSession(database)
+        _       <- walkToSanctuary(session)
+        asked   <- session.handle(Interact("sanct_1"))
+      yield
+        assertEquals(asked.phase, GamePhase.Exploration)
+        assert(asked.pendingEndingChoice.isDefined, "expected the question again")
+        assertEquals(asked.pendingCard, None)
+  }
+
+  db.test("a final answer, or a victory on an easier difficulty, ends the run at the Sanctuary as it always did") {
+    database =>
+      for
+        _       <- database.saveStoryState(6, Some(RunOutcome.Won))
+        _       <- database.saveEnding(Ending.Refused)
+        final_  <- endingSession(database).flatMap(session => walkToSanctuary(session) *> session.handle(Interact("sanct_1")))
+        normal  <- endingSession(database).flatMap:
+          session =>
+            startRun(session, Difficulty.Normal) *> goThroughDoor(session) *> goThroughDoor(session) *> goThroughDoor(session) *>
+              session.handle(Interact("sanct_1"))
+      yield
+        assert(final_.victory, s"expected a plain victory after a final answer: ${final_.log}")
+        assert(normal.victory, s"expected a plain victory on Normal: ${normal.log}")
+        assertEquals(final_.pendingEndingChoice, None)
+        assertEquals(normal.pendingEndingChoice, None)
+  }
+
   db.test("the first purchase earns the prologue card, shown until it has been seen") {
     database =>
       for

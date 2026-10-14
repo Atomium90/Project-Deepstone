@@ -55,6 +55,20 @@ class StoryRulesSuite extends FunSuite:
     assertEquals(StoryRules.onRunEnded(chapters, StoryProgress(chapter = 2), RunOutcome.Won, Difficulty.Easy).cards, Nil)
     assertEquals(StoryRules.onRunEnded(chapters, StoryProgress(chapter = 1), RunOutcome.Lost, Difficulty.Hard).cards, Nil)
 
+  test("a victory opens the next chapter and earns its card, without ending anything"):
+    val after = StoryRules.openChapter(chapters, StoryProgress(chapter = 3), Difficulty.Hard)
+    assertEquals(after.chapter, 4)
+    assertEquals(after.cards, List(CardRecord("ch4")))
+    assertEquals(after.lastRun, None)
+    assertEquals(after.deathStreak, 0)
+
+  test("a victory opens no chapter when the difficulty is too low, or when the last one is reached"):
+    val reached = StoryProgress(chapter = 2)
+    assertEquals(StoryRules.openChapter(chapters, reached, Difficulty.Easy), reached)
+    assertEquals(StoryRules.openChapter(chapters, StoryProgress(chapter = 2), Difficulty.Easy).cards, Nil)
+    val last = StoryProgress(chapter = 4)
+    assertEquals(StoryRules.openChapter(chapters, last, Difficulty.Hard), last)
+
   test("a card is named after its chapter, and the first purchase has its own"):
     assertEquals(StoryRules.chapterCard(3), "ch3")
     assertEquals(StoryRules.PrologueCard, "prologue")

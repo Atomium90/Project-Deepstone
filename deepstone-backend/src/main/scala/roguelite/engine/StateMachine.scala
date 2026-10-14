@@ -239,9 +239,10 @@ class StateMachine(roomPool: Map[String, Room],
       // -- Exploration ------------------------------------------------------
 
       case (exp: ExplorationState, Move(_) | Interact(_))
-          if exp.pendingEquipChoice.isDefined || exp.pendingRewardChoice.isDefined || exp.pendingScene.isDefined =>
-        // A pending keep/replace, reward choice or conversation must be resolved before the player
-        // can move or interact again - same "silently blocked" precedent as a wall/entity collision
+          if exp.pendingEquipChoice.isDefined || exp.pendingRewardChoice.isDefined || exp.pendingScene.isDefined ||
+            exp.pendingEndingChoice =>
+        // A pending keep/replace, reward choice, conversation or question of the light must be resolved
+        // before the player can move or interact again - same "silently blocked" precedent as a wall/entity collision
         // below. Interacting is blocked too: opening another chest would overwrite the pending
         // choice, and leaving through a door would strand the chest the choice came from or cut a
         // conversation short.
@@ -291,6 +292,11 @@ class StateMachine(roomPool: Map[String, Room],
         // SceneDone is intercepted by GameSession (the story it updates is saved to the database);
         // reject here as a safety net, same precedent as BuyUpgrade in the hub.
         lift((exp, List("Conversations must be finished through GameSession.")))
+
+      case (exp: ExplorationState, EndingChoice(_, _)) =>
+        // EndingChoice is intercepted by GameSession (what it changes is saved to the database);
+        // reject here as a safety net, same precedent as SceneDone above.
+        lift((exp, List("The answer to the light must be given through GameSession.")))
 
       // -- Combat -----------------------------------------------------------
 

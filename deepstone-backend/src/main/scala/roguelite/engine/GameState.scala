@@ -184,6 +184,13 @@ case class HubState(player: Player,
   *   Whether the traps summon nothing, because the running vow forbids a fight (see
   *   [[roguelite.game.VowType.inertTraps]]). The pure resolvers cannot see the story, so
   *   [[GameSession]] keeps this in step with it after every transition.
+  * @param endingOpen
+  *   Whether the Sanctuary asks the question of the light instead of ending the run (see
+  *   [[roguelite.game.EndingRules.isOffered]]). Kept in step by [[GameSession]] for the same reason as
+  *   `trapsInert`.
+  * @param pendingEndingChoice
+  *   Whether the Sanctuary has asked its question and awaits the answer, an `EndingChoice`. Durable like
+  *   `pendingScene`, and it blocks movement and interaction the same way.
   */
 case class ExplorationState(player: Player,
                             dungeon: Dungeon,
@@ -194,7 +201,9 @@ case class ExplorationState(player: Player,
                             pendingEquipChoice: Option[PendingEquipChoice] = None,
                             pendingRewardChoice: Option[PendingRewardChoice] = None,
                             pendingScene: Option[PendingScene] = None,
-                            trapsInert: Boolean = false
+                            trapsInert: Boolean = false,
+                            endingOpen: Boolean = false,
+                            pendingEndingChoice: Boolean = false
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
@@ -205,6 +214,8 @@ case class ExplorationState(player: Player,
       pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView(_, player.affinityTags)),
       pendingRewardChoice = pendingRewardChoice.map(pendingRewardChoiceToView(_, player.affinityTags)),
       pendingScene = pendingScene.map(pendingSceneToView),
+      // Which NPCs could take the player's place depends on the story, which GameSession adds.
+      pendingEndingChoice = Option.when(pendingEndingChoice)(PendingEndingChoiceView(Nil)),
       log = log,
       minimap = Some(MinimapBuilder.build(dungeon))
     )

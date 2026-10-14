@@ -496,6 +496,21 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(_, log, _) = resolver().interact(state, "s1")
     assert(log.nonEmpty, "expected a completion log line")
 
+  test("Interact with Sanctuary asks the question of the light, and ends nothing, once the story asks it"):
+    val sanctuary = Sanctuary("s1", x = 3, y = 3)
+    val state     = explorationAt(3, 3, entities = List(sanctuary)).copy(endingOpen = true)
+    val TransitionResult(next, log, events) = resolver().interact(state, "s1")
+    assertEquals(next, state.copy(pendingEndingChoice = true))
+    assertEquals(events, Nil)
+    assert(log.nonEmpty, "expected a line about the light")
+
+  test("Interact with Sanctuary still ends the run when the story does not ask the question"):
+    val sanctuary = Sanctuary("s1", x = 3, y = 3)
+    val state     = explorationAt(3, 3, entities = List(sanctuary)).copy(endingOpen = false)
+    val TransitionResult(next, _, events) = resolver().interact(state, "s1")
+    assertEquals(next.asInstanceOf[GameOverState].victory, true)
+    assertEquals(events.size, 1)
+
   test("Non-trapped chest is unaffected by the trapped-chest path"):
     val chest        = Chest("c1", x = 3, y = 3, trapped = false)
     val state        = explorationAt(3, 3, entities = List(chest))

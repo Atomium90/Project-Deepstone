@@ -24,6 +24,17 @@ enum HubActionType:
 enum ClassId:
   case Warrior, Archer, Mage
 
+/** How the player answers the light of the Sanctuary (see [[EndingChoice]]). */
+enum EndingAnswer:
+  /** Go into the light. */
+  case Enter
+
+  /** Let an NPC whose story is over take the player's place. */
+  case Replace
+
+  /** Refuse the light, and leave. */
+  case Refuse
+
 /** Run difficulty, chosen alongside the class at StartRun.
   *
   * Values are starting points meant to be adjusted after playtesting.
@@ -153,6 +164,12 @@ case class SceneDone(accept: Option[Boolean] = None) extends PlayerAction
   * only accepts the card it is waiting for, and marks it seen so it is not shown again.
   */
 case class CardSeen(cardId: String) extends PlayerAction
+
+/** The player's answer to the light of the Sanctuary (see [[PendingEndingChoiceView]]). `npc` is who
+  * takes the player's place: it is present exactly for [[EndingAnswer.Replace]], and must be one of
+  * the candidates the question listed.
+  */
+case class EndingChoice(answer: EndingAnswer, npc: Option[String] = None) extends PlayerAction
 
 // ---------------------------------------------
 // Server → Client: state views (read-only snapshots)
@@ -463,6 +480,16 @@ case class PendingSceneView(npc: String,
                             revealed: Boolean = true
 )
 
+/** The question of the light, which the Sanctuary asks instead of ending the run once the story has
+  * come to it. Durable, same discipline as [[PendingEquipChoiceView]]: it stays until the player
+  * answers with an [[EndingChoice]].
+  *
+  * @param candidates
+  *   The NPCs who could take the player's place, by id (e.g. "npc.2"), because their story is over.
+  *   Empty while none is: the second answer is then closed.
+  */
+case class PendingEndingChoiceView(candidates: List[String])
+
 /** One section of the dungeon map: a run of rooms drawn from a single theme, ending in its own boss.
   * The client draws one row per section.
   *
@@ -577,6 +604,10 @@ case class StateUpdate(
       * `pendingEquipChoice` - see [[PendingSceneView]]. Resolved with a [[SceneDone]] action.
       */
     pendingScene: Option[PendingSceneView] = None,
+    /** The question of the light, awaiting the player's answer. Durable, same discipline as
+      * `pendingEquipChoice` - see [[PendingEndingChoiceView]]. Resolved with an [[EndingChoice]] action.
+      */
+    pendingEndingChoice: Option[PendingEndingChoiceView] = None,
     /** The story card waiting to be shown full screen, the oldest one the player has not seen yet.
       * Durable: it stays until the player answers with a [[CardSeen]], so a card never read is shown
       * again at the next visit. The texts are the client's, under `story.card.<id>`.
@@ -658,6 +689,14 @@ object MessageProtocol:
         .toRight(s"Unknown hub action: $s")
   )
 
+  given Encoder[EndingAnswer] = Encoder[String].contramap(_.toString.toUpperCase)
+  given Decoder[EndingAnswer] = Decoder[String].emap(
+    s =>
+      EndingAnswer.values
+        .find(_.toString.toUpperCase == s.toUpperCase)
+        .toRight(s"Unknown answer to the light: $s")
+  )
+
   given Encoder[ClassId] = Encoder[String].contramap(_.toString.toLowerCase)
   given Decoder[ClassId] = Decoder[String].emap(
     s => ClassId.values.find(_.toString.toLowerCase == s.toLowerCase).toRight(s"Unknown class: $s")
@@ -720,6 +759,8 @@ object MessageProtocol:
   given Decoder[SceneDone]    = deriveDecoder
   given Encoder[CardSeen]     = deriveEncoder
   given Decoder[CardSeen]     = deriveDecoder
+  given Encoder[EndingChoice] = deriveEncoder
+  given Decoder[EndingChoice] = deriveDecoder
 
   /** Decode a raw JSON string into a PlayerAction. The JSON must include a "type" discriminator
     * field: { "type": "MOVE", "direction": "UP" }
@@ -738,6 +779,7 @@ object MessageProtocol:
         case "REWARD_CHOICE" => cursor.as[RewardChoice].left.map(_.message)
         case "SCENE_DONE"    => cursor.as[SceneDone].left.map(_.message)
         case "CARD_SEEN"     => cursor.as[CardSeen].left.map(_.message)
+        case "ENDING_CHOICE" => cursor.as[EndingChoice].left.map(_.message)
         case other           => Left(s"Unknown action type: $other")
       }
     yield action
@@ -761,6 +803,7 @@ object MessageProtocol:
   given Encoder[RelicView] = deriveEncoder
   given Encoder[PendingRewardChoiceView] = deriveEncoder
   given Encoder[PendingSceneView]        = deriveEncoder
+  given Encoder[PendingEndingChoiceView] = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[SetView]         = deriveEncoder

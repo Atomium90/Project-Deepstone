@@ -339,12 +339,17 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     * emits `RunEnded`, exactly what a boss kill used to do directly in `CombatResolver.victory`
     * before that responsibility moved here - see [[roguelite.game.Sanctuary]]'s own doc for why the
     * win is deliberately gated behind an explicit Interact rather than firing on the killing blow.
+    *
+    * Once the story has come to the light (see [[ExplorationState.endingOpen]]) the run does not end
+    * here: the player is asked what to do with the light first, and the run ends with the answer.
     */
   private def handleSanctuary(exp: ExplorationState, sanctuary: Sanctuary): (GameState, List[String], List[GameEvent]) =
-    (GameOverState(exp.player, victory = true),
-     List("You step into the sanctuary. Your journey ends here - victory is yours."),
-     List(GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId))
-    )
+    if exp.endingOpen then (exp.copy(pendingEndingChoice = true), List("The light waits for your answer."), Nil)
+    else
+      (GameOverState(exp.player, victory = true),
+       List("You step into the sanctuary. Your journey ends here - victory is yours."),
+       List(GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId))
+      )
 
   /** Reveal any hidden secret door within Chebyshev distance 1 of (x, y). Called from
     * [[roguelite.engine.StateMachine]]'s Move handling, not Interact (same family of "entities

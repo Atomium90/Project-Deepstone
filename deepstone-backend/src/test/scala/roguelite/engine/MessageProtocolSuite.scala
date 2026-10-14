@@ -94,6 +94,20 @@ class MessageProtocolSuite extends FunSuite:
   test("decode CARD_SEEN"):
     assertEquals(MessageProtocol.decodeAction("""{"type":"CARD_SEEN","cardId":"ch1"}"""), Right(CardSeen("ch1")))
 
+  test("decode ENDING_CHOICE to enter or to refuse the light, with no NPC"):
+    assertEquals(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"ENTER"}"""), Right(EndingChoice(EndingAnswer.Enter)))
+    assertEquals(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"REFUSE"}"""), Right(EndingChoice(EndingAnswer.Refuse)))
+
+  test("decode ENDING_CHOICE to let an NPC take the place"):
+    assertEquals(
+      MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"REPLACE","npc":"npc.2"}"""),
+      Right(EndingChoice(EndingAnswer.Replace, Some("npc.2")))
+    )
+
+  test("decode ENDING_CHOICE with an unknown answer or none returns Left"):
+    assert(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"FLEE"}""").isLeft)
+    assert(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE"}""").isLeft)
+
   test("decode CARD_SEEN without a card returns Left"):
     assert(MessageProtocol.decodeAction("""{"type":"CARD_SEEN"}""").isLeft)
 
@@ -271,6 +285,23 @@ class MessageProtocolSuite extends FunSuite:
     assertEquals(scene.get[String]("kind"), Right("scene"))
     assertEquals(scene.get[String]("sceneId"), Right("npc.1.s2"))
     assertEquals(scene.get[String]("offerScene"), Right("npc.1.s2"))
+
+  test("encodeUpdate sends the question of the light with the NPCs who could take the place"):
+    val update = StateUpdate(
+      phase = GamePhase.Exploration,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      pendingEndingChoice = Some(PendingEndingChoiceView(List("npc.2", "npc.5")))
+    )
+    val question = io.circe.parser.parse(MessageProtocol.encodeUpdate(update)).toOption.get.hcursor.downField("pendingEndingChoice")
+    assertEquals(question.get[List[String]]("candidates"), Right(List("npc.2", "npc.5")))
 
   test("encodeUpdate with optional fields absent produces null or omitted fields"):
     val update = StateUpdate(

@@ -511,6 +511,13 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(next.asInstanceOf[GameOverState].victory, true)
     assertEquals(events.size, 1)
 
+  test("a fight starts with the altar as shut as the exploration it started from"):
+    val enemy = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
+    val shut  = explorationAt(3, 3, entities = List(enemy)).copy(altarShut = true)
+    val open  = explorationAt(3, 3, entities = List(enemy))
+    assertEquals(resolver().interact(shut, "e1").state.asInstanceOf[CombatState].altarShut, true)
+    assertEquals(resolver().interact(open, "e1").state.asInstanceOf[CombatState].altarShut, false)
+
   test("Non-trapped chest is unaffected by the trapped-chest path"):
     val chest        = Chest("c1", x = 3, y = 3, trapped = false)
     val state        = explorationAt(3, 3, entities = List(chest))

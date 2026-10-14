@@ -352,11 +352,15 @@ case class DifficultyView(id: Difficulty, unlocked: Boolean, requirement: Option
   * @param difficulties
   *   Every difficulty tier, lowest first, with whether it can be started and how far the save is from
   *   unlocking it. Resolved by [[GameSession]] from the achievement stats, like `runsCompleted`.
+  * @param shopClosed
+  *   Whether the altar is shut for good: the upgrades the player owns stay, none can be bought any more.
+  *   Resolved by [[GameSession]] from the story.
   */
 case class HubView(upgrades: List[UpgradeView],
                    perks: List[PerkView] = Nil,
                    runsCompleted: Int = 0,
-                   difficulties: List[DifficultyView] = Nil
+                   difficulties: List[DifficultyView] = Nil,
+                   shopClosed: Boolean = false
 )
 
 case class ItemView(

@@ -193,6 +193,10 @@ case class HubState(player: Player,
   * @param pendingEndingChoice
   *   Whether the Sanctuary has asked its question and awaits the answer, an `EndingChoice`. Durable like
   *   `pendingScene`, and it blocks movement and interaction the same way.
+  * @param altarShut
+  *   Whether the player has refused the light, so that a kill earns no Shard any more (see
+  *   [[roguelite.game.StoryProgress.shopClosed]]). Kept in step by [[GameSession]] like `trapsInert`, and
+  *   handed on to the fights that start from this state.
   */
 case class ExplorationState(player: Player,
                             dungeon: Dungeon,
@@ -205,7 +209,8 @@ case class ExplorationState(player: Player,
                             pendingScene: Option[PendingScene] = None,
                             trapsInert: Boolean = false,
                             endingOpen: Boolean = false,
-                            pendingEndingChoice: Boolean = false
+                            pendingEndingChoice: Boolean = false,
+                            altarShut: Boolean = false
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
@@ -230,6 +235,8 @@ case class ExplorationState(player: Player,
   *   Id of the Enemy entity in the room, used to remove it after a victorious combat.
   * @param enemyStats
   *   Same role as on [[ExplorationState]] - forwarded to [[roguelite.game.Room.toView]].
+  * @param altarShut
+  *   Copied from the [[ExplorationState]] the fight started from: whether a kill earns no Shard.
   */
 case class CombatState(player: Player,
                        dungeon: Dungeon,
@@ -238,7 +245,8 @@ case class CombatState(player: Player,
                        combat: Combat,
                        enemyEntityId: String,
                        difficulty: Difficulty = Difficulty.Normal,
-                       enemyStats: Map[String, EnemyStats] = Map.empty
+                       enemyStats: Map[String, EnemyStats] = Map.empty,
+                       altarShut: Boolean = false
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(

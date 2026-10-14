@@ -140,7 +140,10 @@ class GameSession private (
   private def withHubProgress(update: StateUpdate, progress: AchievementProgress, story: StoryProgress): StateUpdate =
     update.copy(hub =
       update.hub.map(
-        _.copy(runsCompleted = progress.stats.runsCompleted, difficulties = difficultyViews(progress.stats, story))
+        _.copy(runsCompleted = progress.stats.runsCompleted,
+               difficulties = difficultyViews(progress.stats, story),
+               shopClosed = story.shopClosed
+        )
       )
     )
 
@@ -494,8 +497,8 @@ class GameSession private (
           updateStory(progress, afterRun)
 
   /** Keeps what the pure resolvers cannot see of the story in step with it: [[ExplorationState.trapsInert]]
-    * with the vow now running, and [[ExplorationState.endingOpen]] with whether the story asks the
-    * question of the light on this run. Done after every transition that can start, fail or end a
+    * with the vow now running, [[ExplorationState.endingOpen]] with whether the story asks the question
+    * of the light on this run, and [[ExplorationState.altarShut]] with whether the light was refused. Done after every transition that can start, fail or end a
     * vow, which also gives them to a run that has just begun and back to the states a combat builds
     * anew.
     */
@@ -506,7 +509,8 @@ class GameSession private (
         stateRef.update:
           case exp: ExplorationState =>
             val open = EndingRules.isOffered(story, exp.difficulty)
-            if exp.trapsInert != inert || exp.endingOpen != open then exp.copy(trapsInert = inert, endingOpen = open)
+            if exp.trapsInert != inert || exp.endingOpen != open || exp.altarShut != story.shopClosed then
+              exp.copy(trapsInert = inert, endingOpen = open, altarShut = story.shopClosed)
             else exp
           case other => other
 
@@ -641,7 +645,10 @@ class GameSession private (
     for
       state <- stateRef.get
       meta  <- metaRef.get
-      update <- meta.purchase(upgradeId, upgradeDefs) match
+      shut  <- storyRef.get.map(_.shopClosed)
+      // Once the light is refused the altar is shut for good, whatever the hub shows.
+      purchase = if shut then Left("The altar is shut. Nothing can be bought here any more.") else meta.purchase(upgradeId, upgradeDefs)
+      update <- purchase match
         case Left(err) =>
           IO.pure(state.toStateUpdate(List(err)))
 

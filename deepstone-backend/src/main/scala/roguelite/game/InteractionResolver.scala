@@ -207,7 +207,8 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                                     combat,
                                     enemy.id,
                                     exp.difficulty,
-                                    enemyStats = enemyStats
+                                    enemyStats = enemyStats,
+                                    altarShut = exp.altarShut
         )
         (nextState, List(s"You engage the ${stats.label}!"))
     }

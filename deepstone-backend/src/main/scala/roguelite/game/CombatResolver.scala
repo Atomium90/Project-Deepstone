@@ -469,9 +469,9 @@ class CombatResolver(rng: Random = Random(),
                       killingBlowDamage: Int
   ): (GameState, List[String], List[GameEvent]) = {
     val xpGained = deadEnemy.xpReward
-    // Stone Shards: 1 per 5 XP, minimum 1 per kill, and none on a run that takes no blessing: there is
-    // nothing left to buy them with.
-    val shardsEarned = if state.difficulty.usesBlessings then (xpGained / 5).max(1) else 0
+    // Stone Shards: 1 per 5 XP, minimum 1 per kill, and none on a run that takes no blessing, nor once
+    // the altar is shut: there is nothing left to buy them with.
+    val shardsEarned = if state.difficulty.usesBlessings && !state.altarShut then (xpGained / 5).max(1) else 0
     val playerWithXp = state.player.copy(xp = state.player.xp + xpGained,
                                          metaCurrency = state.player.metaCurrency + shardsEarned
     )

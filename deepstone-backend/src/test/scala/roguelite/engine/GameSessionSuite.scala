@@ -1784,6 +1784,45 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(meta.currency, 70) // 100 - 30
   }
 
+  db.test("once the altar is shut an upgrade cannot be bought, and the hub says so") {
+    database =>
+      for
+        _       <- database.saveCurrency(100)
+        _       <- database.saveEnding(Ending.Refused)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        before  <- session.currentUpdate
+        refused <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        meta    <- database.loadMeta()
+      yield
+        assertEquals(before.hub.map(_.shopClosed), Some(true))
+        assert(refused.log.exists(_.contains("shut")), s"expected a refusal: ${refused.log}")
+        assertEquals(meta.currency, 100)
+        assert(!meta.isUnlocked("hp_boost_1"), "the upgrade must not be bought")
+  }
+
+  db.test("the hub does not say the altar is shut on a save that has not refused the light") {
+    database =>
+      for
+        _       <- database.saveEnding(Ending.Entered)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs)
+        update  <- session.currentUpdate
+      yield assertEquals(update.hub.map(_.shopClosed), Some(false))
+  }
+
+  db.test("a kill earns Shards until the altar is shut, and none after") {
+    database =>
+      def shardsAfterAFight(session: GameSession): IO[Int] =
+        startRunOn(session, Some(Difficulty.Easy)) *> session.handle(Interact("e1")) *>
+          session.handle(CombatAction(CombatActionType.Attack)).map(_.player.metaCurrency)
+      for
+        open <- tierSession(database).flatMap(shardsAfterAFight)
+        _    <- database.saveEnding(Ending.Refused)
+        shut <- tierSession(database).flatMap(shardsAfterAFight)
+      yield
+        assert(open > 0, "the same fight earns Shards while the altar is open")
+        assertEquals(shut, 0)
+  }
+
   db.test("hub upgrade appears as unlocked after purchase") {
     database =>
       for

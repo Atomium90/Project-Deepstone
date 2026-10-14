@@ -1,6 +1,7 @@
 package roguelite.db
 
 import doobie.util.transactor.Transactor
+import doobie.Fragment
 import doobie.implicits.*
 import cats.implicits.*
 import cats.effect.IO
@@ -28,111 +29,7 @@ class Database private (xa: Transactor[IO]):
 
   /** Create the schema and seed required rows. Safe to call on every startup (idempotent). */
   def initialize(): IO[Unit] =
-    val ddl =
-      sql"""
-              CREATE TABLE IF NOT EXISTS meta (
-                id          INTEGER PRIMARY KEY CHECK (id = 1),
-                currency    INTEGER NOT NULL DEFAULT 0
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS upgrade_unlock (
-                upgrade_id  TEXT PRIMARY KEY,
-                unlocked_at INTEGER NOT NULL DEFAULT (unixepoch())
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS achievement_unlock (
-                achievement_id TEXT PRIMARY KEY,
-                unlocked_at    INTEGER NOT NULL DEFAULT (unixepoch())
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS achievement_stats (
-                id                 INTEGER PRIMARY KEY CHECK (id = 1),
-                runs_completed     INTEGER NOT NULL DEFAULT 0,
-                runs_won           INTEGER NOT NULL DEFAULT 0,
-                current_win_streak INTEGER NOT NULL DEFAULT 0,
-                total_shards_spent INTEGER NOT NULL DEFAULT 0
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS consumable_stats (
-                id               INTEGER PRIMARY KEY CHECK (id = 1),
-                consumables_used INTEGER NOT NULL DEFAULT 0
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS potion_type_used (
-                type_id  TEXT PRIMARY KEY,
-                used_at  INTEGER NOT NULL DEFAULT (unixepoch())
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS perk_won_with (
-                perk_id TEXT PRIMARY KEY,
-                won_at  INTEGER NOT NULL DEFAULT (unixepoch())
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS difficulty_win (
-                difficulty TEXT PRIMARY KEY,
-                wins       INTEGER NOT NULL DEFAULT 0
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS story_state (
-                id       INTEGER PRIMARY KEY CHECK (id = 1),
-                chapter  INTEGER NOT NULL DEFAULT 0,
-                last_run TEXT
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS story_scene_seen (
-                scene_id TEXT PRIMARY KEY,
-                seen_at  INTEGER NOT NULL DEFAULT (unixepoch())
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS story_vow (
-                npc_id   TEXT PRIMARY KEY,
-                state    TEXT NOT NULL,
-                reported INTEGER NOT NULL DEFAULT 1
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS story_card (
-                card_id TEXT PRIMARY KEY,
-                seen    INTEGER NOT NULL DEFAULT 0
-              )
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS story_death_streak (
-                id     INTEGER PRIMARY KEY CHECK (id = 1),
-                streak INTEGER NOT NULL DEFAULT 0
-              )
-            """.update.run *>
-        sql"""
-              INSERT OR IGNORE INTO story_state (id) VALUES (1)
-            """.update.run *>
-        sql"""
-              INSERT OR IGNORE INTO story_death_streak (id) VALUES (1)
-            """.update.run *>
-        sql"""
-              CREATE TABLE IF NOT EXISTS story_relic_read (
-                devoted INTEGER PRIMARY KEY
-              )
-            """.update.run *>
-        sql"""
-              INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)
-            """.update.run *>
-        sql"""
-              INSERT OR IGNORE INTO achievement_stats (id) VALUES (1)
-            """.update.run *>
-        sql"""
-              INSERT OR IGNORE INTO consumable_stats (id) VALUES (1)
-            """.update.run
-    ddl.transact(xa).void
+    Database.schema.traverse_(statement => Fragment.const(statement).update.run).transact(xa)
 
   /** Load the full meta-progression state from the database. */
   def loadMeta(): IO[MetaProgression] =
@@ -324,6 +221,107 @@ class Database private (xa: Transactor[IO]):
 object Database:
 
   private val Driver = "org.sqlite.JDBC"
+
+  /** Every statement that builds the schema, in the order they run: the tables first, then the rows a
+    * table must hold from the start. Each one is idempotent, so running them all again on an existing
+    * save changes nothing. A table is only ever added here, never altered: `CREATE TABLE IF NOT EXISTS`
+    * cannot add a column to a table a save already has.
+    */
+  private val schema: List[String] = List(
+    """
+      CREATE TABLE IF NOT EXISTS meta (
+        id          INTEGER PRIMARY KEY CHECK (id = 1),
+        currency    INTEGER NOT NULL DEFAULT 0
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS upgrade_unlock (
+        upgrade_id  TEXT PRIMARY KEY,
+        unlocked_at INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS achievement_unlock (
+        achievement_id TEXT PRIMARY KEY,
+        unlocked_at    INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS achievement_stats (
+        id                 INTEGER PRIMARY KEY CHECK (id = 1),
+        runs_completed     INTEGER NOT NULL DEFAULT 0,
+        runs_won           INTEGER NOT NULL DEFAULT 0,
+        current_win_streak INTEGER NOT NULL DEFAULT 0,
+        total_shards_spent INTEGER NOT NULL DEFAULT 0
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS consumable_stats (
+        id               INTEGER PRIMARY KEY CHECK (id = 1),
+        consumables_used INTEGER NOT NULL DEFAULT 0
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS potion_type_used (
+        type_id  TEXT PRIMARY KEY,
+        used_at  INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS perk_won_with (
+        perk_id TEXT PRIMARY KEY,
+        won_at  INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS difficulty_win (
+        difficulty TEXT PRIMARY KEY,
+        wins       INTEGER NOT NULL DEFAULT 0
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS story_state (
+        id       INTEGER PRIMARY KEY CHECK (id = 1),
+        chapter  INTEGER NOT NULL DEFAULT 0,
+        last_run TEXT
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS story_scene_seen (
+        scene_id TEXT PRIMARY KEY,
+        seen_at  INTEGER NOT NULL DEFAULT (unixepoch())
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS story_vow (
+        npc_id   TEXT PRIMARY KEY,
+        state    TEXT NOT NULL,
+        reported INTEGER NOT NULL DEFAULT 1
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS story_card (
+        card_id TEXT PRIMARY KEY,
+        seen    INTEGER NOT NULL DEFAULT 0
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS story_death_streak (
+        id     INTEGER PRIMARY KEY CHECK (id = 1),
+        streak INTEGER NOT NULL DEFAULT 0
+      )
+    """,
+    """
+      CREATE TABLE IF NOT EXISTS story_relic_read (
+        devoted INTEGER PRIMARY KEY
+      )
+    """,
+    "INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)",
+    "INSERT OR IGNORE INTO achievement_stats (id) VALUES (1)",
+    "INSERT OR IGNORE INTO consumable_stats (id) VALUES (1)",
+    "INSERT OR IGNORE INTO story_state (id) VALUES (1)",
+    "INSERT OR IGNORE INTO story_death_streak (id) VALUES (1)"
+  )
 
   private def runOutcomeName(outcome: RunOutcome): String = outcome.toString.toLowerCase
 

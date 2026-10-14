@@ -254,6 +254,10 @@ export interface PendingSceneView {
   /** The scene whose choice and reply texts apply when the conversation ends by offering a vow,
    * which is when SCENE_DONE must carry `accept`. Null when it offers none. */
   offerScene?: string | null;
+  /** Whether the player knows the speaker's real name. Until then the speaker goes by its title
+   * (`story.<npc>.name`), after it by `story.<npc>.name_revealed` when there is one. Absent or true
+   * for an NPC that gives its name from the start. */
+  revealed?: boolean;
 }
 
 export interface HubView {

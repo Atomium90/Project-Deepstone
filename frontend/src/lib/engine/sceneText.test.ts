@@ -19,6 +19,12 @@ const texts: Record<string, string> = {
     "story.npc.1.idle.general.2": "General two.",
     "story.npc.1.idle.death.1": "Death one.",
     "story.npc.1.idle.victory.1": "Victory one.",
+    "story.npc.3.name": "The Executioner",
+    "story.npc.3.name_revealed": "Corvin",
+    "story.npc.3.s1.1": "They call me the Executioner.",
+    "story.npc.5.name": "Alder",
+    "story.npc.5.loved": "Isel",
+    "story.npc.5.s1.1": "I'm looking for {name}. Have you seen {name}?",
     "story.boss.2.name": "Osric",
     "story.boss.2.pre1": "This door is closed.",
     "story.boss.2.post": "Door's open now.",
@@ -105,6 +111,33 @@ describe("buildScript", () => {
 
     test("an NPC without a name text is shown by its id", () => {
         expect(buildScript({ npc: "npc.9", kind: "idle" }, lookup).speaker).toBe("npc.9");
+    });
+
+    test("an NPC whose name is not known yet goes by its title, and by its name once it is", () => {
+        const unknown = scene({ npc: "npc.3", sceneId: "npc.3.s1", revealed: false });
+        const known = scene({ npc: "npc.3", sceneId: "npc.3.s1", revealed: true });
+        expect(buildScript(unknown, lookup).speaker).toBe("The Executioner");
+        expect(buildScript(known, lookup).speaker).toBe("Corvin");
+    });
+
+    test("an NPC with no hidden name is called the same whether or not it is said to be known", () => {
+        expect(buildScript(scene({ revealed: false }), lookup).speaker).toBe("Wren");
+        expect(buildScript(scene({ revealed: true }), lookup).speaker).toBe("Wren");
+        expect(buildScript(scene({}), lookup).speaker).toBe("Wren");
+    });
+
+    test("a scene sent with no word on the name is read as the name being known", () => {
+        expect(buildScript(scene({ npc: "npc.3", sceneId: "npc.3.s1" }), lookup).speaker).toBe("Corvin");
+    });
+
+    test("{name} is the name an NPC speaks of, written wherever the lines have it", () => {
+        const lines = buildScript(scene({ npc: "npc.5", sceneId: "npc.5.s1" }), lookup).lines;
+        expect(lines).toEqual(["I'm looking for Isel. Have you seen Isel?"]);
+    });
+
+    test("{name} is left as written for an NPC that speaks of nobody", () => {
+        const withHole: TextLookup = (key) => (key === "story.npc.9.s1.1" ? "Where is {name}?" : null);
+        expect(buildScript(scene({ npc: "npc.9", sceneId: "npc.9.s1" }), withHole).lines).toEqual(["Where is {name}?"]);
     });
 
     test("the line of a Devoted is the one text under its own key, said by the Devoted", () => {

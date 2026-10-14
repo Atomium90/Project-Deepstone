@@ -92,10 +92,16 @@ export function buildScript(
               : numberedTexts(key, lookup);
 
     const text = (textKey: string) => lookup(textKey) ?? textKey;
+    // Some NPC speak of one person by a name that is a text of their own (`story.<npc>.loved`), which
+    // their lines write as {name}, so the name is written once and the lines do not hold it.
+    const loved = lookup(`story.${scene.npc}.loved`);
+    const personal = (line: string) => (loved === null ? line : line.split("{name}").join(loved));
+    // Some NPC give their real name away in a scene: until then they go by their title.
+    const realName = scene.revealed === false ? null : lookup(`story.${scene.npc}.name_revealed`);
     const offerScene = scene.offerScene;
     return {
-        speaker: lookup(`story.${scene.npc}.name`) ?? scene.npc,
-        lines: lines.length > 0 ? lines : [key],
+        speaker: realName ?? lookup(`story.${scene.npc}.name`) ?? scene.npc,
+        lines: lines.length > 0 ? lines.map(personal) : [key],
         offer: offerScene
             ? {
                   accept: text(`story.${offerScene}.choice.accept`),

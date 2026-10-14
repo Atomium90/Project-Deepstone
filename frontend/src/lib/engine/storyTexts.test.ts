@@ -2,6 +2,7 @@ import { describe, test, expect } from "vitest";
 import storyFile from "../../../../deepstone-backend/src/main/resources/data/story.json?raw";
 import chaptersFile from "../../../../deepstone-backend/src/main/resources/data/chapters.json?raw";
 import enemiesFile from "../../../../deepstone-backend/src/main/resources/data/enemies.json?raw";
+import npcsFile from "../../../../deepstone-backend/src/main/resources/data/npcs.json?raw";
 import { dictionaries, lookup } from "./i18n";
 import { numberedTexts, type TextLookup } from "./sceneText";
 
@@ -12,9 +13,16 @@ interface Scene {
     id: string;
     npc: string;
     offersVow?: { type: string };
+    requiresRelicRead?: number;
+}
+
+interface NpcEntry {
+    id: string;
+    revealedBy?: string;
 }
 
 const scenes: Scene[] = JSON.parse(storyFile);
+const npcEntries: NpcEntry[] = JSON.parse(npcsFile);
 const chapters: { id: number }[] = JSON.parse(chaptersFile);
 /** The Devoted of the game: the numbers the enemy catalog gives its Boss types. */
 const devotedNumbers: number[] = (JSON.parse(enemiesFile) as { devoted?: number }[])
@@ -42,6 +50,26 @@ describe("the texts of the story catalog", () => {
 
     test("every NPC has a name", () => {
         for (const npc of npcs) expect(find(`story.${npc}.name`), `${npc} has no name`).not.toBeNull();
+    });
+
+    test("an NPC that gives its name away has the name it gives, and no other NPC has one", () => {
+        for (const npc of npcEntries) {
+            const hasRevealedName = find(`story.${npc.id}.name_revealed`) !== null;
+            expect(hasRevealedName, `${npc.id}: name_revealed`).toBe(npc.revealedBy !== undefined);
+        }
+    });
+
+    test("every NPC of the story is in the NPC catalog, which says which one gives its name away", () => {
+        expect(npcEntries.map((npc) => npc.id).sort()).toEqual([...npcs].sort());
+    });
+
+    test("{name} is written only in the lines of an NPC that names the Devoted it is looking for", () => {
+        for (const key of storyKeys.filter((k) => texts[k].includes("{name}"))) {
+            const npc = key.split(".").slice(1, 3).join(".");
+            const devoted = scenes.filter((scene) => scene.npc === npc).find((scene) => scene.requiresRelicRead !== undefined)?.requiresRelicRead;
+            expect(devoted, `${key} has {name}, but ${npc} waits for no relic`).toBeDefined();
+            expect(find(`story.${npc}.loved`), `${npc} has no loved name for ${key}`).toBe(find(`story.boss.${devoted}.name`));
+        }
     });
 
     test("every scene that offers a vow has its choice and the reply to each answer", () => {

@@ -1066,11 +1066,14 @@ class GameSessionSuite extends CatsEffectSuite:
 
   /** Combat, Boss and Rest rooms, the Combat one holding a deadly enemy. A Normal run goes Combat, Boss,
     * Rest, Combat, Boss, Sanctuary, so the second Combat room is the first fight of the second section.
+    * A Combat room may roll a trapped door when the dungeon is built, which the dice decide: `combatExit`
+    * lets a test settle it.
     */
-  private def smWithDeadlySecondSection: StateMachine =
+  private def smWithDeadlySecondSection(combatExit: DoorKind = DoorKind.Normal): StateMachine =
     def room(id: String, roomType: RoomType, extra: Entity*): Room =
+      val exit = storyDoor("door_exit", ConnectorRole.Next).copy(doorKind = if roomType == RoomType.Combat then combatExit else DoorKind.Normal)
       Room(id, roomType, "dungeon", 8, 6, makeTiles(),
-           List(storyDoor("door_entrance", ConnectorRole.Prev), storyDoor("door_exit", ConnectorRole.Next)) ::: extra.toList
+           List(storyDoor("door_entrance", ConnectorRole.Prev), exit) ::: extra.toList
       )
     val sanctuary = Room("sanct", RoomType.Sanctuary, "dungeon", 8, 6, makeTiles(),
                          List(storyDoor("door_entrance", ConnectorRole.Prev), Sanctuary("sanct_1", x = 2, y = 1))
@@ -1084,21 +1087,35 @@ class GameSessionSuite extends CatsEffectSuite:
       Map("goblin" -> lethalGoblinStats), Map.empty, testClassDefs, testUpgradeDefs, CombatResolver(Random(0L))
     )
 
-  db.test("a death in the second section has the line for having gone deeper") {
-    database =>
-      for
-        _       <- seedPastDeaths(database)
-        session <- voiceSession(database, smWithDeadlySecondSection)
-        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
-        _       <- goThroughDoor(session) // first Combat room to the first Boss room
-        _       <- goThroughDoor(session) // Boss room to the Rest
-        inFight <- goThroughDoor(session) // Rest to the first Combat room of the second section
-        _       <- session.handle(Interact("e1"))
-        dead    <- session.handle(CombatAction(CombatActionType.Attack))
-      yield
-        assertEquals(inFight.room.map(_.roomId), Some("c1#2"))
-        assertEquals(dead.godLine, Some(GodLineView("death.depth", "a")))
-  }
+  /** Goes through the exit door of the room the player is in. A trapped door only springs the first time,
+    * and opens the second, so it is used again when the player is still in the same room.
+    */
+  private def leaveRoom(session: GameSession): IO[StateUpdate] =
+    for
+      before <- session.currentUpdate
+      first  <- goThroughDoor(session)
+      next   <- if first.room.map(_.roomId) == before.room.map(_.roomId) then goThroughDoor(session) else IO.pure(first)
+    yield next
+
+  // The dungeon rolls trapped doors by chance, so the test is run with the door as it comes and with
+  // one that is sure to be trapped.
+  List(DoorKind.Normal, DoorKind.Trapped).foreach:
+    combatExit =>
+      db.test(s"a death in the second section has the line for having gone deeper (first exit $combatExit)") {
+        database =>
+          for
+            _       <- seedPastDeaths(database)
+            session <- voiceSession(database, smWithDeadlySecondSection(combatExit))
+            _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
+            _       <- leaveRoom(session) // first Combat room to the first Boss room
+            _       <- goThroughDoor(session) // Boss room to the Rest
+            inFight <- goThroughDoor(session) // Rest to the first Combat room of the second section
+            _       <- session.handle(Interact("e1"))
+            dead    <- session.handle(CombatAction(CombatActionType.Attack))
+          yield
+            assertEquals(inFight.room.map(_.roomId), Some("c1#2"))
+            assertEquals(dead.godLine, Some(GodLineView("death.depth", "a")))
+      }
 
   // ---------------------------------------------
   // The Devoted

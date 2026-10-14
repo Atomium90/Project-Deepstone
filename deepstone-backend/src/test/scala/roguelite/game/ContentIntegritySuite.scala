@@ -125,6 +125,12 @@ class ContentIntegritySuite extends CatsEffectSuite:
     for npcs <- NpcLoader.loadAll()
     yield assertEquals(npcs.values.filter(_.candidate).map(_.id).toSet, Set("npc.2", "npc.3", "npc.5"))
 
+  test("only the adventurer has something to say about the ending, and he cannot take the player's place"):
+    for npcs <- NpcLoader.loadAll()
+    yield
+      assertEquals(npcs.values.filter(_.epilogue).map(_.id).toSet, Set("npc.4"))
+      assertEquals(npcs("npc.4").candidate, false)
+
   test("every set has exactly 4 pieces: 1 weapon, 1 armor, 2 accessories"):
     for
       items <- ItemLoader.loadAll()

@@ -15,5 +15,14 @@ package roguelite.game
   * @param candidate
   *   Whether the NPC can take the player's place in the light once their story is over (see
   *   [[EndingRules.candidates]]).
+  * @param epilogue
+  *   Whether the NPC has something to say about how the story ended, once their own is over (see
+  *   [[StorySelector.epilogueDue]]).
   */
-case class NpcDef(id: String, spriteId: String, revealedBy: Option[String] = None, candidate: Boolean = false)
+case class NpcDef(
+    id: String,
+    spriteId: String,
+    revealedBy: Option[String] = None,
+    candidate: Boolean = false,
+    epilogue: Boolean = false
+)

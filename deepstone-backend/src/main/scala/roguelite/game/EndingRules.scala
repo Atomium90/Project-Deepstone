@@ -25,7 +25,7 @@ object EndingRules:
     !progress.endingIsFinal
 
   /** The card each answer brings, shown full screen once the answer is given (once, for an answer that
-    * is given again).
+    * is given again). It is also the name the texts and the story give to the answer.
     */
   def endCard(ending: Ending): String = ending match
     case Ending.Entered     => "end1"
@@ -62,16 +62,16 @@ object EndingRules:
       case Some(ending @ Ending.Replaced(_)) => progress.withCardEarned(endCard(ending))
       case _                                 => progress
 
+  /** The marker kept among the scenes seen once `npc` has said what they say about `ending`. */
+  def epilogueMarker(npc: String, ending: Ending): String = s"$npc.epilogue.${endCard(ending)}"
+
   /** The NPCs who could take the player's place: the ones the catalog marks as candidates whose story
-    * is over, that is every scene of theirs played. An NPC with no scene is never ready. In id order,
-    * which is the order the player is shown them in.
+    * is over (see [[StorySelector.storyIsOver]]). In id order, which is the order the player is shown
+    * them in.
     */
   def candidates(npcs: Map[String, NpcDef], scenes: Map[String, SceneDef], progress: StoryProgress): List[String] =
     npcs.values.toList
       .filter(_.candidate)
       .map(_.id)
       .sorted
-      .filter:
-        id =>
-          val own = scenes.values.filter(_.npc == id)
-          own.nonEmpty && own.forall(scene => progress.scenesSeen.contains(scene.id))
+      .filter(StorySelector.storyIsOver(scenes, progress, _))

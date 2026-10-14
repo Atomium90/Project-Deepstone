@@ -84,4 +84,5 @@ object StoryRules:
           case Encounter.DevotedBefore(_, _, _) => answered
           case Encounter.DevotedAfter(_)        => answered
           case Encounter.Farewell(_)            => EndingRules.farewellOver(answered)
+          case Encounter.Epilogue(npc, ending)  => answered.copy(scenesSeen = answered.scenesSeen + EndingRules.epilogueMarker(npc, ending))
         )

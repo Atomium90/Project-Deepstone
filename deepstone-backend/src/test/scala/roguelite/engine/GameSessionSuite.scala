@@ -1193,6 +1193,45 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(saved.ending, None)
   }
 
+  /** npc.2, whose only scene is `npc.2.s1`, has something to say about the ending. */
+  private val epilogueNpcs: Map[String, NpcDef] =
+    testNpcs + ("npc.2" -> NpcDef("npc.2", "npc_b", revealedBy = Some("npc.2.s1"), epilogue = true))
+
+  private def afterTheEnd(database: Database): IO[GameSession] =
+    GameSession.create(smWithRest, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                       rng = Random(0L), sceneDefs = testScenes, chapterDefs = endingChapters, npcDefs = epilogueNpcs
+    )
+
+  private val everySceneSeen = List("npc.1.s1", "npc.1.s2", "npc.2.s1")
+
+  db.test("after the end, a Rest seats the NPC with something to say about it, who says it and is remembered") {
+    database =>
+      for
+        _        <- database.saveStoryState(6, Some(RunOutcome.Won))
+        _        <- database.saveEnding(Ending.Entered)
+        _        <- everySceneSeen.foldLeft(IO.unit)((acc, id) => acc *> database.recordSceneSeen(id))
+        session  <- afterTheEnd(database)
+        inRest   <- walkToRest(session)
+        speaking <- session.handle(Interact("npc.2"))
+        _        <- session.handle(SceneDone())
+        saved    <- database.loadStoryProgress()
+      yield
+        assertEquals(npcIn(inRest), Some("npc.2"))
+        assertEquals(speaking.pendingScene.map(s => (s.npc, s.kind, s.context)), Some(("npc.2", "epilogue", Some("end1"))))
+        assert(saved.scenesSeen.contains("npc.2.epilogue.end1"), s"expected the epilogue to be remembered: ${saved.scenesSeen}")
+  }
+
+  db.test("after refusing the light, an NPC who has said their epilogue is gone from the Rests") {
+    database =>
+      for
+        _       <- database.saveStoryState(6, Some(RunOutcome.Won))
+        _       <- database.saveEnding(Ending.Refused)
+        _       <- (everySceneSeen :+ "npc.2.epilogue.end3").foldLeft(IO.unit)((acc, id) => acc *> database.recordSceneSeen(id))
+        session <- afterTheEnd(database)
+        inRest  <- walkToRest(session)
+      yield assertEquals(npcIn(inRest), Some("npc.1"), "the Rest keeps the NPC its room was authored with")
+  }
+
   db.test("the first purchase earns the prologue card, shown until it has been seen") {
     database =>
       for

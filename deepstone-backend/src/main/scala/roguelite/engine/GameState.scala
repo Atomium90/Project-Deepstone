@@ -6,6 +6,7 @@ import roguelite.game.{
   Combat,
   Dungeon,
   Encounter,
+  EndingRules,
   EnemyStats,
   IdleContext,
   Item,
@@ -102,6 +103,8 @@ private def pendingSceneToView(pending: PendingScene): PendingSceneView =
       PendingSceneView(s"boss.$devoted", "devoted", sceneId = Some(s"boss.$devoted.post"))
     case Encounter.Farewell(npc) =>
       PendingSceneView(npc, "scene", sceneId = Some(s"$npc.end"))
+    case Encounter.Epilogue(npc, ending) =>
+      PendingSceneView(npc, "epilogue", context = Some(EndingRules.endCard(ending)))
 
 /** Project a player's equipment into the client-facing [[EquipmentView]]. */
 private def equipmentToView(player: Player): EquipmentView =

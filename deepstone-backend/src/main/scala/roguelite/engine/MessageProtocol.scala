@@ -458,14 +458,16 @@ case class RelicView(devoted: Int, readable: Boolean)
   * @param kind
   *   "scene" (a scene of the story, lines under `story.<sceneId>`), "vow_report" (the NPC comments on
   *   a vow, lines under `story.<npc>.vow.kept` or `story.<npc>.vow.failed`), "idle" (a short line
-  *   under `story.<npc>.idle`) or "devoted" (the single line `story.<sceneId>` of a Devoted, said
-  *   before the fight or as they fall).
+  *   under `story.<npc>.idle`), "epilogue" (the line about the way the story ended, under
+  *   `story.<npc>.epilogue.<context>`) or "devoted" (the single line `story.<sceneId>` of a Devoted,
+  *   said before the fight or as they fall).
   * @param sceneId
   *   Only for "scene" and "devoted".
   * @param kept
   *   Only for "vow_report": whether the vow was kept.
   * @param context
-  *   Only for "idle": "general", "death" or "victory", the pool of lines the last run calls for.
+  *   Only for "idle": "general", "death" or "victory", the pool of lines the last run calls for. For
+  *   "epilogue", the ending: "end1" (entered the light), "end2" (someone took the place), "end3" (refused).
   * @param offerScene
   *   The scene whose choice and reply texts apply when the conversation ends by offering a vow, which
   *   is when the player must answer with `accept` in [[SceneDone]]. `None` when it offers none.

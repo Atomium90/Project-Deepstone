@@ -35,6 +35,12 @@ enum Encounter:
   /** A Devoted speaks as they fall, one line. */
   case DevotedAfter(devoted: Int)
 
+  /** What an NPC says about the way the story ended, one line for each ending, once their own story is
+    * over. Said again at every meeting, unless the light was refused: then it is said once, and the NPC
+    * leaves (see [[StorySelector.epilogueDue]]).
+    */
+  case Epilogue(npc: String, ending: Ending)
+
   /** The last scene of an NPC who takes the player's place in the light. The run ends once it has
     * been read.
     */
@@ -50,6 +56,7 @@ enum Encounter:
     case DevotedBefore(devoted, _, _) => s"boss.$devoted"
     case DevotedAfter(devoted)       => s"boss.$devoted"
     case Farewell(npc)               => npc
+    case Epilogue(npc, _)            => npc
 
   /** The vow this conversation ends by offering, if any. Its presence is what makes the player
     * answer yes or no before the conversation counts as over.
@@ -61,3 +68,4 @@ enum Encounter:
     case DevotedBefore(_, _, _) => None
     case DevotedAfter(_)        => None
     case Farewell(_)            => None
+    case Epilogue(_, _)         => None

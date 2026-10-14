@@ -397,7 +397,7 @@ class GameSession private (
         .flatMap(_.entities.collect { case npc: Npc => npc.id })
       seated = room.entities.collectFirst { case npc: Npc => npc }.fold(exp) {
         slot =>
-          val occupant = StorySelector.chooseOccupant(sceneDefs, judged, slot.id, met, rng)
+          val occupant = StorySelector.chooseOccupant(sceneDefs, judged, slot.id, met, rng, npcDefs)
           val seatedRoom = room.updateEntity(slot.id):
             case npc: Npc => npc.copy(id = occupant)
             case other    => other
@@ -440,7 +440,7 @@ class GameSession private (
   private def startConversation(exp: ExplorationState, npc: Npc): IO[StateUpdate] =
     storyRef.get.flatMap:
       progress =>
-        val encounter = StorySelector.chooseEncounter(sceneDefs, progress, npc.id)
+        val encounter = StorySelector.chooseEncounter(sceneDefs, progress, npc.id, npcDefs)
         val next      = exp.copy(pendingScene = Some(PendingScene(encounter, StorySelector.offerScene(sceneDefs, encounter))))
         stateRef.set(next).as(next.toStateUpdate())
 

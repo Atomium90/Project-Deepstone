@@ -23,8 +23,9 @@ class StorySelectorSuite extends FunSuite:
                        seen: Set[String] = Set.empty,
                        vows: Map[String, VowRecord] = Map.empty,
                        lastRun: Option[RunOutcome] = None,
-                       relicsRead: Set[Int] = Set.empty
-  ): StoryProgress = StoryProgress(chapter, lastRun, seen, vows, relicsRead = relicsRead)
+                       relicsRead: Set[Int] = Set.empty,
+                       ending: Option[Ending] = None
+  ): StoryProgress = StoryProgress(chapter, lastRun, seen, vows, relicsRead = relicsRead, ending = ending)
 
   private def ids(list: List[SceneDef]): List[String] = list.map(_.id)
 
@@ -171,3 +172,66 @@ class StorySelectorSuite extends FunSuite:
     assertEquals(offerFor(Map("npc.1" -> VowRecord(VowState.Active))), None)
     assertEquals(offerFor(Map("npc.1" -> VowRecord(VowState.Declined), "npc.2" -> VowRecord(VowState.Active))), None)
     assertEquals(offerFor(Map.empty), None)
+
+  // --- after the end -------------------------------------------------------------
+
+  private val withAdventurer: Map[String, SceneDef] = scenes + ("npc.4.s1" -> SceneDef("npc.4.s1", "npc.4", 1))
+
+  private val npcs: Map[String, NpcDef] = List(
+    NpcDef("npc.1", "a"),
+    NpcDef("npc.2", "b", candidate = true),
+    NpcDef("npc.4", "d", epilogue = true)
+  ).map(npc => npc.id -> npc).toMap
+
+  private val allSeen = Set("npc.1.s1", "npc.1.s2", "npc.1.s3", "npc.1.s4", "npc.2.s1", "npc.2.s2", "npc.4.s1")
+
+  test("an NPC who took the player's place has no scene left to play"):
+    val gone = progress(chapter = 1, ending = Some(Ending.Replaced("npc.2")))
+    assertEquals(ids(StorySelector.eligibleScenes(scenes, gone)), List("npc.1.s1"))
+
+  test("an NPC who took the player's place is not waited for to comment on a vow"):
+    val gone = progress(chapter = 1, vows = Map("npc.2" -> VowRecord(VowState.Kept, reported = false)), ending = Some(Ending.Replaced("npc.2")))
+    assertEquals(StorySelector.chooseOccupant(scenes, gone, "npc.9", Set.empty, Random(0L)), "npc.1")
+
+  test("an NPC whose story is over has something to say about each ending, if the catalog gives them an epilogue"):
+    for ending <- List(Ending.Entered, Ending.Replaced("npc.2"), Ending.Refused) do
+      val done = progress(chapter = 6, seen = allSeen, ending = Some(ending))
+      assertEquals(StorySelector.epilogueDue(npcs, withAdventurer, done, "npc.4"), Some(ending))
+
+  test("nothing is said about an ending before the light was answered, before the NPC's story is over, or by an NPC with no epilogue"):
+    assertEquals(StorySelector.epilogueDue(npcs, withAdventurer, progress(chapter = 6, seen = allSeen), "npc.4"), None)
+    assertEquals(StorySelector.epilogueDue(npcs, withAdventurer, progress(chapter = 6, ending = Some(Ending.Entered)), "npc.4"), None)
+    assertEquals(StorySelector.epilogueDue(npcs, withAdventurer, progress(chapter = 6, seen = allSeen, ending = Some(Ending.Entered)), "npc.1"), None)
+
+  test("after entering the light or letting someone take the place, the epilogue is said at every meeting"):
+    for ending <- List(Ending.Entered, Ending.Replaced("npc.2")) do
+      val said = progress(chapter = 6, seen = allSeen + EndingRules.epilogueMarker("npc.4", ending), ending = Some(ending))
+      assertEquals(StorySelector.epilogueDue(npcs, withAdventurer, said, "npc.4"), Some(ending))
+
+  test("after refusing the light, the epilogue is said once and the NPC is gone"):
+    val before = progress(chapter = 6, seen = allSeen, ending = Some(Ending.Refused))
+    val after  = before.copy(scenesSeen = allSeen + EndingRules.epilogueMarker("npc.4", Ending.Refused))
+    assertEquals(StorySelector.epilogueDue(npcs, withAdventurer, before, "npc.4"), Some(Ending.Refused))
+    assertEquals(StorySelector.epilogueDue(npcs, withAdventurer, after, "npc.4"), None)
+
+  test("what was said about entering the light does not count for refusing it afterwards"):
+    val entered = progress(chapter = 6, seen = allSeen + EndingRules.epilogueMarker("npc.4", Ending.Entered), ending = Some(Ending.Refused))
+    assertEquals(StorySelector.epilogueDue(npcs, withAdventurer, entered, "npc.4"), Some(Ending.Refused))
+
+  test("an NPC with the epilogue due says it instead of a short line, and their scenes still come first"):
+    val done = progress(chapter = 6, seen = allSeen, ending = Some(Ending.Entered))
+    assertEquals(StorySelector.chooseEncounter(withAdventurer, done, "npc.4", npcs), Encounter.Epilogue("npc.4", Ending.Entered))
+    val unfinished = progress(chapter = 6, seen = allSeen - "npc.4.s1", ending = Some(Ending.Entered))
+    assert(StorySelector.chooseEncounter(withAdventurer, unfinished, "npc.4", npcs).isInstanceOf[Encounter.Scene])
+
+  test("a short line stays what an NPC says when there is no epilogue to say"):
+    val noEnding = progress(chapter = 6, seen = allSeen)
+    assert(StorySelector.chooseEncounter(withAdventurer, noEnding, "npc.4", npcs).isInstanceOf[Encounter.Idle])
+    val wren = progress(chapter = 6, seen = allSeen, ending = Some(Ending.Entered))
+    assert(StorySelector.chooseEncounter(withAdventurer, wren, "npc.1", npcs).isInstanceOf[Encounter.Idle])
+
+  test("a Rest seats the NPC whose epilogue is due when nobody has a scene to play, and not once they are gone"):
+    val due  = progress(chapter = 6, seen = allSeen, ending = Some(Ending.Refused))
+    val gone = due.copy(scenesSeen = allSeen + EndingRules.epilogueMarker("npc.4", Ending.Refused))
+    assertEquals(StorySelector.chooseOccupant(withAdventurer, due, "npc.1", Set.empty, Random(0L), npcs), "npc.4")
+    assertEquals(StorySelector.chooseOccupant(withAdventurer, gone, "npc.1", Set.empty, Random(0L), npcs), "npc.1")

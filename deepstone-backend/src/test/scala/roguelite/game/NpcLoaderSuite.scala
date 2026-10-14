@@ -13,7 +13,7 @@ class NpcLoaderSuite extends CatsEffectSuite:
   private val fixture =
     """[
       |  {"id":"npc.1","spriteId":"npc_a"},
-      |  {"id":"npc.2","spriteId":"npc_b","revealedBy":"npc.2.s3","candidate":true}
+      |  {"id":"npc.2","spriteId":"npc_b","revealedBy":"npc.2.s3","candidate":true,"epilogue":true}
       |]""".stripMargin
 
   private def assertFails(json: String): IO[Unit] =
@@ -38,6 +38,12 @@ class NpcLoaderSuite extends CatsEffectSuite:
     yield
       assertEquals(npcs("npc.1").candidate, false)
       assertEquals(npcs("npc.2").candidate, true)
+
+  test("an NPC has something to say about the ending only if the catalog says so"):
+    for npcs <- NpcLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(npcs("npc.1").epilogue, false)
+      assertEquals(npcs("npc.2").epilogue, true)
 
   test("an NPC defined twice fails to parse"):
     assertFails("""[{"id":"npc.1","spriteId":"a"},{"id":"npc.1","spriteId":"b"}]""")

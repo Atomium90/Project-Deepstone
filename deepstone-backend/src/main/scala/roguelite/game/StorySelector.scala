@@ -21,10 +21,12 @@ object StorySelector:
                      progress: StoryProgress,
                      default: String,
                      metThisRun: Set[String],
-                     rng: Random
+                     rng: Random,
+                     npcs: Map[String, NpcDef] = Map.empty
   ): String =
     awaitingReport(progress).getOrElse {
-      val withAScene = eligibleScenes(scenes, progress).map(_.npc).distinct.sorted
+      val withAScene =
+        (eligibleScenes(scenes, progress).map(_.npc) ++ npcs.keys.filter(epilogueDue(npcs, scenes, progress, _).isDefined)).distinct.sorted
       val fresh      = withAScene.filterNot(metThisRun.contains)
       val pool       = if fresh.nonEmpty then fresh else withAScene
       if pool.isEmpty then default else pool(rng.nextInt(pool.size))
@@ -34,7 +36,11 @@ object StorySelector:
     * scene, else say a short line. The vow is offered again after a comment on a failed one, and
     * after a short line when the player turned it down or failed it.
     */
-  def chooseEncounter(scenes: Map[String, SceneDef], progress: StoryProgress, npc: String): Encounter =
+  def chooseEncounter(scenes: Map[String, SceneDef],
+                      progress: StoryProgress,
+                      npc: String,
+                      npcs: Map[String, NpcDef] = Map.empty
+  ): Encounter =
     val vow     = VowRules.vowTypes(scenes).get(npc)
     val canOffer = VowRules.canOffer(progress, npc)
     progress.vows.get(npc) match
@@ -44,7 +50,30 @@ object StorySelector:
       case _ =>
         eligibleScenes(scenes, progress).filter(_.npc == npc).sortBy(scene => (scene.minChapter, scene.id)).headOption match
           case Some(scene) => Encounter.Scene(scene)
-          case None        => Encounter.Idle(npc, idleContext(progress), offer = vow.filter(_ => canOffer))
+          case None =>
+            epilogueDue(npcs, scenes, progress, npc) match
+              case Some(ending) => Encounter.Epilogue(npc, ending)
+              case None         => Encounter.Idle(npc, idleContext(progress), offer = vow.filter(_ => canOffer))
+
+  /** Whether every scene of `npc` has been played: their story is over. An NPC with no scene never is. */
+  def storyIsOver(scenes: Map[String, SceneDef], progress: StoryProgress, npc: String): Boolean =
+    val own = scenes.values.filter(_.npc == npc)
+    own.nonEmpty && own.forall(scene => progress.scenesSeen.contains(scene.id))
+
+  /** The ending `npc` has something to say about, if they do: the catalog gives them an epilogue, the
+    * player has answered the light, and their own story is over. Said at every meeting, except after the
+    * light was refused: then it is said once, and the NPC is gone.
+    */
+  def epilogueDue(npcs: Map[String, NpcDef],
+                  scenes: Map[String, SceneDef],
+                  progress: StoryProgress,
+                  npc: String
+  ): Option[Ending] =
+    progress.ending.filter:
+      ending =>
+        npcs.get(npc).exists(_.epilogue) &&
+        storyIsOver(scenes, progress, npc) &&
+        !(ending == Ending.Refused && progress.scenesSeen.contains(EndingRules.epilogueMarker(npc, ending)))
 
   /** From this chapter on a Devoted says its second line before the fight: the first is a warning,
     * the second admits that it guards the way out.
@@ -70,7 +99,7 @@ object StorySelector:
           .headOption
           .map(_.id)
 
-  /** The scenes the story can play now: not played yet, asked for a chapter already reached, after the
+  /** The scenes the story can play now: not played yet, of an NPC who has not left the game, asked for a chapter already reached, after the
     * scene they follow, and, for the ones that offer a vow, while no other vow is running. A scene
     * that needs a kept vow waits for the NPC to have commented on it, and one that needs a relic
     * waits for the player to have read it.
@@ -82,6 +111,7 @@ object StorySelector:
         !progress.scenesSeen.contains(scene.id) &&
         scene.minChapter <= progress.chapter &&
         scene.requires.forall(progress.scenesSeen.contains) &&
+        !progress.replacedNpc.contains(scene.npc) &&
         (!scene.requiresVowKept || vowKept(progress, scene.npc)) &&
         scene.requiresRelicRead.forall(progress.relicsRead.contains) &&
         (scene.offersVow.isEmpty || !vowRunning)
@@ -92,7 +122,9 @@ object StorySelector:
     progress.vows.get(npc).exists(record => record.state == VowState.Kept && record.reported)
 
   private def awaitingReport(progress: StoryProgress): Option[String] =
-    progress.vows.toList.sortBy(_._1).collectFirst { case (npc, record) if VowRules.awaitsReport(record) => npc }
+    progress.vows.toList.sortBy(_._1).collectFirst {
+      case (npc, record) if VowRules.awaitsReport(record) && !progress.replacedNpc.contains(npc) => npc
+    }
 
   private def idleContext(progress: StoryProgress): IdleContext = progress.lastRun match
     case Some(RunOutcome.Lost) => IdleContext.AfterDeath

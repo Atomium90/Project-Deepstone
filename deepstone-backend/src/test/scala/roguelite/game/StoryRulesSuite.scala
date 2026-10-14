@@ -74,6 +74,14 @@ class StoryRulesSuite extends FunSuite:
     val after    = StoryRules.complete(replaced, Encounter.Farewell("npc.3"), None).toOption.get
     assertEquals(after.cards, List(CardRecord("end2")))
 
+  test("an epilogue said is remembered for that ending, and offers no vow"):
+    val encounter = Encounter.Epilogue("npc.4", Ending.Refused)
+    val after     = StoryRules.complete(StoryProgress.empty, encounter, None).toOption.get
+    assertEquals(after.scenesSeen, Set("npc.4.epilogue.end3"))
+    assertEquals(encounter.offeredVow, None)
+    assertEquals(encounter.speaker, "npc.4")
+    assert(StoryRules.complete(StoryProgress.empty, encounter, Some(true)).isLeft)
+
   test("a farewell offers no vow, and is refused when one is answered"):
     assertEquals(Encounter.Farewell("npc.3").offeredVow, None)
     assertEquals(Encounter.Farewell("npc.3").speaker, "npc.3")

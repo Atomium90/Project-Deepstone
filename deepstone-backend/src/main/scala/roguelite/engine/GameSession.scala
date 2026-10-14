@@ -184,8 +184,10 @@ class GameSession private (
   private def withAchievements(update: StateUpdate, progress: AchievementProgress): StateUpdate =
     update.copy(achievements = achievementCatalog(progress))
 
+  /** Every achievement, except a hidden one that has not been unlocked yet. */
   private def achievementCatalog(progress: AchievementProgress): List[AchievementView] =
     achievementDefs.values.toList
+      .filter(d => !d.hidden || progress.isUnlocked(d.id))
       .sortBy(_.displayOrder)
       .map(d => toAchievementView(d, progress.isUnlocked(d.id)))
 
@@ -475,6 +477,12 @@ class GameSession private (
         stateRef.update:
           case exp: ExplorationState if exp.trapsInert != inert => exp.copy(trapsInert = inert)
           case other                                            => other
+
+  /** The story opens the Hardcore tier: the tier becomes available, and its announcement card is
+    * earned. Nothing in the game calls it yet, the ending that leaves the cult will.
+    */
+  private[engine] def unlockHardcore: IO[Unit] =
+    storyRef.get.flatMap(story => updateStory(story, StoryRules.unlockHardcore(story)))
 
   /** Save what changed between two states of the story, then keep the new one. */
   private def updateStory(prev: StoryProgress, next: StoryProgress): IO[Unit] =
@@ -773,8 +781,8 @@ object GameSession:
     )
 
   /** Save what changed between two states of the story: the chapter and the last outcome, the scenes
-    * newly played, every vow that is not as it was, the streak of deaths, the relics newly read and the
-    * cards newly earned or seen.
+    * newly played, every vow that is not as it was, the streak of deaths, the relics newly read, whether
+    * Hardcore has just been opened and the cards newly earned or seen.
     */
   private def persistStory(database: Database, prev: StoryProgress, next: StoryProgress): IO[Unit] =
     for
@@ -786,6 +794,7 @@ object GameSession:
         .filterNot((npc, record) => prev.vows.get(npc).contains(record))
         .traverse_((npc, record) => database.saveVow(npc, record))
       _ <- IO.whenA(next.deathStreak != prev.deathStreak)(database.saveDeathStreak(next.deathStreak))
+      _ <- IO.whenA(next.hardcoreUnlocked && !prev.hardcoreUnlocked)(database.saveHardcoreUnlocked())
       _ <- (next.relicsRead -- prev.relicsRead).toList.sorted.traverse_(database.recordRelicRead)
       _ <- next.cards.filterNot(card => prev.cards.exists(_.id == card.id)).traverse_(card => database.recordCardEarned(card.id))
       _ <- next.cards.filter(card => card.seen && !prev.cards.contains(card)).traverse_(card => database.markCardSeen(card.id))

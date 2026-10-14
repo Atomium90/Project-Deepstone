@@ -49,11 +49,15 @@ enum AchievementCondition:
   *   Position in the hub achievement panel (ascending). JSON array order is not preserved once
   *   loaded into a `Map`, so this field is the explicit source of truth for display order, same
   *   rationale as [[UpgradeDef.displayOrder]].
+  * @param hidden
+  *   Whether the achievement is left out of the catalog the client receives until it is unlocked, for
+  *   the ones whose very title would give the story away.
   */
 case class AchievementDef(
     id: String,
     label: String,
     description: String,
     displayOrder: Int,
-    condition: AchievementCondition
+    condition: AchievementCondition,
+    hidden: Boolean = false
 )

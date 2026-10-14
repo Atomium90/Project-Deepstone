@@ -648,6 +648,48 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(started.phase, GamePhase.Exploration)
   }
 
+  db.test("the story opening Hardcore shows the tier, saves it and brings its announcement card") {
+    database =>
+      for
+        session <- tierSession(database)
+        before  <- session.currentUpdate
+        _       <- session.unlockHardcore
+        after   <- session.currentUpdate
+        saved   <- database.loadStoryProgress()
+      yield
+        assertEquals(before.hub.get.difficulties.map(_.id), List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard))
+        assertEquals(before.pendingCard, None)
+        assertEquals(after.hub.get.difficulties.map(_.id).last, Difficulty.Hardcore)
+        assertEquals(after.pendingCard, Some("hardcore"))
+        assertEquals(saved.hardcoreUnlocked, true)
+        assertEquals(saved.cards, List(CardRecord("hardcore")))
+  }
+
+  db.test("opening Hardcore twice earns its card once, and a card that was seen is not shown again") {
+    database =>
+      for
+        session <- tierSession(database)
+        _       <- session.unlockHardcore
+        _       <- session.handle(CardSeen("hardcore"))
+        _       <- session.unlockHardcore
+        after   <- session.currentUpdate
+      yield assertEquals(after.pendingCard, None)
+  }
+
+  db.test("a hidden achievement is left out of the catalog until it is unlocked") {
+    database =>
+      val secret = AchievementDef("secret", "Secret", "d", 99, AchievementCondition.FirstKill, hidden = true)
+      val defs   = testAchievementDefs + (secret.id -> secret)
+      for
+        hidden  <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, defs).flatMap(_.currentUpdate)
+        _       <- database.unlockAchievement("secret")
+        shown   <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, defs).flatMap(_.currentUpdate)
+      yield
+        assertEquals(hidden.achievements.map(_.id).contains("secret"), false)
+        assertEquals(hidden.achievements.length, testAchievementDefs.size)
+        assertEquals(shown.achievements.find(_.id == "secret").map(_.unlocked), Some(true))
+  }
+
   db.test("a win on Easy unlocks Normal at the next hub visit") {
     database =>
       for

@@ -65,6 +65,17 @@ class StoryRulesSuite extends FunSuite:
     assertEquals((first.deathStreak, second.deathStreak), (1, 2))
     assertEquals(StoryRules.onRunEnded(chapters, second, RunOutcome.Won, Difficulty.Easy).deathStreak, 0)
 
+  test("the story opening Hardcore opens the flag and earns the announcement card"):
+    val after = StoryRules.unlockHardcore(StoryProgress.empty)
+    assert(after.hardcoreUnlocked)
+    assertEquals(after.pendingCard, Some("hardcore"))
+    assertEquals(after.openedTiers, Set(Difficulty.Hardcore))
+
+  test("opening Hardcore again changes nothing, and does not bring a card already seen back"):
+    val seen = StoryRules.unlockHardcore(StoryProgress.empty).withCardSeen(StoryRules.HardcoreCard)
+    assertEquals(StoryRules.unlockHardcore(seen), seen)
+    assertEquals(StoryRules.unlockHardcore(seen).pendingCard, None)
+
   test("the end of a run judges the vow that was running"):
     val running = StoryProgress(vows = Map("npc.1" -> VowRecord(VowState.Active)))
     val vows = Map("npc.1" -> VowType.NoPotion)

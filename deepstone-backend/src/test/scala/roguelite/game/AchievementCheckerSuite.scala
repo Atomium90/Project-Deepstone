@@ -278,6 +278,19 @@ class AchievementCheckerSuite extends FunSuite:
     assert(!lostHard.map(_.id).contains("hard_mode_victory"))
   }
 
+  test("winning on Hardcore unlocks hardcore_victory; winning on Hard, or losing on Hardcore, does not") {
+    val hardcoreVictory = defOf("hardcore_victory", AchievementCondition.WinOnDifficulty(Difficulty.Hardcore))
+    val defs            = Map(hardcoreVictory.id -> hardcoreVictory)
+    def outcome(victory: Boolean, difficulty: Difficulty): List[String] =
+      AchievementChecker
+        .checkEvents(defs, Set.empty, AchievementStats.empty, List(GameEvent.RunEnded(victory, difficulty, activePerkId = None)))
+        ._2
+        .map(_.id)
+    assertEquals(outcome(victory = true, Difficulty.Hardcore), List("hardcore_victory"))
+    assertEquals(outcome(victory = true, Difficulty.Hard), Nil)
+    assertEquals(outcome(victory = false, Difficulty.Hardcore), Nil)
+  }
+
   test("DoorUnlockedWithKey unlocks key_master") {
     val (_, unlocked) = AchievementChecker.checkEvents(
       allDefs,

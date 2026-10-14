@@ -13,6 +13,16 @@ object StoryRules:
     */
   val RelicReadableFromChapter = 2
 
+  /** The card that tells the player the Hardcore tier is open. */
+  val HardcoreCard = "hardcore"
+
+  /** The story opens the Hardcore tier, which earns its announcement card. Opening it again changes
+    * nothing, so a card already seen is not shown a second time.
+    */
+  def unlockHardcore(progress: StoryProgress): StoryProgress =
+    if progress.hardcoreUnlocked then progress
+    else progress.copy(hardcoreUnlocked = true).withCardEarned(HardcoreCard)
+
   /** The card a victory earns by opening `chapter`. */
   def chapterCard(chapter: Int): String = s"ch$chapter"
 

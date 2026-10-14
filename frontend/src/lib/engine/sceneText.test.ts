@@ -25,6 +25,8 @@ const texts: Record<string, string> = {
     "story.npc.5.name": "Alder",
     "story.npc.5.loved": "Isel",
     "story.npc.5.s1.1": "I'm looking for {name}. Have you seen {name}?",
+    "story.npc.4.epilogue.end1.1": "Back again!",
+    "story.npc.4.epilogue.end3.1": "Time to see the sky.",
     "story.boss.2.name": "Osric",
     "story.boss.2.pre1": "This door is closed.",
     "story.boss.2.post": "Door's open now.",
@@ -151,6 +153,18 @@ describe("buildScript", () => {
     test("a Devoted whose line is missing shows the key of the line, so the gap is visible", () => {
         const script = buildScript({ npc: "boss.2", kind: "devoted", sceneId: "boss.2.pre2" }, lookup);
         expect(script.lines).toEqual(["story.boss.2.pre2"]);
+    });
+
+    test("an epilogue reads the line of the ending it is about", () => {
+        const entered = buildScript({ npc: "npc.4", kind: "epilogue", context: "end1" }, lookup);
+        const refused = buildScript({ npc: "npc.4", kind: "epilogue", context: "end3" }, lookup);
+        expect(entered.lines).toEqual(["Back again!"]);
+        expect(refused.lines).toEqual(["Time to see the sky."]);
+        expect(entered.offer).toBeNull();
+    });
+
+    test("an epilogue without its text shows its key instead of nothing", () => {
+        expect(buildScript({ npc: "npc.4", kind: "epilogue", context: "end2" }, lookup).lines).toEqual(["story.npc.4.epilogue.end2"]);
     });
 
     test("a Devoted without a name text is shown by its id", () => {

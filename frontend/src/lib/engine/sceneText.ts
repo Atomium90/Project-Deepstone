@@ -62,6 +62,8 @@ function linesKey(scene: PendingSceneView): string {
             return `story.${scene.npc}.idle`;
         case "devoted":
             return `story.${scene.sceneId}`;
+        case "epilogue":
+            return `story.${scene.npc}.epilogue.${scene.context}`;
     }
 }
 

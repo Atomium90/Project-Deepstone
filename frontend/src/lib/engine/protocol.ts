@@ -81,6 +81,15 @@ export interface CardSeenAction {
   cardId: string;
 }
 
+/** The player's answer to the light of the Sanctuary (see `StateUpdate.pendingEndingChoice`). `npc`
+ * names who takes the player's place: it is present exactly for "REPLACE", and is one of the candidates
+ * the question listed. */
+export interface EndingChoiceAction {
+  type: "ENDING_CHOICE";
+  answer: "ENTER" | "REPLACE" | "REFUSE";
+  npc?: string;
+}
+
 export type PlayerAction =
   | MoveAction
   | InteractAction
@@ -89,7 +98,8 @@ export type PlayerAction =
   | EquipChoiceAction
   | RewardChoiceAction
   | SceneDoneAction
-  | CardSeenAction;
+  | CardSeenAction
+  | EndingChoiceAction;
 
 // ---------------------------------------------
 // Server → Client views
@@ -244,14 +254,16 @@ export interface PendingSceneView {
    * `story.<npc>.name`. */
   npc: string;
   /** "scene": a scene of the story. "vow_report": the NPC comments on a vow. "idle": a short line.
-   * "devoted": the single line `story.<sceneId>` of a Devoted, said before the fight or as they fall. */
-  kind: "scene" | "vow_report" | "idle" | "devoted";
+   * "devoted": the single line `story.<sceneId>` of a Devoted, said before the fight or as they fall.
+   * "epilogue": the NPC's line about the way the story ended, under `story.<npc>.epilogue.<context>`. */
+  kind: "scene" | "vow_report" | "idle" | "devoted" | "epilogue";
   /** Only for "scene" and "devoted". */
   sceneId?: string | null;
   /** Only for "vow_report": whether the vow was kept. */
   kept?: boolean | null;
-  /** Only for "idle": which pool of lines the last run calls for. */
-  context?: "general" | "death" | "victory" | null;
+  /** Only for "idle": which pool of lines the last run calls for. For "epilogue", the ending: "end1"
+   * (entered the light), "end2" (someone took the place), "end3" (refused). */
+  context?: "general" | "death" | "victory" | "end1" | "end2" | "end3" | null;
   /** The scene whose choice and reply texts apply when the conversation ends by offering a vow,
    * which is when SCENE_DONE must carry `accept`. Null when it offers none. */
   offerScene?: string | null;
@@ -259,6 +271,15 @@ export interface PendingSceneView {
    * (`story.<npc>.name`), after it by `story.<npc>.name_revealed` when there is one. Absent or true
    * for an NPC that gives its name from the start. */
   revealed?: boolean;
+}
+
+/** The question of the light, which the Sanctuary asks instead of ending the run once the story has
+ * come to it. Durable like PendingEquipChoiceView: it stays until the player answers with an
+ * EndingChoiceAction. */
+export interface PendingEndingChoiceView {
+  /** The NPCs who could take the player's place, by id (e.g. "npc.2"), because their story is over.
+   * Empty while none is: the second answer is then closed. */
+  candidates: string[];
 }
 
 export interface HubView {
@@ -455,6 +476,8 @@ export interface StateUpdate {
   log: string[];
   /** The conversation with a Rest NPC awaiting its end. Durable, like `pendingEquipChoice`. */
   pendingScene?: PendingSceneView | null;
+  /** The question of the light awaiting the player's answer. Durable, like `pendingEquipChoice`. */
+  pendingEndingChoice?: PendingEndingChoiceView | null;
   /** The story card waiting to be shown full screen, the oldest one not seen yet, or null. Durable:
    * it stays until the player answers with a CardSeenAction. Its texts are `story.card.<id>.<n>`. */
   pendingCard?: string | null;

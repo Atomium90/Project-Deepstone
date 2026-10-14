@@ -172,7 +172,7 @@ describe("the texts of the story catalog", () => {
     });
 
     test("the question of the light has its texts", () => {
-        for (const key of ["enter", "replace", "refuse", "nobody", "who"]) {
+        for (const key of ["enter", "replace", "refuse", "nobody", "who", "sure", "back"]) {
             expect(find(`story.ending.${key}`), `story.ending.${key} is missing`).not.toBeNull();
         }
     });

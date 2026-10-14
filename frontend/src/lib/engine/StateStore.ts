@@ -78,6 +78,10 @@ export const pendingRewardChoice = derived(gameState, ($s) => $s?.pendingRewardC
  * SceneDialogue.svelte. */
 export const pendingScene = derived(gameState, ($s) => $s?.pendingScene ?? null);
 
+/** Derived convenience: the question of the light awaiting an answer, or null. Durable server-side
+ * like `pendingScene`, so a direct reflection of server state. Drives EndingChoiceModal.svelte. */
+export const pendingEndingChoice = derived(gameState, ($s) => $s?.pendingEndingChoice ?? null);
+
 /** Derived convenience: the story card waiting to be shown, or null. A direct reflection of server
  * state, durable like `pendingScene`. Drives CardScreen.svelte. */
 export const pendingCard = derived(gameState, ($s) => $s?.pendingCard ?? null);

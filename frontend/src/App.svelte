@@ -15,6 +15,7 @@
     import CharacterScreen  from "./lib/components/CharacterScreen.svelte";
     import EquipChoiceModal from "./lib/components/EquipChoiceModal.svelte";
     import RewardChoiceModal from "./lib/components/RewardChoiceModal.svelte";
+    import EndingChoiceModal from "./lib/components/EndingChoiceModal.svelte";
     import HintCard from "./lib/components/HintCard.svelte";
     import CardScreen from "./lib/components/CardScreen.svelte";
     import GodLineBanner from "./lib/components/GodLineBanner.svelte";
@@ -61,6 +62,7 @@
     <CharacterScreen />
     <EquipChoiceModal />
     <RewardChoiceModal />
+    <EndingChoiceModal />
     <HintCard />
     <GodLineBanner />
     <CardScreen cardId={$pendingCard} />

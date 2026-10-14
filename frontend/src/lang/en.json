@@ -359,6 +359,8 @@
     "story.ending.refuse": "Refuse the light.",
     "story.ending.nobody": "Nobody here is ready to take your place.",
     "story.ending.who": "Who takes your place?",
+    "story.ending.sure": "This cannot be undone. Every Shard you gave is lost, and the altar is shut for good.",
+    "story.ending.back": "Back",
     "help.tab": "Help",
     "help.empty": "Nothing here yet. The hints you come across are kept here.",
     "settings.skipTutorial": "Skip tutorial",

@@ -3,6 +3,9 @@
 
     export let log: string[] = [];
 
+    /** What the panel is called: the log of a fight and the log of the exploration share it. */
+    export let title = "Combat Log";
+
     let logEl: HTMLUListElement;
 
     /** Scroll to the bottom whenever new log lines arrive. */
@@ -14,7 +17,7 @@
 </script>
 
 <div class="log-wrapper">
-    <p class="log-title">Combat Log</p>
+    <p class="log-title">{title}</p>
     <ul class="log-list" bind:this={logEl}>
         {#each log as line, i (i)}
             <li class="log-line">{line}</li>

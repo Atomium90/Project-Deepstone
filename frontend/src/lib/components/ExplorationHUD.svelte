@@ -169,7 +169,7 @@
 -->
 <div class="hud-root">
     <div class="exploration-log">
-        <CombatLog log={$explorationLog} />
+        <CombatLog log={$explorationLog} title="Exploration Log" />
     </div>
 
     <div class="hud-main" bind:this={hudMainEl}>

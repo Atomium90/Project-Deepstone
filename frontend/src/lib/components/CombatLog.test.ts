@@ -11,6 +11,11 @@ describe("CombatLog", () => {
         expect(lines[0].textContent).toBe("No events yet.");
     });
 
+    test("is called the combat log unless it is given another name", () => {
+        expect(render(CombatLog, { log: [] }).container.querySelector(".log-title")?.textContent).toBe("Combat Log");
+        expect(render(CombatLog, { log: [], title: "Exploration Log" }).container.querySelector(".log-title")?.textContent).toBe("Exploration Log");
+    });
+
     test("renders one line per log entry, in order, without the placeholder", () => {
         const { container } = render(CombatLog, { log: ["You hit the Goblin.", "The Goblin hits back."] });
         const lines = Array.from(container.querySelectorAll(".log-line"));

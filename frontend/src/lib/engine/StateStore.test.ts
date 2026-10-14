@@ -4,6 +4,8 @@ import {
     gameState,
     gamePhase,
     combatLog,
+    explorationLog,
+    LOG_HISTORY_SIZE,
     pendingScene,
     achievementToast,
     combatDamageEvents,
@@ -56,6 +58,7 @@ describe("StateStore derived stores", () => {
     test("every derived store defaults to its empty value before first connection", () => {
         expect(get(gamePhase)).toBeNull();
         expect(get(combatLog)).toEqual([]);
+        expect(get(explorationLog)).toEqual([]);
         expect(get(achievementToast)).toEqual([]);
         expect(get(combatDamageEvents)).toEqual([]);
         expect(get(soundEvents)).toEqual([]);
@@ -63,6 +66,90 @@ describe("StateStore derived stores", () => {
         expect(get(pendingScene)).toBeNull();
         expect(get(equippedSetCounts)).toEqual({});
         expect(get(minimap)).toBeNull();
+    });
+
+    describe("the two logs", () => {
+        const update = (phase: StateUpdate["phase"], log: string[] = [], fightLines?: number) =>
+            gameState.set(makeState({ phase, log, fightLines }));
+
+        test("the exploration log keeps the lines of earlier updates, so a pickup is still readable after the next step", () => {
+            update("EXPLORATION", ["You take the Steel Sword."]);
+            update("EXPLORATION");
+            update("EXPLORATION", ["You open a door."]);
+            expect(get(explorationLog)).toEqual(["You take the Steel Sword.", "You open a door."]);
+        });
+
+        test(`each log keeps only its last ${LOG_HISTORY_SIZE} lines`, () => {
+            const lines = Array.from({ length: LOG_HISTORY_SIZE + 5 }, (_, n) => `line ${n + 1}`);
+            update("EXPLORATION", lines.slice(0, 8));
+            update("EXPLORATION", lines.slice(8));
+            expect(get(explorationLog)).toEqual(lines.slice(-LOG_HISTORY_SIZE));
+
+            update("COMBAT", ["You engage the Orc!"]);
+            update("COMBAT", lines.slice(0, 8));
+            update("COMBAT", lines.slice(8));
+            expect(get(combatLog)).toEqual(lines.slice(-LOG_HISTORY_SIZE));
+        });
+
+        test("the log of a fight starts from scratch with the line that tells it began", () => {
+            update("EXPLORATION", ["You walk in."]);
+            update("COMBAT", ["You engage the Orc!"]);
+            update("COMBAT", ["You strike the Orc for 27 damage.", "Orc attacks you for 1 damage."]);
+            expect(get(combatLog)).toEqual(["You engage the Orc!", "You strike the Orc for 27 damage.", "Orc attacks you for 1 damage."]);
+
+            update("EXPLORATION", ["Orc has been defeated!"], 0);
+            update("COMBAT", ["You engage the Dire Wolf!"]);
+            expect(get(combatLog)).toEqual(["You engage the Dire Wolf!"]);
+        });
+
+        test("the blows of a fight stay out of the exploration log, the fight that begins does not", () => {
+            update("EXPLORATION", ["You open a door."]);
+            update("COMBAT", ["You engage the Orc!"]);
+            update("COMBAT", ["You strike the Orc for 27 damage.", "Orc attacks you for 1 damage."]);
+            expect(get(explorationLog)).toEqual(["You open a door.", "You engage the Orc!"]);
+        });
+
+        test("what the end of a won fight brings reaches the exploration log, without the blow that ended it", () => {
+            update("EXPLORATION", ["You open a door."]);
+            update("COMBAT", ["You engage the Orc!"]);
+            update("COMBAT", ["You strike the Orc for 27 damage."]);
+            update(
+                "EXPLORATION",
+                ["You strike the Orc for 24 damage.", "Orc has been defeated!", "You gain 25 XP and 5 Shards.", "Orc dropped Silver Spear."],
+                1,
+            );
+            expect(get(explorationLog)).toEqual([
+                "You open a door.",
+                "You engage the Orc!",
+                "Orc has been defeated!",
+                "You gain 25 XP and 5 Shards.",
+                "Orc dropped Silver Spear.",
+            ]);
+        });
+
+        test("the exploration log goes on from one fight to the next, with what the first one brought still in it", () => {
+            update("COMBAT", ["You engage the Orc!"]);
+            update("EXPLORATION", ["You strike the Orc.", "Orc has been defeated!", "You equip Silver Spear."], 1);
+            update("COMBAT", ["You engage the Dire Wolf!"]);
+            update("COMBAT", ["You strike the Dire Wolf."]);
+            expect(get(explorationLog)).toEqual(["You engage the Orc!", "Orc has been defeated!", "You equip Silver Spear.", "You engage the Dire Wolf!"]);
+        });
+
+        test("a run begins with a clean exploration log", () => {
+            update("EXPLORATION", ["Old line of the last run."]);
+            update("GAMEOVER", ["The run ends."]);
+            update("HUB", ["You return to the hub."]);
+            update("EXPLORATION", ["A new run begins."]);
+            expect(get(explorationLog)).toEqual(["A new run begins."]);
+        });
+
+        test("both are empty again once the connection is lost", () => {
+            update("EXPLORATION", ["Something happened."]);
+            update("COMBAT", ["You engage the Orc!"]);
+            gameState.set(null);
+            expect(get(explorationLog)).toEqual([]);
+            expect(get(combatLog)).toEqual([]);
+        });
     });
 
     test("gamePhase mirrors the current StateUpdate's phase", () => {

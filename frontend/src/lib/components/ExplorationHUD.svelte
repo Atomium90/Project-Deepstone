@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import { fly } from "svelte/transition";
-    import { gameState, client, combatLog, pendingScene, debugRoomsCache, minimap } from "../engine/StateStore";
+    import { gameState, client, explorationLog, pendingScene, debugRoomsCache, minimap } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
     import { Renderer } from "../engine/Renderer";
     import { keyCommand, type KeyCommand } from "../engine/explorationKeys";
@@ -169,7 +169,7 @@
 -->
 <div class="hud-root">
     <div class="exploration-log">
-        <CombatLog log={$combatLog} />
+        <CombatLog log={$explorationLog} />
     </div>
 
     <div class="hud-main" bind:this={hudMainEl}>

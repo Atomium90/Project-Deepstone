@@ -1,4 +1,4 @@
-import { writable, derived } from "svelte/store";
+import { writable, derived, type Readable } from "svelte/store";
 import type { StateUpdate } from "./protocol";
 import { GameClient } from "./GameClient";
 
@@ -47,8 +47,52 @@ if (typeof window !== "undefined") {
 /** Derived convenience: current game phase (or null if not yet connected). */
 export const gamePhase = derived(gameState, ($s) => $s?.phase ?? null);
 
-/** Derived convenience: combat log lines for the current state. */
-export const combatLog = derived(gameState, ($s) => $s?.log ?? []);
+/** How many lines each log keeps: enough to still read what a pickup said after the next step, not a
+ * history of the run. */
+export const LOG_HISTORY_SIZE = 10;
+
+const fightLog = writable<string[]>([]);
+const walkLog = writable<string[]>([]);
+let phaseBefore: StateUpdate["phase"] | null = null;
+
+/** The latest `LOG_HISTORY_SIZE` lines once `added` follow `lines`. */
+const keepLatest = (lines: string[], added: string[]): string[] => [...lines, ...added].slice(-LOG_HISTORY_SIZE);
+
+// Every update carries only the lines of its own action, so the two logs are built here from the
+// updates that go by. The log of a fight tells that fight only. The log of the exploration is kept
+// from fight to fight and tells everything but the blows: the fight that starts, the enemy fallen and
+// what the victory brought.
+gameState.subscribe(($s) => {
+    if ($s === null) {
+        phaseBefore = null;
+        fightLog.set([]);
+        walkLog.set([]);
+        return;
+    }
+    const before = phaseBefore;
+    phaseBefore = $s.phase;
+
+    if ($s.phase === "COMBAT") {
+        const fightBegins = before !== "COMBAT";
+        // A fight starts from scratch, with the line that tells it began, which the exploration keeps too.
+        fightLog.update((lines) => keepLatest(fightBegins ? [] : lines, $s.log));
+        if (fightBegins) walkLog.update((lines) => keepLatest(lines, $s.log));
+    } else if ($s.phase === "EXPLORATION") {
+        // The update that ends a won fight starts with the blows, which belong to the fight alone.
+        const outcome = before === "COMBAT" ? $s.log.slice($s.fightLines ?? 0) : $s.log;
+        // A run that begins starts with a clean log, whatever the last one ended on.
+        walkLog.update((lines) => keepLatest(before === "HUB" ? [] : lines, outcome));
+    }
+});
+
+/** The log of the fight going on, `LOG_HISTORY_SIZE` lines at most, from its first line. Drives the
+ * log of CombatScreen. */
+export const combatLog: Readable<string[]> = { subscribe: fightLog.subscribe };
+
+/** The log of the exploration, `LOG_HISTORY_SIZE` lines at most, kept from one fight to the next and
+ * fed by what happens outside the fights, plus the fight that begins and what its victory brings.
+ * Cleared when a run begins and when the connection is lost. Drives the log of ExplorationHUD. */
+export const explorationLog: Readable<string[]> = { subscribe: walkLog.subscribe };
 
 /** Derived convenience: achievements newly earned by the most recent action, if any - cleared back
  * to [] on the next update that doesn't earn a new one. Drives AchievementToast.svelte. */

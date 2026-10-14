@@ -1601,6 +1601,28 @@ class GameSessionSuite extends CatsEffectSuite:
       yield assertEquals(update.player.maxHp, 140) // base Warrior 120 (test fixture) + 20
   }
 
+  db.test("the hub upgrades bought do nothing on a Hardcore run, which keeps the base class") {
+    database =>
+      for
+        _        <- database.saveCurrency(30)
+        _        <- database.saveHardcoreUnlocked()
+        session  <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs, difficultyDefs = testTierDefs)
+        _        <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        hardcore <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Hardcore)))
+      yield assertEquals(hardcore.player.maxHp, 120) // base Warrior 120 (test fixture), without the +20
+  }
+
+  db.test("the same upgrade does boost a run on Normal, so it is Hardcore that ignores it") {
+    database =>
+      for
+        _       <- database.saveCurrency(30)
+        _       <- database.saveAchievementStats(AchievementStats(runsWon = 1, winsByDifficulty = Map(Difficulty.Easy -> 1)))
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs, difficultyDefs = testTierDefs)
+        _       <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        normal  <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Normal)))
+      yield assertEquals(normal.player.maxHp, 140)
+  }
+
   db.test("extra_slot grows the potion belt to 3 slots on the run started right after purchase") {
     database =>
       for

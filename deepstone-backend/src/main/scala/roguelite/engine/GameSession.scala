@@ -318,7 +318,8 @@ class GameSession private (
       case (_: HubState, exp: ExplorationState) =>
         metaRef.get.flatMap:
           meta =>
-            val boosted = applyMetaBonuses(exp, meta)
+            // The effects of the hub upgrades are blessings: a run that takes none keeps its player as it is.
+            val boosted = if exp.difficulty.usesBlessings then applyMetaBonuses(exp, meta) else exp
             stateRef.set(boosted) *> IO.pure((boosted, Nil))
 
       case (before: ExplorationState, after: ExplorationState) if enteredNewRest(before, after) =>

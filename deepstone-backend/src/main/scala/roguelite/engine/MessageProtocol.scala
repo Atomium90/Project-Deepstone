@@ -35,6 +35,12 @@ enum ClassId:
 enum Difficulty:
   case Easy, Normal, Hard, Hardcore
 
+  /** Whether a run on this tier takes the god's blessings: the effects of the hub upgrades, the class's
+    * starting kit, a run perk, and the Shards its kills earn. The descent without the god takes none.
+    * What a class unlock gives is access, not power, and is kept.
+    */
+  def usesBlessings: Boolean = this != Difficulty.Hardcore
+
   /** Multiplier applied to enemy maxHp/attack/defense/xpReward at instance creation. */
   def statMultiplier: Double = this match
     case Difficulty.Easy   => 0.75

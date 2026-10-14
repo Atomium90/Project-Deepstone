@@ -173,6 +173,20 @@ class CombatResolverSuite extends FunSuite:
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState])
 
+  test("Victory earns Shards on a run that takes blessings, and says so"):
+    val (next, log, _) =
+      resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    assert(next.player.metaCurrency > fullHpPlayer().metaCurrency)
+    assert(log.exists(_.contains("Shard")), s"expected the Shards in the log: $log")
+
+  test("Victory earns no Shard on a Hardcore run, and does not mention them"):
+    val hardcore = combatState(weakEnemy(hp = 1)).copy(difficulty = Difficulty.Hardcore)
+    val (next, log, _) = resolver().resolve(hardcore, CombatAction(CombatActionType.Attack))
+    assertEquals(next.player.metaCurrency, fullHpPlayer().metaCurrency)
+    assert(next.player.xp > 0, "the XP is still earned")
+    assert(!log.exists(_.contains("Shard")), s"no Shard may be mentioned: $log")
+    assert(log.exists(_.contains("You gain")), s"expected the XP in the log: $log")
+
   test("Victory awards XP to the player"):
     val (next, _, _) =
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))

@@ -356,6 +356,21 @@ class StateMachineSuite extends FunSuite:
     assert(next.isInstanceOf[HubState])
     assert(log.exists(_.contains("Failed to build dungeon")), s"expected a dungeon-build-failure message: $log")
 
+  test("StartRun on Hardcore starts with nothing even when the class's kit has been purchased"):
+    val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("warrior_kit"))
+    val hub  = HubState(hubPlayer, Map("warrior_kit" -> warriorKitUpgrade), meta)
+    val run  = smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
+    def weaponOn(difficulty: Difficulty): Option[String] =
+      run
+        .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(difficulty)))
+        .state
+        .asInstanceOf[ExplorationState]
+        .player
+        .equippedWeapon
+        .map(_.typeId)
+    assertEquals(weaponOn(Difficulty.Hard), Some("practice_sword"))
+    assertEquals(weaponOn(Difficulty.Hardcore), None)
+
   // --- Hub: perks ------------------------------------------------------------
 
   test("StartRun with an offered perk applies its effect and sets activePerkId"):
@@ -371,6 +386,21 @@ class StateMachineSuite extends FunSuite:
     assertEquals(exp.player.activePerkId, Some("well_stocked"))
     assertEquals(exp.player.potionBelt.flatten.map(_.item.typeId), Vector("health_potion"))
     assert(log.exists(_.contains("Well Stocked")), s"expected perk confirmation in log: $log")
+
+  test("StartRun on Hardcore ignores the perk, even one that is on offer, and says nothing of it"):
+    val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
+    val TransitionResult(next, log, _) = sm(itemDefs = Map("health_potion" -> healthPotion))
+      .applyActionPure(hub,
+                       HubAction(HubActionType.StartRun,
+                                 classId = Some(ClassId.Warrior),
+                                 difficulty = Some(Difficulty.Hardcore),
+                                 perkId = Some("well_stocked")
+                       )
+      )
+    val exp = next.asInstanceOf[ExplorationState]
+    assertEquals(exp.player.activePerkId, None)
+    assertEquals(exp.player.potionBelt.flatten, Vector.empty)
+    assert(!log.exists(_.contains("Well Stocked")), s"the perk must not be announced: $log")
 
   test("StartRun with a perkId not currently offered is silently ignored"):
     val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))

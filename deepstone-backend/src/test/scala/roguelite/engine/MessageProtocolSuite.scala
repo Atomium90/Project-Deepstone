@@ -64,6 +64,9 @@ class MessageProtocolSuite extends FunSuite:
     import MessageProtocol.given
     assertEquals(Difficulty.values.toList.map(_.asJson.asString), List("easy", "normal", "hard", "hardcore").map(Some(_)))
 
+  test("every tier takes the god's blessings but Hardcore"):
+    assertEquals(Difficulty.values.toList.filter(_.usesBlessings), List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard))
+
   test("hardcore has the sections, Elites, traps and loot of Hard, with enemies half again as strong"):
     assertEquals(Difficulty.Hardcore.statMultiplier, 1.5)
     assert(Difficulty.Hardcore.statMultiplier > Difficulty.Hard.statMultiplier)

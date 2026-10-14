@@ -112,7 +112,7 @@ class StateMachine(roomPool: Map[String, Room],
           // Unlike lockedBehind, an un-purchased kit doesn't block the run - it just starts with
           // nothing instead of the class's usual weapon/armor. Every class needs its own kit
           // upgrade, including Warrior (which has no UnlockClass gate at all) - the two gates are
-          // independent concepts.
+          // independent concepts. A run that takes no blessing (Hardcore) starts with nothing either way.
           val kitUnlocked = upgradeDefs.values.exists {
             u => u.effect == UpgradeEffect.UnlockStartingKit(classId) && hub.meta.isUnlocked(u.id)
           }
@@ -146,9 +146,9 @@ class StateMachine(roomPool: Map[String, Room],
 
                   // Resolve starting kit: unknown typeIds are skipped, slot collisions are not
                   // expected. Skipped entirely (basePlayer unchanged) if this class's kit-unlock
-                  // upgrade hasn't been purchased.
+                  // upgrade hasn't been purchased, or if the run takes no blessing.
                   val playerWithKit =
-                    if !kitUnlocked then basePlayer
+                    if !kitUnlocked || !difficulty.usesBlessings then basePlayer
                     else
                       classDef.startingKit.foldLeft(basePlayer):
                         (p, typeId) =>
@@ -164,8 +164,10 @@ class StateMachine(roomPool: Map[String, Room],
                           }
 
                   // A perkId not currently among hub.perkOptions (stale/tampered) is silently
-                  // ignored, same discipline as EquipChoice's invalid-slot handling.
-                  val chosenPerk = perkIdOpt.flatMap(id => hub.perkOptions.find(_.id == id))
+                  // ignored, same discipline as EquipChoice's invalid-slot handling, and so is any
+                  // perk on a run that takes no blessing.
+                  val chosenPerk =
+                    perkIdOpt.filter(_ => difficulty.usesBlessings).flatMap(id => hub.perkOptions.find(_.id == id))
                   val playerWithPerk = chosenPerk match {
                     case None => playerWithKit
                     case Some(perk) =>

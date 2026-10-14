@@ -795,6 +795,7 @@ object GameSession:
         .traverse_((npc, record) => database.saveVow(npc, record))
       _ <- IO.whenA(next.deathStreak != prev.deathStreak)(database.saveDeathStreak(next.deathStreak))
       _ <- IO.whenA(next.hardcoreUnlocked && !prev.hardcoreUnlocked)(database.saveHardcoreUnlocked())
+      _ <- next.ending.filter(prev.ending != Some(_)).traverse_(database.saveEnding)
       _ <- (next.relicsRead -- prev.relicsRead).toList.sorted.traverse_(database.recordRelicRead)
       _ <- next.cards.filterNot(card => prev.cards.exists(_.id == card.id)).traverse_(card => database.recordCardEarned(card.id))
       _ <- next.cards.filter(card => card.seen && !prev.cards.contains(card)).traverse_(card => database.markCardSeen(card.id))

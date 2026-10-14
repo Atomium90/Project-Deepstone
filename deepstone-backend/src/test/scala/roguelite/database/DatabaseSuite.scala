@@ -5,6 +5,7 @@ import roguelite.engine.Difficulty
 import roguelite.game.{
   AchievementStats,
   CardRecord,
+  Ending,
   MetaProgression,
   RunOutcome,
   StoryProgress,
@@ -346,6 +347,24 @@ class DatabaseSuite extends CatsEffectSuite:
         assertEquals(fresh.openedTiers, Set.empty[Difficulty])
         assertEquals(loaded.hardcoreUnlocked, true)
         assertEquals(loaded.openedTiers, Set(Difficulty.Hardcore))
+  }
+
+  db.test("a fresh save has given no answer to the light, and each answer is remembered with its NPC") {
+    db =>
+      for
+        fresh    <- db.loadStoryProgress()
+        _        <- db.saveEnding(Ending.Entered)
+        entered  <- db.loadStoryProgress()
+        _        <- db.saveEnding(Ending.Replaced("npc.3"))
+        replaced <- db.loadStoryProgress()
+        _        <- db.saveEnding(Ending.Refused)
+        _        <- db.initialize()
+        refused  <- db.loadStoryProgress()
+      yield
+        assertEquals(fresh.ending, None)
+        assertEquals(entered.ending, Some(Ending.Entered))
+        assertEquals(replaced.ending, Some(Ending.Replaced("npc.3")))
+        assertEquals(refused.ending, Some(Ending.Refused))
   }
 
   db.test("recordRelicRead remembers each Devoted whose relic was read, idempotently") {

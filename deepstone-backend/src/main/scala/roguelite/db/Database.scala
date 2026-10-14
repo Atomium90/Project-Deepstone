@@ -6,7 +6,7 @@ import doobie.implicits.*
 import cats.implicits.*
 import cats.effect.IO
 import roguelite.engine.Difficulty
-import roguelite.game.{ AchievementStats, CardRecord, MetaProgression, RunOutcome, StoryProgress, VowRecord, VowState }
+import roguelite.game.{ AchievementStats, CardRecord, Ending, MetaProgression, RunOutcome, StoryProgress, VowRecord, VowState }
 import cats.effect.kernel.Resource
 import scala.concurrent.ExecutionContext
 import java.util.concurrent.Executors
@@ -154,7 +154,8 @@ class Database private (xa: Transactor[IO]):
 
   /** Load what the story remembers: the chapter reached, how the last run ended, the scenes seen,
     * each NPC's vow, the cards earned (in the order they were earned), the streak of deaths, the
-    * relics read and whether Hardcore is opened, all in one transaction. A vow row or a last-run value this version does not know is ignored.
+    * relics read, whether Hardcore is opened and how the player answered the light, all in one transaction.
+    * A vow row or a last-run value this version does not know is ignored.
     */
   def loadStoryProgress(): IO[StoryProgress] =
     val getState  = sql"SELECT chapter, last_run FROM story_state WHERE id = 1".query[(Int, Option[String])].unique
@@ -164,6 +165,7 @@ class Database private (xa: Transactor[IO]):
     val getStreak = sql"SELECT streak FROM story_death_streak WHERE id = 1".query[Int].unique
     val getRelics = sql"SELECT devoted FROM story_relic_read".query[Int].to[Set]
     val getHardcore = sql"SELECT unlocked FROM story_hardcore WHERE id = 1".query[Boolean].unique
+    val getEnding = sql"SELECT kind, npc FROM story_ending WHERE id = 1".query[(Option[String], Option[String])].unique
     (for
       state  <- getState
       scenes <- getScenes
@@ -172,6 +174,7 @@ class Database private (xa: Transactor[IO]):
       streak <- getStreak
       relics <- getRelics
       hardcore <- getHardcore
+      ending <- getEnding
     yield
       val (chapter, lastRun) = state
       StoryProgress(
@@ -182,7 +185,8 @@ class Database private (xa: Transactor[IO]):
         cards = cards.map((id, seen) => CardRecord(id, seen)),
         deathStreak = streak,
         relicsRead = relics,
-        hardcoreUnlocked = hardcore
+        hardcoreUnlocked = hardcore,
+        ending = Database.parseEnding(ending._1, ending._2)
       )
     ).transact(xa)
 
@@ -198,6 +202,16 @@ class Database private (xa: Transactor[IO]):
   /** Record that the story has opened the Hardcore tier. It is never taken back, so there is no way to clear it. */
   def saveHardcoreUnlocked(): IO[Unit] =
     sql"UPDATE story_hardcore SET unlocked = 1 WHERE id = 1".update.run.transact(xa).void
+
+  /** Record how the player answered the light, replacing any earlier answer (entering the light can
+    * be followed by another one).
+    */
+  def saveEnding(ending: Ending): IO[Unit] =
+    val kind = Database.endingKind(ending)
+    val npc  = ending match
+      case Ending.Replaced(who) => Some(who)
+      case _                    => None
+    sql"UPDATE story_ending SET kind = $kind, npc = $npc WHERE id = 1".update.run.transact(xa).void
 
   /** Record the relic of a Devoted as read. Idempotent. */
   def recordRelicRead(devoted: Int): IO[Unit] =
@@ -329,15 +343,38 @@ object Database:
         unlocked INTEGER NOT NULL DEFAULT 0
       )
     """,
+    """
+      CREATE TABLE IF NOT EXISTS story_ending (
+        id   INTEGER PRIMARY KEY CHECK (id = 1),
+        kind TEXT,
+        npc  TEXT
+      )
+    """,
     "INSERT OR IGNORE INTO meta (id, currency) VALUES (1, 0)",
     "INSERT OR IGNORE INTO achievement_stats (id) VALUES (1)",
     "INSERT OR IGNORE INTO consumable_stats (id) VALUES (1)",
     "INSERT OR IGNORE INTO story_state (id) VALUES (1)",
     "INSERT OR IGNORE INTO story_death_streak (id) VALUES (1)",
-    "INSERT OR IGNORE INTO story_hardcore (id) VALUES (1)"
+    "INSERT OR IGNORE INTO story_hardcore (id) VALUES (1)",
+    "INSERT OR IGNORE INTO story_ending (id) VALUES (1)"
   )
 
   private def runOutcomeName(outcome: RunOutcome): String = outcome.toString.toLowerCase
+
+  /** How an [[Ending]] is stored in `story_ending`: a lowercase kind, plus the NPC for a replacement. */
+  private def endingKind(ending: Ending): String = ending match
+    case Ending.Entered     => "entered"
+    case Ending.Replaced(_) => "replaced"
+    case Ending.Refused     => "refused"
+
+  /** The ending a row of `story_ending` stands for, or `None` for an empty row or one this version
+    * does not know.
+    */
+  private def parseEnding(kind: Option[String], npc: Option[String]): Option[Ending] = kind match
+    case Some("entered")  => Some(Ending.Entered)
+    case Some("replaced") => npc.map(Ending.Replaced(_))
+    case Some("refused")  => Some(Ending.Refused)
+    case _                => None
 
   private def parseRunOutcome(name: String): Option[RunOutcome] =
     RunOutcome.values.find(runOutcomeName(_) == name)

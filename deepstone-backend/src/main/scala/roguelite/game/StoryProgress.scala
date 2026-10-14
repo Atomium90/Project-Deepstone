@@ -6,6 +6,19 @@ import roguelite.engine.Difficulty
 enum RunOutcome:
   case Won, Lost
 
+/** How the player answered the light at the end of the story. Entering it can be chosen again at
+  * every later victory, the other two answers are final.
+  */
+enum Ending:
+  /** The player went into the light. Nothing changes, and the choice comes back. */
+  case Entered
+
+  /** The NPC `npc` took the player's place, and has left the game for good. */
+  case Replaced(npc: String)
+
+  /** The player left, and the altar is shut for good. */
+  case Refused
+
 /** Where an NPC's vow stands. A vow is offered in a scene, then either refused (`Declined`) or
   * taken (`Active`, tracked until the next Rest or the end of the run), then judged (`Kept` or
   * `Failed`).
@@ -59,6 +72,9 @@ case class CardRecord(id: String, seen: Boolean = false)
   *   to restore.
   * @param hardcoreUnlocked
   *   Whether the story has opened the Hardcore tier, which nothing else does. Never taken back.
+  * @param ending
+  *   How the player last answered the light, `None` until they have been offered the choice. Only
+  *   [[Ending.Entered]] can be replaced by another answer.
   */
 case class StoryProgress(
     chapter: Int = 0,
@@ -69,12 +85,24 @@ case class StoryProgress(
     deathStreak: Int = 0,
     relicsRead: Set[Int] = Set.empty,
     vowProgress: Int = 0,
-    hardcoreUnlocked: Boolean = false
+    hardcoreUnlocked: Boolean = false,
+    ending: Option[Ending] = None
 ):
 
   /** The difficulty tiers the story has opened, for [[DifficultyUnlocks]]. */
   def openedTiers: Set[Difficulty] = if hardcoreUnlocked then Set(Difficulty.Hardcore) else Set.empty
 
+
+  /** Whether the player has given a final answer to the light, so that the choice is not offered again. */
+  def endingIsFinal: Boolean = ending.exists:
+    case Ending.Entered => false
+    case _              => true
+
+  /** Whether the altar of the hub is shut for good: no upgrade can be bought any more. */
+  def shopClosed: Boolean = ending.contains(Ending.Refused)
+
+  /** The NPC who took the player's place, who has left the game. */
+  def replacedNpc: Option[String] = ending.collect { case Ending.Replaced(npc) => npc }
 
   /** The relic of the Devoted `devoted` has been read. */
   def withRelicRead(devoted: Int): StoryProgress = copy(relicsRead = relicsRead + devoted)

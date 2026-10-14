@@ -11,13 +11,16 @@ package roguelite.game
   *   Whether the vow asks the player to do something rather than to hold back from something.
   * @param goal
   *   How many times an achievement has to be done.
+  * @param inertTraps
+  *   Whether the traps summon nothing while the vow runs. A vow that forbids fighting must not be
+  *   broken by a fight the dungeon forces.
   */
-enum VowType(val achievement: Boolean, val goal: Int):
+enum VowType(val achievement: Boolean, val goal: Int, val inertTraps: Boolean = false):
   /** Use no potion. */
   case NoPotion extends VowType(false, 1)
 
   /** Kill no ordinary enemy: a Boss may be killed, a MiniBoss counts as an ordinary enemy. */
-  case NoOrdinaryKill extends VowType(false, 1)
+  case NoOrdinaryKill extends VowType(false, 1, inertTraps = true)
 
   /** Defeat an Elite. */
   case DefeatElite extends VowType(true, 1)

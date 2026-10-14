@@ -223,6 +223,7 @@ class GameSession private (
       (finalNext, extraLog) = postResult
       newlyUnlocked <- processAchievementEvents(transitionResult.events)
       _             <- processStoryEvents(transitionResult.events)
+      _             <- syncTrapsInert
       story         <- storyRef.get
       stats         <- achievementRef.get.map(_.stats)
     yield finalNext
@@ -424,7 +425,7 @@ class GameSession private (
               case Left(err) => IO.pure(exp.toStateUpdate(List(err)))
               case Right(next) =>
                 val done     = exp.copy(pendingScene = None)
-                val finished = updateStory(progress, next) *> stateRef.set(done)
+                val finished = updateStory(progress, next) *> stateRef.set(done) *> syncTrapsInert
                 exp.pendingScene.get.encounter match
                   // The line of a Devoted was the last thing between the player and the fight.
                   case Encounter.DevotedBefore(_, _, enemyId) => finished *> handleTransition(Interact(enemyId))
@@ -460,6 +461,18 @@ class GameSession private (
               StoryRules.onRunEnded(chapterDefs, current, outcome, difficulty, vowTypes)
             case (current, _) => current
           updateStory(progress, afterRun)
+
+  /** Keeps [[ExplorationState.trapsInert]] in step with the vow now running, which the pure resolvers
+    * cannot see. Done after every transition that can start, fail or end a vow, which also gives it
+    * back to the states a combat builds anew.
+    */
+  private val syncTrapsInert: IO[Unit] =
+    storyRef.get.flatMap:
+      story =>
+        val inert = VowRules.runningVow(story, vowTypes).exists(_.inertTraps)
+        stateRef.update:
+          case exp: ExplorationState if exp.trapsInert != inert => exp.copy(trapsInert = inert)
+          case other                                            => other
 
   /** Save what changed between two states of the story, then keep the new one. */
   private def updateStory(prev: StoryProgress, next: StoryProgress): IO[Unit] =

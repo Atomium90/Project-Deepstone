@@ -405,6 +405,32 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }, Nil)
     assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-happens message: $log")
 
+  // --- Inert traps ---------------------------------------------------------------
+
+  test("a trapped chest springs with nothing emerging while the traps are inert, and holds no loot"):
+    val chest = Chest("c1", x = 3, y = 3, trapped = true)
+    val state = explorationAt(3, 4, entities = List(chest)).copy(trapsInert = true)
+    val TransitionResult(next, log, _) = resolver().interact(state, "c1")
+    val room = next.asInstanceOf[ExplorationState].dungeon.currentRoom
+    assertEquals(room.entities.collect { case e: Enemy => e }, Nil)
+    assertEquals(room.entities.collectFirst { case c: Chest => c.state }, Some(ChestState.Sprung))
+    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-emerges message: $log")
+
+  test("a trapped chest still springs its ambush when the traps are not inert"):
+    val chest = Chest("c1", x = 3, y = 3, trapped = true)
+    val state = explorationAt(3, 4, entities = List(chest))
+    val TransitionResult(next, _, _) = resolver().interact(state, "c1")
+    assert(next.asInstanceOf[ExplorationState].dungeon.currentRoom.entities.exists(_.isInstanceOf[Enemy]))
+
+  test("a trapped door opens with no guardian and no throw back while the traps are inert"):
+    val state = explorationAt(4, 4, entities = List(trapDoorAt(4, 5, Direction.Down))).copy(trapsInert = true)
+    val TransitionResult(next, log, _) = resolver().interact(state, "door_trap")
+    val exp = next.asInstanceOf[ExplorationState]
+    assertEquals(guardiansIn(exp), Nil)
+    assertEquals((exp.playerX, exp.playerY), (4, 4))
+    assertEquals(exp.dungeon.currentRoom.entityById("door_trap").collect { case d: Door => d.doorKind }, Some(DoorKind.Normal))
+    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-emerges message: $log")
+
   // --- Shrine --------------------------------------------------------------------
 
   test("Interact with Shrine removes it from room"):

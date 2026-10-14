@@ -284,76 +284,95 @@ class ContentIntegritySuite extends CatsEffectSuite:
                        s"a run opened by '${room.id}' would begin at $start, which is not walkable"
                 )
 
+  /** With the entities `blocking` selects standing on their tiles for good, every door of each room still
+    * connects to the first one, and so does a free tile next to each entity `mustBeReachable` selects.
+    * Reachability is measured from the first door: a door's approach tile is the first floor tile
+    * stepping inward from it (a darkDungeon door sits behind a 2-thick wall, a dungeon one behind a
+    * single row). Floor nobody needs to reach, like a decorative alcove behind the Sanctuary's halo,
+    * is deliberately not checked.
+    */
+  private def assertDoorsStayConnected(rooms: Iterable[Room],
+                                       blocking: Entity => Boolean,
+                                       mustBeReachable: Entity => Boolean
+  ): Unit =
+    rooms.foreach:
+      room =>
+        def isDoor(e: Entity): Boolean = e match
+          case _: Door | _: LockedDoor => true
+          case _                       => false
+
+        val blocked = room.entities.filter(blocking).flatMap(_.occupiedTiles).toSet
+        val walkable = (for
+          y <- 0 until room.height
+          x <- 0 until room.width
+          if room.tileAt(x, y) == Tile.Floor && !blocked.contains((x, y))
+        yield (x, y)).toSet
+
+        def neighbors(p: (Int, Int)): List[(Int, Int)] =
+          List((p._1 + 1, p._2), (p._1 - 1, p._2), (p._1, p._2 + 1), (p._1, p._2 - 1))
+
+        def componentOf(start: (Int, Int)): Set[(Int, Int)] =
+          @annotation.tailrec
+          def loop(frontier: List[(Int, Int)], seen: Set[(Int, Int)]): Set[(Int, Int)] = frontier match
+            case Nil => seen
+            case p :: rest =>
+              val next = neighbors(p).filter(n => walkable.contains(n) && !seen.contains(n))
+              loop(next ::: rest, seen ++ next)
+          loop(List(start), Set(start))
+
+        def inward(direction: Direction): (Int, Int) = direction match
+          case Direction.Up    => (0, 1)
+          case Direction.Down  => (0, -1)
+          case Direction.Left  => (1, 0)
+          case Direction.Right => (-1, 0)
+
+        def approachTile(door: Entity): Option[(Int, Int)] =
+          val (dx, dy) = door match
+            case d: Door       => inward(d.direction)
+            case d: LockedDoor => inward(d.direction)
+            case _             => (0, 0)
+          (1 to 3).map(k => (door.x + k * dx, door.y + k * dy)).find(p => room.tileAt(p._1, p._2) == Tile.Floor)
+
+        val doors = room.entities.filter(isDoor)
+        if doors.nonEmpty then
+          val first = doors.head
+          val firstApproach = approachTile(first).filter(walkable.contains)
+          assert(firstApproach.isDefined, s"room '${room.id}': door '${first.id}' has no free approach tile")
+          val main = componentOf(firstApproach.get)
+
+          doors.tail.foreach:
+            door =>
+              assert(approachTile(door).exists(main.contains),
+                     s"room '${room.id}': door '${door.id}' can no longer be reached from door '${first.id}'"
+              )
+
+          room.entities.filter(mustBeReachable).foreach:
+            e =>
+              val adjacent = e.occupiedTiles.flatMap(neighbors).filterNot(e.occupiedTiles.contains)
+              assert(adjacent.exists(main.contains),
+                     s"room '${room.id}': '${e.id}' can no longer be reached from door '${first.id}'"
+              )
+
   // Chests, NPCs and the Sanctuary stay on the map for good (an opened chest keeps blocking its
   // tile), unlike enemies and shrines which disappear. An authored room must not let them seal off a
-  // door or each other. Reachability is measured from the first door: a door's approach tile is the
-  // first floor tile stepping inward from it (a darkDungeon door sits behind a 2-thick wall, a
-  // dungeon one behind a single row), and every other door's approach tile, plus a free tile next to
-  // every chest, npc and the Sanctuary, must still connect to it. Floor nobody needs to reach, like a
-  // decorative alcove behind the Sanctuary's halo, is deliberately not checked.
+  // door or each other.
   test("chests, npcs and the sanctuary never seal off a door or each other"):
+    def isPermanent(e: Entity): Boolean = e match
+      case _: Chest | _: Npc | _: Sanctuary => true
+      case _                                 => false
+    RoomLoader.loadAll().map(rooms => assertDoorsStayConnected(rooms.values, isPermanent, isPermanent))
+
+  // The vow of no ordinary kill must be possible: a fight is only ever optional, so an enemy, which
+  // blocks its tile until it is dead, must not stand where the player has to pass to leave the room.
+  // A Boss room is exempt, a Boss may be killed under this vow.
+  test("no room forces a fight to get from one door to another, except a Boss room"):
+    def isPermanent(e: Entity): Boolean = e match
+      case _: Chest | _: Npc | _: Sanctuary => true
+      case _                                 => false
+    def blocks(e: Entity): Boolean = isPermanent(e) || e.isInstanceOf[Enemy]
     RoomLoader.loadAll().map:
       rooms =>
-        rooms.values.foreach:
-          room =>
-            def isPermanent(e: Entity): Boolean = e match
-              case _: Chest | _: Npc | _: Sanctuary => true
-              case _                                 => false
-            def isDoor(e: Entity): Boolean = e match
-              case _: Door | _: LockedDoor => true
-              case _                       => false
-
-            val permanent = room.entities.filter(isPermanent).flatMap(_.occupiedTiles).toSet
-            val walkable = (for
-              y <- 0 until room.height
-              x <- 0 until room.width
-              if room.tileAt(x, y) == Tile.Floor && !permanent.contains((x, y))
-            yield (x, y)).toSet
-
-            def neighbors(p: (Int, Int)): List[(Int, Int)] =
-              List((p._1 + 1, p._2), (p._1 - 1, p._2), (p._1, p._2 + 1), (p._1, p._2 - 1))
-
-            def componentOf(start: (Int, Int)): Set[(Int, Int)] =
-              @annotation.tailrec
-              def loop(frontier: List[(Int, Int)], seen: Set[(Int, Int)]): Set[(Int, Int)] = frontier match
-                case Nil => seen
-                case p :: rest =>
-                  val next = neighbors(p).filter(n => walkable.contains(n) && !seen.contains(n))
-                  loop(next ::: rest, seen ++ next)
-              loop(List(start), Set(start))
-
-            def inward(direction: Direction): (Int, Int) = direction match
-              case Direction.Up    => (0, 1)
-              case Direction.Down  => (0, -1)
-              case Direction.Left  => (1, 0)
-              case Direction.Right => (-1, 0)
-
-            def approachTile(door: Entity): Option[(Int, Int)] =
-              val (dx, dy) = door match
-                case d: Door       => inward(d.direction)
-                case d: LockedDoor => inward(d.direction)
-                case _             => (0, 0)
-              (1 to 3).map(k => (door.x + k * dx, door.y + k * dy)).find(p => room.tileAt(p._1, p._2) == Tile.Floor)
-
-            val doors = room.entities.filter(isDoor)
-            if doors.nonEmpty then
-              val first = doors.head
-              val firstApproach = approachTile(first).filter(walkable.contains)
-              assert(firstApproach.isDefined, s"room '${room.id}': door '${first.id}' has no free approach tile")
-              val main = componentOf(firstApproach.get)
-
-              doors.tail.foreach:
-                door =>
-                  assert(approachTile(door).exists(main.contains),
-                         s"room '${room.id}': door '${door.id}' can no longer be reached from door '${first.id}'"
-                  )
-
-              room.entities.filter(isPermanent).foreach:
-                e =>
-                  val adjacent = e.occupiedTiles.flatMap(neighbors).filterNot(e.occupiedTiles.contains)
-                  assert(adjacent.exists(main.contains),
-                         s"room '${room.id}': '${e.id}' can no longer be reached from door '${first.id}'"
-                  )
+        assertDoorsStayConnected(rooms.values.filterNot(_.roomType == RoomType.Boss), blocks, _ => false)
 
   test("difficulty.json defines every difficulty, and the lowest one needs nothing"):
     for tiers <- DifficultyLoader.loadAll()

@@ -135,7 +135,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       case other   => other
 
     val guardianType =
-      Option.when(availableTrapEnemies.nonEmpty)(availableTrapEnemies(rng.nextInt(availableTrapEnemies.size)))
+      Option.when(!exp.trapsInert && availableTrapEnemies.nonEmpty)(
+        availableTrapEnemies(rng.nextInt(availableTrapEnemies.size))
+      )
     (guardianType, retreatTile(room, vacated, door.direction)) match {
       case (Some(typeId), Some((retreatX, retreatY))) =>
         val guardian =
@@ -241,7 +243,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       case c: Chest => c.copy(state = ChestState.Sprung)
       case other    => other
     }
-    val (trappedRoom, trapLog) = spawnTrapEnemies(sprungRoom, chest, exp.playerX, exp.playerY)
+    val (trappedRoom, trapLog) = spawnTrapEnemies(sprungRoom, chest, exp.playerX, exp.playerY, exp.trapsInert)
     (withRoom(exp, trappedRoom), trapLog, Nil)
 
   /** First opening of an untrapped chest: rolls its item, then offers it exactly as every later
@@ -458,15 +460,17 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   private val availableTrapEnemies: List[String] = TrapEnemyPool.filter(enemyStats.contains)
 
   /** Spawn 1-2 enemies from [[TrapEnemyPool]] on free tiles near the chest, avoiding the player's
-    * own tile. Falls back to fewer enemies (or none) if the room has no space.
+    * own tile. Falls back to fewer enemies (or none) if the room has no space, and spawns none
+    * when the trap is `inert`.
     */
   private def spawnTrapEnemies(room: Room,
                                chest: Chest,
                                playerX: Int,
-                               playerY: Int
+                               playerY: Int,
+                               inert: Boolean
   ): (Room, List[String]) =
     val pool = availableTrapEnemies
-    if pool.isEmpty then (room, List("It's a trap! But nothing emerges from the shadows."))
+    if inert || pool.isEmpty then (room, List("It's a trap! But nothing emerges from the shadows."))
     else
       val count   = rng.nextInt(2) + 1
       val typeIds = List.fill(count)(pool(rng.nextInt(pool.size)))

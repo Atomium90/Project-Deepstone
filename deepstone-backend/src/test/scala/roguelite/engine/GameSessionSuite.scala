@@ -658,10 +658,14 @@ class GameSessionSuite extends CatsEffectSuite:
     * Hard one Boss, Rest, Boss, Rest, Boss, Sanctuary. Doors are crossed with `Interact("door_exit")`,
     * the server not checking distances, and the Rest's NPC is authored as `npc.1`.
     */
-  private def smWithRest: StateMachine =
+  private def smWithRest: StateMachine = smWithRestExit(DoorKind.Normal, Map.empty)
+
+  /** [[smWithRest]] whose Rest room leaves through a door of the given kind, with the given enemy catalog. */
+  private def smWithRestExit(restExit: DoorKind, enemyStats: Map[String, EnemyStats]): StateMachine =
     def room(id: String, roomType: RoomType, extra: Entity*): Room =
+      val exit = storyDoor("door_exit", ConnectorRole.Next).copy(doorKind = if roomType == RoomType.Rest then restExit else DoorKind.Normal)
       Room(id, roomType, "dungeon", 8, 6, makeTiles(),
-           List(storyDoor("door_entrance", ConnectorRole.Prev), storyDoor("door_exit", ConnectorRole.Next)) ::: extra.toList
+           List(storyDoor("door_entrance", ConnectorRole.Prev), exit) ::: extra.toList
       )
     val sanctuary = Room("sanct", RoomType.Sanctuary, "dungeon", 8, 6, makeTiles(),
                          List(storyDoor("door_entrance", ConnectorRole.Prev), Sanctuary("sanct_1", x = 2, y = 1))
@@ -671,7 +675,7 @@ class GameSessionSuite extends CatsEffectSuite:
           "r1" -> room("r1", RoomType.Rest, Npc("npc.1", x = 4, y = 2, name = "Wren")),
           "sanct" -> sanctuary
       ),
-      Map.empty, Map.empty, testClassDefs, testUpgradeDefs, CombatResolver(Random(0L))
+      enemyStats, Map.empty, testClassDefs, testUpgradeDefs, CombatResolver(Random(0L))
     )
 
   private val testScenes: Map[String, SceneDef] = List(
@@ -795,6 +799,44 @@ class GameSessionSuite extends CatsEffectSuite:
         session <- storySession(database)
         update  <- session.handle(SceneDone(None))
       yield assert(update.log.exists(_.contains("no conversation")), s"expected a message: ${update.log}")
+  }
+
+  /** The only scene offers the vow of no ordinary kill, so a Rest whose exit is trapped can show what the vow does to the trap. */
+  private val inertVowScenes: Map[String, SceneDef] =
+    Map("npc.1.s1" -> SceneDef("npc.1.s1", "npc.1", 1, offersVow = Some(VowType.NoOrdinaryKill)))
+
+  private def trappedExitSession(database: Database): IO[GameSession] =
+    GameSession.create(smWithRestExit(DoorKind.Trapped, Map("goblin" -> weakGoblinStats)), database, Map.empty,
+                       testUpgradeDefs, Map.empty, testAchievementDefs, rng = Random(0L),
+                       sceneDefs = inertVowScenes, chapterDefs = testChapters, npcDefs = testNpcs
+    )
+
+  private def enemiesIn(update: StateUpdate): Int = update.room.map(_.entities.count(_.kind == "enemy")).getOrElse(0)
+
+  db.test("the traps summon nothing while the vow of no ordinary kill runs") {
+    database =>
+      for
+        _       <- database.saveStoryState(1, None)
+        session <- trappedExitSession(database)
+        _       <- walkToRest(session)
+        _       <- session.handle(Interact("npc.1"))
+        _       <- session.handle(SceneDone(Some(true)))
+        sprung  <- goThroughDoor(session)
+      yield
+        assertEquals(enemiesIn(sprung), 0)
+        assert(sprung.log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-emerges message: ${sprung.log}")
+  }
+
+  db.test("the same trap summons its guardian when the vow was turned down") {
+    database =>
+      for
+        _       <- database.saveStoryState(1, None)
+        session <- trappedExitSession(database)
+        _       <- walkToRest(session)
+        _       <- session.handle(Interact("npc.1"))
+        _       <- session.handle(SceneDone(Some(false)))
+        sprung  <- goThroughDoor(session)
+      yield assertEquals(enemiesIn(sprung), 1)
   }
 
   db.test("an NPC in a Rest room is drawn with the sprite of the NPC catalog") {

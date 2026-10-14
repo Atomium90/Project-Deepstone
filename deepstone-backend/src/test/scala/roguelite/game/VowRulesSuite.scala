@@ -52,6 +52,16 @@ class VowRulesSuite extends FunSuite:
 
   private def runningVow(vow: VowType) = (progressWith("npc.1" -> VowRecord(VowState.Active)), Map("npc.1" -> vow))
 
+  test("only the vow of no ordinary kill makes the traps inert"):
+    assertEquals(VowType.values.toList.filter(_.inertTraps), List(VowType.NoOrdinaryKill))
+
+  test("the running vow is the one of the NPC whose vow is active, if any"):
+    val catalog = Map("npc.1" -> VowType.NoPotion, "npc.2" -> VowType.DefeatElite)
+    assertEquals(VowRules.runningVow(progressWith("npc.2" -> VowRecord(VowState.Active)), catalog), Some(VowType.DefeatElite))
+    assertEquals(VowRules.runningVow(progressWith("npc.1" -> VowRecord(VowState.Kept)), catalog), None)
+    assertEquals(VowRules.runningVow(StoryProgress.empty, catalog), None)
+    assertEquals(VowRules.runningVow(progressWith("npc.9" -> VowRecord(VowState.Active)), catalog), None)
+
   test("each kind of vow says whether it is held to or achieved, and how many times"):
     assertEquals(VowType.values.toList.filterNot(_.achievement), List(VowType.NoPotion, VowType.NoOrdinaryKill))
     assertEquals(VowType.GainTwoLevels.goal, 2)

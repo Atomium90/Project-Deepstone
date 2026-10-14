@@ -180,6 +180,10 @@ case class HubState(player: Player,
   *   A conversation with a Rest NPC the player has started and not read to its end (see
   *   [[PendingScene]]). Durable like `pendingEquipChoice`, and it blocks movement and interaction
   *   the same way.
+  * @param trapsInert
+  *   Whether the traps summon nothing, because the running vow forbids a fight (see
+  *   [[roguelite.game.VowType.inertTraps]]). The pure resolvers cannot see the story, so
+  *   [[GameSession]] keeps this in step with it after every transition.
   */
 case class ExplorationState(player: Player,
                             dungeon: Dungeon,
@@ -189,7 +193,8 @@ case class ExplorationState(player: Player,
                             enemyStats: Map[String, EnemyStats] = Map.empty,
                             pendingEquipChoice: Option[PendingEquipChoice] = None,
                             pendingRewardChoice: Option[PendingRewardChoice] = None,
-                            pendingScene: Option[PendingScene] = None
+                            pendingScene: Option[PendingScene] = None,
+                            trapsInert: Boolean = false
 ) extends GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(

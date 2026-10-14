@@ -20,6 +20,10 @@ object VowRules:
   def hasActive(progress: StoryProgress): Boolean =
     progress.vows.values.exists(_.state == VowState.Active)
 
+  /** The kind of the vow running now, if there is one. */
+  def runningVow(progress: StoryProgress, vows: Map[String, VowType]): Option[VowType] =
+    progress.vows.collectFirst { case (npc, record) if record.state == VowState.Active => vows.get(npc) }.flatten
+
   /** Whether `event` goes against `vow`, which fails it. */
   def breaks(vow: VowType, event: GameEvent): Boolean = (vow, event) match
     case (VowType.NoPotion, GameEvent.ConsumableUsed(_))                => true

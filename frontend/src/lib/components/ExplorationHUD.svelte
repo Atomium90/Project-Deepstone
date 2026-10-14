@@ -5,6 +5,7 @@
     import { characterTab } from "../engine/CharacterStore";
     import { Renderer } from "../engine/Renderer";
     import { keyCommand, type KeyCommand } from "../engine/explorationKeys";
+    import { conversationBox } from "../engine/dialoguePlacement";
     import { RESOURCE_BAR_COLORS, HP_BAR_COLOR, COLOR_ENTITY_FALLBACK } from "../engine/constants";
     import StatBar from "./StatBar.svelte";
     import CombatLog from "./CombatLog.svelte";
@@ -14,6 +15,13 @@
     let canvasEl: HTMLCanvasElement;
     let hudMainEl: HTMLDivElement;
     let renderer: Renderer | null = null;
+
+    // The size of the canvas, which the room is drawn centered in: what the dialogue bubble is placed with.
+    let canvasWidth = 0;
+    let canvasHeight = 0;
+    $: dialogueArea = { width: canvasWidth, height: canvasHeight };
+    $: dialogueAnchor =
+        $gameState?.room && $pendingScene && canvasWidth > 0 ? conversationBox($gameState.room, $pendingScene, dialogueArea) : null;
 
     type WipeDirection = "up" | "down" | "left" | "right";
 
@@ -173,7 +181,7 @@
     </div>
 
     <div class="hud-main" bind:this={hudMainEl}>
-        <canvas class="game-canvas" bind:this={canvasEl} />
+        <canvas class="game-canvas" bind:this={canvasEl} bind:clientWidth={canvasWidth} bind:clientHeight={canvasHeight} />
 
         {#key wipeKey}
             {#if wipeDirection}
@@ -186,7 +194,7 @@
             {/if}
         {/key}
 
-        <SceneDialogue scene={$pendingScene} />
+        <SceneDialogue scene={$pendingScene} anchor={dialogueAnchor} area={dialogueArea} />
 
         {#if player}
             <aside class="stats-panel">

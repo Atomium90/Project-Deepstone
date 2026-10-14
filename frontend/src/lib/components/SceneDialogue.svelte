@@ -5,10 +5,24 @@
     import { characterTab } from "../engine/CharacterStore";
     import { dictionaries, language, lookup, t } from "../engine/i18n";
     import { buildScript, type SceneScript } from "../engine/sceneText";
+    import { placeBubble, type Box, type Size } from "../engine/dialoguePlacement";
     import type { PendingSceneView } from "../engine/protocol";
 
     /** The conversation the server holds pending, or null. */
     export let scene: PendingSceneView | null = null;
+
+    /** Where the conversation takes place, in the pixels of the area the bubble lives in: the bubble
+     * sits next to it, under it, so that it stays close to who speaks without covering them. Without
+     * it the bubble stays at the bottom of the area. */
+    export let anchor: Box | null = null;
+
+    /** The size of the area the bubble lives in, which it stays inside. */
+    export let area: Size | null = null;
+
+    /** The size of the bubble itself, which the server's text decides. */
+    let boxWidth = 0;
+    let boxHeight = 0;
+    $: spot = anchor && area && boxWidth > 0 ? placeBubble(anchor, { width: boxWidth, height: boxHeight }, area) : null;
 
     /** A key press cannot advance the conversation sooner than this after a bubble appeared, so
      * the E that opened it, or a held key, does not skip a line before it is read. */
@@ -82,7 +96,16 @@
 </script>
 
 {#if script}
-    <div class="dialogue-box" role="dialog" aria-label={script.speaker}>
+    <div
+        class="dialogue-box"
+        class:placed={spot !== null}
+        class:measuring={anchor !== null && spot === null}
+        style={spot ? `left: ${spot.left}px; top: ${spot.top}px;` : ""}
+        role="dialog"
+        aria-label={script.speaker}
+        bind:clientWidth={boxWidth}
+        bind:clientHeight={boxHeight}
+    >
         <p class="dialogue-name">{script.speaker}</p>
         <p class="dialogue-line">{current}</p>
         {#if choosing && script.offer}
@@ -112,6 +135,17 @@
         border: 1px solid #2a2a2a;
         border-radius: 4px;
         font-family: monospace;
+    }
+
+    /* Next to the conversation: the position comes from the style, not from the bottom of the area. */
+    .dialogue-box.placed {
+        bottom: auto;
+        transform: none;
+    }
+
+    /* The first frame, before the bubble has a size to be placed with. */
+    .dialogue-box.measuring {
+        visibility: hidden;
     }
 
     .dialogue-name {

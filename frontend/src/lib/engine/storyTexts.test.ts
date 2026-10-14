@@ -34,8 +34,9 @@ const devotedNumbers: number[] = (JSON.parse(enemiesFile) as { devoted?: number 
 const GOD_MOMENTS = ["start", "death.first", "death.streak", "death.boss", "death.depth", "death.ordinary"];
 const GOD_PHASES = ["a", "b", "c"];
 
-/** The cards the server can ask to show: the prologue, and the one each chapter earns. */
-const cardIds = ["prologue", ...chapters.map((chapter) => `ch${chapter.id}`)];
+/** The cards the server can ask to show: the prologue, the one each chapter earns, and the one that
+ * announces Hardcore. */
+const cardIds = ["prologue", ...chapters.map((chapter) => `ch${chapter.id}`), "hardcore"];
 const texts = dictionaries.en;
 const find: TextLookup = (key) => lookup(dictionaries, "en", key);
 const npcs = [...new Set(scenes.map((scene) => scene.npc))];

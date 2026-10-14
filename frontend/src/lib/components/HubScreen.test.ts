@@ -325,6 +325,49 @@ describe("HubScreen", () => {
         });
     });
 
+    describe("the altar shut for good", () => {
+        const owned = makeUpgrade({ id: "hp_boost_1", label: "Owned One", unlocked: true });
+        const wanted = makeUpgrade({ id: "weapon_mastery", label: "Wanted One", cost: 90 });
+
+        function shutHub(): StateUpdate {
+            return makeState({ hub: { upgrades: [owned, wanted], perks: [], runsCompleted: 5, difficulties: [], shopClosed: true } });
+        }
+
+        const labels = (container: HTMLElement) => Array.from(container.querySelectorAll(".upgrade-label")).map((el) => el.textContent);
+
+        test("shows what the player owns, with no cost and nothing to buy, and says the altar is shut", () => {
+            gameState.set(shutHub());
+            const { container } = render(HubScreen);
+            expect(labels(container)).toEqual(["Owned One"]);
+            expect(container.querySelector("button.buy-btn")).toBeNull();
+            expect(container.querySelector(".upgrade-cost")).toBeNull();
+            expect(container.querySelector(".shop-closed")?.textContent).toContain("shut for good");
+        });
+
+        test("does not say it while the altar is open, and then lists every upgrade", () => {
+            gameState.set(makeState({ hub: { upgrades: [owned, wanted], perks: [], runsCompleted: 5, difficulties: [] } }));
+            const { container } = render(HubScreen);
+            expect(container.querySelector(".shop-closed")).toBeNull();
+            expect(labels(container)).toEqual(["Owned One", "Wanted One"]);
+        });
+
+        test("the shop hint, which is about spending Shards, is not asked for", () => {
+            settings.update((s) => ({ ...s, showHints: true }));
+            resetTutorial();
+            gameState.set(shutHub());
+            render(HubScreen);
+            expect(get(activeHint)).toBeNull();
+        });
+
+        test("the run perks stay on offer", () => {
+            gameState.set(
+                makeState({ hub: { upgrades: [owned], perks: [makePerk({ id: "heavy_hand" })], runsCompleted: 5, difficulties: [], shopClosed: true } }),
+            );
+            const { container } = render(HubScreen);
+            expect(container.querySelectorAll(".perk-card")).toHaveLength(1);
+        });
+    });
+
     test("the footer's Help button opens the Help tab of the Character screen", async () => {
         characterTab.set(null);
         const { container } = render(HubScreen);

@@ -37,8 +37,11 @@
 
     $: player   = $gameState?.player;
     $: upgrades = $gameState?.hub?.upgrades ?? [];
+    // The altar shut for good keeps only what the player already owns on show: there is nothing left to buy.
+    $: shopClosed = $gameState?.hub?.shopClosed ?? false;
+    $: shownUpgrades = shopClosed ? upgrades.filter((u) => u.unlocked) : upgrades;
     $: visibleUpgrades =
-        selectedUpgradeTab === "all" ? upgrades : upgrades.filter((u) => u.category === selectedUpgradeTab);
+        selectedUpgradeTab === "all" ? shownUpgrades : shownUpgrades.filter((u) => u.category === selectedUpgradeTab);
     $: perks    = $gameState?.hub?.perks ?? [];
     $: shards   = player?.metaCurrency ?? 0;
 
@@ -66,7 +69,8 @@
         $tutorial.skipped ||
         upgrades.some((u) => u.unlocked) ||
         (cheapestUpgrade !== null && shards >= cheapestUpgrade);
-    $: if (shopVisible) showHint("shop");
+    // The hint is about spending Shards, which a shut altar no longer allows.
+    $: if (shopVisible && !shopClosed) showHint("shop");
     // The perks are offered by the server only once it unlocks them, so a non-empty list is
     // already the whole rule.
     $: rightPanelVisible = shopVisible || perks.length > 0;
@@ -265,6 +269,10 @@
                     </button>
                 {/each}
             </div>
+
+            {#if shopClosed}
+                <p class="shop-closed">{$t("hub.shopClosed")}</p>
+            {/if}
 
             {#if visibleUpgrades.length === 0}
                 <p class="muted">No upgrades available.</p>
@@ -954,4 +962,10 @@
     }
 
     .muted { color: #444; font-size: 0.85rem; }
+
+    .shop-closed {
+        margin-bottom: 0.5rem;
+        font-size: 0.7rem;
+        color: #a08a5a;
+    }
 </style>

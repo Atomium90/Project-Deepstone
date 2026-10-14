@@ -290,6 +290,9 @@ export interface HubView {
   /** Every difficulty tier, lowest first, with whether it can be started. The server refuses a
    * run on a locked one, so this only drives what the hub offers. */
   difficulties: DifficultyView[];
+  /** Whether the altar is shut for good: the upgrades the player owns stay, none can be bought any
+   * more. Absent or false until the light is refused. */
+  shopClosed?: boolean;
 }
 
 /** A single item as seen by the client, whether equipped, in the potion belt, or shown in a

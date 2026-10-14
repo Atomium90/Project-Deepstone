@@ -5,9 +5,17 @@
     import { dictionaries, language, lookup } from "../engine/i18n";
     import { pickGodLine } from "../engine/godVoice";
     import Sprite from "./Sprite.svelte";
+    import type { PlayerView } from "../engine/protocol";
 
-    $: player  = $gameState?.player;
-    $: victory = $gameState?.victory ?? false;
+    // "Return to Hub" brings the state of the hub at once, while this screen is still fading out. It
+    // follows the state only for as long as that is still the end of a run, or a win would read as
+    // a defeat, with its portrait, for the length of the fade.
+    let player: PlayerView | undefined;
+    let victory = false;
+    $: if ($gameState?.phase === "GAMEOVER") {
+        player = $gameState.player;
+        victory = $gameState.victory;
+    }
 
     // The god says a line about a death, picked once when the screen appears: the server sends it on
     // this very update, and picking again on every later one would change the line under the player.

@@ -1,5 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/svelte";
+import { tick } from "svelte";
 import GameOverScreen from "./GameOverScreen.svelte";
 import { gameState, client } from "../engine/StateStore";
 import { dictionaries } from "../engine/i18n";
@@ -42,6 +43,40 @@ describe("GameOverScreen", () => {
         expect(container.querySelector(".title")?.textContent).toBe("VICTORY");
         expect(container.querySelector(".over-root")?.classList.contains("victory")).toBe(true);
         expect(container.querySelector(".ko-portrait")).toBeNull();
+    });
+
+    test("keeps saying VICTORY and showing its stats while it fades out after the state is the hub's", async () => {
+        gameState.set(makeState({ victory: true }));
+        const { container } = render(GameOverScreen);
+
+        // "Return to Hub" brings the hub's state at once, and the screen is still there for the fade-out.
+        gameState.set(makeState({ phase: "HUB", victory: false, player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 7, affinityTags: [] } }));
+        await tick();
+
+        expect(container.querySelector(".title")?.textContent).toBe("VICTORY");
+        expect(container.querySelector(".over-root")?.classList.contains("victory")).toBe(true);
+        expect(container.querySelector(".ko-portrait")).toBeNull();
+        expect(Array.from(container.querySelectorAll(".stat-value")).map((el) => el.textContent)).toEqual(["3", "250 XP", "◈ 42"]);
+    });
+
+    test("keeps saying DEFEATED while it fades out after a loss too", async () => {
+        gameState.set(makeState({ victory: false }));
+        const { container } = render(GameOverScreen);
+
+        gameState.set(makeState({ phase: "HUB", victory: false }));
+        await tick();
+
+        expect(container.querySelector(".title")?.textContent).toBe("DEFEATED");
+    });
+
+    test("follows the state while it is still the end of a run", async () => {
+        gameState.set(makeState({ victory: true }));
+        const { container } = render(GameOverScreen);
+
+        gameState.set(makeState({ victory: true, player: { classId: "warrior", hp: 0, maxHp: 120, resourceCurrent: 0, resourceMax: 100, level: 3, xp: 250, metaCurrency: 99, affinityTags: [] } }));
+        await tick();
+
+        expect(Array.from(container.querySelectorAll(".stat-value")).map((el) => el.textContent)).toEqual(["3", "250 XP", "◈ 99"]);
     });
 
     test("shows the run's level/xp/shards stats", () => {

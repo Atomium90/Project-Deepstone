@@ -291,6 +291,24 @@ class MessageProtocolSuite extends FunSuite:
     assertEquals(scene.get[String]("sceneId"), Right("npc.1.s2"))
     assertEquals(scene.get[String]("offerScene"), Right("npc.1.s2"))
 
+  test("encodeUpdate sends how many lines of the log are the blows of a fight"):
+    val update = StateUpdate(
+      phase = GamePhase.Exploration,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      log = List("You strike the Orc for 24 damage.", "Orc has been defeated!"),
+      fightLines = 1
+    )
+    val json = io.circe.parser.parse(MessageProtocol.encodeUpdate(update)).toOption.get.hcursor
+    assertEquals(json.get[Int]("fightLines"), Right(1))
+
   test("encodeUpdate sends the question of the light with the NPCs who could take the place"):
     val update = StateUpdate(
       phase = GamePhase.Exploration,

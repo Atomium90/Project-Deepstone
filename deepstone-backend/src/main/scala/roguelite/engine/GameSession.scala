@@ -13,7 +13,7 @@ import roguelite.game.AbilityDef
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
-import roguelite.game.{ ChapterDef, DeathContext, Ending, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, VoicePhase, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
+import roguelite.game.{ ChapterDef, CombatResolver, DeathContext, Ending, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, VoicePhase, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -246,6 +246,11 @@ class GameSession private (
       story         <- storyRef.get
       stats         <- achievementRef.get.map(_.stats)
       line = godLine(prev, finalNext, story, stats)
+      // The blows of a fight that was just won come before the line that tells the enemy has fallen.
+      fightLines = (prev, finalNext) match
+        case (fought: CombatState, _: ExplorationState) =>
+          transitionResult.log.indexOf(CombatResolver.defeatedLine(fought.combat.enemy.label)).max(0)
+        case _ => 0
       // The line of an ending is said once: the story remembers that it was.
       _ <- line.traverse_((moment, _) => updateStory(story, GodVoice.said(story, moment)))
     yield finalNext
@@ -253,7 +258,8 @@ class GameSession private (
       .copy(newlyUnlocked = newlyUnlocked,
             damageEvents = toDamageEventViews(transitionResult.events),
             soundEvents = toSoundEventTags(transitionResult.events),
-            godLine = line.map((moment, phase) => GodLineView(moment.id, phase.id))
+            godLine = line.map((moment, phase) => GodLineView(moment.id, phase.id)),
+            fightLines = fightLines
       )
 
   /** The line the god's voice says on a transition, if it is a moment it speaks at: a run starting

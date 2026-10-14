@@ -631,6 +631,12 @@ case class StateUpdate(
       */
     victory: Boolean = false,
     log: List[String] = Nil,
+    /** On the update that ends a won fight: how many of the first lines of `log` only tell the blows
+      * exchanged, which belong to the log of the fight and to no other. The lines after them tell what
+      * the victory brings (the enemy fallen, the XP, the loot) and belong to the exploration log too.
+      * 0 on every other update.
+      */
+    fightLines: Int = 0,
     /** Achievements newly earned by the action that produced this update. Transient: only
       * non-empty on the single update where one or more achievements were just unlocked. A list,
       * not an Option, since a single action can plausibly earn more than one at once (e.g. a kill

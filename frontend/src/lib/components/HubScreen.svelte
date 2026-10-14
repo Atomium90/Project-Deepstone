@@ -86,14 +86,19 @@
     const storyTier: Difficulty = "hardcore";
 
     /** A class is unlocked if it has no gating upgrade, or that upgrade has been bought. */
-    function isClassUnlocked(c: ClassId): boolean {
+    function isClassUnlocked(c: ClassId, owned: UpgradeView[]): boolean {
         const upgradeId = CLASS_UNLOCK_UPGRADE_ID[c];
         if (upgradeId === null) return true;
-        return upgrades.find((u) => u.id === upgradeId)?.unlocked ?? false;
+        return owned.find((u) => u.id === upgradeId)?.unlocked ?? false;
     }
 
+    // Worked out here, from `upgrades` itself, so that buying the upgrade opens the class at once:
+    // Svelte re-runs a template expression only when a variable it names changes, not one that a
+    // function it calls reads.
+    $: unlockedClasses = new Set(classes.filter((c) => isClassUnlocked(c, upgrades)));
+
     function selectClass(c: ClassId): void {
-        if (!isClassUnlocked(c)) return;
+        if (!unlockedClasses.has(c)) return;
         selectedClass = c;
     }
 
@@ -184,7 +189,7 @@
                 {#each visibleClasses as c}
                     {@const info  = CLASS_INFO[c]}
                     {@const color = PLAYER_CLASS_COLORS[c]}
-                    {@const unlocked = isClassUnlocked(c)}
+                    {@const unlocked = unlockedClasses.has(c)}
                     <button
                         class="class-card"
                         class:selected={selectedClass === c}

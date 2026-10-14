@@ -76,6 +76,23 @@ describe("HubScreen", () => {
         expect(archerCard.classList.contains("selected")).toBe(true);
     });
 
+    test("a gated class opens as soon as its unlock upgrade is bought, with no reload", async () => {
+        const hubWith = (unlocked: boolean) =>
+            makeState({ hub: { upgrades: [makeUpgrade({ id: "archer_unlock", unlocked })], perks: [], runsCompleted: 1, difficulties: [] } });
+        gameState.set(hubWith(false));
+        const { container } = render(HubScreen);
+        const archerCard = () => container.querySelectorAll(".class-card")[CLASS_CARD.archer] as HTMLButtonElement;
+        expect(archerCard().disabled).toBe(true);
+
+        gameState.set(hubWith(true));
+        await tick();
+        expect(archerCard().classList.contains("locked")).toBe(false);
+        expect(archerCard().disabled).toBe(false);
+
+        await fireEvent.click(archerCard());
+        expect(archerCard().classList.contains("selected")).toBe(true);
+    });
+
     test("Start Run sends the selected class/difficulty and remembers the difficulty", async () => {
         const { container } = render(HubScreen);
         const sendSpy = vi.spyOn(client, "send");

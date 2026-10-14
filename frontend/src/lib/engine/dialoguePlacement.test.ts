@@ -106,11 +106,18 @@ describe("placeBubble", () => {
     const area = { width: 1000, height: 800 };
     const bubble = { width: 400, height: 120 };
 
-    test("goes just under the conversation, centered on it", () => {
+    test("goes just under the conversation", () => {
         const anchor = { left: 500, top: 100, width: 64, height: 128 };
         const spot = placeBubble(anchor, bubble, area);
-        expect(spot.left).toBe(500 + 32 - 200);
         expect(spot.top - (anchor.top + anchor.height)).toBe(BUBBLE_GAP);
+    });
+
+    test("is centered across the area, whatever column the conversation is in", () => {
+        const centered = (area.width - bubble.width) / 2;
+        for (const left of [0, 120, 468, 700, 940]) {
+            const spot = placeBubble({ left, top: 100, width: 64, height: 64 }, bubble, area);
+            expect(spot.left).toBe(centered);
+        }
     });
 
     test("never covers the conversation when it fits under it", () => {
@@ -125,15 +132,9 @@ describe("placeBubble", () => {
         expect(anchor.top - (spot.top + bubble.height)).toBe(BUBBLE_GAP);
     });
 
-    test("stays inside the area on the left", () => {
+    test("keeps a margin on the left when the area is narrower than the bubble", () => {
         const anchor = { left: 0, top: 100, width: 64, height: 64 };
-        expect(placeBubble(anchor, bubble, area).left).toBeGreaterThanOrEqual(0);
-    });
-
-    test("stays inside the area on the right", () => {
-        const anchor = { left: 940, top: 100, width: 64, height: 64 };
-        const spot = placeBubble(anchor, bubble, area);
-        expect(spot.left + bubble.width).toBeLessThanOrEqual(area.width);
+        expect(placeBubble(anchor, bubble, { width: 300, height: 800 }).left).toBeGreaterThan(0);
     });
 
     test("stays at the top of the area when it fits neither under nor above", () => {

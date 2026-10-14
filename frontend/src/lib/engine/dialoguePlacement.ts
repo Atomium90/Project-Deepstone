@@ -79,14 +79,15 @@ export function conversationBox(room: RoomView, scene: PendingSceneView, canvas:
 }
 
 /**
- * Where the bubble goes, close to the conversation without covering it: centered on it and just under
- * it, or just above it when there is no room left under it, and never out of the area. An NPC stands
- * against a wall and a Devoted can be faced from any side, so under the lowest of the two tiles is
- * clear of both.
+ * Where the bubble goes: close to the conversation in height, without covering it, and always in the
+ * same place across. It is just under the conversation, or just above it when there is no room left
+ * under it, and never out of the area. An NPC stands against a wall and a Devoted can be faced from
+ * any side, so under the lowest of the two tiles is clear of both. Across it is centered in the area,
+ * which is also the center of the room, whatever column the conversation is in: following the player
+ * from side to side made the bubble jump from one end to the other.
  */
 export function placeBubble(anchor: Box, bubble: Size, area: Size): { left: number; top: number } {
-    const centered = anchor.left + anchor.width / 2 - bubble.width / 2;
-    const left = Math.max(MARGIN, Math.min(centered, area.width - bubble.width - MARGIN));
+    const left = Math.max(MARGIN, (area.width - bubble.width) / 2);
 
     const under = anchor.top + anchor.height + BUBBLE_GAP;
     const above = anchor.top - BUBBLE_GAP - bubble.height;

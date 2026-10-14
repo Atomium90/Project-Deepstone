@@ -36,6 +36,7 @@ const BOSS_MUSIC_FILES = [
   "boss_ruinlord_ascendant.ogg",
   "boss_bloodbound_fight.ogg",
 ];
+const HARD_EXPLORATION_FILES = ["exploration_hard_hidden_cavern.ogg", "exploration_hard_dangerous_cave.ogg"];
 const EXPLORATION_MUSIC_FILES: Record<Difficulty, string[]> = {
   easy: ["exploration_easy_traveling_the_sky.ogg", "exploration_easy_unknown_island.ogg"],
   normal: [
@@ -44,7 +45,8 @@ const EXPLORATION_MUSIC_FILES: Record<Difficulty, string[]> = {
     "exploration_normal_volcanic_crater.ogg",
     "exploration_normal_dark_factory.ogg",
   ],
-  hard: ["exploration_hard_hidden_cavern.ogg", "exploration_hard_dangerous_cave.ogg"],
+  hard: HARD_EXPLORATION_FILES,
+  hardcore: HARD_EXPLORATION_FILES,
 };
 
 const MUSIC_FADE_MS = 400;

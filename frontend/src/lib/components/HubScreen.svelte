@@ -45,11 +45,16 @@
     // Which tiers can be started. The server is what enforces it, the hub only mirrors it, so a
     // tier the server does not list counts as available.
     $: tiers = $gameState?.hub?.difficulties ?? [];
+    // The tier only the story opens is on screen only when the server lists it, and is never the
+    // default pick: the player chooses it on purpose.
+    $: difficulties = tiers.some((tier) => tier.id === storyTier) ? [...regularTiers, storyTier] : regularTiers;
     $: unlockedTiers = new Set(difficulties.filter((d) => tiers.find((tier) => tier.id === d)?.unlocked ?? true));
     $: if (!unlockedTiers.has(selectedDifficulty)) {
-        selectedDifficulty = difficulties.filter((d) => unlockedTiers.has(d)).at(-1) ?? "easy";
+        selectedDifficulty = regularTiers.filter((d) => unlockedTiers.has(d)).at(-1) ?? "easy";
     }
     $: nextLockedTier = tiers.find((tier) => !tier.unlocked);
+    // Nothing from the hub is taken into that tier: no upgrade, no starting kit, no run perk.
+    $: noBlessings = selectedDifficulty === storyTier;
 
     // The Hub is introduced step by step: the upgrade shop (and with it the classes that are
     // locked behind an upgrade) only shows once there is something to spend Shards on, then stays
@@ -73,7 +78,8 @@
     $: debugRooms = $gameState?.debugRooms ?? [];
 
     const classes: ClassId[] = ["warrior", "archer", "mage"];
-    const difficulties: Difficulty[] = ["easy", "normal", "hard"];
+    const regularTiers: Difficulty[] = ["easy", "normal", "hard"];
+    const storyTier: Difficulty = "hardcore";
 
     /** A class is unlocked if it has no gating upgrade, or that upgrade has been bought. */
     function isClassUnlocked(c: ClassId): boolean {
@@ -130,7 +136,7 @@
             action: "STARTRUN",
             classId: selectedClass,
             difficulty: selectedDifficulty,
-            ...(selectedPerkId ? { perkId: selectedPerkId } : {}),
+            ...(selectedPerkId && !noBlessings ? { perkId: selectedPerkId } : {}),
         });
     }
 
@@ -221,6 +227,10 @@
                 {/each}
             </div>
 
+            {#if noBlessings}
+                <p class="difficulty-rules">{$t("hub.difficulty.hardcoreRules")}</p>
+            {/if}
+
             {#if nextLockedTier}
                 <p class="difficulty-hint">
                     {$t("hub.difficulty.next", { tier: DIFFICULTY_INFO[nextLockedTier.id].label })}
@@ -300,11 +310,11 @@
 
             {#if perks.length > 0}
                 <p class="section-label" class:perk-section-label={shopVisible}>Run Perk</p>
-                <div class="perk-list">
+                <div class="perk-list" class:off={noBlessings}>
                     {#each perks as p}
                         <button
                             class="perk-card"
-                            class:selected={selectedPerkId === p.id}
+                            class:selected={selectedPerkId === p.id && !noBlessings}
                             on:click={() => selectPerk(p.id)}
                         >
                             <span class="perk-icon">{p.icon}</span>
@@ -646,6 +656,12 @@
 
     .difficulty-need { color: #8a7a4a; }
 
+    .difficulty-rules {
+        margin-top: -0.75rem;
+        font-size: 0.65rem;
+        color: #b05ce0;
+    }
+
     .start-btn {
         margin-top: auto;
         padding: 0.85rem 1rem;
@@ -870,6 +886,11 @@
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
+    }
+
+    /* No perk counts in Hardcore: the cards stay readable but plainly out of play. */
+    .perk-list.off {
+        opacity: 0.4;
     }
 
     .perk-card {

@@ -7,7 +7,7 @@ export type GamePhase = "HUB" | "EXPLORATION" | "COMBAT" | "GAMEOVER";
 export type CombatActionType = "ATTACK" | "ABILITY" | "ITEM" | "DEFEND";
 export type HubActionType = "STARTRUN" | "BUYUPGRADE" | "RETURNTOHUB" | "DEBUGLOADROOM";
 export type ClassId = "warrior" | "archer" | "mage";
-export type Difficulty = "easy" | "normal" | "hard";
+export type Difficulty = "easy" | "normal" | "hard" | "hardcore";
 export type UpgradeCategory = "stat" | "meta";
 
 export type ItemKind = "weapon" | "armor" | "accessory" | "consumable" | "key";

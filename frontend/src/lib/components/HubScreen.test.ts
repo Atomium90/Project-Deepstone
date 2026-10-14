@@ -39,7 +39,7 @@ function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
 
 // Card order matches HubScreen.svelte's own `classes`/`difficulties` arrays.
 const CLASS_CARD = { warrior: 0, archer: 1, mage: 2 };
-const DIFFICULTY_CARD = { easy: 0, normal: 1, hard: 2 };
+const DIFFICULTY_CARD = { easy: 0, normal: 1, hard: 2, hardcore: 3 };
 
 describe("HubScreen", () => {
     beforeEach(() => {
@@ -255,6 +255,73 @@ describe("HubScreen", () => {
             gameState.set(hubWithTiers(tiers(true, false)));
             await tick();
             expect(cards(container)[DIFFICULTY_CARD.normal].classList.contains("selected")).toBe(true);
+        });
+
+        describe("the tier only the story opens", () => {
+            const HARDCORE: DifficultyView = { id: "hardcore", unlocked: true, requirement: null };
+            const rules = (container: HTMLElement) => container.querySelector(".difficulty-rules");
+
+            test("is not drawn while the server does not list it", () => {
+                gameState.set(hubWithTiers(tiers(true, true)));
+                const { container } = render(HubScreen);
+                expect(cards(container)).toHaveLength(3);
+            });
+
+            test("is drawn last once the server lists it", () => {
+                gameState.set(hubWithTiers([...tiers(true, true), HARDCORE]));
+                const { container } = render(HubScreen);
+                expect(cards(container)).toHaveLength(4);
+                expect(cards(container)[DIFFICULTY_CARD.hardcore].textContent).toContain("Hardcore");
+                expect(cards(container)[DIFFICULTY_CARD.hardcore].disabled).toBe(false);
+            });
+
+            test("is never the default pick, even when it is the only tier above Easy that is open", () => {
+                gameState.set(hubWithTiers([...tiers(false, false), HARDCORE]));
+                const { container } = render(HubScreen);
+                expect(cards(container)[DIFFICULTY_CARD.easy].classList.contains("selected")).toBe(true);
+                expect(cards(container)[DIFFICULTY_CARD.hardcore].classList.contains("selected")).toBe(false);
+                expect(rules(container)).toBeNull();
+            });
+
+            test("can be picked, says what it takes away, and starts a run on it", async () => {
+                gameState.set(hubWithTiers([...tiers(true, true), HARDCORE]));
+                const { container } = render(HubScreen);
+                const sendSpy = vi.spyOn(client, "send");
+
+                await fireEvent.click(cards(container)[DIFFICULTY_CARD.hardcore]);
+                expect(rules(container)?.textContent).toContain("No hub upgrades");
+                await fireEvent.click(container.querySelector("button.start-btn")!);
+
+                expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ action: "STARTRUN", difficulty: "hardcore" }));
+                expect(get(lastStartedDifficulty)).toBe("hardcore");
+            });
+
+            test("leaves the chosen perk out of the run, and the line goes away with another tier", async () => {
+                gameState.set(
+                    makeState({
+                        hub: {
+                            upgrades: [],
+                            perks: [makePerk({ id: "heavy_hand" })],
+                            runsCompleted: 1,
+                            difficulties: [...tiers(true, true), HARDCORE],
+                        },
+                    })
+                );
+                const { container } = render(HubScreen);
+                const sendSpy = vi.spyOn(client, "send");
+
+                await fireEvent.click(container.querySelector(".perk-card")!);
+                await fireEvent.click(cards(container)[DIFFICULTY_CARD.hardcore]);
+                expect(container.querySelector(".perk-list")?.classList.contains("off")).toBe(true);
+                await fireEvent.click(container.querySelector("button.start-btn")!);
+                expect(sendSpy.mock.calls.at(-1)![0]).not.toHaveProperty("perkId");
+
+                await fireEvent.click(cards(container)[DIFFICULTY_CARD.hard]);
+                expect(rules(container)).toBeNull();
+                expect(container.querySelector(".perk-list")?.classList.contains("off")).toBe(false);
+                await fireEvent.click(container.querySelector("button.start-btn")!);
+                expect(sendSpy).toHaveBeenLastCalledWith(expect.objectContaining({ difficulty: "hard", perkId: "heavy_hand" }));
+            });
         });
     });
 

@@ -31,6 +31,7 @@
     "hub.difficulty.next": "Next tier: {tier}",
     "hub.difficulty.needWins": "Wins on {tier}: {done} of {wins}",
     "hub.difficulty.needShards": "{currency} spent: {done} of {needed}",
+    "hub.difficulty.hardcoreRules": "No hub upgrades, no starting kit, no run perk, and no Shards earned.",
     "story.continue": "E to continue",
     "story.card.prologue.1": "Thank you.",
     "story.card.prologue.2": "It has been a long time since anyone gave me anything.",

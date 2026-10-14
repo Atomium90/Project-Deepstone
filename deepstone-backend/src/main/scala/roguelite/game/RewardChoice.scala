@@ -11,5 +11,7 @@ package roguelite.game
   *   The 3 rolled candidate items (see [[LootTable.rollShrineChoices]]). Each already carries a
   *   distinct instance id (from `withNewId`), so a follow-up `RewardChoice` action picks by item
   *   id, not by position.
+  * @param devoted
+  *   The Devoted whose relic the Shrine held, if any, for the client to show its inscription.
   */
-case class PendingRewardChoice(options: List[Item])
+case class PendingRewardChoice(options: List[Item], devoted: Option[Int] = None)

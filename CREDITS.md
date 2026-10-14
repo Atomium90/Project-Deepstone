@@ -28,6 +28,10 @@ texts in `THIRD-PARTY-NOTICES.txt`, next to `LICENSE`.
 - **16x16 Dark Dungeon Tileset** by Kosinaz (https://kosinaz.itch.io/16x16-dark-dungeon-tileset)
   License: [CC0](https://creativecommons.org/publicdomain/zero/1.0/). Based on 0x72's DungeonTileset II.
   Used for: the tiles of the dark dungeon rooms.
+- **16x16 Fantasy RPG Characters** by Superdark (https://superdark.itch.io/16x16-free-npc-pack)
+  License: [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+  Used for: the sprites of the characters met at the Rest rooms.
+  Modified: the four idle frames of each character are assembled into one strip.
 - **Pixel Crawler** (Free Pack) by Anokolisa
   (https://anokolisa.itch.io/free-pixel-art-asset-pack-topdown-tileset-rpg-16x16-sprites)
   License: the pack's own terms. Free for personal and commercial projects, credit is appreciated, the

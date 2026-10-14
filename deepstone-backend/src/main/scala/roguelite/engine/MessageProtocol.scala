@@ -24,18 +24,40 @@ enum HubActionType:
 enum ClassId:
   case Warrior, Archer, Mage
 
+/** How the player answers the light of the Sanctuary (see [[EndingChoice]]). */
+enum EndingAnswer:
+  /** Go into the light. */
+  case Enter
+
+  /** Let an NPC whose story is over take the player's place. */
+  case Replace
+
+  /** Refuse the light, and leave. */
+  case Refuse
+
 /** Run difficulty, chosen alongside the class at StartRun.
   *
   * Values are starting points meant to be adjusted after playtesting.
+  *
+  * `Hardcore` is the descent without the god: it has the sections, Elites, traps and loot of `Hard`,
+  * its enemies are half again as strong (x1.5, to be brought down to Hard's x1.25 if that proves too
+  * much), and the run takes no blessing. It is opened by the story, not by victories.
   */
 enum Difficulty:
-  case Easy, Normal, Hard
+  case Easy, Normal, Hard, Hardcore
+
+  /** Whether a run on this tier takes the god's blessings: the effects of the hub upgrades, the class's
+    * starting kit, a run perk, and the Shards its kills earn. The descent without the god takes none.
+    * What a class unlock gives is access, not power, and is kept.
+    */
+  def usesBlessings: Boolean = this != Difficulty.Hardcore
 
   /** Multiplier applied to enemy maxHp/attack/defense/xpReward at instance creation. */
   def statMultiplier: Double = this match
     case Difficulty.Easy   => 0.75
     case Difficulty.Normal => 1.0
-    case Difficulty.Hard   => 1.25
+    case Difficulty.Hard     => 1.25
+    case Difficulty.Hardcore => 1.5
 
   /** Number of sequential sections in a run, passed to [[roguelite.game.DungeonBuilder.build]].
     * Every section follows the same fixed room template and ends in its own
@@ -47,7 +69,7 @@ enum Difficulty:
   def biomeCount: Int = this match
     case Difficulty.Easy   => 1
     case Difficulty.Normal => 2
-    case Difficulty.Hard   => 3
+    case Difficulty.Hard | Difficulty.Hardcore => 3
 
   /** Per-enemy probability of rolling Elite at dungeon build time (see
     * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties.
@@ -55,7 +77,7 @@ enum Difficulty:
   def eliteChance: Double = this match
     case Difficulty.Easy   => 0.08
     case Difficulty.Normal => 0.10
-    case Difficulty.Hard   => 0.12
+    case Difficulty.Hard | Difficulty.Hardcore => 0.12
 
   /** Per-chest probability of being trapped, rolled at dungeon build time (see
     * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties. A room never holds more than
@@ -65,7 +87,7 @@ enum Difficulty:
   def trappedChestChance: Double = this match
     case Difficulty.Easy   => 0.08
     case Difficulty.Normal => 0.12
-    case Difficulty.Hard   => 0.16
+    case Difficulty.Hard | Difficulty.Hardcore => 0.16
 
   /** Per-door probability of being trapped, rolled at dungeon build time (see
     * [[roguelite.game.DungeonBuilder]]). Lower than [[trappedChestChance]]: a trapped door forces a
@@ -74,13 +96,13 @@ enum Difficulty:
   def trappedDoorChance: Double = this match
     case Difficulty.Easy   => 0.04
     case Difficulty.Normal => 0.06
-    case Difficulty.Hard   => 0.08
+    case Difficulty.Hard | Difficulty.Hardcore => 0.08
 
   /** Relative weight multiplier applied to a loot candidate based on its rarity. Only Hard biases
     * toward Uncommon for now; Easy/Normal keep today's unweighted behavior.
     */
   def rarityWeightMultiplier(rarity: Rarity): Double = (this, rarity) match
-    case (Difficulty.Hard, Rarity.Uncommon) => 2.0
+    case (Difficulty.Hard | Difficulty.Hardcore, Rarity.Uncommon) => 2.0
     case _                                  => 1.0
 
 // ---------------------------------------------
@@ -131,6 +153,23 @@ case class EquipChoice(targetSlot: Option[EquipSlot] = None) extends PlayerActio
   * pending choice actually offered.
   */
 case class RewardChoice(itemId: Option[String] = None) extends PlayerAction
+
+/** The player has read the pending conversation to its last line (see [[PendingSceneView]]).
+  * `accept` answers the vow it ended by offering: `Some(true)` takes it, `Some(false)` turns it
+  * down. It is present exactly when the conversation offered one, otherwise the server refuses it.
+  */
+case class SceneDone(accept: Option[Boolean] = None) extends PlayerAction
+
+/** The player has read the card the server asked to show (see `StateUpdate.pendingCard`). The server
+  * only accepts the card it is waiting for, and marks it seen so it is not shown again.
+  */
+case class CardSeen(cardId: String) extends PlayerAction
+
+/** The player's answer to the light of the Sanctuary (see [[PendingEndingChoiceView]]). `npc` is who
+  * takes the player's place: it is present exactly for [[EndingAnswer.Replace]], and must be one of
+  * the candidates the question listed.
+  */
+case class EndingChoice(answer: EndingAnswer, npc: Option[String] = None) extends PlayerAction
 
 // ---------------------------------------------
 // Server → Client: state views (read-only snapshots)
@@ -193,10 +232,17 @@ case class EntityView(
     state: Option[String] = None
 )
 
-/** One line of NPC dialogue to show the player, produced by an [[Interact]] on an [[roguelite.game.Npc]].
-  * Transient - only present on the single [[StateUpdate]] the interaction produced, not persisted.
+/** A line of the god's voice to show, said at the start of a run or when the player dies. The server
+  * only says which kind of line and in which tone: the lines are texts of the client's language file,
+  * under `story.god.<moment>.<phase>.<n>`, and the client picks one of them.
+  *
+  * @param moment
+  *   When the voice speaks: "start", or "death.first", "death.streak", "death.boss", "death.depth" or
+  *   "death.ordinary" for what it says about a death.
+  * @param phase
+  *   The tone of the voice: "a" (grateful host), "b" (possessive) or "c" (afraid of being forgotten).
   */
-case class DialogueView(npcName: String, line: String)
+case class GodLineView(moment: String, phase: String)
 
 /** The current room's layout and its entities.
   *
@@ -264,7 +310,7 @@ case class CombatView(
 )
 
 /** One damage or heal event produced by the action that generated this [[StateUpdate]]. Transient:
-  * only present on the single update the event happened on, same convention as [[DialogueView]].
+  * only present on the single update the event happened on.
   *
   * @param targetIsPlayer
   *   True if the player took the hit/heal, false if the enemy did.
@@ -286,12 +332,36 @@ case class UpgradeView(id: String,
 /** One run perk offered to the player, rolled fresh every HUB visit (see `HubState.perkOptions`). */
 case class PerkView(id: String, label: String, description: String, icon: String)
 
+/** How far a save is from unlocking a difficulty tier: `winsDone` of the `wins` needed on tier
+  * `winsAt`, and `shardsSpentDone` of the `shardsSpent` needed.
+  */
+case class TierRequirementView(winsAt: Difficulty,
+                               wins: Int,
+                               winsDone: Int,
+                               shardsSpent: Int,
+                               shardsSpentDone: Int
+)
+
+/** One difficulty tier as the hub shows it. `requirement` is `None` for a tier that needs nothing. */
+case class DifficultyView(id: Difficulty, unlocked: Boolean, requirement: Option[TierRequirementView] = None)
+
 /** @param runsCompleted
   *   How many runs the player has finished so far, won or lost. Lets the client tell a brand-new
   *   save (0) from a returning one, so the first run can skip the hub. Resolved by
   *   [[GameSession]] from the achievement stats, not carried by [[HubState]].
+  * @param difficulties
+  *   Every difficulty tier, lowest first, with whether it can be started and how far the save is from
+  *   unlocking it. Resolved by [[GameSession]] from the achievement stats, like `runsCompleted`.
+  * @param shopClosed
+  *   Whether the altar is shut for good: the upgrades the player owns stay, none can be bought any more.
+  *   Resolved by [[GameSession]] from the story.
   */
-case class HubView(upgrades: List[UpgradeView], perks: List[PerkView] = Nil, runsCompleted: Int = 0)
+case class HubView(upgrades: List[UpgradeView],
+                   perks: List[PerkView] = Nil,
+                   runsCompleted: Int = 0,
+                   difficulties: List[DifficultyView] = Nil,
+                   shopClosed: Boolean = false
+)
 
 case class ItemView(
     id: String,
@@ -354,7 +424,7 @@ case class EquipChoiceOptionView(slot: EquipSlot, current: ItemView)
 
 /** A pickup offered to the player because every slot matching `newItem`'s kind was already
   * occupied: weapon/armor degenerate to a single `options` entry, accessories/potions can offer
-  * up to 2-3. Durable, not transient like [[DialogueView]] or the other `Option`/`List` fields on
+  * up to 2-3. Durable, not transient like the damage and unlock lists on
   * [[StateUpdate]] below - it must still be present after a reconnect, or if the player sends an
   * unrelated action before resolving it with an [[EquipChoice]].
   */
@@ -365,7 +435,66 @@ case class PendingEquipChoiceView(newItem: ItemView, options: List[EquipChoiceOp
   * entry's `id` (each already carries its own distinct instance id, unlike an equip choice's
   * slot-keyed options).
   */
-case class PendingRewardChoiceView(options: List[ItemView])
+case class PendingRewardChoiceView(options: List[ItemView], relic: Option[RelicView] = None)
+
+/** The relic a Boss left with its Shrine, which bears the name of the Devoted it belonged to.
+  *
+  * @param devoted
+  *   Which Devoted, from 1. The inscription is the text `story.boss.<devoted>.relic`.
+  * @param readable
+  *   False while the inscription is worn smooth, before the story has gone far enough for the player
+  *   to read it: the client then shows `story.boss.unreadable` instead.
+  */
+case class RelicView(devoted: Int, readable: Boolean)
+
+/** The conversation the player is in with a Rest NPC, or the line of a Devoted before or after a
+  * fight, awaiting a [[SceneDone]]. Durable, same
+  * discipline as [[PendingEquipChoiceView]]. The server only says which conversation it is: the
+  * lines are texts of the client's language file, under keys built from these fields.
+  *
+  * @param npc
+  *   The speaking NPC, e.g. "npc.1", or "boss.2" for the second Devoted. The name shown is the text
+  *   `story.<npc>.name`.
+  * @param kind
+  *   "scene" (a scene of the story, lines under `story.<sceneId>`), "vow_report" (the NPC comments on
+  *   a vow, lines under `story.<npc>.vow.kept` or `story.<npc>.vow.failed`), "idle" (a short line
+  *   under `story.<npc>.idle`), "epilogue" (the line about the way the story ended, under
+  *   `story.<npc>.epilogue.<context>`) or "devoted" (the single line `story.<sceneId>` of a Devoted,
+  *   said before the fight or as they fall).
+  * @param sceneId
+  *   Only for "scene" and "devoted".
+  * @param kept
+  *   Only for "vow_report": whether the vow was kept.
+  * @param context
+  *   Only for "idle": "general", "death" or "victory", the pool of lines the last run calls for. For
+  *   "epilogue", the ending: "end1" (entered the light), "end2" (someone took the place), "end3" (refused).
+  * @param offerScene
+  *   The scene whose choice and reply texts apply when the conversation ends by offering a vow, which
+  *   is when the player must answer with `accept` in [[SceneDone]]. `None` when it offers none.
+  * @param revealed
+  *   Whether the player knows the real name of the speaker, which some NPC give away in a scene of
+  *   theirs (see [[roguelite.game.NpcDef.revealedBy]]). Until then the client shows the title,
+  *   `story.<npc>.name`, afterwards `story.<npc>.name_revealed` when it exists. True for every NPC
+  *   that gives its name from the start, and for a Devoted.
+  */
+case class PendingSceneView(npc: String,
+                            kind: String,
+                            sceneId: Option[String] = None,
+                            kept: Option[Boolean] = None,
+                            context: Option[String] = None,
+                            offerScene: Option[String] = None,
+                            revealed: Boolean = true
+)
+
+/** The question of the light, which the Sanctuary asks instead of ending the run once the story has
+  * come to it. Durable, same discipline as [[PendingEquipChoiceView]]: it stays until the player
+  * answers with an [[EndingChoice]].
+  *
+  * @param candidates
+  *   The NPCs who could take the player's place, by id (e.g. "npc.2"), because their story is over.
+  *   Empty while none is: the second answer is then closed.
+  */
+case class PendingEndingChoiceView(candidates: List[String])
 
 /** One section of the dungeon map: a run of rooms drawn from a single theme, ending in its own boss.
   * The client draws one row per section.
@@ -477,6 +606,23 @@ case class StateUpdate(
       * action.
       */
     pendingRewardChoice: Option[PendingRewardChoiceView] = None,
+    /** The conversation with a Rest NPC awaiting its end. Durable, same discipline as
+      * `pendingEquipChoice` - see [[PendingSceneView]]. Resolved with a [[SceneDone]] action.
+      */
+    pendingScene: Option[PendingSceneView] = None,
+    /** The question of the light, awaiting the player's answer. Durable, same discipline as
+      * `pendingEquipChoice` - see [[PendingEndingChoiceView]]. Resolved with an [[EndingChoice]] action.
+      */
+    pendingEndingChoice: Option[PendingEndingChoiceView] = None,
+    /** The story card waiting to be shown full screen, the oldest one the player has not seen yet.
+      * Durable: it stays until the player answers with a [[CardSeen]], so a card never read is shown
+      * again at the next visit. The texts are the client's, under `story.card.<id>`.
+      */
+    pendingCard: Option[String] = None,
+    /** The line the god's voice says on this update, at the start of a run or on a death. Transient:
+      * only present on the single update the moment happened on, same convention as `newlyUnlocked`.
+      */
+    godLine: Option[GodLineView] = None,
     abilities: List[AbilityView] = Nil,
     achievements: List[AchievementView] = Nil,
     sets: List[SetView] = Nil,
@@ -485,11 +631,10 @@ case class StateUpdate(
       */
     victory: Boolean = false,
     log: List[String] = Nil,
-    dialogue: Option[DialogueView] = None,
     /** Achievements newly earned by the action that produced this update. Transient: only
-      * non-empty on the single update where one or more achievements were just unlocked, same
-      * convention as [[dialogue]]. A list, not an Option, since a single action can plausibly earn
-      * more than one at once (e.g. a kill that is simultaneously a first kill and a level-up).
+      * non-empty on the single update where one or more achievements were just unlocked. A list,
+      * not an Option, since a single action can plausibly earn more than one at once (e.g. a kill
+      * that is simultaneously a first kill and a level-up).
       */
     newlyUnlocked: List[AchievementView] = Nil,
     /** Damage/heal events produced by the action that generated this update. Transient, same
@@ -550,6 +695,14 @@ object MessageProtocol:
         .toRight(s"Unknown hub action: $s")
   )
 
+  given Encoder[EndingAnswer] = Encoder[String].contramap(_.toString.toUpperCase)
+  given Decoder[EndingAnswer] = Decoder[String].emap(
+    s =>
+      EndingAnswer.values
+        .find(_.toString.toUpperCase == s.toUpperCase)
+        .toRight(s"Unknown answer to the light: $s")
+  )
+
   given Encoder[ClassId] = Encoder[String].contramap(_.toString.toLowerCase)
   given Decoder[ClassId] = Decoder[String].emap(
     s => ClassId.values.find(_.toString.toLowerCase == s.toLowerCase).toRight(s"Unknown class: $s")
@@ -608,6 +761,12 @@ object MessageProtocol:
   given Decoder[EquipChoice]  = deriveDecoder
   given Encoder[RewardChoice] = deriveEncoder
   given Decoder[RewardChoice] = deriveDecoder
+  given Encoder[SceneDone]    = deriveEncoder
+  given Decoder[SceneDone]    = deriveDecoder
+  given Encoder[CardSeen]     = deriveEncoder
+  given Decoder[CardSeen]     = deriveDecoder
+  given Encoder[EndingChoice] = deriveEncoder
+  given Decoder[EndingChoice] = deriveDecoder
 
   /** Decode a raw JSON string into a PlayerAction. The JSON must include a "type" discriminator
     * field: { "type": "MOVE", "direction": "UP" }
@@ -624,6 +783,9 @@ object MessageProtocol:
         case "HUB_ACTION"    => cursor.as[HubAction].left.map(_.message)
         case "EQUIP_CHOICE"  => cursor.as[EquipChoice].left.map(_.message)
         case "REWARD_CHOICE" => cursor.as[RewardChoice].left.map(_.message)
+        case "SCENE_DONE"    => cursor.as[SceneDone].left.map(_.message)
+        case "CARD_SEEN"     => cursor.as[CardSeen].left.map(_.message)
+        case "ENDING_CHOICE" => cursor.as[EndingChoice].left.map(_.message)
         case other           => Left(s"Unknown action type: $other")
       }
     yield action
@@ -636,17 +798,22 @@ object MessageProtocol:
   given Encoder[DamageEventView] = deriveEncoder
   given Encoder[UpgradeView]  = deriveEncoder
   given Encoder[PerkView]     = deriveEncoder
+  given Encoder[TierRequirementView] = deriveEncoder
+  given Encoder[DifficultyView]      = deriveEncoder
   given Encoder[HubView]      = deriveEncoder
   given Encoder[ItemView]     = deriveEncoder
   given Encoder[KeyCountView] = deriveEncoder
   given Encoder[EquipmentView] = deriveEncoder
   given Encoder[EquipChoiceOptionView]   = deriveEncoder
   given Encoder[PendingEquipChoiceView]  = deriveEncoder
+  given Encoder[RelicView] = deriveEncoder
   given Encoder[PendingRewardChoiceView] = deriveEncoder
+  given Encoder[PendingSceneView]        = deriveEncoder
+  given Encoder[PendingEndingChoiceView] = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
   given Encoder[SetView]         = deriveEncoder
-  given Encoder[DialogueView]    = deriveEncoder
+  given Encoder[GodLineView]     = deriveEncoder
   given Encoder[MinimapSectionView] = deriveEncoder
   given Encoder[MinimapNodeView]    = deriveEncoder
   given Encoder[MinimapEdgeView]    = deriveEncoder

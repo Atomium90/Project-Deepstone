@@ -173,6 +173,35 @@ class CombatResolverSuite extends FunSuite:
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState])
 
+  test("Victory earns Shards on a run that takes blessings, and says so"):
+    val (next, log, _) =
+      resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    assert(next.player.metaCurrency > fullHpPlayer().metaCurrency)
+    assert(log.exists(_.contains("Shard")), s"expected the Shards in the log: $log")
+
+  test("Victory counts the Shards it earns, one per 5 XP, and says Shard for exactly one"):
+    def xpLine(xpReward: Int): Option[String] =
+      val state = combatState(weakEnemy(hp = 1).copy(xpReward = xpReward))
+      val (_, log, _) = resolver().resolve(state, CombatAction(CombatActionType.Attack))
+      log.find(_.startsWith("You gain"))
+    assertEquals(xpLine(xpReward = 3), Some("You gain 3 XP and 1 Shard."))
+    assertEquals(xpLine(xpReward = 15), Some("You gain 15 XP and 3 Shards."))
+
+  test("Victory earns no Shard once the altar is shut, and does not mention them"):
+    val shut = combatState(weakEnemy(hp = 1)).copy(altarShut = true)
+    val (next, log, _) = resolver().resolve(shut, CombatAction(CombatActionType.Attack))
+    assertEquals(next.player.metaCurrency, fullHpPlayer().metaCurrency)
+    assert(next.player.xp > 0, "the XP is still earned")
+    assert(!log.exists(_.contains("Shard")), s"no Shard may be mentioned: $log")
+
+  test("Victory earns no Shard on a Hardcore run, and does not mention them"):
+    val hardcore = combatState(weakEnemy(hp = 1)).copy(difficulty = Difficulty.Hardcore)
+    val (next, log, _) = resolver().resolve(hardcore, CombatAction(CombatActionType.Attack))
+    assertEquals(next.player.metaCurrency, fullHpPlayer().metaCurrency)
+    assert(next.player.xp > 0, "the XP is still earned")
+    assert(!log.exists(_.contains("Shard")), s"no Shard may be mentioned: $log")
+    assert(log.exists(_.contains("You gain")), s"expected the XP in the log: $log")
+
   test("Victory awards XP to the player"):
     val (next, _, _) =
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
@@ -260,6 +289,18 @@ class CombatResolverSuite extends FunSuite:
       CombatResolver(Random(0), itemDefs).resolve(combatStateInMiniBossRoom(enemy), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState], s"expected ExplorationState, got $next")
 
+  test("the Shrine of a Devoted Boss carries its Devoted, the Shrine of any other Boss none"):
+    val wraith = EnemyStats(typeId = "wraith", label = "Wraith", spriteId = "mob_x_idle", maxHp = 80, attack = 26,
+                            defense = 3, xpReward = 100, actions = List(EnemyActionWeight("ATTACK", 100)), devoted = Some(1)
+    )
+    def shrineOf(state: GameState): Option[Shrine] =
+      state.asInstanceOf[ExplorationState].dungeon.currentRoom.entities.collectFirst { case s: Shrine => s }
+    val devotedState = combatStateInBossRoom(weakEnemy(hp = 1).copy(typeId = "wraith")).copy(enemyStats = Map("wraith" -> wraith))
+    val (devotedNext, _, _) = resolver().resolve(devotedState, CombatAction(CombatActionType.Attack))
+    assertEquals(shrineOf(devotedNext).map(_.devoted), Some(Some(1)))
+    val (plainNext, _, _) = resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    assertEquals(shrineOf(plainNext).map(_.devoted), Some(None))
+
   test("defeating a MiniBoss spawns a Chest at its position instead of the usual loot roll"):
     val itemDefs: Map[String, Item] = Map(
       "health_potion" -> Consumable("", "health_potion", "Health Potion", Rarity.Common, ConsumableEffect.HealFixed(30))
@@ -278,7 +319,7 @@ class CombatResolverSuite extends FunSuite:
   test("MiniBoss victory emits EnemyDefeated(isBoss = false) - only a section's real Boss kill sets isBoss"):
     val (_, _, events) =
       resolver().resolve(combatStateInMiniBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false)),
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false, typeId = "goblin")),
            s"expected EnemyDefeated(isBoss=false): $events"
     )
     assert(!events.exists(_.isInstanceOf[GameEvent.RunEnded]), s"unexpected RunEnded: $events")
@@ -288,7 +329,7 @@ class CombatResolverSuite extends FunSuite:
   test("boss victory emits EnemyDefeated(isBoss = true) but no RunEnded - the Sanctuary emits that now, not any boss kill"):
     val (_, _, events) =
       resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false)),
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false, typeId = "goblin")),
            s"expected EnemyDefeated(isBoss=true, tookNoDamage=true): $events"
     )
     assert(!events.exists(_.isInstanceOf[GameEvent.RunEnded]), s"unexpected RunEnded: $events")
@@ -296,16 +337,28 @@ class CombatResolverSuite extends FunSuite:
   test("non-boss victory emits EnemyDefeated(isBoss = false) and no RunEnded"):
     val (_, _, events) =
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false)),
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false, typeId = "goblin")),
            s"expected EnemyDefeated(isBoss=false, tookNoDamage=true): $events"
     )
     assert(!events.exists(_.isInstanceOf[GameEvent.RunEnded]), s"unexpected RunEnded: $events")
+
+  test("the victory event names the type of the enemy that fell, whatever its room"):
+    val (_, _, bossEvents) =
+      resolver().resolve(combatStateInBossRoom(weakEnemy(hp = 1).copy(typeId = "wraith")), CombatAction(CombatActionType.Attack))
+    assert(bossEvents.exists { case GameEvent.EnemyDefeated(_, _, _, typeId) => typeId == "wraith"; case _ => false },
+           s"expected the Boss's type in the event: $bossEvents"
+    )
+    val (_, _, plainEvents) =
+      resolver().resolve(combatState(weakEnemy(hp = 1).copy(typeId = "orc")), CombatAction(CombatActionType.Attack))
+    assert(plainEvents.exists { case GameEvent.EnemyDefeated(_, _, _, typeId) => typeId == "orc"; case _ => false },
+           s"expected the enemy's type in the event: $plainEvents"
+    )
 
   test("victory after taking damage earlier this fight emits tookNoDamage = false"):
     val hurtState = combatState(weakEnemy(hp = 1))
     val stateWithDamageTaken = hurtState.copy(combat = hurtState.combat.copy(tookDamage = true))
     val (_, _, events) = resolver().resolve(stateWithDamageTaken, CombatAction(CombatActionType.Attack))
-    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false)),
+    assert(events.contains(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin")),
            s"expected tookNoDamage = false: $events"
     )
 
@@ -319,7 +372,7 @@ class CombatResolverSuite extends FunSuite:
     )
     val (_, _, events) =
       CombatResolver(Random(0), itemDefs).resolve(combatState(eliteEnemy), CombatAction(CombatActionType.Attack))
-    assert(events.exists { case GameEvent.EnemyDefeated(_, _, wasElite) => wasElite; case _ => false },
+    assert(events.exists { case GameEvent.EnemyDefeated(_, _, wasElite, _) => wasElite; case _ => false },
            s"expected EnemyDefeated with wasElite = true: $events"
     )
     val pickedUpRarity = events.collectFirst { case GameEvent.ItemPickedUp(_, rarity, _, _, _) => rarity }
@@ -330,7 +383,7 @@ class CombatResolverSuite extends FunSuite:
   test("non-Elite kill does not force wasElite or a rarity floor"):
     val (_, _, events) =
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
-    assert(events.exists { case GameEvent.EnemyDefeated(_, _, wasElite) => !wasElite; case _ => false },
+    assert(events.exists { case GameEvent.EnemyDefeated(_, _, wasElite, _) => !wasElite; case _ => false },
            s"expected EnemyDefeated with wasElite = false: $events"
     )
 

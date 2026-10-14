@@ -21,6 +21,15 @@ export const dictionaries: Dictionaries = Object.fromEntries(
 );
 
 /**
+ * The text of `key` in `language`, else in the fallback language, else null. Unlike `translate`, a
+ * missing key is not given back as text, so a caller can tell a text from nothing, for instance to
+ * read numbered lines until they run out.
+ */
+export function lookup(all: Dictionaries, language: string, key: string): string | null {
+    return all[language]?.[key] ?? all[FALLBACK_LANGUAGE]?.[key] ?? null;
+}
+
+/**
  * Looks up `key` in `language`, then in the fallback language, then gives the key back so a typo
  * is visible on screen instead of blank. `{name}` placeholders are filled from `params`; one with
  * no matching param is left as written.
@@ -31,7 +40,7 @@ export function translate(
     key: string,
     params: TranslateParams = {},
 ): string {
-    const template = all[language]?.[key] ?? all[FALLBACK_LANGUAGE]?.[key] ?? key;
+    const template = lookup(all, language, key) ?? key;
     return template.replace(/\{(\w+)\}/g, (placeholder, name: string) =>
         name in params ? String(params[name]) : placeholder,
     );

@@ -21,6 +21,17 @@ class AchievementLoaderSuite extends CatsEffectSuite:
       |  {"id":"test_difficulty","label":"L","description":"d","displayOrder":6,"condition":{"type":"WinOnDifficulty","difficulty":"hard"}}
       |]""".stripMargin
 
+  test("an achievement is shown from the start unless it says it is hidden"):
+    val json =
+      """[
+        |  {"id":"plain","label":"L","description":"d","displayOrder":1,"condition":{"type":"FirstKill"}},
+        |  {"id":"secret","label":"L","description":"d","displayOrder":2,"condition":{"type":"FirstKill"},"hidden":true}
+        |]""".stripMargin
+    for defs <- AchievementLoader.loadAllFromJson(json)
+    yield
+      assertEquals(defs("plain").hidden, false)
+      assertEquals(defs("secret").hidden, true)
+
   test("loadAllFromJson keys each entry by its id"):
     for defs <- AchievementLoader.loadAllFromJson(fixture)
     yield assertEquals(defs.size, 6)

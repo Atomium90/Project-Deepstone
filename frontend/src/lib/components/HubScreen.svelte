@@ -16,12 +16,12 @@
     const ICON_LOCK = "/sprites/ui/icons/icon_lock.png";
     const ICON_GEAR = "/sprites/ui/icons/icon_gear.png";
     const ICON_SHARD = "/sprites/ui/icons/icon_shard.png";
-    import type { ClassId, Difficulty, UpgradeCategory, UpgradeView } from "../engine/protocol";
+    import type { ClassId, Difficulty, DifficultyView, UpgradeCategory, UpgradeView } from "../engine/protocol";
 
     // Selected class (Warrior by default)
     let selectedClass: ClassId = "warrior";
 
-    // Selected difficulty (Normal by default)
+    // Selected difficulty: Normal by default, or the highest unlocked tier while Normal is locked
     let selectedDifficulty: Difficulty = "normal";
 
     // Selected run perk (none by default - a perk is optional, not required to start a run)
@@ -37,10 +37,27 @@
 
     $: player   = $gameState?.player;
     $: upgrades = $gameState?.hub?.upgrades ?? [];
+    // The altar shut for good keeps only what the player already owns on show: there is nothing left to buy.
+    $: shopClosed = $gameState?.hub?.shopClosed ?? false;
+    $: shownUpgrades = shopClosed ? upgrades.filter((u) => u.unlocked) : upgrades;
     $: visibleUpgrades =
-        selectedUpgradeTab === "all" ? upgrades : upgrades.filter((u) => u.category === selectedUpgradeTab);
+        selectedUpgradeTab === "all" ? shownUpgrades : shownUpgrades.filter((u) => u.category === selectedUpgradeTab);
     $: perks    = $gameState?.hub?.perks ?? [];
     $: shards   = player?.metaCurrency ?? 0;
+
+    // Which tiers can be started. The server is what enforces it, the hub only mirrors it, so a
+    // tier the server does not list counts as available.
+    $: tiers = $gameState?.hub?.difficulties ?? [];
+    // The tier only the story opens is on screen only when the server lists it, and is never the
+    // default pick: the player chooses it on purpose.
+    $: difficulties = tiers.some((tier) => tier.id === storyTier) ? [...regularTiers, storyTier] : regularTiers;
+    $: unlockedTiers = new Set(difficulties.filter((d) => tiers.find((tier) => tier.id === d)?.unlocked ?? true));
+    $: if (!unlockedTiers.has(selectedDifficulty)) {
+        selectedDifficulty = regularTiers.filter((d) => unlockedTiers.has(d)).at(-1) ?? "easy";
+    }
+    $: nextLockedTier = tiers.find((tier) => !tier.unlocked);
+    // Nothing from the hub is taken into that tier: no upgrade, no starting kit, no run perk.
+    $: noBlessings = selectedDifficulty === storyTier;
 
     // The Hub is introduced step by step: the upgrade shop (and with it the classes that are
     // locked behind an upgrade) only shows once there is something to spend Shards on, then stays
@@ -52,7 +69,8 @@
         $tutorial.skipped ||
         upgrades.some((u) => u.unlocked) ||
         (cheapestUpgrade !== null && shards >= cheapestUpgrade);
-    $: if (shopVisible) showHint("shop");
+    // The hint is about spending Shards, which a shut altar no longer allows.
+    $: if (shopVisible && !shopClosed) showHint("shop");
     // The perks are offered by the server only once it unlocks them, so a non-empty list is
     // already the whole rule.
     $: rightPanelVisible = shopVisible || perks.length > 0;
@@ -64,7 +82,8 @@
     $: debugRooms = $gameState?.debugRooms ?? [];
 
     const classes: ClassId[] = ["warrior", "archer", "mage"];
-    const difficulties: Difficulty[] = ["easy", "normal", "hard"];
+    const regularTiers: Difficulty[] = ["easy", "normal", "hard"];
+    const storyTier: Difficulty = "hardcore";
 
     /** A class is unlocked if it has no gating upgrade, or that upgrade has been bought. */
     function isClassUnlocked(c: ClassId): boolean {
@@ -79,7 +98,34 @@
     }
 
     function selectDifficulty(d: Difficulty): void {
+        if (!unlockedTiers.has(d)) return;
         selectedDifficulty = d;
+    }
+
+    /** What a tier still lacks, one text per unmet condition. */
+    function missingFor(tier: DifficultyView | undefined): string[] {
+        const requirement = tier?.requirement;
+        if (!requirement) return [];
+        const lines: string[] = [];
+        if (requirement.winsDone < requirement.wins) {
+            lines.push(
+                $t("hub.difficulty.needWins", {
+                    tier: DIFFICULTY_INFO[requirement.winsAt].label,
+                    done: requirement.winsDone,
+                    wins: requirement.wins,
+                }),
+            );
+        }
+        if (requirement.shardsSpentDone < requirement.shardsSpent) {
+            lines.push(
+                $t("hub.difficulty.needShards", {
+                    currency: CURRENCY_NAME,
+                    done: requirement.shardsSpentDone,
+                    needed: requirement.shardsSpent,
+                }),
+            );
+        }
+        return lines;
     }
 
     /** Clicking an already-selected perk deselects it - a perk is optional, not required. */
@@ -94,7 +140,7 @@
             action: "STARTRUN",
             classId: selectedClass,
             difficulty: selectedDifficulty,
-            ...(selectedPerkId ? { perkId: selectedPerkId } : {}),
+            ...(selectedPerkId && !noBlessings ? { perkId: selectedPerkId } : {}),
         });
     }
 
@@ -166,18 +212,37 @@
                 {#each difficulties as d}
                     {@const info  = DIFFICULTY_INFO[d]}
                     {@const color = DIFFICULTY_COLORS[d]}
+                    {@const unlocked = unlockedTiers.has(d)}
                     <button
                         class="difficulty-card"
                         class:selected={selectedDifficulty === d}
+                        class:locked={!unlocked}
+                        disabled={!unlocked}
                         style="--accent: {color}"
                         on:click={() => selectDifficulty(d)}
-                        title={info.description}
+                        title={unlocked ? info.description : missingFor(tiers.find((tier) => tier.id === d)).join(" · ")}
                     >
+                        {#if !unlocked}
+                            <img class="lock-badge" src={ICON_LOCK} alt="" />
+                        {/if}
                         <span class="difficulty-icon">{info.icon}</span>
                         <span class="difficulty-name">{info.label}</span>
                     </button>
                 {/each}
             </div>
+
+            {#if noBlessings}
+                <p class="difficulty-rules">{$t("hub.difficulty.hardcoreRules")}</p>
+            {/if}
+
+            {#if nextLockedTier}
+                <p class="difficulty-hint">
+                    {$t("hub.difficulty.next", { tier: DIFFICULTY_INFO[nextLockedTier.id].label })}
+                    {#each missingFor(nextLockedTier) as line}
+                        <span class="difficulty-need">{line}</span>
+                    {/each}
+                </p>
+            {/if}
 
             <button class="start-btn" on:click={startRun}>
                 ▶ Start Run
@@ -204,6 +269,10 @@
                     </button>
                 {/each}
             </div>
+
+            {#if shopClosed}
+                <p class="shop-closed">{$t("hub.shopClosed")}</p>
+            {/if}
 
             {#if visibleUpgrades.length === 0}
                 <p class="muted">No upgrades available.</p>
@@ -249,11 +318,11 @@
 
             {#if perks.length > 0}
                 <p class="section-label" class:perk-section-label={shopVisible}>Run Perk</p>
-                <div class="perk-list">
+                <div class="perk-list" class:off={noBlessings}>
                     {#each perks as p}
                         <button
                             class="perk-card"
-                            class:selected={selectedPerkId === p.id}
+                            class:selected={selectedPerkId === p.id && !noBlessings}
                             on:click={() => selectPerk(p.id)}
                         >
                             <span class="perk-icon">{p.icon}</span>
@@ -545,6 +614,7 @@
     }
 
     .difficulty-card {
+        position: relative;
         flex: 1;
         display: flex;
         flex-direction: column;
@@ -570,8 +640,35 @@
         color: var(--accent);
     }
 
+    .difficulty-card.locked {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .difficulty-card.locked:hover {
+        background: #161616;
+        border-color: #252525;
+    }
+
     .difficulty-icon { font-size: 1.1rem; }
     .difficulty-name { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .difficulty-hint {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        margin-top: -0.75rem;
+        font-size: 0.65rem;
+        color: #666;
+    }
+
+    .difficulty-need { color: #8a7a4a; }
+
+    .difficulty-rules {
+        margin-top: -0.75rem;
+        font-size: 0.65rem;
+        color: #b05ce0;
+    }
 
     .start-btn {
         margin-top: auto;
@@ -799,6 +896,11 @@
         gap: 0.4rem;
     }
 
+    /* No perk counts in Hardcore: the cards stay readable but plainly out of play. */
+    .perk-list.off {
+        opacity: 0.4;
+    }
+
     .perk-card {
         display: flex;
         align-items: center;
@@ -860,4 +962,10 @@
     }
 
     .muted { color: #444; font-size: 0.85rem; }
+
+    .shop-closed {
+        margin-bottom: 0.5rem;
+        font-size: 0.7rem;
+        color: #a08a5a;
+    }
 </style>

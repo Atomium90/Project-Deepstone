@@ -1,15 +1,20 @@
 package roguelite.game
 
+import roguelite.engine.Difficulty
+
 /** Lifetime counters/sets that back the count- and diversity-based achievement conditions
   * ([[AchievementCondition.RunsCompleted]], [[AchievementCondition.RunsWon]],
   * [[AchievementCondition.WinStreak]], [[AchievementCondition.TotalShardsSpent]],
   * [[AchievementCondition.ConsumablesUsed]], [[AchievementCondition.DistinctPotionTypesUsed]],
-  * [[AchievementCondition.DistinctPerksWonWith]]).
+  * [[AchievementCondition.DistinctPerksWonWith]]), and that decide which difficulty tiers are
+  * unlocked.
   *
   * Persisted across several dedicated tables (`achievement_stats`, `consumable_stats`,
-  * `potion_type_used`, `perk_won_with`), not as new columns on `meta` - see [[roguelite.db.Database]]
-  * for why. `potionTypesUsed`/`perksWonWith` are append-only sets of ids, not counters - a new id is
-  * recorded once and never removed, mirroring `unlocked` on [[AchievementProgress]] below.
+  * `potion_type_used`, `perk_won_with`, `difficulty_win`), not as new columns on `meta` - see
+  * [[roguelite.db.Database]] for why. `potionTypesUsed`/`perksWonWith` are append-only sets of ids,
+  * not counters - a new id is recorded once and never removed, mirroring `unlocked` on
+  * [[AchievementProgress]] below. `winsByDifficulty` counts victories per tier; a save from before
+  * it existed has `runsWon` victories that no tier accounts for.
   */
 case class AchievementStats(
     runsCompleted: Int = 0,
@@ -18,7 +23,8 @@ case class AchievementStats(
     totalShardsSpent: Int = 0,
     consumablesUsed: Int = 0,
     potionTypesUsed: Set[String] = Set.empty,
-    perksWonWith: Set[String] = Set.empty
+    perksWonWith: Set[String] = Set.empty,
+    winsByDifficulty: Map[Difficulty, Int] = Map.empty
 )
 
 object AchievementStats:

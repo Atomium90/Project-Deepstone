@@ -77,7 +77,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set.empty,
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assertEquals(unlocked.map(_.id), List("first_blood"))
   }
@@ -87,7 +87,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assertEquals(unlocked, Nil)
   }
@@ -97,7 +97,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assert(unlocked.map(_.id).contains("boss_slayer"))
   }
@@ -107,7 +107,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assert(!unlocked.map(_.id).contains("boss_slayer"))
   }
@@ -117,7 +117,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = true, wasElite = false, typeId = "goblin"))
     )
     assert(unlocked.map(_.id).contains("untouchable"))
   }
@@ -127,7 +127,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assert(!unlocked.map(_.id).contains("untouchable"))
   }
@@ -137,7 +137,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = true))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = true, typeId = "goblin"))
     )
     assert(unlocked.map(_.id).contains("elite_hunter"))
   }
@@ -147,7 +147,7 @@ class AchievementCheckerSuite extends FunSuite:
       allDefs,
       Set("first_blood"),
       AchievementStats.empty,
-      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false))
+      List(GameEvent.EnemyDefeated(isBoss = false, tookNoDamage = false, wasElite = false, typeId = "goblin"))
     )
     assert(!unlocked.map(_.id).contains("elite_hunter"))
   }
@@ -278,6 +278,19 @@ class AchievementCheckerSuite extends FunSuite:
     assert(!lostHard.map(_.id).contains("hard_mode_victory"))
   }
 
+  test("winning on Hardcore unlocks hardcore_victory; winning on Hard, or losing on Hardcore, does not") {
+    val hardcoreVictory = defOf("hardcore_victory", AchievementCondition.WinOnDifficulty(Difficulty.Hardcore))
+    val defs            = Map(hardcoreVictory.id -> hardcoreVictory)
+    def outcome(victory: Boolean, difficulty: Difficulty): List[String] =
+      AchievementChecker
+        .checkEvents(defs, Set.empty, AchievementStats.empty, List(GameEvent.RunEnded(victory, difficulty, activePerkId = None)))
+        ._2
+        .map(_.id)
+    assertEquals(outcome(victory = true, Difficulty.Hardcore), List("hardcore_victory"))
+    assertEquals(outcome(victory = true, Difficulty.Hard), Nil)
+    assertEquals(outcome(victory = false, Difficulty.Hardcore), Nil)
+  }
+
   test("DoorUnlockedWithKey unlocks key_master") {
     val (_, unlocked) = AchievementChecker.checkEvents(
       allDefs,
@@ -324,6 +337,21 @@ class AchievementCheckerSuite extends FunSuite:
     assertEquals(stats.runsCompleted, 5)
     assertEquals(stats.runsWon, 4)
     assertEquals(stats.currentWinStreak, 4)
+  }
+
+  test("a victory is counted on its own difficulty, a defeat on none") {
+    val (stats, _) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      AchievementStats.empty,
+      List(
+        GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard, activePerkId = None),
+        GameEvent.RunEnded(victory = true, difficulty = Difficulty.Easy, activePerkId = None),
+        GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard, activePerkId = None),
+        GameEvent.RunEnded(victory = false, difficulty = Difficulty.Normal, activePerkId = None)
+      )
+    )
+    assertEquals(stats.winsByDifficulty, Map(Difficulty.Hard -> 2, Difficulty.Easy -> 1))
   }
 
   test("ConsumableUsed increments consumablesUsed and adds the typeId to potionTypesUsed") {
@@ -457,7 +485,7 @@ class AchievementCheckerSuite extends FunSuite:
       Set.empty,
       AchievementStats.empty,
       List(
-        GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false),
+        GameEvent.EnemyDefeated(isBoss = true, tookNoDamage = true, wasElite = false, typeId = "goblin"),
         GameEvent.LeveledUp(5)
       )
     )

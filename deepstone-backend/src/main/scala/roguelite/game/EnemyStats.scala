@@ -16,6 +16,11 @@ case class LootEntry(typeId: String, weight: Int)
   *
   * Loaded once at startup and never mutated. All fields reflect the base values before any
   * difficulty scaling is applied.
+  *
+  * @param devoted
+  *   Which Devoted this enemy type is, from 1, when it is one of the six Bosses the story gives a
+  *   name and a few lines (the texts are `story.boss.<n>.*` in the client's language file). Kept
+  *   apart from `spriteId` on purpose, so changing how an enemy looks never changes who it is.
   */
 case class EnemyStats(
     typeId: String,
@@ -27,7 +32,8 @@ case class EnemyStats(
     xpReward: Int,
     actions: List[EnemyActionWeight],
     dropChance: Int = 0,
-    lootTable: List[LootEntry] = Nil
+    lootTable: List[LootEntry] = Nil,
+    devoted: Option[Int] = None
 )
 
 // ---------------------------------------------

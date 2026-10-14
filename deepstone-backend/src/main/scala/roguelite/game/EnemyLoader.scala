@@ -26,6 +26,19 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
       .flatMap(
         esjs => esjs.traverse(toEnemyStats)
       )
+      .flatMap(checkDevoted)
+
+  /** Every Devoted is one enemy type: a number below 1 is no Devoted, and two types sharing a number
+    * would share a name and lines.
+    */
+  private def checkDevoted(entries: List[EnemyStats]): Either[String, List[EnemyStats]] =
+    val numbered = entries.flatMap(stats => stats.devoted.map(stats.typeId -> _))
+    numbered.find((_, n) => n < 1) match
+      case Some((typeId, n)) => Left(s"Enemy '$typeId' is Devoted $n, which must be 1 or more")
+      case None =>
+        numbered.groupBy((_, n) => n).collectFirst { case (n, group) if group.sizeIs > 1 => (n, group.map(_._1)) } match
+          case Some((n, typeIds)) => Left(s"Devoted $n is given to several enemies: ${typeIds.sorted.mkString(", ")}")
+          case None               => Right(entries)
 
   private def toEnemyStats(ej: EnemyStatsJson): Either[String, EnemyStats] =
     Right(
@@ -45,7 +58,8 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
           .getOrElse(Nil)
           .map(
             l => LootEntry(l.typeId, l.weight)
-          )
+          ),
+        devoted = ej.devoted
       )
     )
 
@@ -67,7 +81,8 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
       xpReward: Int,
       actions: List[EnemyActionWeightJson],
       dropChance: Option[Int] = None,
-      lootTable: Option[List[LootEntryJson]] = None
+      lootTable: Option[List[LootEntryJson]] = None,
+      devoted: Option[Int] = None
   )
 
   // Circe decoders for internal DTOs
@@ -98,6 +113,7 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
         actions    <- c.get[List[EnemyActionWeightJson]]("actions")
         dropChance <- c.get[Option[Int]]("dropChance")
         lootTable  <- c.get[Option[List[LootEntryJson]]]("lootTable")
+        devoted    <- c.get[Option[Int]]("devoted")
       yield EnemyStatsJson(typeId,
                            label,
                            spriteId,
@@ -107,5 +123,6 @@ object EnemyLoader extends JsonResourceLoader[EnemyStats, String]:
                            xpReward,
                            actions,
                            dropChance,
-                           lootTable
+                           lootTable,
+                           devoted
       )

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { currentState, waitForStateChange, playRunToGameOver } from "./helpers";
+import { currentState, waitForStateChange, playRunToGameOver, dismissPendingCards } from "./helpers";
 
 // The tutorial is NOT skipped here: this is what a player meets on a brand-new save. It needs a
 // database with no finished run, which the config guarantees by running this spec in a project of
@@ -36,6 +36,15 @@ test("the first run of a new save: start screen -> bare-handed run -> game over 
     const { state: ended } = await playRunToGameOver(page, started);
     expect(ended.phase, "expected the run to reach GAMEOVER within the iteration budget").toBe("GAMEOVER");
 
+    // A first death is answered by the god, under the title, in the tone of the first chapters. A win
+    // has the card of its chapter instead, which covers the screen until it has been read.
+    if (ended.victory) {
+        await dismissPendingCards(page);
+    } else {
+        expect(ended.godLine).toEqual({ moment: "death.first", phase: "a" });
+        await expect(page.locator(".god-line")).toBeVisible();
+    }
+
     // Back in the Hub: the run counts, so the start screen is gone for good.
     await page.locator("button.return-btn").click();
     await expect.poll(async () => (await currentState(page))?.phase).toBe("HUB");
@@ -43,4 +52,9 @@ test("the first run of a new save: start screen -> bare-handed run -> game over 
     expect(backInHub.hub?.runsCompleted).toBe(1);
     await expect(page.locator("div.hub-root")).toBeVisible();
     await expect(page.locator("button.begin-btn")).toHaveCount(0);
+
+    // The tiers follow the result of that run: a win on Easy opens Normal and a defeat leaves it
+    // locked, while Hard stays locked either way. The hub greys out whatever is locked.
+    expect(backInHub.hub?.difficulties.map((tier) => tier.unlocked)).toEqual([true, ended.victory, false]);
+    await expect(page.locator(".difficulty-card.locked")).toHaveCount(ended.victory ? 1 : 2);
 });

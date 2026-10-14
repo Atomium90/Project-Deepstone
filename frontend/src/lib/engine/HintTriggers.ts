@@ -38,6 +38,8 @@ function itemHints(state: StateUpdate): string[] {
 export function candidateHints(state: StateUpdate): string[] {
     switch (state.phase) {
         case "EXPLORATION": {
+            // A conversation holds the screen: no hint talks over it.
+            if (state.pendingScene) return [];
             const hints: string[] = [];
             // A modal waiting for an answer is the most pressing thing on screen.
             if (state.pendingEquipChoice) hints.push("equip_choice");

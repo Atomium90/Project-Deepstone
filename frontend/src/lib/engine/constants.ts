@@ -147,6 +147,11 @@ export const DIFFICULTY_INFO = {
     label: "Hard",
     description: "Tougher enemies, longer runs, better loot",
   },
+  hardcore: {
+    icon: "💀",
+    label: "Hardcore",
+    description: "Much tougher enemies, and nothing carried in from the hub",
+  },
 } as const;
 
 /** Accent color per difficulty, same role as PLAYER_CLASS_COLORS for classes. */
@@ -154,6 +159,7 @@ export const DIFFICULTY_COLORS: Record<Difficulty, string> = {
   easy: "#5ce07a",
   normal: "#e0c15c",
   hard: "#e05c5c",
+  hardcore: "#b05ce0",
 } as const;
 
 // ---------------------------------------------

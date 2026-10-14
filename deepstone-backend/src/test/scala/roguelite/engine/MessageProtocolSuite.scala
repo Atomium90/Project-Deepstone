@@ -1,7 +1,7 @@
 package roguelite.engine
 
 import munit.FunSuite
-import roguelite.game.EquipSlot
+import roguelite.game.{ EquipSlot, Rarity }
 
 class MessageProtocolSuite extends FunSuite:
 
@@ -52,6 +52,30 @@ class MessageProtocolSuite extends FunSuite:
       )
     )
 
+  test("decode HUB_ACTION start run on hardcore"):
+    val json = """{"type":"HUB_ACTION","action":"STARTRUN","classId":"warrior","difficulty":"hardcore"}"""
+    assertEquals(
+      MessageProtocol.decodeAction(json),
+      Right(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Hardcore)))
+    )
+
+  test("hardcore is named in lowercase on the wire, like the other tiers"):
+    import io.circe.syntax.*
+    import MessageProtocol.given
+    assertEquals(Difficulty.values.toList.map(_.asJson.asString), List("easy", "normal", "hard", "hardcore").map(Some(_)))
+
+  test("every tier takes the god's blessings but Hardcore"):
+    assertEquals(Difficulty.values.toList.filter(_.usesBlessings), List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard))
+
+  test("hardcore has the sections, Elites, traps and loot of Hard, with enemies half again as strong"):
+    assertEquals(Difficulty.Hardcore.statMultiplier, 1.5)
+    assert(Difficulty.Hardcore.statMultiplier > Difficulty.Hard.statMultiplier)
+    assertEquals(Difficulty.Hardcore.biomeCount, Difficulty.Hard.biomeCount)
+    assertEquals(Difficulty.Hardcore.eliteChance, Difficulty.Hard.eliteChance)
+    assertEquals(Difficulty.Hardcore.trappedChestChance, Difficulty.Hard.trappedChestChance)
+    assertEquals(Difficulty.Hardcore.trappedDoorChance, Difficulty.Hard.trappedDoorChance)
+    assertEquals(Difficulty.Hardcore.rarityWeightMultiplier(Rarity.Uncommon), Difficulty.Hard.rarityWeightMultiplier(Rarity.Uncommon))
+
   test("decode HUB_ACTION start run without difficulty leaves it None"):
     val json   = """{"type":"HUB_ACTION","action":"STARTRUN","classId":"warrior"}"""
     val result = MessageProtocol.decodeAction(json)
@@ -66,6 +90,41 @@ class MessageProtocolSuite extends FunSuite:
     val json   = """{"type":"HUB_ACTION","action":"BUYUPGRADE","upgradeId":"hp_boost_1"}"""
     val result = MessageProtocol.decodeAction(json)
     assertEquals(result, Right(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1"))))
+
+  test("decode CARD_SEEN"):
+    assertEquals(MessageProtocol.decodeAction("""{"type":"CARD_SEEN","cardId":"ch1"}"""), Right(CardSeen("ch1")))
+
+  test("decode ENDING_CHOICE to enter or to refuse the light, with no NPC"):
+    assertEquals(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"ENTER"}"""), Right(EndingChoice(EndingAnswer.Enter)))
+    assertEquals(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"REFUSE"}"""), Right(EndingChoice(EndingAnswer.Refuse)))
+
+  test("decode ENDING_CHOICE to let an NPC take the place"):
+    assertEquals(
+      MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"REPLACE","npc":"npc.2"}"""),
+      Right(EndingChoice(EndingAnswer.Replace, Some("npc.2")))
+    )
+
+  test("the answers to the light are written in capitals, as the client sends them"):
+    import io.circe.syntax.*
+    import MessageProtocol.given
+    assertEquals(EndingAnswer.values.toList.map(_.asJson.asString), List("ENTER", "REPLACE", "REFUSE").map(Some(_)))
+
+  test("decode ENDING_CHOICE with an unknown answer or none returns Left"):
+    assert(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE","answer":"FLEE"}""").isLeft)
+    assert(MessageProtocol.decodeAction("""{"type":"ENDING_CHOICE"}""").isLeft)
+
+  test("decode CARD_SEEN without a card returns Left"):
+    assert(MessageProtocol.decodeAction("""{"type":"CARD_SEEN"}""").isLeft)
+
+  test("decode SCENE_DONE without an answer"):
+    assertEquals(MessageProtocol.decodeAction("""{"type":"SCENE_DONE"}"""), Right(SceneDone(None)))
+
+  test("decode SCENE_DONE with the answer to a vow"):
+    assertEquals(MessageProtocol.decodeAction("""{"type":"SCENE_DONE","accept":true}"""), Right(SceneDone(Some(true))))
+    assertEquals(MessageProtocol.decodeAction("""{"type":"SCENE_DONE","accept":false}"""), Right(SceneDone(Some(false))))
+
+  test("decode SCENE_DONE with an answer that is not a boolean returns Left"):
+    assert(MessageProtocol.decodeAction("""{"type":"SCENE_DONE","accept":"yes"}""").isLeft)
 
   test("decode EQUIP_CHOICE with a weapon slot target"):
     val json   = """{"type":"EQUIP_CHOICE","targetSlot":"WEAPON"}"""
@@ -178,6 +237,76 @@ class MessageProtocolSuite extends FunSuite:
     )
     val json = MessageProtocol.encodeUpdate(update)
     assert(json.contains("\"runsCompleted\":3"), s"Expected runsCompleted in the hub JSON: $json")
+
+  test("encodeUpdate sends each difficulty tier with its unlock progress"):
+    val update = StateUpdate(
+      phase = GamePhase.Hub,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      hub = Some(
+        HubView(
+          upgrades = Nil,
+          difficulties = List(
+            DifficultyView(Difficulty.Easy, unlocked = true),
+            DifficultyView(Difficulty.Normal,
+                           unlocked = false,
+                           Some(TierRequirementView(Difficulty.Easy, wins = 1, winsDone = 0, shardsSpent = 0, shardsSpentDone = 0))
+            )
+          )
+        )
+      )
+    )
+    val hub = io.circe.parser.parse(MessageProtocol.encodeUpdate(update)).toOption.get.hcursor.downField("hub")
+    assertEquals(hub.downField("difficulties").downN(0).get[String]("id"), Right("easy"))
+    assertEquals(hub.downField("difficulties").downN(0).get[Boolean]("unlocked"), Right(true))
+    val normal = hub.downField("difficulties").downN(1)
+    assertEquals(normal.get[Boolean]("unlocked"), Right(false))
+    assertEquals(normal.downField("requirement").get[String]("winsAt"), Right("easy"))
+    assertEquals(normal.downField("requirement").get[Int]("wins"), Right(1))
+
+  test("encodeUpdate sends the conversation the player is in"):
+    val update = StateUpdate(
+      phase = GamePhase.Exploration,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      pendingScene = Some(PendingSceneView("npc.1", "scene", sceneId = Some("npc.1.s2"), offerScene = Some("npc.1.s2")))
+    )
+    val scene = io.circe.parser.parse(MessageProtocol.encodeUpdate(update)).toOption.get.hcursor.downField("pendingScene")
+    assertEquals(scene.get[String]("npc"), Right("npc.1"))
+    assertEquals(scene.get[String]("kind"), Right("scene"))
+    assertEquals(scene.get[String]("sceneId"), Right("npc.1.s2"))
+    assertEquals(scene.get[String]("offerScene"), Right("npc.1.s2"))
+
+  test("encodeUpdate sends the question of the light with the NPCs who could take the place"):
+    val update = StateUpdate(
+      phase = GamePhase.Exploration,
+      player = PlayerView(ClassId.Warrior,
+                          hp = 100,
+                          maxHp = 100,
+                          resourceCurrent = 0,
+                          resourceMax = 100,
+                          level = 1,
+                          xp = 0,
+                          metaCurrency = 0
+      ),
+      pendingEndingChoice = Some(PendingEndingChoiceView(List("npc.2", "npc.5")))
+    )
+    val question = io.circe.parser.parse(MessageProtocol.encodeUpdate(update)).toOption.get.hcursor.downField("pendingEndingChoice")
+    assertEquals(question.get[List[String]]("candidates"), Right(List("npc.2", "npc.5")))
 
   test("encodeUpdate with optional fields absent produces null or omitted fields"):
     val update = StateUpdate(

@@ -36,12 +36,20 @@ function tabForKey(key: string, mapAvailable: boolean): CharacterTab | null {
  *
  * @param openTab The Character screen tab that is open, or null when it is closed.
  * @param mapAvailable Whether the server sent a map, which is what the map key needs.
+ * @param conversationPending Whether a conversation with a Rest NPC is waiting to be read to its end.
+ * Walking and interacting do nothing meanwhile (the server refuses them too), and the keys that
+ * advance the conversation belong to the conversation itself.
  */
-export function keyCommand(key: string, openTab: CharacterTab | null, mapAvailable: boolean): KeyCommand | null {
+export function keyCommand(
+  key: string,
+  openTab: CharacterTab | null,
+  mapAvailable: boolean,
+  conversationPending = false,
+): KeyCommand | null {
   const tab = tabForKey(key, mapAvailable);
   if (tab !== null) return openTab === tab ? { kind: "closeOverlay" } : { kind: "openTab", tab };
 
-  if (openTab !== null) return null;
+  if (openTab !== null || conversationPending) return null;
 
   if (key === "ç" || key === "à") return { kind: "debugRoom", step: key === "à" ? 1 : -1 };
   if (key === "e" || key === "E") return { kind: "interact" };

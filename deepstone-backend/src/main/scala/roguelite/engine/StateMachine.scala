@@ -4,13 +4,13 @@ import cats.effect.IO
 import roguelite.game.{
   ClassDef,
   CombatResolver,
+  DifficultyTierDef,
   Dungeon,
   DungeonBuilder,
   EnemyStats,
   EquipmentResolver,
   InteractionResolver,
   Item,
-  NpcDialogueDef,
   PerkDef,
   PerkEffect,
   PickupOutcome,
@@ -49,13 +49,14 @@ import roguelite.game.UpgradeEffect
   * @param rng
   *   Random instance for dungeon assembly and chest loot rolls. Inject a seeded one for
   *   deterministic tests.
-  * @param npcDialogueDefs
-  *   NPC dialogue catalog (see [[roguelite.game.NpcDialogueLoader]]), passed through to
-  *   [[InteractionResolver]].
   * @param perkDefs
   *   The loaded run-perk catalog, passed through to [[InteractionResolver]] for the Lucky Find
   *   chest hook. `StartRun`'s own perk validation doesn't need this separately - it reads the
   *   full `PerkDef` straight off `HubState.perkOptions`.
+  * @param difficultyDefs
+  *   The loaded difficulty tier catalog, whose theme sequence decides the theme of each section of
+  *   the dungeon `StartRun` builds. A difficulty it does not list leaves the builder to pick themes
+  *   itself. Which tiers a save may start is decided by [[GameSession]], not here.
   */
 class StateMachine(roomPool: Map[String, Room],
                    enemyStats: Map[String, EnemyStats],
@@ -64,12 +65,12 @@ class StateMachine(roomPool: Map[String, Room],
                    upgradeDefs: Map[String, UpgradeDef],
                    resolver: CombatResolver,
                    rng: Random = Random(),
-                   npcDialogueDefs: Map[String, NpcDialogueDef] = Map.empty,
                    setDefs: Map[String, SetDef] = Map.empty,
-                   perkDefs: Map[String, PerkDef] = Map.empty
+                   perkDefs: Map[String, PerkDef] = Map.empty,
+                   difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty
 ):
   private val interactionResolver =
-    InteractionResolver(enemyStats, itemDefs, rng, npcDialogueDefs, setDefs = setDefs, perkDefs = perkDefs)
+    InteractionResolver(enemyStats, itemDefs, rng, setDefs = setDefs, perkDefs = perkDefs)
 
   /** Dev tooling only: builds an `ExplorationState` containing just the given single room,
     * bypassing `DungeonBuilder` entirely - used by the Tiled room-authoring debug tool (see
@@ -91,8 +92,7 @@ class StateMachine(roomPool: Map[String, Room],
     }
 
   /** Lifts a plain (state, log) transition result into the richer type `applyActionPure` returns,
-    * so every action that never produces dialogue (everything except Interact on an Npc) can keep
-    * its existing shape untouched. */
+    * so every action that reports no events can keep its existing shape untouched. */
   private def lift(r: (GameState, List[String])): TransitionResult = TransitionResult(r._1, r._2)
 
   def transition(state: GameState, action: PlayerAction): IO[TransitionResult] =
@@ -112,7 +112,7 @@ class StateMachine(roomPool: Map[String, Room],
           // Unlike lockedBehind, an un-purchased kit doesn't block the run - it just starts with
           // nothing instead of the class's usual weapon/armor. Every class needs its own kit
           // upgrade, including Warrior (which has no UnlockClass gate at all) - the two gates are
-          // independent concepts.
+          // independent concepts. A run that takes no blessing (Hardcore) starts with nothing either way.
           val kitUnlocked = upgradeDefs.values.exists {
             u => u.effect == UpgradeEffect.UnlockStartingKit(classId) && hub.meta.isUnlocked(u.id)
           }
@@ -124,9 +124,10 @@ class StateMachine(roomPool: Map[String, Room],
             case (None, None) => (hub, List(s"Unknown class '$classId'. Cannot start run."))
 
             case (None, Some(classDef)) =>
-              val difficulty = difficultyOpt.getOrElse(Difficulty.Normal)
+              val difficulty = difficultyOpt.getOrElse(StateMachine.DefaultDifficulty)
 
-              DungeonBuilder(roomPool, rng).build(difficulty = difficulty)() match {
+              val themes = difficultyDefs.get(difficulty).map(_.themes).getOrElse(Nil)
+              DungeonBuilder(roomPool, rng, themes).build(difficulty = difficulty)() match {
                 case Left(err) =>
                   (hub, List(s"Failed to build dungeon: $err"))
 
@@ -145,9 +146,9 @@ class StateMachine(roomPool: Map[String, Room],
 
                   // Resolve starting kit: unknown typeIds are skipped, slot collisions are not
                   // expected. Skipped entirely (basePlayer unchanged) if this class's kit-unlock
-                  // upgrade hasn't been purchased.
+                  // upgrade hasn't been purchased, or if the run takes no blessing.
                   val playerWithKit =
-                    if !kitUnlocked then basePlayer
+                    if !kitUnlocked || !difficulty.usesBlessings then basePlayer
                     else
                       classDef.startingKit.foldLeft(basePlayer):
                         (p, typeId) =>
@@ -163,8 +164,10 @@ class StateMachine(roomPool: Map[String, Room],
                           }
 
                   // A perkId not currently among hub.perkOptions (stale/tampered) is silently
-                  // ignored, same discipline as EquipChoice's invalid-slot handling.
-                  val chosenPerk = perkIdOpt.flatMap(id => hub.perkOptions.find(_.id == id))
+                  // ignored, same discipline as EquipChoice's invalid-slot handling, and so is any
+                  // perk on a run that takes no blessing.
+                  val chosenPerk =
+                    perkIdOpt.filter(_ => difficulty.usesBlessings).flatMap(id => hub.perkOptions.find(_.id == id))
                   val playerWithPerk = chosenPerk match {
                     case None => playerWithKit
                     case Some(perk) =>
@@ -236,11 +239,13 @@ class StateMachine(roomPool: Map[String, Room],
       // -- Exploration ------------------------------------------------------
 
       case (exp: ExplorationState, Move(_) | Interact(_))
-          if exp.pendingEquipChoice.isDefined || exp.pendingRewardChoice.isDefined =>
-        // A pending keep/replace or reward choice must be resolved before the player can move or
-        // interact again - same "silently blocked" precedent as a wall/entity collision below.
-        // Interacting is blocked too: opening another chest would overwrite the pending choice, and
-        // leaving through a door would strand the chest the choice came from.
+          if exp.pendingEquipChoice.isDefined || exp.pendingRewardChoice.isDefined || exp.pendingScene.isDefined ||
+            exp.pendingEndingChoice =>
+        // A pending keep/replace, reward choice, conversation or question of the light must be resolved
+        // before the player can move or interact again - same "silently blocked" precedent as a wall/entity collision
+        // below. Interacting is blocked too: opening another chest would overwrite the pending
+        // choice, and leaving through a door would strand the chest the choice came from or cut a
+        // conversation short.
         TransitionResult(exp, Nil)
 
       case (exp: ExplorationState, Move(direction)) =>
@@ -283,6 +288,16 @@ class StateMachine(roomPool: Map[String, Room],
         val (next, log, events) = RewardChoiceResolver.resolve(exp, itemId, setDefs)
         TransitionResult(next, log, events = events)
 
+      case (exp: ExplorationState, SceneDone(_)) =>
+        // SceneDone is intercepted by GameSession (the story it updates is saved to the database);
+        // reject here as a safety net, same precedent as BuyUpgrade in the hub.
+        lift((exp, List("Conversations must be finished through GameSession.")))
+
+      case (exp: ExplorationState, EndingChoice(_, _)) =>
+        // EndingChoice is intercepted by GameSession (what it changes is saved to the database);
+        // reject here as a safety net, same precedent as SceneDone above.
+        lift((exp, List("The answer to the light must be given through GameSession.")))
+
       // -- Combat -----------------------------------------------------------
 
       case (combat: CombatState, action: CombatAction) =>
@@ -301,6 +316,9 @@ class StateMachine(roomPool: Map[String, Room],
         )
 
 object StateMachine:
+
+  /** The difficulty a `StartRun` runs on when it names none. */
+  val DefaultDifficulty: Difficulty = Difficulty.Normal
 
   /** Dev tooling only (see `loadDebugRoom`): a freshly-converted room has no natural "spawn from
     * this door" context the way a real dungeon transition does, so this just picks the room's own

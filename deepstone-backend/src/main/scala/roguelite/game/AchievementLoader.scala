@@ -27,7 +27,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
           label = j.label,
           description = j.description,
           displayOrder = j.displayOrder,
-          condition = condition
+          condition = condition,
+          hidden = j.hidden.getOrElse(false)
         )
 
   private def parseCondition(c: AchievementConditionJson): Either[String, AchievementCondition] =
@@ -119,7 +120,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
       label: String,
       description: String,
       displayOrder: Int,
-      condition: AchievementConditionJson
+      condition: AchievementConditionJson,
+      hidden: Option[Boolean] = None
   )
 
   private given Decoder[AchievementConditionJson] = Decoder.instance:
@@ -141,4 +143,5 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
         description  <- c.get[String]("description")
         displayOrder <- c.get[Int]("displayOrder")
         condition    <- c.get[AchievementConditionJson]("condition")
-      yield AchievementDefJson(id, label, description, displayOrder, condition)
+        hidden       <- c.get[Option[Boolean]]("hidden")
+      yield AchievementDefJson(id, label, description, displayOrder, condition, hidden)

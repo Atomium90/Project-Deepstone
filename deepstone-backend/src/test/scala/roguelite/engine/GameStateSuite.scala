@@ -52,12 +52,12 @@ class GameStateSuite extends FunSuite:
 
   // --- ExplorationState --------------------------------------------------------------
 
-  test("ExplorationState.toStateUpdate has EXPLORATION phase and carries the room/dialogue"):
+  test("ExplorationState.toStateUpdate has EXPLORATION phase and carries the room and the log"):
     val state  = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
-    val update = state.toStateUpdate(dialogue = Some(DialogueView("Wren", "Hello.")))
+    val update = state.toStateUpdate(List("hello"))
     assertEquals(update.phase, GamePhase.Exploration)
     assert(update.room.isDefined)
-    assertEquals(update.dialogue, Some(DialogueView("Wren", "Hello.")))
+    assertEquals(update.log, List("hello"))
 
   test("ExplorationState.toStateUpdate resolves a pending equip choice into a view, with the same affinity-doubled statLine as the equipped items"):
     val player  = PlayerFixtures.startingPlayer(ClassId.Warrior) // affinityTags = Set("heavy")
@@ -72,6 +72,68 @@ class GameStateSuite extends FunSuite:
   test("ExplorationState.toStateUpdate has no pendingEquipChoice when none is set"):
     val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
     assertEquals(state.toStateUpdate().pendingEquipChoice, None)
+
+  // --- Conversations --------------------------------------------------------------
+
+  private def conversationView(encounter: Encounter, offerScene: Option[String] = None): PendingSceneView =
+    ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1, pendingScene = Some(PendingScene(encounter, offerScene)))
+      .toStateUpdate()
+      .pendingScene
+      .getOrElse(fail("expected a pendingScene view"))
+
+  test("ExplorationState.toStateUpdate has no pendingScene when none is set"):
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
+    assertEquals(state.toStateUpdate().pendingScene, None)
+
+  test("a scene is sent with its id, and the scene that carries the texts of the vow it offers"):
+    val scene = SceneDef("npc.1.s2", "npc.1", 2, offersVow = Some(VowType.NoPotion))
+    assertEquals(conversationView(Encounter.Scene(scene), Some("npc.1.s2")),
+                 PendingSceneView("npc.1", "scene", sceneId = Some("npc.1.s2"), offerScene = Some("npc.1.s2"))
+    )
+
+  test("a scene that offers no vow is sent with no offerScene"):
+    assertEquals(conversationView(Encounter.Scene(SceneDef("npc.1.s1", "npc.1", 1))),
+                 PendingSceneView("npc.1", "scene", sceneId = Some("npc.1.s1"))
+    )
+
+  test("a comment on a vow says whether it was kept"):
+    assertEquals(conversationView(Encounter.VowReport("npc.1", kept = true, offer = None)),
+                 PendingSceneView("npc.1", "vow_report", kept = Some(true))
+    )
+    assertEquals(conversationView(Encounter.VowReport("npc.1", kept = false, offer = Some(VowType.NoPotion)), Some("npc.1.s2")),
+                 PendingSceneView("npc.1", "vow_report", kept = Some(false), offerScene = Some("npc.1.s2"))
+    )
+
+  test("the line of a Devoted before the fight is the first or the second one, by chapter"):
+    assertEquals(conversationView(Encounter.DevotedBefore(2, late = false, enemyId = "e1")),
+                 PendingSceneView("boss.2", "devoted", sceneId = Some("boss.2.pre1"))
+    )
+    assertEquals(conversationView(Encounter.DevotedBefore(2, late = true, enemyId = "e1")),
+                 PendingSceneView("boss.2", "devoted", sceneId = Some("boss.2.pre2"))
+    )
+
+  test("the last line of a Devoted is sent as its post line"):
+    assertEquals(conversationView(Encounter.DevotedAfter(5)),
+                 PendingSceneView("boss.5", "devoted", sceneId = Some("boss.5.post"))
+    )
+
+  test("a reward choice from a Devoted's Shrine names the relic, unreadable until the story says otherwise"):
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1,
+                                 pendingRewardChoice = Some(PendingRewardChoice(Nil, devoted = Some(3)))
+    )
+    assertEquals(state.toStateUpdate().pendingRewardChoice.flatMap(_.relic), Some(RelicView(3, readable = false)))
+
+  test("a reward choice from any other Shrine has no relic"):
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1,
+                                 pendingRewardChoice = Some(PendingRewardChoice(Nil))
+    )
+    assertEquals(state.toStateUpdate().pendingRewardChoice.flatMap(_.relic), None)
+
+  test("a short line names the pool its text comes from"):
+    def context(c: IdleContext) = conversationView(Encounter.Idle("npc.1", c, None)).context
+    assertEquals(context(IdleContext.General), Some("general"))
+    assertEquals(context(IdleContext.AfterDeath), Some("death"))
+    assertEquals(context(IdleContext.AfterVictory), Some("victory"))
 
   // --- Minimap --------------------------------------------------------------------
 

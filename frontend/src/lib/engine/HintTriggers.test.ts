@@ -129,11 +129,22 @@ describe("candidateHints", () => {
         });
     });
 
+    describe("during a conversation", () => {
+        test("offers no hint, nothing talks over it", () => {
+            const state = makeState({
+                pendingScene: { npc: "npc.1", kind: "idle", context: "general" },
+                equipment: makeEquipment({ weapon: makeItem() }),
+            });
+            expect(candidateHints(state)).toEqual([]);
+        });
+    });
+
     describe("in the Hub", () => {
         const hub = (runsCompleted: number, perks = 0): StateUpdate["hub"] => ({
             upgrades: [],
             perks: Array.from({ length: perks }, (_, i) => ({ id: `p${i}`, label: "Perk", description: "d", icon: "*" })),
             runsCompleted,
+            difficulties: [],
         });
 
         test("offers nothing while the save has no finished run, the start screen is up", () => {

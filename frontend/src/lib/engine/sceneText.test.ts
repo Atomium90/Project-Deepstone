@@ -1,0 +1,178 @@
+import { describe, test, expect } from "vitest";
+import { buildScript, numberedTexts, type TextLookup } from "./sceneText";
+import type { PendingSceneView } from "./protocol";
+
+/** A lookup over a small fixture, so these tests never depend on the real language file. */
+const texts: Record<string, string> = {
+    "story.npc.1.name": "Wren",
+    "story.npc.1.s1.1": "First line.",
+    "story.npc.1.s1.2": "Second line.",
+    "story.npc.1.s2.1": "Take the deal?",
+    "story.npc.1.s2.choice.accept": "Yes.",
+    "story.npc.1.s2.choice.decline": "No.",
+    "story.npc.1.s2.reply.accept": "Good.",
+    "story.npc.1.s2.reply.decline": "Suit yourself.",
+    "story.npc.1.vow.kept.1": "Kept it.",
+    "story.npc.1.vow.kept.2": "Well done.",
+    "story.npc.1.vow.failed.1": "You failed.",
+    "story.npc.1.idle.general.1": "General one.",
+    "story.npc.1.idle.general.2": "General two.",
+    "story.npc.1.idle.death.1": "Death one.",
+    "story.npc.1.idle.victory.1": "Victory one.",
+    "story.npc.3.name": "The Executioner",
+    "story.npc.3.name_revealed": "Corvin",
+    "story.npc.3.s1.1": "They call me the Executioner.",
+    "story.npc.5.name": "Alder",
+    "story.npc.5.loved": "Isel",
+    "story.npc.5.s1.1": "I'm looking for {name}. Have you seen {name}?",
+    "story.npc.4.epilogue.end1.1": "Back again!",
+    "story.npc.4.epilogue.end3.1": "Time to see the sky.",
+    "story.boss.2.name": "Osric",
+    "story.boss.2.pre1": "This door is closed.",
+    "story.boss.2.post": "Door's open now.",
+};
+const lookup: TextLookup = (key) => texts[key] ?? null;
+
+function scene(overrides: Partial<PendingSceneView>): PendingSceneView {
+    return { npc: "npc.1", kind: "scene", ...overrides };
+}
+
+describe("numberedTexts", () => {
+    test("reads the numbered texts in order until one is missing", () => {
+        expect(numberedTexts("story.npc.1.s1", lookup)).toEqual(["First line.", "Second line."]);
+    });
+
+    test("is empty when there is no text one", () => {
+        expect(numberedTexts("story.npc.9.s1", lookup)).toEqual([]);
+    });
+
+    test("stops at a gap in the numbering", () => {
+        const gap: TextLookup = (key) => ({ "a.1": "one", "a.3": "three" })[key] ?? null;
+        expect(numberedTexts("a", gap)).toEqual(["one"]);
+    });
+});
+
+describe("buildScript", () => {
+    test("a scene reads the lines under its id and names the NPC", () => {
+        const script = buildScript(scene({ sceneId: "npc.1.s1" }), lookup);
+        expect(script.speaker).toBe("Wren");
+        expect(script.lines).toEqual(["First line.", "Second line."]);
+        expect(script.offer).toBeNull();
+    });
+
+    test("a scene that offers a vow brings the choice and its replies", () => {
+        const script = buildScript(scene({ sceneId: "npc.1.s2", offerScene: "npc.1.s2" }), lookup);
+        expect(script.offer).toEqual({ accept: "Yes.", decline: "No.", replyAccept: "Good.", replyDecline: "Suit yourself." });
+    });
+
+    test("a comment on a kept vow reads the kept lines", () => {
+        const script = buildScript({ npc: "npc.1", kind: "vow_report", kept: true }, lookup);
+        expect(script.lines).toEqual(["Kept it.", "Well done."]);
+        expect(script.offer).toBeNull();
+    });
+
+    test("a comment on a failed vow reads the failed lines, and offers the vow again with the scene's texts", () => {
+        const script = buildScript({ npc: "npc.1", kind: "vow_report", kept: false, offerScene: "npc.1.s2" }, lookup);
+        expect(script.lines).toEqual(["You failed."]);
+        expect(script.offer?.accept).toBe("Yes.");
+    });
+
+    test("a short line comes from the general pool", () => {
+        const script = buildScript({ npc: "npc.1", kind: "idle", context: "general" }, lookup, () => 0, new Map());
+        expect(script.lines).toEqual(["General one."]);
+    });
+
+    test("after a death, a short line is drawn from the general pool and the death pool together", () => {
+        const drawn = [0, 0.4, 0.7, 0.99].map(
+            (value) => buildScript({ npc: "npc.1", kind: "idle", context: "death" }, lookup, () => value, new Map()).lines[0],
+        );
+        expect(new Set(drawn)).toEqual(new Set(["General one.", "General two.", "Death one."]));
+    });
+
+    test("the short line said last time is not said again while another exists", () => {
+        const last = new Map<string, string>();
+        const idle: PendingSceneView = { npc: "npc.1", kind: "idle", context: "general" };
+        const first = buildScript(idle, lookup, () => 0, last).lines[0];
+        const second = buildScript(idle, lookup, () => 0, last).lines[0];
+        expect(first).toBe("General one.");
+        expect(second).toBe("General two.");
+    });
+
+    test("with a single short line available it is said again rather than nothing", () => {
+        const last = new Map<string, string>();
+        const only: TextLookup = (key) => ({ "story.npc.1.idle.general.1": "Only one." })[key] ?? null;
+        const idle: PendingSceneView = { npc: "npc.1", kind: "idle", context: "general" };
+        buildScript(idle, only, () => 0, last);
+        expect(buildScript(idle, only, () => 0, last).lines).toEqual(["Only one."]);
+    });
+
+    test("a conversation whose texts are missing shows its key, so the gap is visible", () => {
+        expect(buildScript(scene({ sceneId: "npc.9.s1" }), lookup).lines).toEqual(["story.npc.9.s1"]);
+        expect(buildScript({ npc: "npc.9", kind: "idle", context: "general" }, lookup).lines).toEqual(["story.npc.9.idle"]);
+    });
+
+    test("an NPC without a name text is shown by its id", () => {
+        expect(buildScript({ npc: "npc.9", kind: "idle" }, lookup).speaker).toBe("npc.9");
+    });
+
+    test("an NPC whose name is not known yet goes by its title, and by its name once it is", () => {
+        const unknown = scene({ npc: "npc.3", sceneId: "npc.3.s1", revealed: false });
+        const known = scene({ npc: "npc.3", sceneId: "npc.3.s1", revealed: true });
+        expect(buildScript(unknown, lookup).speaker).toBe("The Executioner");
+        expect(buildScript(known, lookup).speaker).toBe("Corvin");
+    });
+
+    test("an NPC with no hidden name is called the same whether or not it is said to be known", () => {
+        expect(buildScript(scene({ revealed: false }), lookup).speaker).toBe("Wren");
+        expect(buildScript(scene({ revealed: true }), lookup).speaker).toBe("Wren");
+        expect(buildScript(scene({}), lookup).speaker).toBe("Wren");
+    });
+
+    test("a scene sent with no word on the name is read as the name being known", () => {
+        expect(buildScript(scene({ npc: "npc.3", sceneId: "npc.3.s1" }), lookup).speaker).toBe("Corvin");
+    });
+
+    test("{name} is the name an NPC speaks of, written wherever the lines have it", () => {
+        const lines = buildScript(scene({ npc: "npc.5", sceneId: "npc.5.s1" }), lookup).lines;
+        expect(lines).toEqual(["I'm looking for Isel. Have you seen Isel?"]);
+    });
+
+    test("{name} is left as written for an NPC that speaks of nobody", () => {
+        const withHole: TextLookup = (key) => (key === "story.npc.9.s1.1" ? "Where is {name}?" : null);
+        expect(buildScript(scene({ npc: "npc.9", sceneId: "npc.9.s1" }), withHole).lines).toEqual(["Where is {name}?"]);
+    });
+
+    test("the line of a Devoted is the one text under its own key, said by the Devoted", () => {
+        const script = buildScript({ npc: "boss.2", kind: "devoted", sceneId: "boss.2.pre1" }, lookup);
+        expect(script.speaker).toBe("Osric");
+        expect(script.lines).toEqual(["This door is closed."]);
+        expect(script.offer).toBeNull();
+        expect(buildScript({ npc: "boss.2", kind: "devoted", sceneId: "boss.2.post" }, lookup).lines).toEqual(["Door's open now."]);
+    });
+
+    test("a Devoted whose line is missing shows the key of the line, so the gap is visible", () => {
+        const script = buildScript({ npc: "boss.2", kind: "devoted", sceneId: "boss.2.pre2" }, lookup);
+        expect(script.lines).toEqual(["story.boss.2.pre2"]);
+    });
+
+    test("an epilogue reads the line of the ending it is about", () => {
+        const entered = buildScript({ npc: "npc.4", kind: "epilogue", context: "end1" }, lookup);
+        const refused = buildScript({ npc: "npc.4", kind: "epilogue", context: "end3" }, lookup);
+        expect(entered.lines).toEqual(["Back again!"]);
+        expect(refused.lines).toEqual(["Time to see the sky."]);
+        expect(entered.offer).toBeNull();
+    });
+
+    test("an epilogue without its text shows its key instead of nothing", () => {
+        expect(buildScript({ npc: "npc.4", kind: "epilogue", context: "end2" }, lookup).lines).toEqual(["story.npc.4.epilogue.end2"]);
+    });
+
+    test("a Devoted without a name text is shown by its id", () => {
+        expect(buildScript({ npc: "boss.7", kind: "devoted", sceneId: "boss.7.pre1" }, lookup).speaker).toBe("boss.7");
+    });
+
+    test("an offer whose choice texts are missing still gets buttons, labelled by their keys", () => {
+        const script = buildScript(scene({ sceneId: "npc.9.s2", offerScene: "npc.9.s2" }), lookup);
+        expect(script.offer?.accept).toBe("story.npc.9.s2.choice.accept");
+    });
+});

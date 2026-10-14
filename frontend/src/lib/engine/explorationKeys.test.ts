@@ -1,6 +1,22 @@
 import { describe, test, expect } from "vitest";
 import { keyCommand } from "./explorationKeys";
 
+describe("keyCommand while a conversation is pending", () => {
+    test("walking, interacting and the debug keys do nothing", () => {
+        for (const key of ["z", "ArrowUp", "e", "E", "à", "ç"]) expect(keyCommand(key, null, true, true)).toBeNull();
+    });
+
+    test("the Character screen keys still work", () => {
+        expect(keyCommand("i", null, true, true)).toEqual({ kind: "openTab", tab: "equipment" });
+        expect(keyCommand("m", null, true, true)).toEqual({ kind: "openTab", tab: "map" });
+        expect(keyCommand("i", "equipment", true, true)).toEqual({ kind: "closeOverlay" });
+    });
+
+    test("without a conversation the keys act as usual", () => {
+        expect(keyCommand("e", null, true, false)).toEqual({ kind: "interact" });
+    });
+});
+
 describe("keyCommand while the Character screen is closed", () => {
     test("ZQSD and the arrow keys move", () => {
         const moves = ["z", "s", "q", "d", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].map((key) => keyCommand(key, null, true));

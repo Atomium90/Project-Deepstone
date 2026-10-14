@@ -218,6 +218,48 @@ class DungeonBuilderSuite extends FunSuite:
     assertEquals(sequence.last, sequence(10), s"expected the Sanctuary to match section 2's theme: $sequence")
 
   // ---------------------------------------------
+  // Theme sequence and Boss variety
+  // ---------------------------------------------
+
+  test("a theme sequence gives each section its own theme, in order"):
+    val dungeon = DungeonBuilder(multiThemePool, Random(7L), List("other", "dungeon", "dungeon"))
+      .build()(biomeCount = 3)
+      .getOrElse(fail("build failed"))
+    val sequence = roomThemeSequence(dungeon)
+    // indexes 4, 10 and 16 are the Bosses closing sections 1, 2 and 3
+    assertEquals(List(sequence(4), sequence(10), sequence(16)), List("other", "dungeon", "dungeon"))
+    assertEquals(sequence.head, "other")
+
+  test("a Rest room and the Sanctuary follow the sequence like the rest of the run"):
+    val dungeon = DungeonBuilder(multiThemePool, Random(7L), List("other", "dungeon", "dungeon"))
+      .build()(biomeCount = 3)
+      .getOrElse(fail("build failed"))
+    val sequence = roomThemeSequence(dungeon)
+    // indexes 5 and 11 are the Rests after sections 1 and 2, the last index is the Sanctuary
+    assertEquals(List(sequence(5), sequence(11), sequence.last), List("other", "dungeon", "dungeon"))
+
+  test("a sequence shorter than the section count repeats its last theme"):
+    val dungeon = DungeonBuilder(multiThemePool, Random(3L), List("other"))
+      .build()(biomeCount = 2)
+      .getOrElse(fail("build failed"))
+    val sequence = roomThemeSequence(dungeon)
+    assertEquals(List(sequence(4), sequence(10)), List("other", "other"))
+
+  test("a sequence naming a theme with no Boss room fails the build"):
+    assert(DungeonBuilder(multiThemePool, Random(1L), List("missing")).build()(biomeCount = 1).isLeft)
+
+  test("a Boss met in one section is not drawn again while its theme has another"):
+    // "other" offers 2 Boss rooms: without the rule, 2 sections would meet the same one on half of
+    // the seeds, so a handful of seeds is what makes this check bite.
+    (0L until 20L).foreach:
+      seed =>
+        val dungeon = DungeonBuilder(multiThemePool, Random(seed), List("other", "other"))
+          .build()(biomeCount = 2)
+          .getOrElse(fail(s"build failed for seed $seed"))
+        val bosses = dungeon.rooms.values.filter(_.roomType == RoomType.Boss).map(_.id).toSet
+        assertEquals(bosses, Set("ob1", "ob2"), s"seed $seed met a Boss twice")
+
+  // ---------------------------------------------
   // Fork branching
   // ---------------------------------------------
 

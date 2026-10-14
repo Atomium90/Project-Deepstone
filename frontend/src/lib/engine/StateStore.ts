@@ -50,10 +50,6 @@ export const gamePhase = derived(gameState, ($s) => $s?.phase ?? null);
 /** Derived convenience: combat log lines for the current state. */
 export const combatLog = derived(gameState, ($s) => $s?.log ?? []);
 
-/** Derived convenience: the current NPC dialogue line to show, or null. Only present on the
- * StateUpdate an NPC interaction produced - any other action clears it back to null. */
-export const npcDialogue = derived(gameState, ($s) => $s?.dialogue ?? null);
-
 /** Derived convenience: achievements newly earned by the most recent action, if any - cleared back
  * to [] on the next update that doesn't earn a new one. Drives AchievementToast.svelte. */
 export const achievementToast = derived(gameState, ($s) => $s?.newlyUnlocked ?? []);
@@ -67,8 +63,8 @@ export const combatDamageEvents = derived(gameState, ($s) => $s?.damageEvents ??
  * transient convention as `combatDamageEvents`. Consumed by AudioManager.ts. */
 export const soundEvents = derived(gameState, ($s) => $s?.soundEvents ?? []);
 
-/** Derived convenience: a pickup awaiting a keep/replace decision, or null. Unlike `npcDialogue`
- * and the other transient fields above, this one is durable server-side (still present on the
+/** Derived convenience: a pickup awaiting a keep/replace decision, or null. Unlike
+ * the transient fields above, this one is durable server-side (still present on the
  * next update until actually resolved), so it needs no extra latch/dedup logic here - it's a
  * direct reflection of server state, not a one-shot signal. Drives EquipChoiceModal.svelte. */
 export const pendingEquipChoice = derived(gameState, ($s) => $s?.pendingEquipChoice ?? null);
@@ -76,6 +72,24 @@ export const pendingEquipChoice = derived(gameState, ($s) => $s?.pendingEquipCho
 /** Derived convenience: a Shrine's 3 rolled reward candidates awaiting a pick, or null. Same
  * durable-state discipline as `pendingEquipChoice` above. Drives RewardChoiceModal.svelte. */
 export const pendingRewardChoice = derived(gameState, ($s) => $s?.pendingRewardChoice ?? null);
+
+/** Derived convenience: the conversation with a Rest NPC awaiting its end, or null. Durable
+ * server-side like `pendingEquipChoice`, so a direct reflection of server state. Drives
+ * SceneDialogue.svelte. */
+export const pendingScene = derived(gameState, ($s) => $s?.pendingScene ?? null);
+
+/** Derived convenience: the question of the light awaiting an answer, or null. Durable server-side
+ * like `pendingScene`, so a direct reflection of server state. Drives EndingChoiceModal.svelte. */
+export const pendingEndingChoice = derived(gameState, ($s) => $s?.pendingEndingChoice ?? null);
+
+/** Derived convenience: the story card waiting to be shown, or null. A direct reflection of server
+ * state, durable like `pendingScene`. Drives CardScreen.svelte. */
+export const pendingCard = derived(gameState, ($s) => $s?.pendingCard ?? null);
+
+/** Derived convenience: the line the god's voice says on the latest update, or null. Transient like
+ * `soundEvents`: it is only there on the update of the moment it belongs to. Drives GodLineBanner
+ * (the start of a run) and GameOverScreen (a death). */
+export const godLine = derived(gameState, ($s) => $s?.godLine ?? null);
 
 /** Derived convenience: the dungeon map while exploring a run, or null. A direct reflection of
  * server state like `pendingEquipChoice`, resent on every update. Drives MinimapPanel.svelte. */

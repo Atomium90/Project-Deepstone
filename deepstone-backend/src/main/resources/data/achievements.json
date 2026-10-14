@@ -152,5 +152,13 @@
     "description": "Defeat a dungeon boss.",
     "displayOrder": 21,
     "condition": { "type": "DefeatBoss" }
+  },
+  {
+    "id": "hardcore_victory",
+    "label": "Without the Light",
+    "description": "Win a run in Hardcore.",
+    "displayOrder": 22,
+    "condition": { "type": "WinOnDifficulty", "difficulty": "hardcore" },
+    "hidden": true
   }
 ]

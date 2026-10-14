@@ -54,6 +54,15 @@ export const CREDITS: CreditEntry[] = [
         group: "art",
     },
     {
+        id: "fantasy-rpg-characters",
+        name: "16x16 Fantasy RPG Characters",
+        author: "Superdark",
+        url: "https://superdark.itch.io/16x16-free-npc-pack",
+        ...CC0,
+        group: "art",
+        hasNote: true,
+    },
+    {
         id: "pixel-crawler",
         name: "Pixel Crawler",
         author: "Anokolisa",

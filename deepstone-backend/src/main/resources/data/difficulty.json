@@ -1,0 +1,21 @@
+[
+  {
+    "difficulty": "easy",
+    "themes": ["dungeon"]
+  },
+  {
+    "difficulty": "normal",
+    "requirement": { "winsAt": "easy", "wins": 1, "shardsSpent": 0 },
+    "themes": ["dungeon", "darkDungeon"]
+  },
+  {
+    "difficulty": "hard",
+    "requirement": { "winsAt": "normal", "wins": 4, "shardsSpent": 300 },
+    "themes": ["dungeon", "darkDungeon", "darkDungeon"]
+  },
+  {
+    "difficulty": "hardcore",
+    "storyLocked": true,
+    "themes": ["dungeon", "darkDungeon", "darkDungeon"]
+  }
+]

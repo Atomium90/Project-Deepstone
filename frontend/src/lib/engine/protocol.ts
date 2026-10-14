@@ -7,7 +7,7 @@ export type GamePhase = "HUB" | "EXPLORATION" | "COMBAT" | "GAMEOVER";
 export type CombatActionType = "ATTACK" | "ABILITY" | "ITEM" | "DEFEND";
 export type HubActionType = "STARTRUN" | "BUYUPGRADE" | "RETURNTOHUB" | "DEBUGLOADROOM";
 export type ClassId = "warrior" | "archer" | "mage";
-export type Difficulty = "easy" | "normal" | "hard";
+export type Difficulty = "easy" | "normal" | "hard" | "hardcore";
 export type UpgradeCategory = "stat" | "meta";
 
 export type ItemKind = "weapon" | "armor" | "accessory" | "consumable" | "key";
@@ -67,17 +67,52 @@ export interface RewardChoiceAction {
   itemId?: string;
 }
 
+/** The player has read the pending conversation to its last line. `accept` answers the vow it
+ * ended by offering, and is present exactly when it offered one (the server refuses it otherwise). */
+export interface SceneDoneAction {
+  type: "SCENE_DONE";
+  accept?: boolean;
+}
+
+/** The player has read the story card on their screen (see `StateUpdate.pendingCard`). The server
+ * only accepts the card it is waiting for, and stops asking for it. */
+export interface CardSeenAction {
+  type: "CARD_SEEN";
+  cardId: string;
+}
+
+/** The player's answer to the light of the Sanctuary (see `StateUpdate.pendingEndingChoice`). `npc`
+ * names who takes the player's place: it is present exactly for "REPLACE", and is one of the candidates
+ * the question listed. */
+export interface EndingChoiceAction {
+  type: "ENDING_CHOICE";
+  answer: "ENTER" | "REPLACE" | "REFUSE";
+  npc?: string;
+}
+
 export type PlayerAction =
   | MoveAction
   | InteractAction
   | CombatAction
   | HubAction
   | EquipChoiceAction
-  | RewardChoiceAction;
+  | RewardChoiceAction
+  | SceneDoneAction
+  | CardSeenAction
+  | EndingChoiceAction;
 
 // ---------------------------------------------
 // Server → Client views
 // ---------------------------------------------
+
+/** A line of the god's voice to show, said at the start of a run or when the player dies. Only the
+ * kind of line and its tone: the lines are `story.god.<moment>.<phase>.<n>` in the language file. */
+export interface GodLineView {
+  /** "start", or "death.first", "death.streak", "death.boss", "death.depth" or "death.ordinary". */
+  moment: string;
+  /** The tone of the voice: "a" (grateful host), "b" (possessive) or "c" (afraid of being forgotten). */
+  phase: string;
+}
 
 export interface PlayerView {
   classId: ClassId;
@@ -100,8 +135,9 @@ export interface EntityView {
   x: number;
   y: number;
   label: string;
-  /** Atlas sprite key to draw (see public/atlas/entities.json). Only set for enemies - resolved
-   * server-side from enemies.json, never a mapping the client needs to keep in sync itself. */
+  /** Atlas sprite key to draw (see public/atlas/entities.json). Only set for enemies and NPCs -
+   * resolved server-side from enemies.json and npcs.json, never a mapping the client needs to keep
+   * in sync itself. */
   spriteId?: string;
   /** Only set for enemies. Rolled once per run at dungeon build time - unlike a trapped chest or
    * secret door, Elite status is meant to be visible before the player engages, not a surprise. */
@@ -113,13 +149,6 @@ export interface EntityView {
    * anything. A trapped chest reports "closed" until its trap goes off, so this never gives the
    * trap away. */
   state?: "closed" | "open_full" | "open_empty" | "sprung";
-}
-
-/** One line of NPC dialogue, shown in a transient overlay. Only present on the single
- * StateUpdate the interaction produced - it's gone again on the next action. */
-export interface DialogueView {
-  npcName: string;
-  line: string;
 }
 
 export interface RoomView {
@@ -170,7 +199,7 @@ export interface CombatView {
 }
 
 /** One damage or heal event produced by the action that generated this StateUpdate. Transient -
- * only present on the single update the event happened on, same convention as DialogueView. */
+ * only present on the single update the event happened on. */
 export interface DamageEventView {
   /** True if the player took the hit/heal, false if the enemy did. */
   targetIsPlayer: boolean;
@@ -200,11 +229,70 @@ export interface PerkView {
   icon: string;
 }
 
+/** How far a save is from unlocking a difficulty tier: `winsDone` of the `wins` needed on tier
+ * `winsAt`, and `shardsSpentDone` of the `shardsSpent` needed. */
+export interface TierRequirementView {
+  winsAt: Difficulty;
+  wins: number;
+  winsDone: number;
+  shardsSpent: number;
+  shardsSpentDone: number;
+}
+
+/** One difficulty tier as the hub shows it. `requirement` is null for a tier that needs nothing. */
+export interface DifficultyView {
+  id: Difficulty;
+  unlocked: boolean;
+  requirement: TierRequirementView | null;
+}
+
+/** The conversation the player is in with a Rest NPC, or the line of a Devoted before or after a
+ * fight, awaiting a SCENE_DONE. Durable like PendingEquipChoiceView. The server only says which conversation it is, the lines are texts of
+ * the language file under keys built from these fields (see sceneText.ts). */
+export interface PendingSceneView {
+  /** The speaking NPC, e.g. "npc.1", or "boss.2" for the second Devoted: its name is the text
+   * `story.<npc>.name`. */
+  npc: string;
+  /** "scene": a scene of the story. "vow_report": the NPC comments on a vow. "idle": a short line.
+   * "devoted": the single line `story.<sceneId>` of a Devoted, said before the fight or as they fall.
+   * "epilogue": the NPC's line about the way the story ended, under `story.<npc>.epilogue.<context>`. */
+  kind: "scene" | "vow_report" | "idle" | "devoted" | "epilogue";
+  /** Only for "scene" and "devoted". */
+  sceneId?: string | null;
+  /** Only for "vow_report": whether the vow was kept. */
+  kept?: boolean | null;
+  /** Only for "idle": which pool of lines the last run calls for. For "epilogue", the ending: "end1"
+   * (entered the light), "end2" (someone took the place), "end3" (refused). */
+  context?: "general" | "death" | "victory" | "end1" | "end2" | "end3" | null;
+  /** The scene whose choice and reply texts apply when the conversation ends by offering a vow,
+   * which is when SCENE_DONE must carry `accept`. Null when it offers none. */
+  offerScene?: string | null;
+  /** Whether the player knows the speaker's real name. Until then the speaker goes by its title
+   * (`story.<npc>.name`), after it by `story.<npc>.name_revealed` when there is one. Absent or true
+   * for an NPC that gives its name from the start. */
+  revealed?: boolean;
+}
+
+/** The question of the light, which the Sanctuary asks instead of ending the run once the story has
+ * come to it. Durable like PendingEquipChoiceView: it stays until the player answers with an
+ * EndingChoiceAction. */
+export interface PendingEndingChoiceView {
+  /** The NPCs who could take the player's place, by id (e.g. "npc.2"), because their story is over.
+   * Empty while none is: the second answer is then closed. */
+  candidates: string[];
+}
+
 export interface HubView {
   upgrades: UpgradeView[];
   perks: PerkView[];
   /** Runs finished so far, won or lost. 0 means a brand-new save. */
   runsCompleted: number;
+  /** Every difficulty tier, lowest first, with whether it can be started. The server refuses a
+   * run on a locked one, so this only drives what the hub offers. */
+  difficulties: DifficultyView[];
+  /** Whether the altar is shut for good: the upgrades the player owns stay, none can be bought any
+   * more. Absent or false until the light is refused. */
+  shopClosed?: boolean;
 }
 
 /** A single item as seen by the client, whether equipped, in the potion belt, or shown in a
@@ -262,7 +350,7 @@ export interface EquipChoiceOptionView {
 
 /** A pickup offered to the player because every slot matching `newItem`'s kind was already
  * occupied: weapon/armor degenerate to a single `options` entry, accessories/potions can offer up
- * to 2-3. Durable, not transient like `dialogue` or the other optional/list fields on StateUpdate
+ * to 2-3. Durable, not transient like the damage and unlock lists on StateUpdate
  * below - it must still be present after a reconnect, or if the player sends an unrelated action
  * before resolving it with an EquipChoiceAction. */
 export interface PendingEquipChoiceView {
@@ -274,6 +362,17 @@ export interface PendingEquipChoiceView {
  * PendingEquipChoiceView - resolved with a RewardChoiceAction, picking by an option's own `id`. */
 export interface PendingRewardChoiceView {
   options: ItemView[];
+  /** The relic the Boss left with this Shrine, when it was a Devoted. */
+  relic?: RelicView | null;
+}
+
+/** The relic of a Devoted, which bears its name. The inscription is the text
+ * `story.boss.<devoted>.relic` when it can be read, else `story.boss.unreadable`. */
+export interface RelicView {
+  /** Which Devoted, from 1. */
+  devoted: number;
+  /** False while the inscription is worn smooth: the story has not gone far enough to read it. */
+  readable: boolean;
 }
 
 /** Static description of one class's combat ability, sent by the server so the client never
@@ -378,11 +477,19 @@ export interface StateUpdate {
   /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
   victory: boolean;
   log: string[];
-  dialogue?: DialogueView;
+  /** The conversation with a Rest NPC awaiting its end. Durable, like `pendingEquipChoice`. */
+  pendingScene?: PendingSceneView | null;
+  /** The question of the light awaiting the player's answer. Durable, like `pendingEquipChoice`. */
+  pendingEndingChoice?: PendingEndingChoiceView | null;
+  /** The story card waiting to be shown full screen, the oldest one not seen yet, or null. Durable:
+   * it stays until the player answers with a CardSeenAction. Its texts are `story.card.<id>.<n>`. */
+  pendingCard?: string | null;
+  /** The line the god's voice says on this update, at the start of a run or on a death. Transient:
+   * only present on the single update the moment happened on. */
+  godLine?: GodLineView | null;
   /** Achievements newly earned by the action that produced this update. Transient: only present
-   * on the single update where one or more achievements were just unlocked, same convention as
-   * `dialogue`. A list, not a single value, since one action can plausibly earn more than one at
-   * once. */
+   * on the single update where one or more achievements were just unlocked. A list, not a single
+   * value, since one action can plausibly earn more than one at once. */
   newlyUnlocked: AchievementView[];
   /** Damage/heal events produced by the action that generated this update. Transient, same
    * convention as `newlyUnlocked` - a list since a single action can produce more than one (e.g.

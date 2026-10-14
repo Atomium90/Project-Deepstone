@@ -1,0 +1,83 @@
+[
+  { "id": "npc.1.s1", "npc": "npc.1", "minChapter": 1 },
+  {
+    "id": "npc.1.s2",
+    "npc": "npc.1",
+    "minChapter": 2,
+    "requires": "npc.1.s1",
+    "offersVow": { "type": "NoPotion" }
+  },
+  { "id": "npc.1.s3", "npc": "npc.1", "minChapter": 3, "requires": "npc.1.s2" },
+  {
+    "id": "npc.1.s4",
+    "npc": "npc.1",
+    "minChapter": 5,
+    "requires": "npc.1.s3",
+    "requiresVowKept": true
+  },
+  { "id": "npc.2.s1", "npc": "npc.2", "minChapter": 1 },
+  { "id": "npc.2.s2", "npc": "npc.2", "minChapter": 2, "requires": "npc.2.s1" },
+  {
+    "id": "npc.2.s3",
+    "npc": "npc.2",
+    "minChapter": 4,
+    "requires": "npc.2.s2",
+    "offersVow": { "type": "NoOrdinaryKill" }
+  },
+  {
+    "id": "npc.2.s4",
+    "npc": "npc.2",
+    "minChapter": 5,
+    "requires": "npc.2.s3",
+    "requiresVowKept": true
+  },
+  { "id": "npc.3.s1", "npc": "npc.3", "minChapter": 1 },
+  { "id": "npc.3.s2", "npc": "npc.3", "minChapter": 3, "requires": "npc.3.s1" },
+  {
+    "id": "npc.3.s3",
+    "npc": "npc.3",
+    "minChapter": 4,
+    "requires": "npc.3.s2",
+    "offersVow": { "type": "DefeatElite" }
+  },
+  {
+    "id": "npc.3.s4",
+    "npc": "npc.3",
+    "minChapter": 5,
+    "requires": "npc.3.s3",
+    "requiresVowKept": true
+  },
+  { "id": "npc.4.s1", "npc": "npc.4", "minChapter": 1 },
+  { "id": "npc.4.s2", "npc": "npc.4", "minChapter": 2, "requires": "npc.4.s1" },
+  {
+    "id": "npc.4.s3",
+    "npc": "npc.4",
+    "minChapter": 4,
+    "requires": "npc.4.s2",
+    "offersVow": { "type": "GainTwoLevels" }
+  },
+  {
+    "id": "npc.4.s4",
+    "npc": "npc.4",
+    "minChapter": 5,
+    "requires": "npc.4.s3",
+    "requiresVowKept": true
+  },
+  { "id": "npc.5.s1", "npc": "npc.5", "minChapter": 2 },
+  { "id": "npc.5.s2", "npc": "npc.5", "minChapter": 3, "requires": "npc.5.s1" },
+  {
+    "id": "npc.5.s3",
+    "npc": "npc.5",
+    "minChapter": 4,
+    "requires": "npc.5.s2",
+    "offersVow": { "type": "FindRareItem" },
+    "requiresRelicRead": 4
+  },
+  {
+    "id": "npc.5.s4",
+    "npc": "npc.5",
+    "minChapter": 5,
+    "requires": "npc.5.s3",
+    "requiresVowKept": true
+  }
+]

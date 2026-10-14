@@ -63,14 +63,17 @@ object AchievementChecker:
     (updatedStats, satisfied.toList)
 
   private def applyEvent(stats: AchievementStats, event: GameEvent): AchievementStats = event match
-    case GameEvent.RunEnded(victory, _, activePerkId) =>
+    case GameEvent.RunEnded(victory, difficulty, activePerkId) =>
       stats.copy(
         runsCompleted = stats.runsCompleted + 1,
         runsWon = if victory then stats.runsWon + 1 else stats.runsWon,
         currentWinStreak = if victory then stats.currentWinStreak + 1 else 0,
         perksWonWith =
           if victory then activePerkId.map(stats.perksWonWith + _).getOrElse(stats.perksWonWith)
-          else stats.perksWonWith
+          else stats.perksWonWith,
+        winsByDifficulty =
+          if victory then stats.winsByDifficulty.updated(difficulty, stats.winsByDifficulty.getOrElse(difficulty, 0) + 1)
+          else stats.winsByDifficulty
       )
     case GameEvent.ConsumableUsed(typeId) =>
       stats.copy(consumablesUsed = stats.consumablesUsed + 1,
@@ -83,11 +86,11 @@ object AchievementChecker:
                            stats: AchievementStats
   ): Boolean =
     (condition, event) match
-      case (AchievementCondition.FirstKill, GameEvent.EnemyDefeated(_, _, _))         => true
-      case (AchievementCondition.DefeatBoss, GameEvent.EnemyDefeated(isBoss, _, _))   => isBoss
-      case (AchievementCondition.NoDamageVictory, GameEvent.EnemyDefeated(_, tookNoDamage, _)) =>
+      case (AchievementCondition.FirstKill, GameEvent.EnemyDefeated(_, _, _, _))         => true
+      case (AchievementCondition.DefeatBoss, GameEvent.EnemyDefeated(isBoss, _, _, _))   => isBoss
+      case (AchievementCondition.NoDamageVictory, GameEvent.EnemyDefeated(_, tookNoDamage, _, _)) =>
         tookNoDamage
-      case (AchievementCondition.DefeatElite, GameEvent.EnemyDefeated(_, _, wasElite)) => wasElite
+      case (AchievementCondition.DefeatElite, GameEvent.EnemyDefeated(_, _, wasElite, _)) => wasElite
       case (AchievementCondition.ReachLevel(lvl), GameEvent.LeveledUp(newLevel)) => newLevel >= lvl
       case (AchievementCondition.FillInventory, GameEvent.ItemPickedUp(full, _, _, _, _)) => full
       case (AchievementCondition.LootRarity(minRarity), GameEvent.ItemPickedUp(_, rarity, _, _, _)) =>

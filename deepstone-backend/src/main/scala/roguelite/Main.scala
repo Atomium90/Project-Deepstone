@@ -16,14 +16,17 @@ import roguelite.engine.{ RequestGuard, SecurityHeaders, ServerLimits, StateMach
 import roguelite.game.{
   AbilityLoader,
   AchievementLoader,
+  ChapterLoader,
   ClassLoader,
   CombatResolver,
+  DifficultyLoader,
   EnemyLoader,
   ItemLoader,
-  NpcDialogueLoader,
+  NpcLoader,
   PerkLoader,
   RoomLoader,
   SetLoader,
+  StoryLoader,
   UpgradeLoader
 }
 import roguelite.db.Database
@@ -85,14 +88,18 @@ object Main extends IOApp:
             classDefs   <- ClassLoader.loadAll()
             abilityDefs <- AbilityLoader.loadAll()
             upgradeDefs <- UpgradeLoader.loadAll()
-            npcDialogueDefs <- NpcDialogueLoader.loadAll()
             achievementDefs <- AchievementLoader.loadAll()
             setDefs <- SetLoader.loadAll()
             perkDefs <- PerkLoader.loadAll()
+            difficultyDefs <- DifficultyLoader.loadAll()
+            sceneDefs <- StoryLoader.loadAll()
+            chapterDefs <- ChapterLoader.loadAll()
+            npcDefs <- NpcLoader.loadAll()
             _ <- logger.info(
               s"Loaded ${roomPool.size} rooms, ${enemyStats.size} enemy types, ${itemDefs.size} item types, " +
-                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, ${npcDialogueDefs.size} npc dialogues, " +
-                s"${achievementDefs.size} achievements, ${setDefs.size} equipment sets, ${perkDefs.size} run perks."
+                s"${abilityDefs.size} abilities, ${upgradeDefs.size} upgrades, " +
+                s"${achievementDefs.size} achievements, ${setDefs.size} equipment sets, ${perkDefs.size} run perks, " +
+                s"${difficultyDefs.size} difficulty tiers, ${sceneDefs.size} NPC scenes, ${chapterDefs.size} chapters, ${npcDefs.size} NPCs."
             )
 
             resolver = CombatResolver(itemDefs = itemDefs, abilityDefs = abilityDefs, setDefs = setDefs,
@@ -104,13 +111,14 @@ object Main extends IOApp:
                                         classDefs,
                                         upgradeDefs,
                                         resolver,
-                                        npcDialogueDefs = npcDialogueDefs,
                                         setDefs = setDefs,
-                                        perkDefs = perkDefs
+                                        perkDefs = perkDefs,
+                                        difficultyDefs = difficultyDefs
             )
             router = WebSocketRouter(stateMachine, database, itemDefs, upgradeDefs, abilityDefs,
                                      achievementDefs, setDefs = setDefs, perkDefs = perkDefs,
-                                     debugMode = options.debugMode
+                                     debugMode = options.debugMode, difficultyDefs = difficultyDefs,
+                                     sceneDefs = sceneDefs, chapterDefs = chapterDefs, npcDefs = npcDefs
             )
 
             // Serves the frontend's built static files (copied into resources/static/ by

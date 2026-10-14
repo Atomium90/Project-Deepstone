@@ -5,13 +5,17 @@ import roguelite.game.{
   Armor,
   Combat,
   Dungeon,
+  Encounter,
+  EndingRules,
   EnemyStats,
+  IdleContext,
   Item,
   KeyKind,
   MetaProgression,
   MinimapBuilder,
   PendingEquipChoice,
   PendingRewardChoice,
+  PendingScene,
   PerkDef,
   RoomType,
   UpgradeDef,
@@ -75,7 +79,32 @@ private def pendingChoiceToView(pending: PendingEquipChoice, playerAffinityTags:
 
 /** Project a [[PendingRewardChoice]] into the client-facing [[PendingRewardChoiceView]]. */
 private def pendingRewardChoiceToView(pending: PendingRewardChoice, playerAffinityTags: Set[String]): PendingRewardChoiceView =
-  PendingRewardChoiceView(options = pending.options.map(itemToView(_, playerAffinityTags)))
+  PendingRewardChoiceView(options = pending.options.map(itemToView(_, playerAffinityTags)),
+                          // Whether the inscription can be read depends on the story, which GameSession adds.
+                          relic = pending.devoted.map(RelicView(_, readable = false))
+  )
+
+/** Project a [[PendingScene]] into the client-facing [[PendingSceneView]]. */
+private def pendingSceneToView(pending: PendingScene): PendingSceneView =
+  pending.encounter match
+    case Encounter.Scene(scene) =>
+      PendingSceneView(scene.npc, "scene", sceneId = Some(scene.id), offerScene = pending.offerScene)
+    case Encounter.VowReport(npc, kept, _) =>
+      PendingSceneView(npc, "vow_report", kept = Some(kept), offerScene = pending.offerScene)
+    case Encounter.Idle(npc, context, _) =>
+      val name = context match
+        case IdleContext.General      => "general"
+        case IdleContext.AfterDeath   => "death"
+        case IdleContext.AfterVictory => "victory"
+      PendingSceneView(npc, "idle", context = Some(name), offerScene = pending.offerScene)
+    case Encounter.DevotedBefore(devoted, late, _) =>
+      PendingSceneView(s"boss.$devoted", "devoted", sceneId = Some(s"boss.$devoted.${if late then "pre2" else "pre1"}"))
+    case Encounter.DevotedAfter(devoted) =>
+      PendingSceneView(s"boss.$devoted", "devoted", sceneId = Some(s"boss.$devoted.post"))
+    case Encounter.Farewell(npc) =>
+      PendingSceneView(npc, "scene", sceneId = Some(s"$npc.end"))
+    case Encounter.Epilogue(npc, ending) =>
+      PendingSceneView(npc, "epilogue", context = Some(EndingRules.endCard(ending)))
 
 /** Project a player's equipment into the client-facing [[EquipmentView]]. */
 private def equipmentToView(player: Player): EquipmentView =
@@ -103,7 +132,7 @@ sealed trait GameState:
   def player: Player
 
   /** Project this game state into a StateUpdate for the client. */
-  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate
+  def toStateUpdate(log: List[String] = Nil): StateUpdate
 
 /** @param upgradeDefs
   *   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]), used to render [[HubView]].
@@ -120,7 +149,7 @@ case class HubState(player: Player,
                     meta: MetaProgression = MetaProgression.empty,
                     perkOptions: List[PerkDef] = Nil
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Hub,
       player = player.toView,
@@ -152,6 +181,25 @@ case class HubState(player: Player,
   *   state, not a transient per-action signal - it survives until resolved by an `EquipChoice`
   *   action, so it is resolved into a view here on every call, not projected from `events` like
   *   `damageEvents`/`soundEvents`.
+  * @param pendingScene
+  *   A conversation with a Rest NPC the player has started and not read to its end (see
+  *   [[PendingScene]]). Durable like `pendingEquipChoice`, and it blocks movement and interaction
+  *   the same way.
+  * @param trapsInert
+  *   Whether the traps summon nothing, because the running vow forbids a fight (see
+  *   [[roguelite.game.VowType.inertTraps]]). The pure resolvers cannot see the story, so
+  *   [[GameSession]] keeps this in step with it after every transition.
+  * @param endingOpen
+  *   Whether the Sanctuary asks the question of the light instead of ending the run (see
+  *   [[roguelite.game.EndingRules.isOffered]]). Kept in step by [[GameSession]] for the same reason as
+  *   `trapsInert`.
+  * @param pendingEndingChoice
+  *   Whether the Sanctuary has asked its question and awaits the answer, an `EndingChoice`. Durable like
+  *   `pendingScene`, and it blocks movement and interaction the same way.
+  * @param altarShut
+  *   Whether the player has refused the light, so that a kill earns no Shard any more (see
+  *   [[roguelite.game.StoryProgress.shopClosed]]). Kept in step by [[GameSession]] like `trapsInert`, and
+  *   handed on to the fights that start from this state.
   */
 case class ExplorationState(player: Player,
                             dungeon: Dungeon,
@@ -160,9 +208,14 @@ case class ExplorationState(player: Player,
                             difficulty: Difficulty = Difficulty.Normal,
                             enemyStats: Map[String, EnemyStats] = Map.empty,
                             pendingEquipChoice: Option[PendingEquipChoice] = None,
-                            pendingRewardChoice: Option[PendingRewardChoice] = None
+                            pendingRewardChoice: Option[PendingRewardChoice] = None,
+                            pendingScene: Option[PendingScene] = None,
+                            trapsInert: Boolean = false,
+                            endingOpen: Boolean = false,
+                            pendingEndingChoice: Boolean = false,
+                            altarShut: Boolean = false
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Exploration,
       player = player.toView,
@@ -170,8 +223,10 @@ case class ExplorationState(player: Player,
       equipment = equipmentToView(player),
       pendingEquipChoice = pendingEquipChoice.map(pendingChoiceToView(_, player.affinityTags)),
       pendingRewardChoice = pendingRewardChoice.map(pendingRewardChoiceToView(_, player.affinityTags)),
+      pendingScene = pendingScene.map(pendingSceneToView),
+      // Which NPCs could take the player's place depends on the story, which GameSession adds.
+      pendingEndingChoice = Option.when(pendingEndingChoice)(PendingEndingChoiceView(Nil)),
       log = log,
-      dialogue = dialogue,
       minimap = Some(MinimapBuilder.build(dungeon))
     )
 
@@ -183,6 +238,8 @@ case class ExplorationState(player: Player,
   *   Id of the Enemy entity in the room, used to remove it after a victorious combat.
   * @param enemyStats
   *   Same role as on [[ExplorationState]] - forwarded to [[roguelite.game.Room.toView]].
+  * @param altarShut
+  *   Copied from the [[ExplorationState]] the fight started from: whether a kill earns no Shard.
   */
 case class CombatState(player: Player,
                        dungeon: Dungeon,
@@ -191,9 +248,10 @@ case class CombatState(player: Player,
                        combat: Combat,
                        enemyEntityId: String,
                        difficulty: Difficulty = Difficulty.Normal,
-                       enemyStats: Map[String, EnemyStats] = Map.empty
+                       enemyStats: Map[String, EnemyStats] = Map.empty,
+                       altarShut: Boolean = false
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Combat,
       player = player.toView,
@@ -218,7 +276,7 @@ case class CombatState(player: Player,
   *   True if the run ended by defeating the dungeon's boss, false if the player died.
   */
 case class GameOverState(player: Player, victory: Boolean = false) extends GameState:
-  def toStateUpdate(log: List[String] = Nil, dialogue: Option[DialogueView] = None): StateUpdate =
+  def toStateUpdate(log: List[String] = Nil): StateUpdate =
     StateUpdate(phase = GamePhase.GameOver,
                 player = player.toView,
                 equipment = equipmentToView(player),

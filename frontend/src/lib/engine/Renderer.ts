@@ -1,6 +1,6 @@
 import { assets, type AssetManager, type SourceRect } from "./AssetManager";
 import type { RoomView, PlayerView, EntityView } from "./protocol";
-import { chestSpriteKey, isEntityInteractable } from "./entityState";
+import { entitySpriteKey, isEntityInteractable } from "./entityState";
 import { doorNativeYOffset } from "./doorArt";
 import { interactCheckTile } from "./doorInteract";
 import {
@@ -78,15 +78,6 @@ const ENTITY_COLORS: Record<string, string> = {
 const TILE_SPRITES: Record<string, string> = {
   floor: "floor_plain",
   wall: "wall_center",
-};
-
-/** Atlas sprite per entity kind, for the kinds that don't vary by instance (everything except
- * "enemy", which uses EntityView.spriteId - server-resolved per typeId, see AssetManager.getSprite -
- * and "chest", which varies by state, see chestSpriteKey). "door"/"locked_door" aren't here - they
- * get their own bespoke 2-tile draw path, see drawDoor. */
-const ENTITY_SPRITES: Record<string, string> = {
-  npc: "npc_sage",
-  sanctuary: "sanctuary_halo_gold",
 };
 
 /** The door leaf sprite (see public/atlas/dungeon_special.json) - a hand-cropped 40x35 region;
@@ -976,15 +967,6 @@ function isCardinalNeighbor(
   const sameCol = x1 === x2;
   if (sameRow === sameCol) return false; // both true (same tile) or both false (diagonal)
   return chebyshevDist(x1, y1, x2, y2) <= INTERACT_RANGE;
-}
-
-/** The atlas sprite an entity is drawn with: an enemy's server-resolved sprite, a chest's sprite for
- * its current state, or the one fixed sprite of any other kind (undefined for the kinds with their
- * own draw path, which the caller handles before ever using it). */
-function entitySpriteKey(entity: EntityView): string | undefined {
-  if (entity.kind === "enemy") return entity.spriteId;
-  if (entity.kind === "chest") return chestSpriteKey(entity.state);
-  return ENTITY_SPRITES[entity.kind];
 }
 
 /** Deterministic hash of an entity id, used to decide a stable left/right mirror per enemy.

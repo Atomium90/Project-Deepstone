@@ -15,12 +15,13 @@ class EnemyLoaderSuite extends CatsEffectSuite:
     """[
       |  {"typeId":"test_goblin","label":"Test Goblin","spriteId":"mob_x_idle","maxHp":30,"attack":8,"defense":2,"xpReward":15,"actions":[{"action":"ATTACK","weight":100}],"dropChance":30,"lootTable":[{"typeId":"health_potion","weight":1}]},
       |  {"typeId":"test_boss","label":"Test Boss","spriteId":"mob_y_idle","maxHp":200,"attack":25,"defense":10,"xpReward":100,"actions":[{"action":"ATTACK","weight":70},{"action":"DEFEND","weight":30}],"dropChance":100,"lootTable":[{"typeId":"health_potion","weight":1}]},
+      |  {"typeId":"test_devoted","label":"Test Devoted","spriteId":"mob_w_idle","devoted":3,"maxHp":90,"attack":20,"defense":6,"xpReward":60,"actions":[{"action":"ATTACK","weight":100}]},
       |  {"typeId":"test_no_loot","label":"Test No Loot","spriteId":"mob_z_idle","maxHp":10,"attack":3,"defense":0,"xpReward":5,"actions":[{"action":"ATTACK","weight":100}]}
       |]""".stripMargin
 
   test("loadAllFromJson keys each entry by its typeId"):
     for stats <- EnemyLoader.loadAllFromJson(fixture)
-    yield assertEquals(stats.keySet, Set("test_goblin", "test_boss", "test_no_loot"))
+    yield assertEquals(stats.keySet, Set("test_goblin", "test_boss", "test_devoted", "test_no_loot"))
 
   test("fields round-trip through decoding"):
     for stats <- EnemyLoader.loadAllFromJson(fixture)
@@ -45,6 +46,27 @@ class EnemyLoaderSuite extends CatsEffectSuite:
       val noLoot = stats("test_no_loot")
       assertEquals(noLoot.dropChance, 0)
       assertEquals(noLoot.lootTable, Nil)
+
+  test("a Devoted number decodes, and an enemy that is no Devoted has none"):
+    for stats <- EnemyLoader.loadAllFromJson(fixture)
+    yield
+      assertEquals(stats("test_devoted").devoted, Some(3))
+      assertEquals(stats("test_goblin").devoted, None)
+
+  test("two enemies cannot be the same Devoted"):
+    val twice =
+      """[
+        |  {"typeId":"a","label":"A","spriteId":"s","devoted":2,"maxHp":1,"attack":1,"defense":0,"xpReward":1,"actions":[{"action":"ATTACK","weight":1}]},
+        |  {"typeId":"b","label":"B","spriteId":"s","devoted":2,"maxHp":1,"attack":1,"defense":0,"xpReward":1,"actions":[{"action":"ATTACK","weight":1}]}
+        |]""".stripMargin
+    EnemyLoader.loadAllFromJson(twice).attempt.map:
+      case Left(error) => assert(error.getMessage.contains("Devoted 2"), error.getMessage)
+      case Right(_)    => fail("expected a parse failure")
+
+  test("a Devoted number below 1 fails to parse"):
+    val zero =
+      """[{"typeId":"a","label":"A","spriteId":"s","devoted":0,"maxHp":1,"attack":1,"defense":0,"xpReward":1,"actions":[{"action":"ATTACK","weight":1}]}]"""
+    EnemyLoader.loadAllFromJson(zero).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   test("a missing required field fails to parse"):
     val bad =

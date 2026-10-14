@@ -469,8 +469,9 @@ class CombatResolver(rng: Random = Random(),
                       killingBlowDamage: Int
   ): (GameState, List[String], List[GameEvent]) = {
     val xpGained = deadEnemy.xpReward
-    // Stone Shards: 1 per 5 XP, minimum 1 per kill
-    val shardsEarned = (xpGained / 5).max(1)
+    // Stone Shards: 1 per 5 XP, minimum 1 per kill, and none on a run that takes no blessing, nor once
+    // the altar is shut: there is nothing left to buy them with.
+    val shardsEarned = if state.difficulty.usesBlessings && !state.altarShut then (xpGained / 5).max(1) else 0
     val playerWithXp = state.player.copy(xp = state.player.xp + xpGained,
                                          metaCurrency = state.player.metaCurrency + shardsEarned
     )
@@ -502,7 +503,8 @@ class CombatResolver(rng: Random = Random(),
     val updatedRoom =
       deadEnemyPosition match {
         case Some((x, y)) if isBossKill =>
-          roomAfterRemoval.withEntities(List(Shrine(id = s"shrine_${deadEnemy.entityId}", x = x, y = y)))
+          val devoted = state.enemyStats.get(deadEnemy.typeId).flatMap(_.devoted)
+          roomAfterRemoval.withEntities(List(Shrine(id = s"shrine_${deadEnemy.entityId}", x = x, y = y, devoted = devoted)))
         case Some((x, y)) if isMiniBossKill =>
           roomAfterRemoval.withEntities(List(Chest(id = s"chest_${deadEnemy.entityId}", x = x, y = y)))
         case _ => roomAfterRemoval
@@ -513,7 +515,8 @@ class CombatResolver(rng: Random = Random(),
 
     val victoryLog = log ++ List(
       s"${deadEnemy.label} has been defeated!",
-      s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
+      if shardsEarned == 0 then s"You gain $xpGained XP."
+      else s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
     ) ++ healLog
 
     // isBossKill is also what drives the EnemyDefeated event below (the "defeat a boss"
@@ -571,7 +574,8 @@ class CombatResolver(rng: Random = Random(),
     val enemyDefeatedEvent =
       GameEvent.EnemyDefeated(isBoss = isBossKill,
                               tookNoDamage = !state.combat.tookDamage,
-                              wasElite = deadEnemy.isElite
+                              wasElite = deadEnemy.isElite,
+                              typeId = deadEnemy.typeId
       )
 
     val nextState = ExplorationState(

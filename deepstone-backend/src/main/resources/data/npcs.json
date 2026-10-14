@@ -1,7 +1,7 @@
 [
   { "id": "npc.1", "spriteId": "npc_townsfolk_male_idle" },
-  { "id": "npc.2", "spriteId": "npc_bishop_idle" },
-  { "id": "npc.3", "spriteId": "npc_executioner_idle", "revealedBy": "npc.3.s3" },
+  { "id": "npc.2", "spriteId": "npc_bishop_idle", "candidate": true },
+  { "id": "npc.3", "spriteId": "npc_executioner_idle", "revealedBy": "npc.3.s3", "candidate": true },
   { "id": "npc.4", "spriteId": "npc_archer_idle" },
-  { "id": "npc.5", "spriteId": "npc_herald_idle" }
+  { "id": "npc.5", "spriteId": "npc_herald_idle", "candidate": true }
 ]

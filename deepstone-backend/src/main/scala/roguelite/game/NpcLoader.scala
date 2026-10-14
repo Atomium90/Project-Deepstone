@@ -18,7 +18,7 @@ object NpcLoader extends JsonResourceLoader[NpcDef, String]:
   protected def parseEntries(json: String): Either[String, List[NpcDef]] =
     decode[List[NpcJson]](json)
       .leftMap(_.getMessage)
-      .map(js => js.map(j => NpcDef(j.id, j.spriteId, j.revealedBy)))
+      .map(js => js.map(j => NpcDef(j.id, j.spriteId, j.revealedBy, j.candidate.getOrElse(false))))
       .flatMap(requireDistinctIds)
 
   /** Two entries with one id would silently shadow each other in the catalog. */
@@ -31,7 +31,7 @@ object NpcLoader extends JsonResourceLoader[NpcDef, String]:
   // Internal JSON DTOs
   // -----------------------------------------------------------------------
 
-  private case class NpcJson(id: String, spriteId: String, revealedBy: Option[String])
+  private case class NpcJson(id: String, spriteId: String, revealedBy: Option[String], candidate: Option[Boolean])
 
   private given Decoder[NpcJson] = Decoder.instance:
     (c: HCursor) =>
@@ -39,4 +39,5 @@ object NpcLoader extends JsonResourceLoader[NpcDef, String]:
         id         <- c.get[String]("id")
         spriteId   <- c.get[String]("spriteId")
         revealedBy <- c.get[Option[String]]("revealedBy")
-      yield NpcJson(id, spriteId, revealedBy)
+        candidate  <- c.get[Option[Boolean]]("candidate")
+      yield NpcJson(id, spriteId, revealedBy, candidate)

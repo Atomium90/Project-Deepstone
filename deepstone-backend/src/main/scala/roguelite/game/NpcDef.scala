@@ -12,5 +12,8 @@ package roguelite.game
   *   The scene that gives the NPC's real name away. Until the player has seen it the NPC goes by
   *   its title (`story.<id>.name`), after it by its name (`story.<id>.name_revealed`). `None` for an
   *   NPC that gives its name from the start.
+  * @param candidate
+  *   Whether the NPC can take the player's place in the light once their story is over (see
+  *   [[EndingRules.candidates]]).
   */
-case class NpcDef(id: String, spriteId: String, revealedBy: Option[String] = None)
+case class NpcDef(id: String, spriteId: String, revealedBy: Option[String] = None, candidate: Boolean = false)

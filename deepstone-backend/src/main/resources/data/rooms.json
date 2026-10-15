@@ -13227,7 +13227,43 @@
     ],
     "floorSprites": [
       [
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0"
+      ],
+      [
+        "darkDungeon_72",
         "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_63"
+      ],
+      [
+        "darkDungeon_72",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_75",
+        "darkDungeon_63"
+      ],
+      [
+        "darkDungeon_72",
         "darkDungeon_75",
         "darkDungeon_75",
         "darkDungeon_75",
@@ -13239,19 +13275,7 @@
         "darkDungeon_75"
       ],
       [
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75"
-      ],
-      [
-        "darkDungeon_75",
+        "darkDungeon_72",
         "darkDungeon_75",
         "darkDungeon_75",
         "darkDungeon_75",
@@ -13263,19 +13287,7 @@
         "darkDungeon_75"
       ],
       [
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75"
-      ],
-      [
-        "darkDungeon_75",
+        "darkDungeon_72",
         "darkDungeon_75",
         "darkDungeon_75",
         "darkDungeon_75",
@@ -13287,6 +13299,7 @@
         "darkDungeon_75"
       ],
       [
+        "darkDungeon_72",
         "darkDungeon_75",
         "darkDungeon_75",
         "darkDungeon_75",
@@ -13295,32 +13308,19 @@
         "darkDungeon_75",
         "darkDungeon_75",
         "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75"
+        "darkDungeon_63"
       ],
       [
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75"
-      ],
-      [
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75",
-        "darkDungeon_75"
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0",
+        "darkDungeon_0"
       ]
     ],
     "wallSprites": [
@@ -15494,7 +15494,7 @@
         "wall",
         "floor",
         "wall",
-        "floor",
+        "wall",
         "wall",
         "wall",
         "wall",
@@ -15735,9 +15735,9 @@
       [
         "darkDungeon_72",
         "darkDungeon_75",
-        "darkDungeon_63",
-        "darkDungeon_90",
-        "darkDungeon_72",
+        "darkDungeon_93",
+        "darkDungeon_93",
+        "darkDungeon_75",
         "darkDungeon_93",
         "darkDungeon_94",
         "darkDungeon_66",
@@ -15945,9 +15945,9 @@
       [
         "darkDungeon_29",
         null,
-        "darkDungeon_29",
-        null,
-        "darkDungeon_36",
+        "darkDungeon_45",
+        "darkDungeon_12",
+        "darkDungeon_55",
         "darkDungeon_21",
         "darkDungeon_22",
         "darkDungeon_23",
@@ -15961,9 +15961,9 @@
       [
         "darkDungeon_29",
         null,
-        "darkDungeon_45",
-        "darkDungeon_12",
-        "darkDungeon_46",
+        "darkDungeon_18",
+        "darkDungeon_21",
+        "darkDungeon_19",
         null,
         null,
         null,

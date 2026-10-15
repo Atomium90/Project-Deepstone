@@ -45,8 +45,17 @@ STRIPS = {
 }
 
 # strip file name -> scale of its frames (1 = as drawn in the pack). A strip left out is not scaled.
-# The largest scale a 32x32 frame can take in a CELL x CELL cell is CELL / FRAME.
-SCALES: dict[str, float] = {}
+# The largest scale a 32x32 frame can take in a CELL x CELL cell is CELL / FRAME. Chosen by eye, in the
+# debug room that lines the cast up next to an orc and the player: the villagers stand at about the
+# height of the player, the bishop a little above them (his mitre is most of his height, a full 1.5
+# would make him nearly as tall as the executioner), and the executioner, broader, is the biggest.
+SCALES: dict[str, float] = {
+    "townsfolk_male_idle": 1.5,
+    "herald_idle": 1.5,
+    "archer_idle": 1.5,
+    "bishop_idle": 1.25,
+    "executioner_idle": 1.5,
+}
 
 PACK_ROOT = "Fantasy RPG NPCs - Individuel Frames/Fantasy RPG NPCs - Individuel Frames"
 OUT_DIR = Path(__file__).resolve().parent.parent / "public" / "sprites" / "entities" / "npcs"

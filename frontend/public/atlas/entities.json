@@ -722,40 +722,40 @@
       "sheet": "/sprites/entities/npcs/townsfolk_male_idle.png",
       "x": 0,
       "y": 0,
-      "w": 32,
-      "h": 32,
+      "w": 48,
+      "h": 48,
       "frameCount": 4
     },
     "npc_executioner_idle": {
       "sheet": "/sprites/entities/npcs/executioner_idle.png",
       "x": 0,
       "y": 0,
-      "w": 32,
-      "h": 32,
+      "w": 48,
+      "h": 48,
       "frameCount": 4
     },
     "npc_bishop_idle": {
       "sheet": "/sprites/entities/npcs/bishop_idle.png",
       "x": 0,
       "y": 0,
-      "w": 32,
-      "h": 32,
+      "w": 48,
+      "h": 48,
       "frameCount": 4
     },
     "npc_herald_idle": {
       "sheet": "/sprites/entities/npcs/herald_idle.png",
       "x": 0,
       "y": 0,
-      "w": 32,
-      "h": 32,
+      "w": 48,
+      "h": 48,
       "frameCount": 4
     },
     "npc_archer_idle": {
       "sheet": "/sprites/entities/npcs/archer_idle.png",
       "x": 0,
       "y": 0,
-      "w": 32,
-      "h": 32,
+      "w": 48,
+      "h": 48,
       "frameCount": 4
     }
   }

@@ -1,6 +1,6 @@
-// Merges the NPC sprites into public/atlas/entities.json. Each NPC is a 4-frame idle strip of 32x32
-// cells, built from the "16x16 Fantasy RPG Characters" pack by build-npc-strips.py, and animated the
-// way the enemies' idle sheets are (frameCount).
+// Merges the NPC sprites into public/atlas/entities.json. Each NPC is a 4-frame idle strip of 48x48
+// cells (bigger than a tile, see characterBox.ts), built from the "16x16 Fantasy RPG Characters" pack
+// by build-npc-strips.py, and animated the way the enemies' idle sheets are (frameCount).
 //
 // The ids name the character of the pack, never the NPC of the story, so that giving an NPC another
 // look only changes data/npcs.json (the backend catalog that says which sprite each NPC wears).
@@ -17,7 +17,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, "..", "public");
 const entitiesAtlasPath = path.join(publicDir, "atlas", "entities.json");
 
-const FRAME = 32;
+const FRAME = 48; // keep in step with CELL in build-npc-strips.py
 const FRAME_COUNT = 4;
 
 /** Atlas id -> strip file under /sprites/entities/npcs/. */

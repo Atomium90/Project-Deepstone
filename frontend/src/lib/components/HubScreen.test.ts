@@ -482,3 +482,38 @@ describe("HubScreen", () => {
         });
     });
 });
+
+// App.svelte fades the hub out over the first update of the next phase, and that update has no hub in it.
+describe("HubScreen while it fades out", () => {
+    test("keeps the shop, the perks and the class cards on screen once the run has begun", async () => {
+        gameState.set(
+            makeState({ hub: { upgrades: [makeUpgrade({ label: "Iron Will" })], perks: [makePerk({ label: "Heavy Hand" })], runsCompleted: 1, difficulties: [] } })
+        );
+        const { container } = render(HubScreen);
+        const shown = () => ({
+            upgrades: Array.from(container.querySelectorAll(".upgrade-label")).map((el) => el.textContent),
+            perks: container.querySelectorAll(".perk-card").length,
+            classes: container.querySelectorAll(".class-card").length,
+        });
+        const before = shown();
+        expect(before.upgrades).toEqual(["Iron Will"]);
+        expect(before.perks).toBe(1);
+
+        gameState.set(makeState({ phase: "EXPLORATION", hub: undefined }));
+        await tick();
+
+        expect(shown()).toEqual(before);
+    });
+
+    test("follows the hub again when it comes back", async () => {
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ label: "Iron Will" })], perks: [], runsCompleted: 1, difficulties: [] } }));
+        const { container } = render(HubScreen);
+        gameState.set(makeState({ phase: "EXPLORATION", hub: undefined }));
+        await tick();
+
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ label: "Sharp Eye" })], perks: [], runsCompleted: 1, difficulties: [] } }));
+        await tick();
+
+        expect(Array.from(container.querySelectorAll(".upgrade-label")).map((el) => el.textContent)).toEqual(["Sharp Eye"]);
+    });
+});

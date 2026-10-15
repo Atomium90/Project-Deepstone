@@ -16,7 +16,7 @@
     const ICON_LOCK = "/sprites/ui/icons/icon_lock.png";
     const ICON_GEAR = "/sprites/ui/icons/icon_gear.png";
     const ICON_SHARD = "/sprites/ui/icons/icon_shard.png";
-    import type { ClassId, Difficulty, DifficultyView, UpgradeCategory, UpgradeView } from "../engine/protocol";
+    import type { ClassId, Difficulty, DifficultyView, StateUpdate, UpgradeCategory, UpgradeView } from "../engine/protocol";
 
     // Selected class (Warrior by default)
     let selectedClass: ClassId = "warrior";
@@ -35,19 +35,25 @@
     ];
     let selectedUpgradeTab: UpgradeTab = "all";
 
-    $: player   = $gameState?.player;
-    $: upgrades = $gameState?.hub?.upgrades ?? [];
+    /** The last state received while the hub was the phase. App.svelte fades the hub out over the first
+     * update of the next phase, which has no hub in it, so reading the live state would empty the shop,
+     * the perks and the tiers before the fade was over (same as the end screen, see GameOverScreen). */
+    let hubState: StateUpdate | null = null;
+    $: if ($gameState?.phase === "HUB") hubState = $gameState;
+
+    $: player   = hubState?.player;
+    $: upgrades = hubState?.hub?.upgrades ?? [];
     // The altar shut for good keeps only what the player already owns on show: there is nothing left to buy.
-    $: shopClosed = $gameState?.hub?.shopClosed ?? false;
+    $: shopClosed = hubState?.hub?.shopClosed ?? false;
     $: shownUpgrades = shopClosed ? upgrades.filter((u) => u.unlocked) : upgrades;
     $: visibleUpgrades =
         selectedUpgradeTab === "all" ? shownUpgrades : shownUpgrades.filter((u) => u.category === selectedUpgradeTab);
-    $: perks    = $gameState?.hub?.perks ?? [];
+    $: perks    = hubState?.hub?.perks ?? [];
     $: shards   = player?.metaCurrency ?? 0;
 
     // Which tiers can be started. The server is what enforces it, the hub only mirrors it, so a
     // tier the server does not list counts as available.
-    $: tiers = $gameState?.hub?.difficulties ?? [];
+    $: tiers = hubState?.hub?.difficulties ?? [];
     // The tier only the story opens is on screen only when the server lists it, and is never the
     // default pick: the player chooses it on purpose.
     $: difficulties = tiers.some((tier) => tier.id === storyTier) ? [...regularTiers, storyTier] : regularTiers;
@@ -79,7 +85,7 @@
     // Dev tooling only - hand-converted Tiled rooms sitting in the backend's debug-rooms/ folder
     // (see frontend/scripts/convert-tiled-room.mjs). Empty (section hidden) unless that folder
     // exists and has something in it, so this never shows up for an actual player.
-    $: debugRooms = $gameState?.debugRooms ?? [];
+    $: debugRooms = hubState?.debugRooms ?? [];
 
     const classes: ClassId[] = ["warrior", "archer", "mage"];
     const regularTiers: Difficulty[] = ["easy", "normal", "hard"];
@@ -164,7 +170,7 @@
      * displayed message no longer corresponds to their action. Fine for now,
      * would need a dedicated feedback field in the protocol to fix properly.
      */
-    $: feedback = $gameState?.log.at(-1) ?? "";
+    $: feedback = hubState?.log.at(-1) ?? "";
 </script>
 
 <div class="hub-root">

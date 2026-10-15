@@ -179,6 +179,13 @@ class CombatResolverSuite extends FunSuite:
     assert(next.player.metaCurrency > fullHpPlayer().metaCurrency)
     assert(log.exists(_.contains("Shard")), s"expected the Shards in the log: $log")
 
+  test("the line that tells an enemy has fallen names it, and comes after the blow that killed it"):
+    assertEquals(CombatResolver.defeatedLine("Goblin"), "Goblin has been defeated!")
+    val (_, log, _) = resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
+    val at          = log.indexOf(CombatResolver.defeatedLine("Goblin"))
+    assert(at > 0, s"the blow comes before the line: $log")
+    assert(log.drop(at + 1).exists(_.startsWith("You gain")), s"the outcome comes after it: $log")
+
   test("Victory counts the Shards it earns, one per 5 XP, and says Shard for exactly one"):
     def xpLine(xpReward: Int): Option[String] =
       val state = combatState(weakEnemy(hp = 1).copy(xpReward = xpReward))

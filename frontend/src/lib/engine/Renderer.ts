@@ -3,6 +3,7 @@ import type { RoomView, PlayerView, EntityView } from "./protocol";
 import { entitySpriteKey, isEntityInteractable } from "./entityState";
 import { doorNativeYOffset } from "./doorArt";
 import { interactCheckTile } from "./doorInteract";
+import { characterBox, emptyRowsAbove, type Box } from "./characterBox";
 import {
   TILE_SIZE,
   LERP_SPEED,
@@ -176,6 +177,8 @@ export class Renderer {
    * source-in tint it solid gold) before compositing it onto the main canvas as an outline -
    * shared by the Elite aura and the Shrine icon's glow, resized to whatever each needs. Lazily
    * created on first use - most rooms contain neither. */
+  /** Rows of empty space above the head of each NPC strip, measured once (see emptyRowsAboveStrip). */
+  private emptyRowsCache = new Map<string, number | null>();
   private outlineCanvas: HTMLCanvasElement | null = null;
   private outlineCtx: CanvasRenderingContext2D | null = null;
 
@@ -473,6 +476,16 @@ export class Renderer {
       } else if (entity.kind === "door" || entity.kind === "locked_door") {
         this.drawDoor(entity, room);
       } else if (sprite?.image && sprite.sourceRect) {
+        // An NPC's cell may be bigger than a tile (see characterBox), an enemy's never is.
+        const box: Box =
+          entity.kind === "npc"
+            ? characterBox(
+                entity.x,
+                entity.y,
+                sprite.sourceRect.w,
+                sprite.sourceRect.h,
+              )
+            : { x: cx - TILE_SIZE / 2, y: cy - TILE_SIZE / 2, w: TILE_SIZE, h: TILE_SIZE };
         const flip = entity.kind === "enemy" && shouldFlip(entity.id);
         if (isElite) {
           this.drawEliteOutline(sprite.image, sprite.sourceRect, flip, cx, cy);
@@ -504,10 +517,10 @@ export class Renderer {
             sy,
             sw,
             sh,
-            cx - TILE_SIZE / 2,
-            cy - TILE_SIZE / 2,
-            TILE_SIZE,
-            TILE_SIZE,
+            box.x,
+            box.y,
+            box.w,
+            box.h,
           );
         }
       } else {
@@ -525,9 +538,59 @@ export class Renderer {
       if (isNearby && isEntityInteractable(entity)) {
         const badgeTopOffset =
           entity.kind === "shrine" ? this.shrineTopOffset() : radius;
-        this.drawInteractBadge(cx, cy - badgeTopOffset - INTERACT_BADGE_OFFSET);
+        // Above the head of a tall NPC, never lower than the badge of any other entity.
+        const headY =
+          entity.kind === "npc" && sprite?.image && sprite.sourceRect
+            ? this.npcHeadY(sprite.image, sprite.sourceRect, entity.x, entity.y)
+            : null;
+        const anchorY = Math.min(cy - badgeTopOffset, headY ?? Infinity);
+        this.drawInteractBadge(cx, anchorY - INTERACT_BADGE_OFFSET);
       }
     }
+  }
+
+  /** The screen y of the top of an NPC's head: the top of its box, plus the rows of its cell that the
+   * art leaves empty above it. Null when the pixels cannot be read, so the badge keeps its usual spot. */
+  private npcHeadY(
+    image: HTMLImageElement,
+    sourceRect: SourceRect,
+    tileX: number,
+    tileY: number,
+  ): number | null {
+    const empty = this.emptyRowsAboveStrip(image, sourceRect);
+    if (empty === null) return null;
+    const box = characterBox(tileX, tileY, sourceRect.w, sourceRect.h);
+    return box.y + empty * (box.h / sourceRect.h);
+  }
+
+  /** The rows left empty above the highest pixel of any frame of the strip `sourceRect` is a frame of
+   * (the whole row of the sheet it sits on), measured once per strip: a head that bobs from frame to
+   * frame must not make the badge jump. Null when the canvas will not give its pixels away. */
+  private emptyRowsAboveStrip(
+    image: HTMLImageElement,
+    sourceRect: SourceRect,
+  ): number | null {
+    const key = `${image.src}|${sourceRect.y}|${sourceRect.h}`;
+    if (this.emptyRowsCache.has(key)) return this.emptyRowsCache.get(key) ?? null;
+    let rows: number | null = null;
+    try {
+      const probe = document.createElement("canvas");
+      probe.width = image.naturalWidth;
+      probe.height = sourceRect.h;
+      const probeCtx = probe.getContext("2d", { willReadFrequently: true });
+      if (probeCtx) {
+        probeCtx.drawImage(image, 0, -sourceRect.y);
+        rows = emptyRowsAbove(
+          probeCtx.getImageData(0, 0, probe.width, probe.height).data,
+          probe.width,
+          probe.height,
+        );
+      }
+    } catch {
+      rows = null;
+    }
+    this.emptyRowsCache.set(key, rows);
+    return rows;
   }
 
   /** Lazily creates (and resizes on demand) the reusable offscreen buffer a silhouette-recolor

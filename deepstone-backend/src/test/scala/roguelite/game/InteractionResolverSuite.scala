@@ -117,6 +117,57 @@ class InteractionResolverSuite extends FunSuite:
            s"expected a tile next to the blocked spot (4, 1): ${(nextExp.playerX, nextExp.playerY)}"
     )
 
+  // --- Door: the way on out of a Boss room ------------------------------------------
+
+  private def bossRoomExploration(entities: List[Entity]): ExplorationState =
+    val boss  = makeRoom("boss", roomType = RoomType.Boss, entities = entities)
+    val after = makeRoom("after")
+    val before = makeRoom("before")
+    ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior),
+                     Dungeon(Map("boss" -> boss, "after" -> after, "before" -> before), "boss"),
+                     4,
+                     3
+    )
+
+  private val bossEnemy = Enemy("boss_1", x = 3, y = 2, typeId = "goblin", label = "Goblin")
+  private val bossNext  = forkNextDoor("boss_next", 4, None, "after")
+  private val bossPrev  = forkPrevDoor("boss_prev", 4, None, "before")
+
+  test("The way on out of a Boss room stays shut while its enemy lives, and says why"):
+    val state                              = bossRoomExploration(List(bossEnemy, bossPrev, bossNext))
+    val TransitionResult(next, log, events) = resolver().interact(state, bossNext.id)
+    assertEquals(next, state)
+    assertEquals(log, List(InteractionResolver.BossExitSealedLine))
+    assertEquals(events, Nil)
+
+  test("The way on out of a Boss room opens once its enemy is gone"):
+    val state  = bossRoomExploration(List(bossEnemy, bossPrev, bossNext))
+    val beaten = state.copy(dungeon = state.dungeon.copy(rooms = state.dungeon.rooms.updated("boss", state.dungeon.currentRoom.removeEntity(bossEnemy.id))))
+    val TransitionResult(next, _, events) = resolver().interact(beaten, bossNext.id)
+    assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "after")
+    assertEquals(events, List(GameEvent.DoorOpened))
+
+  test("The way back out of a Boss room is never shut"):
+    val state = bossRoomExploration(List(bossEnemy, bossPrev, bossNext))
+    val TransitionResult(next, _, _) = resolver().interact(state, bossPrev.id)
+    assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "before")
+
+  test("Any enemy of a Boss room keeps its way on shut, not only the first one placed"):
+    val adds  = Enemy("add_1", x = 5, y = 2, typeId = "goblin", label = "Goblin")
+    val state = bossRoomExploration(List(bossEnemy, adds, bossPrev, bossNext))
+    val without = state.copy(dungeon = state.dungeon.copy(rooms = state.dungeon.rooms.updated("boss", state.dungeon.currentRoom.removeEntity(bossEnemy.id))))
+    assertEquals(resolver().interact(without, bossNext.id).state, without)
+
+  test("A trapped way on out of a Boss room is shut too, the trap does not spring"):
+    val trapped = bossNext.copy(doorKind = DoorKind.Trapped)
+    val state   = bossRoomExploration(List(bossEnemy, bossPrev, trapped))
+    assertEquals(resolver().interact(state, trapped.id).state, state)
+
+  test("A door of another kind of room is never sealed by the enemies standing in it"):
+    val state = explorationAt(3, 3, entities = List(Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin"), door("r1", "r2")))
+    val TransitionResult(next, _, _) = resolver().interact(state, door("r1", "r2").id)
+    assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r2")
+
   // --- Door: the way back after a fork ---------------------------------------------
 
   private def forkNextDoor(id: String, x: Int, branch: Option[String], target: String): Door =

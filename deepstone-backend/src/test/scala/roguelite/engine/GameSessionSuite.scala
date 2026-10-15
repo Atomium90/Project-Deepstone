@@ -589,6 +589,20 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(easy.phase, GamePhase.Exploration)
   }
 
+  db.test("the update that ends a won fight says how many of its lines are blows, and no other update says any") {
+    database =>
+      for
+        session <- tierSession(database)
+        started <- startRunOn(session, Some(Difficulty.Easy))
+        engaged <- session.handle(Interact("e1"))
+        won     <- session.handle(CombatAction(CombatActionType.Attack))
+      yield
+        assertEquals(started.fightLines, 0)
+        assertEquals(engaged.fightLines, 0)
+        assert(won.fightLines > 0, s"the killing blow is a line of the fight: ${won.log}")
+        assertEquals(won.log.lift(won.fightLines), Some("Goblin has been defeated!"))
+  }
+
   db.test("the hub lists every tier, lowest first, with how far the save is from each") {
     database =>
       for

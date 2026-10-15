@@ -6,6 +6,8 @@
     import CombatLog from "./CombatLog.svelte";
     import StatBar from "./StatBar.svelte";
     import Sprite from "./Sprite.svelte";
+    import KeyHint from "./KeyHint.svelte";
+    import { digitOf, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
 
     interface Floater {
         id: number;
@@ -132,7 +134,41 @@
     function toggleItemPicker(): void {
         itemPickerOpen = !itemPickerOpen;
     }
+
+    /** The keyboard does what the buttons do, in the order they are laid out: 1 Attack, 2 Defend, 3 the
+     * class ability, 4 the item picker. With the picker open the digits pick a consumable in the order
+     * listed, and 0 or Escape closes it. */
+    function handleKeyDown(e: KeyboardEvent): void {
+        if (!isPlainPress(e)) return;
+        if (itemPickerOpen) {
+            if (isLeaveKey(e)) {
+                itemPickerOpen = false;
+                e.preventDefault();
+                return;
+            }
+            const index = pickedIndex(e, consumables.length);
+            if (index !== null && isPlayerTurn) useItem(consumables[index]);
+            return;
+        }
+        if (!isPlayerTurn) return;
+        switch (digitOf(e)) {
+            case 1:
+                sendAction("ATTACK");
+                break;
+            case 2:
+                sendAction("DEFEND");
+                break;
+            case 3:
+                if (!abilityDisabled) sendAction("ABILITY");
+                break;
+            case 4:
+                if (hasConsumables) toggleItemPicker();
+                break;
+        }
+    }
 </script>
+
+<svelte:window on:keydown={handleKeyDown} />
 
 <div class="combat-root" class:reduce-shake={$settings.reduceScreenShake}>
 
@@ -205,7 +241,7 @@
                     disabled={!isPlayerTurn}
                     on:click={() => sendAction("ATTACK")}
             >
-                ⚔ Attack
+                <span class="action-label"><KeyHint key="1" />⚔ Attack</span>
             </button>
 
             <button
@@ -213,7 +249,7 @@
                     disabled={!isPlayerTurn}
                     on:click={() => sendAction("DEFEND")}
             >
-                🛡 Defend
+                <span class="action-label"><KeyHint key="2" />🛡 Defend</span>
             </button>
 
             <button
@@ -222,7 +258,7 @@
                     title={abilityInfo?.description ?? ""}
                     on:click={() => sendAction("ABILITY")}
             >
-                ✦ {abilityInfo?.name ?? "Ability"}
+                <span class="action-label"><KeyHint key="3" />✦ {abilityInfo?.name ?? "Ability"}</span>
                 <span class="ability-cost">
                     {effectiveAbilityCost ?? 0} {resourceLabel}
                 </span>
@@ -236,21 +272,21 @@
                     title={hasConsumables ? "Use a consumable" : "No consumables in inventory"}
                     on:click={toggleItemPicker}
             >
-                ⊕ Item {hasConsumables ? `(${totalConsumableCharges})` : ""}
+                <span class="action-label"><KeyHint key="4" />⊕ Item {hasConsumables ? `(${totalConsumableCharges})` : ""}</span>
             </button>
         </div>
 
         <!-- Consumable picker (shown when Item button is toggled) -->
         {#if itemPickerOpen && isPlayerTurn}
             <div class="item-picker">
-                <p class="picker-title">Choose a consumable</p>
+                <p class="picker-title">Choose a consumable <span class="picker-back"><KeyHint key="0" />back</span></p>
                 <div class="picker-list">
-                    {#each consumables as item}
+                    {#each consumables as item, i}
                         <button
                                 class="picker-row"
                                 on:click={() => useItem(item)}
                         >
-                            <span class="picker-name">{item.name}{item.count && item.count > 1 ? ` x${item.count}` : ""}</span>
+                            <span class="picker-name"><KeyHint key={String(i + 1)} />{item.name}{item.count && item.count > 1 ? ` x${item.count}` : ""}</span>
                             <span class="picker-stat">{item.statLine}</span>
                             <span class="picker-rarity" style="color:{ITEM_RARITY_COLORS[item.rarity]}">
                                 {item.rarity}
@@ -478,6 +514,12 @@
         background: #141414;
         border: 1px solid #2a4a2a;
         padding: 0.75rem;
+    }
+
+    .picker-back {
+        float: right;
+        text-transform: none;
+        letter-spacing: 0;
     }
 
     .picker-title {

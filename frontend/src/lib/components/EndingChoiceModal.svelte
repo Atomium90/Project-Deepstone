@@ -1,6 +1,8 @@
 <script lang="ts">
     import { pendingEndingChoice, client } from "../engine/StateStore";
     import { t, dictionaries, language, lookup } from "../engine/i18n";
+    import { createGrace, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
+    import KeyHint from "./KeyHint.svelte";
 
     /** Which screen of the question the player is on: the three answers, the list of who can take their
      * place, or the warning before the answer that cannot be undone and takes everything. */
@@ -30,30 +32,53 @@
     function refuse(): void {
         client.send({ type: "ENDING_CHOICE", answer: "REFUSE" });
     }
+
+    const grace = createGrace();
+    $: grace.track(!!$pendingEndingChoice);
+
+    /** The answers are numbered 1 to 3 as listed (2 only while someone can take the place), the
+     * candidates 1 to 9, and 0 or Escape goes back a screen. The warning has no digit that confirms:
+     * the answer that takes everything is only ever given with a click. */
+    function handleKeyDown(e: KeyboardEvent): void {
+        if (!$pendingEndingChoice || !isPlainPress(e) || !grace.over()) return;
+        if (view === "answers") {
+            const answer = pickedIndex(e, 3);
+            if (answer === 0) enter();
+            else if (answer === 1 && candidates.length > 0) view = "who";
+            else if (answer === 2) view = "sure";
+        } else if (isLeaveKey(e)) {
+            view = "answers";
+        } else if (view === "who") {
+            const index = pickedIndex(e, candidates.length);
+            if (index !== null) replaceWith(candidates[index]);
+        }
+    }
 </script>
+
+<svelte:window on:keydown={handleKeyDown} />
 
 {#if $pendingEndingChoice}
     <div class="backdrop">
         <div class="modal">
             {#if view === "answers"}
-                <button class="answer" on:click={enter}>{$t("story.ending.enter")}</button>
+                <button class="answer" on:click={enter}><KeyHint key="1" />{$t("story.ending.enter")}</button>
                 <button class="answer" disabled={candidates.length === 0} on:click={() => (view = "who")}>
-                    {$t("story.ending.replace")}
+                    <KeyHint key="2" />{$t("story.ending.replace")}
                 </button>
                 {#if candidates.length === 0}
                     <p class="closed">{$t("story.ending.nobody")}</p>
                 {/if}
-                <button class="answer refuse" on:click={() => (view = "sure")}>{$t("story.ending.refuse")}</button>
+                <button class="answer refuse" on:click={() => (view = "sure")}><KeyHint key="3" />{$t("story.ending.refuse")}</button>
             {:else if view === "who"}
                 <p class="question">{$t("story.ending.who")}</p>
-                {#each candidates as npc (npc)}
-                    <button class="answer candidate" on:click={() => replaceWith(npc)}>{nameOf(npc)}</button>
+                {#each candidates as npc, i (npc)}
+                    <button class="answer candidate" on:click={() => replaceWith(npc)}><KeyHint key={String(i + 1)} />{nameOf(npc)}</button>
                 {/each}
-                <button class="back" on:click={() => (view = "answers")}>{$t("story.ending.back")}</button>
+                <button class="back" on:click={() => (view = "answers")}><KeyHint key="0" />{$t("story.ending.back")}</button>
             {:else}
                 <p class="question warning">{$t("story.ending.sure")}</p>
                 <button class="answer refuse" on:click={refuse}>{$t("story.ending.refuse")}</button>
-                <button class="back" on:click={() => (view = "answers")}>{$t("story.ending.back")}</button>
+                <button class="back" on:click={() => (view = "answers")}><KeyHint key="0" />{$t("story.ending.back")}</button>
             {/if}
         </div>
     </div>

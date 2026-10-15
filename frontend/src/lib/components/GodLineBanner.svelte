@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onDestroy, tick } from "svelte";
     import { get } from "svelte/store";
-    import { godLine } from "../engine/StateStore";
+    import { godLine, gamePhase } from "../engine/StateStore";
     import { dictionaries, language, lookup } from "../engine/i18n";
     import { pickGodLine } from "../engine/godVoice";
     import type { GodLineView } from "../engine/protocol";
@@ -17,6 +17,17 @@
     // ones, so the line is kept here and removed by the timer, not by the updates that follow.
     // The lines said on a death belong to the Game Over screen.
     $: if ($godLine?.moment === "start") show($godLine);
+
+    // The line is about the walk into the dungeon: it goes as soon as anything else begins, a fight
+    // or the end of the run, instead of staying over it until its timer runs out.
+    $: if ($gamePhase !== "EXPLORATION") remove();
+
+    function remove(): void {
+        if (timer !== null) clearTimeout(timer);
+        timer = null;
+        visible = false;
+        text = null;
+    }
 
     async function show(line: GodLineView): Promise<void> {
         if (timer !== null) clearTimeout(timer);

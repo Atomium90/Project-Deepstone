@@ -42,6 +42,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       case Some(door: Door) if door.doorKind == DoorKind.Secret && !door.revealed =>
         TransitionResult(exp, List(s"No entity found with id '$targetId'.")) // never acknowledge an unrevealed door
 
+      case Some(door: Door) if isSealedByBoss(exp.dungeon.currentRoom, door) =>
+        TransitionResult(exp, List(InteractionResolver.BossExitSealedLine))
+
       case Some(door: Door) if door.doorKind == DoorKind.Trapped =>
         lift(handleTrappedDoor(exp, door))
 
@@ -76,6 +79,16 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   /** Same as [[lift]], for handlers that also report [[GameEvent]]s. */
   private def liftEvents(r: (GameState, List[String], List[GameEvent])): TransitionResult =
     TransitionResult(r._1, r._2, events = r._3)
+
+  /** The way on out of a Boss room stays shut while an enemy of that room lives, so a Boss cannot be
+    * walked past. The way back (a Prev door) is never shut. Killing the Boss removes it from the room
+    * (see [[CombatResolver]]), which is what opens the door: no state of its own. A Boss room is told
+    * by its type, as everywhere else, there is no per-enemy Boss flag.
+    */
+  private def isSealedByBoss(room: Room, door: Door): Boolean =
+    room.roomType == RoomType.Boss
+      && door.link.role == ConnectorRole.Next
+      && room.entities.exists(_.isInstanceOf[Enemy])
 
   /** Shared by a normal Door and an already-unlocked LockedDoor: navigate to the target room and
     * place the player in front of the door they came through (see [[findSpawnPoint]]).
@@ -488,3 +501,8 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       }
 
       (room.withEntities(newEnemies), List("It's a trap! Enemies emerge from the shadows!"))
+
+object InteractionResolver:
+
+  /** What the player reads on trying the way on out of a Boss room while its guardian still stands. */
+  val BossExitSealedLine: String = "The way on is sealed while the guardian of this room still stands."

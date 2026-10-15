@@ -146,6 +146,17 @@ describe("SceneDialogue", () => {
         expect(text(container, ".dialogue-line")).toBe("Shame.");
     });
 
+    test("the vow is answered from the top row of an AZERTY keyboard too, which types & and e-acute", async () => {
+        const accepted = render(SceneDialogue, { scene: offering });
+        await fireEvent.keyDown(window, { key: "&", code: "Digit1" });
+        expect(text(accepted.container, ".dialogue-line")).toBe("Great.");
+        accepted.unmount();
+
+        const declined = render(SceneDialogue, { scene: offering });
+        await fireEvent.keyDown(window, { key: "é", code: "Digit2" });
+        expect(text(declined.container, ".dialogue-line")).toBe("Shame.");
+    });
+
     test("the line of a Devoted is one bubble said by the Devoted, and E ends it with no answer", async () => {
         const send = vi.spyOn(client, "send");
         const { container } = render(SceneDialogue, { scene: devoted });

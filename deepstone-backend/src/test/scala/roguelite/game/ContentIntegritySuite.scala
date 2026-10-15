@@ -242,7 +242,9 @@ class ContentIntegritySuite extends CatsEffectSuite:
   // arrive in (see InteractionResolver.findSpawnPoint), so a room with an unusual wall thickness can
   // put them somewhere they cannot stand. This walks through every ordinary door of every room of real
   // dungeons and checks the arrival tile is walkable and sits in a room the player can leave, which
-  // an enclosed pocket inside a wall would not be.
+  // an enclosed pocket inside a wall would not be. The room the player leaves starts cleared: while
+  // its enemy lives, the way on out of a Boss room is shut (tested separately), and only the arrival
+  // tile matters here.
   test("walking through any door of a real dungeon never leaves the player stuck in a wall"):
     RoomLoader
       .loadAll()
@@ -261,8 +263,9 @@ class ContentIntegritySuite extends CatsEffectSuite:
                   door <- room.entities.collect { case d: Door if d.doorKind == DoorKind.Normal => d }
                   if door.link.isInstanceOf[DoorLink.Resolved]
                 do
+                  val cleared = room.copy(entities = room.entities.filterNot(_.isInstanceOf[Enemy]))
                   val start = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior),
-                                               dungeon.copy(currentRoomId = room.id),
+                                               dungeon.copy(rooms = dungeon.rooms.updated(room.id, cleared), currentRoomId = room.id),
                                                playerX = door.x,
                                                playerY = door.y
                   )
@@ -383,6 +386,64 @@ class ContentIntegritySuite extends CatsEffectSuite:
     RoomLoader.loadAll().map:
       rooms =>
         assertDoorsStayConnected(rooms.values.filterNot(_.roomType == RoomType.Boss), blocks, _ => false)
+
+  // The rooms leave room to walk around a Boss (the test above exempts them), so it is the way on
+  // that makes the fight compulsory: shut while an enemy of the room lives, open once it is gone.
+  // Doors come unresolved from rooms.json, each is wired to a stub room here to tell "shut" from
+  // "not connected".
+  test("the way on out of every Boss room is shut while its enemy lives, and opens once it is gone"):
+    RoomLoader.loadAll().map:
+      rooms =>
+        val bossRooms = rooms.values.filter(_.roomType == RoomType.Boss).toList
+        assert(bossRooms.nonEmpty, "rooms.json has no Boss room")
+
+        val resolver = InteractionResolver(Map.empty, Map.empty)
+        val stub = Room("elsewhere", RoomType.Combat, "dungeon", 8, 6, Vector.fill(6)(Vector.fill(8)(Tile.Floor)), Nil)
+
+        def exploring(room: Room): ExplorationState =
+          val wired = room.copy(entities = room.entities.map:
+            case d: Door => d.copy(link = DoorLink.Resolved(d.link.role, d.link.branch, "elsewhere"))
+            case other   => other
+          )
+          ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior),
+                           Dungeon(Map(wired.id -> wired, stub.id -> stub), wired.id),
+                           wired.width / 2,
+                           wired.height / 2
+          )
+
+        def doorsOf(room: Room, role: ConnectorRole): List[Door] =
+          room.entities.collect { case d: Door if d.link.role == role => d }
+
+        bossRooms.foreach:
+          boss =>
+            val state     = exploring(boss)
+            val nextDoors = doorsOf(boss, ConnectorRole.Next)
+            val prevDoors = doorsOf(boss, ConnectorRole.Prev)
+            assert(nextDoors.nonEmpty, s"Boss room '${boss.id}' has no way on")
+            assert(boss.entities.exists(_.isInstanceOf[Enemy]), s"Boss room '${boss.id}' has no enemy")
+
+            nextDoors.foreach:
+              door =>
+                val shut = resolver.interact(state, door.id)
+                assertEquals(shut.state, state, s"'${boss.id}': '${door.id}' let the player through past the Boss")
+                assertEquals(shut.log, List(InteractionResolver.BossExitSealedLine))
+
+            prevDoors.foreach:
+              door =>
+                val back = resolver.interact(state, door.id).state.asInstanceOf[ExplorationState]
+                assertEquals(back.dungeon.currentRoomId, "elsewhere", s"'${boss.id}': the way back '${door.id}' is shut")
+
+            val beaten = state.copy(dungeon =
+              state.dungeon.copy(rooms =
+                state.dungeon.rooms.updated(boss.id,
+                  boss.copy(entities = state.dungeon.currentRoom.entities.filterNot(_.isInstanceOf[Enemy]))
+                )
+              )
+            )
+            nextDoors.foreach:
+              door =>
+                val open = resolver.interact(beaten, door.id).state.asInstanceOf[ExplorationState]
+                assertEquals(open.dungeon.currentRoomId, "elsewhere", s"'${boss.id}': '${door.id}' stays shut once the Boss is gone")
 
   test("difficulty.json defines every difficulty, and the lowest one needs nothing"):
     for tiers <- DifficultyLoader.loadAll()

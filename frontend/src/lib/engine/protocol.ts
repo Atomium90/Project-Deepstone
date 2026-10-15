@@ -477,6 +477,11 @@ export interface StateUpdate {
   /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
   victory: boolean;
   log: string[];
+  /** On the update that ends a won fight: how many of the first lines of `log` only tell the blows
+   * exchanged, which belong to the log of the fight and to no other. The lines after them tell what the
+   * victory brings (the enemy fallen, the XP, the loot) and belong to the exploration log too. Absent,
+   * which reads as 0, on every other update. */
+  fightLines?: number;
   /** The conversation with a Rest NPC awaiting its end. Durable, like `pendingEquipChoice`. */
   pendingScene?: PendingSceneView | null;
   /** The question of the light awaiting the player's answer. Durable, like `pendingEquipChoice`. */

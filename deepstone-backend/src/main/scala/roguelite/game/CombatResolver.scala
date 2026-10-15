@@ -514,7 +514,7 @@ class CombatResolver(rng: Random = Random(),
     )
 
     val victoryLog = log ++ List(
-      s"${deadEnemy.label} has been defeated!",
+      CombatResolver.defeatedLine(deadEnemy.label),
       if shardsEarned == 0 then s"You gain $xpGained XP."
       else s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
     ) ++ healLog
@@ -698,3 +698,11 @@ class CombatResolver(rng: Random = Random(),
     private[game] def critChance: Int =
       accessoryBonusSum(player, _.critChanceBonus) +
         sumSetBonus(player, { case SetBonusEffect.CritChancePercent(n) => n })
+
+object CombatResolver:
+
+  /** The line that tells an enemy has fallen. In the update that ends a won fight it is where the blows
+    * of the fight stop and its outcome begins, which [[roguelite.engine.StateUpdate.fightLines]] relies
+    * on.
+    */
+  def defeatedLine(label: String): String = s"$label has been defeated!"

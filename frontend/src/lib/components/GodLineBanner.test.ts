@@ -74,6 +74,39 @@ describe("GodLineBanner", () => {
         expect(banner(container)?.classList.contains("visible")).toBe(true);
     });
 
+    test("takes the line away at once when a fight starts", async () => {
+        const { container } = render(GodLineBanner);
+        gameState.set(makeState({ godLine: { moment: "start", phase: "t" } }));
+        await settle();
+        expect(banner(container)).not.toBeNull();
+
+        gameState.set(makeState({ phase: "COMBAT" }));
+        await settle();
+        expect(banner(container)).toBeNull();
+    });
+
+    test("does not bring it back when the fight is over", async () => {
+        const { container } = render(GodLineBanner);
+        gameState.set(makeState({ godLine: { moment: "start", phase: "t" } }));
+        await settle();
+        gameState.set(makeState({ phase: "COMBAT" }));
+        await settle();
+
+        gameState.set(makeState({ phase: "EXPLORATION" }));
+        await settle();
+        expect(banner(container)).toBeNull();
+    });
+
+    test("takes the line away too when the run ends before it has faded", async () => {
+        const { container } = render(GodLineBanner);
+        gameState.set(makeState({ godLine: { moment: "start", phase: "t" } }));
+        await settle();
+
+        gameState.set(makeState({ phase: "GAMEOVER" }));
+        await settle();
+        expect(banner(container)).toBeNull();
+    });
+
     test("leaves the lines about a death to the Game Over screen", async () => {
         const { container } = render(GodLineBanner);
         gameState.set(makeState({ godLine: { moment: "death.boss", phase: "a" } }));

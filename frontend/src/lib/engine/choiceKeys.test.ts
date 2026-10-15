@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { digitOf, isLeaveKey, isPlainPress, pickedIndex } from "./choiceKeys";
+import { CHOICE_GRACE_MS, createGrace, digitOf, isLeaveKey, isPlainPress, pickedIndex } from "./choiceKeys";
 
 const press = (key: string, code = "") => ({ key, code });
 
@@ -74,5 +74,53 @@ describe("isPlainPress", () => {
         expect(isPlainPress({ ...plain, ctrlKey: true })).toBe(false);
         expect(isPlainPress({ ...plain, altKey: true })).toBe(false);
         expect(isPlainPress({ ...plain, metaKey: true })).toBe(false);
+    });
+});
+
+describe("createGrace", () => {
+    function clock() {
+        let t = 1000;
+        return { now: () => t, advance: (ms: number) => (t += ms) };
+    }
+
+    test("is not over while the window is closed", () => {
+        const c = clock();
+        const grace = createGrace(400, c.now);
+        grace.track(false);
+        c.advance(10_000);
+        expect(grace.over()).toBe(false);
+    });
+
+    test("is not over right after the window opens, and is once the wait has passed", () => {
+        const c = clock();
+        const grace = createGrace(400, c.now);
+        grace.track(true);
+        expect(grace.over()).toBe(false);
+        c.advance(399);
+        expect(grace.over()).toBe(false);
+        c.advance(1);
+        expect(grace.over()).toBe(true);
+    });
+
+    test("an update that finds the window still open does not start the wait again", () => {
+        const c = clock();
+        const grace = createGrace(400, c.now);
+        grace.track(true);
+        c.advance(500);
+        grace.track(true);
+        expect(grace.over()).toBe(true);
+    });
+
+    test("a window that closes and opens again waits again", () => {
+        const c = clock();
+        const grace = createGrace(400, c.now);
+        grace.track(true);
+        c.advance(500);
+        grace.track(false);
+        expect(grace.over()).toBe(false);
+        grace.track(true);
+        expect(grace.over()).toBe(false);
+        c.advance(CHOICE_GRACE_MS);
+        expect(grace.over()).toBe(true);
     });
 });

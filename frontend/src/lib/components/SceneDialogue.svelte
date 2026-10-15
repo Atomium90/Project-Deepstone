@@ -6,6 +6,7 @@
     import { dictionaries, language, lookup, t } from "../engine/i18n";
     import { buildScript, type SceneScript } from "../engine/sceneText";
     import { placeBubble, type Box, type Size } from "../engine/dialoguePlacement";
+    import { digitOf } from "../engine/choiceKeys";
     import type { PendingSceneView } from "../engine/protocol";
 
     /** The conversation the server holds pending, or null. */
@@ -81,8 +82,9 @@
     function handleKeyDown(e: KeyboardEvent): void {
         if (scene === null || e.repeat || $characterTab !== null) return;
         if (choosing) {
-            if (e.key === "1") choose(true);
-            if (e.key === "2") choose(false);
+            const digit = digitOf(e);
+            if (digit === 1) choose(true);
+            if (digit === 2) choose(false);
             return; // anything else is left to the buttons, so Space and Enter still press the focused one
         }
         if (e.key === "e" || e.key === "E" || e.key === " " || e.key === "Enter") {

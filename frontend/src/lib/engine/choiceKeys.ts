@@ -32,3 +32,24 @@ export function isLeaveKey(press: KeyPress): boolean {
 export function isPlainPress(press: Pick<KeyboardEvent, "repeat" | "ctrlKey" | "altKey" | "metaKey">): boolean {
     return !press.repeat && !press.ctrlKey && !press.altKey && !press.metaKey;
 }
+
+/** How long a choice window ignores the keyboard after it opens. A player who mashes 1 to attack would
+ * otherwise answer the loot window that the killing blow opens with the very next press. */
+export const CHOICE_GRACE_MS = 400;
+
+/** Tracks when a choice window opened, so its shortcuts can wait out `CHOICE_GRACE_MS`. */
+export function createGrace(graceMs: number = CHOICE_GRACE_MS, now: () => number = Date.now) {
+    let opened = false;
+    let openedAt = 0;
+    return {
+        /** Tell it whether the window is open now; only the moment it opens starts the wait. */
+        track(open: boolean): void {
+            if (open && !opened) openedAt = now();
+            opened = open;
+        },
+        /** Whether the window is open and has been for long enough to take a key press. */
+        over(): boolean {
+            return opened && now() - openedAt >= graceMs;
+        },
+    };
+}

@@ -1,8 +1,9 @@
-import { describe, test, expect, beforeEach, vi } from "vitest";
-import { render, fireEvent } from "@testing-library/svelte";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, fireEvent, cleanup } from "@testing-library/svelte";
 import { tick } from "svelte";
 import EndingChoiceModal from "./EndingChoiceModal.svelte";
 import { gameState, client } from "../engine/StateStore";
+import { CHOICE_GRACE_MS } from "../engine/choiceKeys";
 import type { StateUpdate } from "../engine/protocol";
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -26,7 +27,18 @@ function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
 const asking = (candidates: string[]) => makeState({ pendingEndingChoice: { candidates } });
 
 const answers = (container: HTMLElement) => container.querySelectorAll<HTMLButtonElement>(".answer");
-const labels = (container: HTMLElement) => Array.from(answers(container)).map((button) => button.textContent?.trim());
+/** What a button says, without the little key that sits in front of it. */
+const textOf = (button: HTMLElement) => {
+    const copy = button.cloneNode(true) as HTMLElement;
+    copy.querySelectorAll(".key-hint").forEach((hint) => hint.remove());
+    return copy.textContent?.trim();
+};
+const labels = (container: HTMLElement) => Array.from(answers(container)).map(textOf);
+
+afterEach(() => {
+    vi.useRealTimers();
+    cleanup();
+});
 
 describe("EndingChoiceModal", () => {
     beforeEach(() => {
@@ -132,5 +144,147 @@ describe("EndingChoiceModal", () => {
         await tick();
 
         expect(labels(container)).toEqual(["Enter the light.", "Let someone take my place.", "Refuse the light."]);
+    });
+});
+
+/** A key press as the browser makes it. `code` is the physical key, `key` what it types: the top row of
+ * an AZERTY keyboard types "&" for 1, which the shortcuts must not care about. */
+const press = (key: string, code: string, init: KeyboardEventInit = {}) => fireEvent.keyDown(window, { key, code, ...init });
+const digit = (n: number, init: KeyboardEventInit = {}) => press(String(n), `Digit${n}`, init);
+const sent = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.map((call) => call[0]);
+
+describe("EndingChoiceModal keyboard shortcuts", () => {
+    const open = (candidates: string[]) => {
+        gameState.set(asking(candidates));
+        const view = render(EndingChoiceModal);
+        vi.advanceTimersByTime(CHOICE_GRACE_MS);
+        return view;
+    };
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        gameState.set(makeState());
+        vi.restoreAllMocks();
+    });
+
+    test("1 enters the light", async () => {
+        open([]);
+        const sendSpy = vi.spyOn(client, "send");
+
+        await digit(1);
+
+        expect(sent(sendSpy)).toEqual([{ type: "ENDING_CHOICE", answer: "ENTER" }]);
+    });
+
+    test("reads the physical key, so the top row of an AZERTY keyboard works too", async () => {
+        open([]);
+        const sendSpy = vi.spyOn(client, "send");
+
+        await press("&", "Digit1");
+
+        expect(sent(sendSpy)).toEqual([{ type: "ENDING_CHOICE", answer: "ENTER" }]);
+    });
+
+    test("2 lists who can take the place, and a number then picks one", async () => {
+        const { container } = open(["npc.2", "npc.3"]);
+        const sendSpy = vi.spyOn(client, "send");
+
+        await digit(2);
+        expect(container.querySelectorAll(".candidate")).toHaveLength(2);
+        expect(sent(sendSpy)).toEqual([]);
+
+        await digit(2);
+        expect(sent(sendSpy)).toEqual([{ type: "ENDING_CHOICE", answer: "REPLACE", npc: "npc.3" }]);
+    });
+
+    test("2 does nothing while nobody can take the place", async () => {
+        const { container } = open([]);
+
+        await digit(2);
+
+        expect(container.querySelectorAll(".candidate")).toHaveLength(0);
+        expect(labels(container)).toHaveLength(3);
+    });
+
+    test("0 and Escape go back from the list without sending anything", async () => {
+        const { container } = open(["npc.2"]);
+        const sendSpy = vi.spyOn(client, "send");
+
+        await digit(2);
+        await digit(0);
+        expect(labels(container)).toEqual(["Enter the light.", "Let someone take my place.", "Refuse the light."]);
+
+        await digit(2);
+        await press("Escape", "Escape");
+        expect(labels(container)).toHaveLength(3);
+        expect(sent(sendSpy)).toEqual([]);
+    });
+
+    test("3 asks for a confirmation and no digit gives it", async () => {
+        const { container } = open([]);
+        const sendSpy = vi.spyOn(client, "send");
+
+        await digit(3);
+        expect(container.querySelector(".warning")).not.toBeNull();
+
+        await digit(1);
+        await digit(2);
+        await digit(3);
+        expect(container.querySelector(".warning")).not.toBeNull();
+        expect(sent(sendSpy)).toEqual([]);
+    });
+
+    test("0 backs out of the warning", async () => {
+        const { container } = open([]);
+
+        await digit(3);
+        await digit(0);
+
+        expect(container.querySelector(".warning")).toBeNull();
+        expect(labels(container)).toHaveLength(3);
+    });
+
+    test("Escape does nothing on the three answers, there is nothing to go back to", async () => {
+        const { container } = open([]);
+        const sendSpy = vi.spyOn(client, "send");
+
+        await press("Escape", "Escape");
+
+        expect(labels(container)).toHaveLength(3);
+        expect(sent(sendSpy)).toEqual([]);
+    });
+
+    test("waits for the grace period", async () => {
+        gameState.set(asking([]));
+        render(EndingChoiceModal);
+        const sendSpy = vi.spyOn(client, "send");
+
+        await digit(1);
+        expect(sent(sendSpy)).toEqual([]);
+
+        vi.advanceTimersByTime(CHOICE_GRACE_MS);
+        await digit(1);
+        expect(sent(sendSpy)).toEqual([{ type: "ENDING_CHOICE", answer: "ENTER" }]);
+    });
+
+    test("does nothing when the light asks no question", async () => {
+        gameState.set(makeState());
+        render(EndingChoiceModal);
+        vi.advanceTimersByTime(CHOICE_GRACE_MS);
+        const sendSpy = vi.spyOn(client, "send");
+
+        await digit(1);
+
+        expect(sent(sendSpy)).toEqual([]);
+    });
+
+    test("each answer shows its number, the list too, and going back shows 0", async () => {
+        const { container } = open(["npc.2", "npc.3"]);
+        const hints = (selector: string) => Array.from(container.querySelectorAll(`${selector} .key-hint`)).map((el) => el.textContent);
+        expect(hints(".answer")).toEqual(["1", "2", "3"]);
+
+        await digit(2);
+        expect(hints(".candidate")).toEqual(["1", "2"]);
+        expect(hints(".back")).toEqual(["0"]);
     });
 });

@@ -3,6 +3,8 @@
     import { t } from "../engine/i18n";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
+    import { createGrace, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
+    import KeyHint from "./KeyHint.svelte";
 
     function pick(option: ItemView): void {
         client.send({ type: "REWARD_CHOICE", itemId: option.id });
@@ -12,12 +14,29 @@
         client.send({ type: "REWARD_CHOICE" });
     }
 
+    const grace = createGrace();
+    $: grace.track(!!$pendingRewardChoice);
+
+    /** 1 to 9 take the offering of that number, 0 or Escape leaves empty-handed. */
+    function handleKeyDown(e: KeyboardEvent): void {
+        const choice = $pendingRewardChoice;
+        if (!choice || !isPlainPress(e) || !grace.over()) return;
+        if (isLeaveKey(e)) {
+            leave();
+            return;
+        }
+        const index = pickedIndex(e, choice.options.length);
+        if (index !== null) pick(choice.options[index]);
+    }
+
     /** True when `item` carries an affinity tag the player's class doesn't have - `statLine` is
      * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
     function isOffAffinity(item: ItemView): boolean {
         return item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
     }
 </script>
+
+<svelte:window on:keydown={handleKeyDown} />
 
 {#if $pendingRewardChoice}
     {@const choice = $pendingRewardChoice}
@@ -32,20 +51,20 @@
             {/if}
 
             <div class="options">
-                {#each choice.options as option (option.id)}
+                {#each choice.options as option, i (option.id)}
                     <button
                         class="option-row"
                         style="border-color:{ITEM_RARITY_COLORS[option.rarity]}"
                         on:click={() => pick(option)}
                     >
-                        <span class="option-name">{option.name}</span>
+                        <span class="option-name"><KeyHint key={String(i + 1)} />{option.name}</span>
                         <span class="option-stat" class:off-affinity={isOffAffinity(option)}>{option.statLine}</span>
                         <span class="option-action">Take</span>
                     </button>
                 {/each}
             </div>
 
-            <button class="leave-btn" on:click={leave}>Leave empty-handed</button>
+            <button class="leave-btn" on:click={leave}><KeyHint key="0" />Leave empty-handed</button>
         </div>
     </div>
 {/if}

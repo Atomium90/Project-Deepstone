@@ -2,6 +2,8 @@
     import { gameState, pendingEquipChoice, client } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import type { EquipChoiceOptionView, ItemView } from "../engine/protocol";
+    import { createGrace, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
+    import KeyHint from "./KeyHint.svelte";
 
     function replace(option: EquipChoiceOptionView): void {
         client.send({ type: "EQUIP_CHOICE", targetSlot: option.slot });
@@ -11,12 +13,29 @@
         client.send({ type: "EQUIP_CHOICE" });
     }
 
+    const grace = createGrace();
+    $: grace.track(!!$pendingEquipChoice);
+
+    /** 1 to 9 replace the option of that number, 0 or Escape keeps what the player has. */
+    function handleKeyDown(e: KeyboardEvent): void {
+        const choice = $pendingEquipChoice;
+        if (!choice || !isPlainPress(e) || !grace.over()) return;
+        if (isLeaveKey(e)) {
+            keepCurrent();
+            return;
+        }
+        const index = pickedIndex(e, choice.options.length);
+        if (index !== null) replace(choice.options[index]);
+    }
+
     /** True when `item` carries an affinity tag the player's class doesn't have - `statLine` is
      * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
     function isOffAffinity(item: ItemView): boolean {
         return item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
     }
 </script>
+
+<svelte:window on:keydown={handleKeyDown} />
 
 {#if $pendingEquipChoice}
     {@const choice = $pendingEquipChoice}
@@ -36,10 +55,10 @@
                  up to 2-3, the player picks which one to replace. No special-casing needed either
                  way, it's just however many rows `options` has. -->
             <div class="options">
-                {#each choice.options as option (option.slot)}
+                {#each choice.options as option, i (option.slot)}
                     <button class="option-row" on:click={() => replace(option)}>
                         <span class="option-name">
-                            {option.current.name}{option.current.count && option.current.count > 1
+                            <KeyHint key={String(i + 1)} />{option.current.name}{option.current.count && option.current.count > 1
                                 ? ` x${option.current.count}`
                                 : ""}
                         </span>
@@ -49,7 +68,7 @@
                 {/each}
             </div>
 
-            <button class="keep-btn" on:click={keepCurrent}>Keep what I have</button>
+            <button class="keep-btn" on:click={keepCurrent}><KeyHint key="0" />Keep what I have</button>
         </div>
     </div>
 {/if}

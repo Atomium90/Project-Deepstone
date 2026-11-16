@@ -1799,6 +1799,41 @@ class GameSessionSuite extends CatsEffectSuite:
         )
   }
 
+  db.test("the player's stats come with a run, with the discounted ability cost, and never with the hub") {
+    database =>
+      val ability = AbilityDef(ClassId.Warrior,
+                               id = "berserker_slash",
+                               name = "Berserker Slash",
+                               cost = 40,
+                               resourceName = "Rage",
+                               description = "test",
+                               effect = AbilityEffect.FlatDamage(1)
+      )
+      val discountPerk = PerkDef("efficient_casting", "Efficient Casting", "test", icon = "*",
+                                 effect = PerkEffect.AbilityCostReductionPercent(20)
+      )
+      for
+        _       <- seedFirstVictory(database)
+        session <- GameSession.create(smWithEnemy, database, Map.empty, testUpgradeDefs,
+                                      Map(ClassId.Warrior -> ability), testAchievementDefs,
+                                      perkDefs = Map(discountPerk.id -> discountPerk), rng = Random(0L)
+                   )
+        hub    <- session.currentUpdate
+        run    <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                           perkId = Some("efficient_casting")
+                  ))
+        fight  <- session.handle(Interact("e1"))
+      yield
+        assertEquals(hub.player.stats, None, "the hub shows no stats")
+        val exploring = run.player.stats.getOrElse(fail("expected stats while exploring"))
+        assertEquals(exploring.attack, exploring.attackTerms.map(_.value).sum)
+        assertEquals(exploring.defense, exploring.defenseTerms.map(_.value).sum)
+        assert(exploring.attackTerms.exists(_.source == "level"), "the level term is listed")
+        assertEquals(exploring.abilityCost, Some(32))
+        assertEquals(exploring.critMultiplier, 1.5)
+        assertEquals(fight.player.stats, run.player.stats, "the same player has the same stats in a fight")
+  }
+
   db.test("StartRun transitions session to Exploration") {
     database =>
       for

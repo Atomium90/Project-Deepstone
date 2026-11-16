@@ -482,3 +482,39 @@ class MessageProtocolSuite extends FunSuite:
 
   test("encodeUpdate leaves the minimap null when there is none"):
     assertEquals(encodedMinimap(None).focus.map(_.isNull), Some(true))
+
+  private def encodedPlayer(stats: Option[StatsView]): io.circe.ACursor =
+    val update = StateUpdate(
+      phase = GamePhase.Exploration,
+      player = PlayerView(ClassId.Mage, hp = 70, maxHp = 70, resourceCurrent = 80, resourceMax = 80, level = 1, xp = 0, metaCurrency = 0, stats = stats)
+    )
+    io.circe.parser
+      .parse(MessageProtocol.encodeUpdate(update))
+      .fold(err => fail(s"encodeUpdate produced invalid JSON: $err"), identity)
+      .hcursor
+      .downField("player")
+      .downField("stats")
+
+  test("encodeUpdate sends the player's stats with their terms"):
+    val stats = StatsView(
+      attack = 17,
+      defense = 2,
+      critChance = 15,
+      critMultiplier = 1.5,
+      abilityCost = Some(26),
+      attackTerms = List(StatTermView("level", 5), StatTermView("weapon", 12, affinity = true)),
+      defenseTerms = List(StatTermView("level", 2)),
+      critTerms = Nil
+    )
+    val cursor = encodedPlayer(Some(stats))
+    assertEquals(cursor.downField("attack").as[Int], Right(17))
+    assertEquals(cursor.downField("critMultiplier").as[Double], Right(1.5))
+    assertEquals(cursor.downField("abilityCost").as[Int], Right(26))
+    assertEquals(cursor.downField("attackTerms").downN(1).downField("source").as[String], Right("weapon"))
+    assertEquals(cursor.downField("attackTerms").downN(1).downField("affinity").as[Boolean], Right(true))
+    assertEquals(cursor.downField("critTerms").focus.map(_.asArray.map(_.size)), Some(Some(0)))
+
+  test("encodeUpdate sends an absent ability cost as null, and no stats as null"):
+    val stats = StatsView(1, 1, 0, 1.5, None, Nil, Nil, Nil)
+    assertEquals(encodedPlayer(Some(stats)).downField("abilityCost").focus.map(_.isNull), Some(true))
+    assertEquals(encodedPlayer(None).focus.map(_.isNull), Some(true))

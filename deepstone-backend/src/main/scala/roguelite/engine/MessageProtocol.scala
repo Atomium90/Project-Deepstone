@@ -196,7 +196,34 @@ case class PlayerView(
     level: Int,
     xp: Int,
     metaCurrency: Int,
-    affinityTags: List[String] = Nil
+    affinityTags: List[String] = Nil,
+    /** The numbers the combat math really uses, resolved on the server so the client never
+      * recomputes them. Only set while exploring or fighting: the Hub has none, a hub upgrade's flat
+      * bonus only applies once a run begins. See [[StatsView]].
+      */
+    stats: Option[StatsView] = None
+)
+
+/** One part of a stat, for the breakdown shown on hover. `source` is one of "level", "maxHp",
+  * "bonus", "weapon", "armor", "accessories", "set" and "perk" (the client owns the label of each).
+  * `affinity` is true when an item bonus in `value` is doubled by the class affinity.
+  */
+case class StatTermView(source: String, value: Int, affinity: Boolean = false)
+
+/** A player's effective attack, defense and crit chance with where each comes from (terms worth 0 are
+  * left out), the crit multiplier, and the class ability's cost once set and perk discounts apply
+  * (absent if the class has no ability def). `critChance` is not capped: 100 or more is a guaranteed
+  * crit.
+  */
+case class StatsView(
+    attack: Int,
+    defense: Int,
+    critChance: Int,
+    critMultiplier: Double,
+    abilityCost: Option[Int],
+    attackTerms: List[StatTermView],
+    defenseTerms: List[StatTermView],
+    critTerms: List[StatTermView]
 )
 
 /** Describes one entity visible in the room (enemy, chest, door, etc.).
@@ -799,6 +826,8 @@ object MessageProtocol:
     yield action
 
   // Views (server → client)
+  given Encoder[StatTermView] = deriveEncoder
+  given Encoder[StatsView]    = deriveEncoder
   given Encoder[PlayerView]  = deriveEncoder
   given Encoder[EntityView]  = deriveEncoder
   given Encoder[RoomView]    = deriveEncoder

@@ -518,3 +518,16 @@ class MessageProtocolSuite extends FunSuite:
     val stats = StatsView(1, 1, 0, 1.5, None, Nil, Nil, Nil)
     assertEquals(encodedPlayer(Some(stats)).downField("abilityCost").focus.map(_.isNull), Some(true))
     assertEquals(encodedPlayer(None).focus.map(_.isNull), Some(true))
+
+  test("encodeUpdate sends whether a map room is closed, false by default"):
+    val minimap = MinimapView(
+      sections = List(MinimapSectionView(0, "dungeon")),
+      nodes = List(
+        MinimapNodeView("n0", Some("combat"), visited = true, current = true, section = 0, column = 0, lane = 0),
+        MinimapNodeView("n1", Some("loot"), visited = false, current = false, section = 0, column = 1, lane = 1, closed = true)
+      ),
+      edges = Nil
+    )
+    val cursor = encodedMinimap(Some(minimap))
+    assertEquals(cursor.downField("nodes").downN(0).downField("closed").as[Boolean], Right(false))
+    assertEquals(cursor.downField("nodes").downN(1).downField("closed").as[Boolean], Right(true))

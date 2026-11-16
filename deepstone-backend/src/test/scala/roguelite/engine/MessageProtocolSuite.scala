@@ -177,8 +177,8 @@ class MessageProtocolSuite extends FunSuite:
     CombatActionType.values.foreach(v => assertEquals(v.asJson.as[CombatActionType], Right(v), s"round-trip failed for $v"))
     HubActionType.values.foreach(v => assertEquals(v.asJson.as[HubActionType], Right(v), s"round-trip failed for $v"))
     Difficulty.values.foreach(v => assertEquals(v.asJson.as[Difficulty], Right(v), s"round-trip failed for $v"))
-    roguelite.game.UpgradeCategory.values.foreach(
-      v => assertEquals(v.asJson.as[roguelite.game.UpgradeCategory], Right(v), s"round-trip failed for $v")
+    roguelite.game.progression.UpgradeCategory.values.foreach(
+      v => assertEquals(v.asJson.as[roguelite.game.progression.UpgradeCategory], Right(v), s"round-trip failed for $v")
     )
 
   test("decoding an unknown value for a plain-string enum codec returns Left"):
@@ -187,7 +187,7 @@ class MessageProtocolSuite extends FunSuite:
     assert(Json.fromString("NORTHWEST").as[Direction].isLeft)
     assert(Json.fromString("PAUSED").as[GamePhase].isLeft)
     assert(Json.fromString("NIGHTMARE").as[Difficulty].isLeft)
-    assert(Json.fromString("epic").as[roguelite.game.UpgradeCategory].isLeft)
+    assert(Json.fromString("epic").as[roguelite.game.progression.UpgradeCategory].isLeft)
 
   test("decode unknown action type returns Left"):
     val json   = """{"type":"EXPLODE"}"""

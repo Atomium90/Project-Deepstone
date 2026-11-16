@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.progression
 
 /** Meta-progression state that persists between runs and survives death.
   *

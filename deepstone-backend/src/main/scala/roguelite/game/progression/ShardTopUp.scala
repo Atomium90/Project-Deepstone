@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.progression
 
 /** A safety net for a player who is stuck: the starting-kit upgrades are what lets a class start
   * with a weapon and armor, and a player who keeps dying without ever saving enough Stone Shards

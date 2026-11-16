@@ -2,8 +2,9 @@ package roguelite.engine
 
 import roguelite.game.dungeon.{ Dungeon, MinimapBuilder, RoomType }
 import roguelite.game.items.{ Accessory, Armor, Item, KeyKind, PendingEquipChoice, PendingRewardChoice, Weapon }
+import roguelite.game.progression.{ MetaProgression, PerkDef, UpgradeDef }
 import roguelite.game.story.{ Encounter, EndingRules, IdleContext, PendingScene }
-import roguelite.game.{ Combat, EnemyStats, MetaProgression, PerkDef, UpgradeDef }
+import roguelite.game.{ Combat, EnemyStats }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -118,7 +119,7 @@ sealed trait GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate
 
 /** @param upgradeDefs
-  *   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]), used to render [[HubView]].
+  *   The loaded upgrade catalog (see [[roguelite.game.progression.UpgradeLoader]]), used to render [[HubView]].
   *   Defaults to empty so tests that don't care about the upgrade list can keep using
   *   `HubState(player)`.
   * @param perkOptions

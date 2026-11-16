@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.progression
 
 import munit.FunSuite
 import roguelite.engine.ClassId

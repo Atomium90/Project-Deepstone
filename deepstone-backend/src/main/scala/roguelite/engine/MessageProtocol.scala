@@ -3,7 +3,7 @@ package roguelite.engine
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
 import io.circe.{ Decoder, Encoder }
-import roguelite.game.UpgradeCategory
+import roguelite.game.progression.UpgradeCategory
 import roguelite.game.items.{ EquipSlot, Item, Rarity }
 
 // -------------------
@@ -179,7 +179,7 @@ case class EndingChoice(answer: EndingAnswer, npc: Option[String] = None) extend
 /** Lightweight view of the player sent to the client every update.
   *
   * @param affinityTags
-  *   The class's affinity tags (see [[roguelite.game.ClassDef]]). Purely informational - every
+  *   The class's affinity tags (see [[roguelite.game.progression.ClassDef]]). Purely informational - every
   *   [[ItemView.statLine]] already reflects whether the item's own `typeTag` benefits from the
   *   affinity doubling CombatResolver applies (resolved server-side, see
   *   [[roguelite.engine.GameState]]'s `itemToView`), so the client never needs to compare this

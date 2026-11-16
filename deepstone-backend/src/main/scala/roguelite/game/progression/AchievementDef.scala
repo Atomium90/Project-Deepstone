@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.progression
 
 import roguelite.engine.Difficulty
 import roguelite.game.items.Rarity
@@ -40,7 +40,7 @@ enum AchievementCondition:
   case DistinctPotionTypesUsed(count: Int)
 
   /** Same fixed-threshold convention as [[DistinctPotionTypesUsed]] (currently 5, the size of the
-    * perk pool) - only counts perks active in a *won* run, see [[roguelite.game.AchievementChecker]].
+    * perk pool) - only counts perks active in a *won* run, see [[roguelite.game.progression.AchievementChecker]].
     */
   case DistinctPerksWonWith(count: Int)
 

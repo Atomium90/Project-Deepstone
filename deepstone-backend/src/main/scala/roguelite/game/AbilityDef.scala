@@ -2,6 +2,7 @@ package roguelite.game
 
 import roguelite.engine.{ ClassId, Player }
 import roguelite.game.items.{ SetBonusEffect, SetDef }
+import roguelite.game.progression.{ PerkDef, PerkEffect }
 
 /** Effect produced when a class ability is activated.
   *

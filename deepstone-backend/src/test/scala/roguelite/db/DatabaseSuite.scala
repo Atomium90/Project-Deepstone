@@ -2,8 +2,8 @@ package roguelite.db
 
 import munit.CatsEffectSuite
 import roguelite.engine.Difficulty
+import roguelite.game.progression.{ AchievementStats, MetaProgression, UpgradeCategory, UpgradeDef, UpgradeEffect }
 import roguelite.game.story.{ CardRecord, Ending, RunOutcome, StoryProgress, VowRecord, VowState }
-import roguelite.game.{ AchievementStats, MetaProgression, UpgradeCategory, UpgradeDef, UpgradeEffect }
 
 /** Tests for [[Database]]: schema initialisation, meta loading, currency persistence,
   * and upgrade purchase atomicity.

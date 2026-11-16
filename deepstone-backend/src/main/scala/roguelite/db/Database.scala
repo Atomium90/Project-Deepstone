@@ -6,8 +6,8 @@ import doobie.implicits.*
 import cats.implicits.*
 import cats.effect.IO
 import roguelite.engine.Difficulty
+import roguelite.game.progression.{ AchievementStats, MetaProgression }
 import roguelite.game.story.{ CardRecord, Ending, RunOutcome, StoryProgress, VowRecord, VowState }
-import roguelite.game.{ AchievementStats, MetaProgression }
 import cats.effect.kernel.Resource
 import scala.concurrent.ExecutionContext
 import java.util.concurrent.Executors

@@ -1,9 +1,10 @@
-package roguelite.game
+package roguelite.game.progression
 
 import munit.FunSuite
 import roguelite.engine.{ ClassId, CombatAction, CombatActionType, CombatState, Player }
 import roguelite.game.dungeon.{ Dungeon, Enemy, Room, RoomType, Tile }
 import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, Item, PotionStack, Rarity, SetBonus, SetBonusEffect, SetDef, Weapon }
+import roguelite.game.{ AbilityDef, AbilityEffect, Combat, CombatResolver, EnemyActionWeight, EnemyInstance }
 
 import scala.util.Random
 

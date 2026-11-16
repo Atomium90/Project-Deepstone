@@ -4,6 +4,7 @@ import munit.FunSuite
 import roguelite.game.*
 import roguelite.game.dungeon.{ ConnectorRole, Door, DoorLink, Dungeon, Entity, Room, RoomType, Tile }
 import roguelite.game.items.{ Armor, Consumable, ConsumableEffect, EquipSlot, KeyKind, PendingEquipChoice, PendingRewardChoice, PotionStack, Rarity, Weapon }
+import roguelite.game.progression.{ MetaProgression, PerkDef, PerkEffect, UpgradeCategory, UpgradeDef, UpgradeEffect }
 import roguelite.game.story.{ Encounter, IdleContext, PendingScene, SceneDef, VowType }
 
 /** Covers the view-projection logic in GameState.scala (`toStateUpdate` on each of the 4 states,

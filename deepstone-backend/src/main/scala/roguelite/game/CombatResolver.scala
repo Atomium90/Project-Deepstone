@@ -13,6 +13,7 @@ import roguelite.engine.{
 import roguelite.game.core.GameEvent
 import roguelite.game.dungeon.{ Chest, RoomType, Shrine }
 import roguelite.game.items.{ Accessory, Consumable, ConsumableEffect, EquipmentResolver, Item, LootTable, PickupOutcome, Rarity, SetBonusEffect, SetDef }
+import roguelite.game.progression.{ PerkDef, PerkEffect }
 
 import scala.util.{ boundary, Random }
 import boundary.break

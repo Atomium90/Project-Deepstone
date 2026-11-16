@@ -42,7 +42,7 @@ case class Player(
   def isAlive: Boolean = hp > 0
 
   /** True once every equipment slot and every potion-belt slot is occupied. Drives the `packrat`
-    * achievement (see [[roguelite.game.AchievementChecker]]). Deliberately ignores `keyCounts`: a
+    * achievement (see [[roguelite.game.progression.AchievementChecker]]). Deliberately ignores `keyCounts`: a
     * counter has no notion of "full".
     */
   def isFullyEquipped: Boolean =

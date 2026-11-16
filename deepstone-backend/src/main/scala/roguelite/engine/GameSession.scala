@@ -3,23 +3,22 @@ package roguelite.engine
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.syntax.foldable.*
-import roguelite.game.MetaProgression
+import roguelite.game.progression.MetaProgression
 import roguelite.db.Database
 import roguelite.game.dungeon.{ Enemy, MinimapLayout, Npc, RoomType }
 import roguelite.game.items.Item
 import doobie.util.update
-import roguelite.game.UpgradeDef
-import roguelite.game.UpgradeEffect
+import roguelite.game.progression.UpgradeDef
+import roguelite.game.progression.UpgradeEffect
 import roguelite.game.AbilityDef
 import roguelite.game.core.GameEvent
 import roguelite.game.items.{ EquipmentResolver, PickupOutcome, SetDef }
+import roguelite.game.progression.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, DifficultyTierDef, DifficultyUnlocks }
 import roguelite.game.story.{ ChapterDef, DeathContext, Encounter, Ending, EndingRules, GodMoment, GodVoice, NpcDef, PendingScene, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VoicePhase, VowRules }
-import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats }
-import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
 import roguelite.game.CombatResolver
-import roguelite.game.PerkDef
+import roguelite.game.progression.PerkDef
 import roguelite.game.dungeon.RoomLoader
-import roguelite.game.ShardTopUp
+import roguelite.game.progression.ShardTopUp
 
 import java.nio.file.{ Files, NoSuchFileException, Path }
 import scala.jdk.CollectionConverters.*
@@ -600,8 +599,8 @@ class GameSession private (
       yield newlyUnlockedDefs.map(d => toAchievementView(d, unlocked = true))
 
   /** Same as [[processAchievementEvents]], for the two conditions only reachable from a successful
-    * upgrade purchase ([[roguelite.game.AchievementCondition.TotalShardsSpent]],
-    * [[roguelite.game.AchievementCondition.AllUpgradesUnlocked]]).
+    * upgrade purchase ([[roguelite.game.progression.AchievementCondition.TotalShardsSpent]],
+    * [[roguelite.game.progression.AchievementCondition.AllUpgradesUnlocked]]).
     */
   private def processAchievementPurchase(spent: Int,
                                          unlockedUpgradeCount: Int
@@ -787,20 +786,20 @@ object GameSession:
     * @param stateMachine  Shared across all connections for a server instance.
     * @param database      Per-server (shared) persistence layer.
     * @param itemDefs      Item prototype map, used to resolve the `StartingItem` upgrade effect.
-    * @param upgradeDefs   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]).
+    * @param upgradeDefs   The loaded upgrade catalog (see [[roguelite.game.progression.UpgradeLoader]]).
     * @param abilityDefs   The loaded ability catalog (see [[roguelite.game.AbilityLoader]]),
     *                      projected once into the [[AbilityView]] catalog sent on every update.
-    * @param achievementDefs The loaded achievement catalog (see [[roguelite.game.AchievementLoader]]).
+    * @param achievementDefs The loaded achievement catalog (see [[roguelite.game.progression.AchievementLoader]]).
     * @param setDefs       The loaded equipment set catalog (see [[roguelite.game.items.SetLoader]]), used
     *                      to resolve the `StartingItem` upgrade effect's set HP reconciliation.
-    * @param perkDefs      The loaded run-perk catalog (see [[roguelite.game.PerkLoader]]), a random
+    * @param perkDefs      The loaded run-perk catalog (see [[roguelite.game.progression.PerkLoader]]), a random
     *                      subset of which is offered on every fresh hub entry.
     * @param rng           Random instance for perk rolls. Inject a seeded one for deterministic
     *                      tests.
     * @param debugMode     Whether the dev-only Debug Rooms tooling is on (the backend was started
     *                      with `--debug`): the hub lists the rooms of `debug-rooms/` and
     *                      `DebugLoadRoom` is honoured. Off by default.
-    * @param difficultyDefs The loaded difficulty tier catalog (see [[roguelite.game.DifficultyLoader]]),
+    * @param difficultyDefs The loaded difficulty tier catalog (see [[roguelite.game.progression.DifficultyLoader]]),
     *                      which decides the tiers a `StartRun` may name and when the run perks open.
     *                      Empty by default, which leaves every tier available.
     * @param sceneDefs     The loaded NPC scene catalog (see [[roguelite.game.story.StoryLoader]]), which

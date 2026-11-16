@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.progression
 
 import roguelite.engine.ClassId
 import roguelite.game.items.Rarity

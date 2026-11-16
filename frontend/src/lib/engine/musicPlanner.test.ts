@@ -5,12 +5,11 @@ const POOLS: MusicPools = {
   hub: ["hub_a", "hub_b", "hub_c"],
   combat: ["combat_a", "combat_b"],
   boss: ["boss_a", "boss_b"],
-  exploration: {
-    easy: ["easy_a", "easy_b"],
-    normal: ["normal_a", "normal_b", "normal_c"],
-    hard: ["hard_a", "hard_b"],
-    hardcore: ["hard_a", "hard_b"],
-  },
+  exploration: [
+    ["first_a", "first_b"],
+    ["second_a", "second_b", "second_c"],
+    ["third_a", "third_b"],
+  ],
 };
 
 /** A planner whose dice always give the first choice left, so a test reads without luck. */
@@ -18,33 +17,42 @@ function planner(): MusicPlanner {
   return new MusicPlanner(POOLS, () => 0);
 }
 
-const exploring = (section: number | null, extra: Partial<MusicContext> = {}): MusicContext => ({
+const exploring = (section: number | null): MusicContext => ({
   phase: "EXPLORATION",
   bossFight: false,
   eliteFight: false,
-  difficulty: "normal",
   section,
-  ...extra,
 });
 const fight = (extra: Partial<MusicContext> = {}): MusicContext => ({
   phase: "COMBAT",
   bossFight: false,
   eliteFight: false,
-  difficulty: "normal",
   section: null,
   ...extra,
 });
-const hub: MusicContext = { phase: "HUB", bossFight: false, eliteFight: false, difficulty: "normal", section: null };
+const hub: MusicContext = { phase: "HUB", bossFight: false, eliteFight: false, section: null };
 const gameOver: MusicContext = { ...hub, phase: "GAMEOVER" };
 
 describe("MusicPlanner exploration", () => {
-  it("picks a track of the run's difficulty pool at the start of a run", () => {
+  it("plays a track of the first pool in the first section, the second pool in the second, and so on", () => {
     const p = planner();
     p.choose(hub);
-    expect(POOLS.exploration.normal).toContain(p.choose(exploring(0))?.file);
-    const hard = new MusicPlanner(POOLS, () => 0);
-    hard.choose(hub);
-    expect(POOLS.exploration.hard).toContain(hard.choose(exploring(0, { difficulty: "hard" }))?.file);
+    expect(POOLS.exploration[0]).toContain(p.choose(exploring(0))?.file);
+    expect(POOLS.exploration[1]).toContain(p.choose(exploring(1))?.file);
+    expect(POOLS.exploration[2]).toContain(p.choose(exploring(2))?.file);
+  });
+
+  it("repeats the last pool for a section deeper than the pools", () => {
+    const p = planner();
+    p.choose(hub);
+    p.choose(exploring(2));
+    expect(POOLS.exploration[2]).toContain(p.choose(exploring(5))?.file);
+  });
+
+  it("plays the first pool while the section is unknown", () => {
+    const p = planner();
+    p.choose(hub);
+    expect(POOLS.exploration[0]).toContain(p.choose(exploring(null))?.file);
   });
 
   it("keeps the same track through every room of a section", () => {
@@ -64,11 +72,11 @@ describe("MusicPlanner exploration", () => {
     expect(p.choose(exploring(1))?.file).toBe(second?.file);
   });
 
-  it("never repeats the track it just played when the pool has another one", () => {
+  it("changes track at every new section, whatever the pools hold", () => {
     const p = planner();
     p.choose(hub);
     let previous = p.choose(exploring(0))?.file;
-    for (let section = 1; section < 6; section++) {
+    for (const section of [1, 2, 3, 4]) {
       const next = p.choose(exploring(section))?.file;
       expect(next).not.toBe(previous);
       previous = next;
@@ -81,7 +89,9 @@ describe("MusicPlanner exploration", () => {
     const first = p.choose(exploring(0));
     p.choose(gameOver);
     p.choose(hub);
-    expect(p.choose(exploring(0))?.file).not.toBe(first?.file);
+    const second = p.choose(exploring(0));
+    expect(POOLS.exploration[0]).toContain(second?.file);
+    expect(second?.file).not.toBe(first?.file);
   });
 
   it("does not change track when the section only becomes known after the run began", () => {
@@ -98,10 +108,11 @@ describe("MusicPlanner exploration", () => {
     expect(p.choose(exploring(null))?.file).toBe(first?.file);
   });
 
-  it("plays nothing when the pool of the difficulty is empty", () => {
-    const p = new MusicPlanner({ ...POOLS, exploration: { ...POOLS.exploration, normal: [] } }, () => 0);
+  it("plays nothing when the pool of the section is empty", () => {
+    const p = new MusicPlanner({ ...POOLS, exploration: [[], POOLS.exploration[1]] }, () => 0);
     p.choose(hub);
     expect(p.choose(exploring(0))).toBeNull();
+    expect(POOLS.exploration[1]).toContain(p.choose(exploring(1))?.file);
   });
 });
 
@@ -154,7 +165,7 @@ describe("MusicPlanner fights", () => {
   it("gives a run that starts straight in a fight a track of its own", () => {
     const p = planner();
     const choice = p.choose(fight());
-    expect(POOLS.exploration.normal).toContain(choice?.file);
+    expect(POOLS.exploration[0]).toContain(choice?.file);
     expect(p.choose(exploring(0))?.file).toBe(choice?.file);
   });
 

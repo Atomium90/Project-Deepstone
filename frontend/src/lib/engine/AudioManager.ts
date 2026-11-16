@@ -1,9 +1,8 @@
 import { gameState, combatDamageEvents, soundEvents } from "./StateStore";
 import { settings } from "./SettingsStore";
-import { lastStartedDifficulty } from "./RunStore";
 import { MusicPlanner } from "./musicPlanner";
 import { MusicPlayer } from "./MusicPlayer";
-import type { Difficulty, StateUpdate } from "./protocol";
+import type { StateUpdate } from "./protocol";
 
 const SFX_DIR = "/audio/sfx/";
 const MUSIC_DIR = "/audio/music/";
@@ -29,7 +28,6 @@ function currentSection(state: StateUpdate): number | null {
  * exists). Which track plays is decided by `MusicPlanner`, how it changes by `MusicPlayer`. */
 class AudioManager {
   private sfxVolume = 0.7;
-  private currentDifficulty: Difficulty = "normal";
   private readonly planner = new MusicPlanner();
   private readonly music = new MusicPlayer(() => new Audio());
 
@@ -37,10 +35,6 @@ class AudioManager {
     settings.subscribe((s) => {
       this.sfxVolume = s.sfxVolume / 100;
       this.music.setVolume(s.musicVolume / 100);
-    });
-
-    lastStartedDifficulty.subscribe((d) => {
-      this.currentDifficulty = d;
     });
 
     gameState.subscribe((state) => {
@@ -51,7 +45,6 @@ class AudioManager {
         phase: state.phase,
         bossFight: (state.combat?.isBoss ?? false) || (state.combat?.isMiniBoss ?? false),
         eliteFight: state.combat?.isElite ?? false,
-        difficulty: this.currentDifficulty,
         section: currentSection(state),
       });
       this.music.play(choice ? { src: MUSIC_DIR + choice.file, resume: choice.resume } : null);

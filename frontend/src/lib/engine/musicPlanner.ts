@@ -1,17 +1,16 @@
-import type { Difficulty, GamePhase } from "./protocol";
+import type { GamePhase } from "./protocol";
 
 /** Music by filename convention, not a manifest: dropping correctly-named files into
  * frontend/public/audio/music/ turns a category on with no code changes. Missing files just
  * stay silent (see MusicPlayer). Each category is a pool, see `MusicPlanner`. */
-const HARD_EXPLORATION_FILES = ["exploration_hard_hidden_cavern.ogg", "exploration_hard_dangerous_cave.ogg"];
-
 export interface MusicPools {
   hub: string[];
   /** Fights against an Elite enemy. Ordinary fights keep the exploration track. */
   combat: string[];
   boss: string[];
-  /** Exploration varies with the run's difficulty. */
-  exploration: Record<Difficulty, string[]>;
+  /** Exploration pools by section, the calmest first: the first section of a run plays the first
+   * pool, the second the second, and so on. A run with more sections than pools repeats the last. */
+  exploration: string[][];
 }
 
 export const MUSIC_POOLS: MusicPools = {
@@ -23,17 +22,19 @@ export const MUSIC_POOLS: MusicPools = {
     "combat_battle_theme_4.ogg",
   ],
   boss: ["boss_soulrend_sovereign.ogg", "boss_ruinlord_ascendant.ogg", "boss_bloodbound_fight.ogg"],
-  exploration: {
-    easy: ["exploration_easy_traveling_the_sky.ogg", "exploration_easy_unknown_island.ogg"],
-    normal: [
+  exploration: [
+    // First section, whatever the difficulty of the run
+    ["exploration_easy_traveling_the_sky.ogg", "exploration_easy_unknown_island.ogg"],
+    // Second section
+    [
       "exploration_normal_long_journey.ogg",
       "exploration_normal_spirits_forest.ogg",
       "exploration_normal_volcanic_crater.ogg",
       "exploration_normal_dark_factory.ogg",
     ],
-    hard: HARD_EXPLORATION_FILES,
-    hardcore: HARD_EXPLORATION_FILES,
-  },
+    // Third section
+    ["exploration_hard_hidden_cavern.ogg", "exploration_hard_dangerous_cave.ogg"],
+  ],
 };
 
 /** How many units (fights for COMBAT/BOSS, visits for HUB) the current pick sticks around for
@@ -46,7 +47,6 @@ export interface MusicContext {
   /** A Boss or MiniBoss fight. */
   bossFight: boolean;
   eliteFight: boolean;
-  difficulty: Difficulty;
   /** Index of the dungeon section the player is in, or null when the client does not know it (the
    * map is only sent while exploring). */
   section: number | null;
@@ -68,8 +68,9 @@ interface Rotation {
  * Decides which music file goes with a game state. Pure: nothing here touches audio.
  *
  *  - Exploration has one track per dungeon section (a "zone"), picked at the start of a run and
- *    whenever the player enters the next section. The Rest room and the Sanctuary keep the track of
- *    the section that just ended, they are not zones of their own.
+ *    whenever the player enters the next section, from the pool of that section: the music gets
+ *    heavier as the run goes deeper, whatever its difficulty. The Rest room and the Sanctuary keep
+ *    the track of the section that just ended, they are not zones of their own.
  *  - An ordinary fight keeps the exploration track playing, untouched. An Elite fight uses the combat
  *    pool, a Boss or MiniBoss fight the boss pool, and the exploration track resumes after them.
  *  - Hub, combat and boss pools reroll every `REROLL_AFTER_UNITS` units, so a track sticks around
@@ -121,10 +122,12 @@ export class MusicPlanner {
     }
   }
 
-  /** A new zone: a track other than the one just heard, from the pool of the run's difficulty. */
+  /** A new zone: a track other than the one just heard, from the pool of the section. A section the
+   * client does not know yet (a run entered straight into a fight) counts as the first. */
   private startZone(ctx: MusicContext): MusicChoice | null {
-    const pool = this.pools.exploration[ctx.difficulty];
-    if (pool.length === 0) return null;
+    const pools = this.pools.exploration;
+    const pool = pools[Math.min(ctx.section ?? 0, pools.length - 1)];
+    if (!pool || pool.length === 0) return null;
     const file = this.pickRandom(pool, this.zone?.file);
     this.zone = { section: ctx.section, file };
     return { file, resume: false };

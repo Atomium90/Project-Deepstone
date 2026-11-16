@@ -58,6 +58,9 @@ class CombatResolver(rng: Random = Random(),
                      perkDefs: Map[String, PerkDef] = Map.empty
 ):
 
+  /** The attack, defense and crit math, shared with what the client shows. */
+  private val stats = StatCalculator(setDefs, perkDefs)
+
   /** Entry point called by the StateMachine for every CombatAction. */
   def resolve(state: CombatState, action: CombatAction): (GameState, List[String], List[GameEvent]) =
     action.action match {
@@ -97,8 +100,7 @@ class CombatResolver(rng: Random = Random(),
     // FlatDamage (Arcane Blast), which bypasses calcDamage entirely. FirstAttackAlwaysCrit (Silent
     // Archer 4pc) overrides the roll on the player's first Attack of the fight, win or lose the roll.
     val firstAttackGuaranteedCrit =
-      !state.combat.hasAttackedThisCombat &&
-        activeSetBonuses(state.player).contains(SetBonusEffect.FirstAttackAlwaysCrit)
+      !state.combat.hasAttackedThisCombat && stats.firstAttackAlwaysCrits(state.player)
     val buffCritBonus = state.combat.activeBuffs.collect {
       case TimedBuff(TimedBuffEffect.CritChanceBonusPercent(n), _) => n
     }.sum
@@ -107,7 +109,7 @@ class CombatResolver(rng: Random = Random(),
     // Set-driven "+N% attack damage" and any active potion AttackBuff are both a final percentage
     // added on top of the base hit (summed together, not each its own multiplier), then the crit
     // multiplier applies on top of that combined total.
-    val setDamagePercent = sumSetBonus(state.player, { case SetBonusEffect.AttackDamagePercent(n) => n })
+    val setDamagePercent = stats.setDamagePercent(state.player)
     val buffDamagePercent = state.combat.activeBuffs.collect {
       case TimedBuff(TimedBuffEffect.AttackBonusPercent(n), _) => n
     }.sum
@@ -623,7 +625,7 @@ class CombatResolver(rng: Random = Random(),
     (attack - defense + jitter).max(1)
 
   /** Damage multiplier applied on a critical hit. */
-  private[game] val CritMultiplier = 1.5
+  private[game] val CritMultiplier = StatCalculator.CritMultiplier
 
   /** Roll for a critical hit against a percent chance (0-100). Never crits at 0 or below. */
   private[game] def rollCrit(chancePercent: Int): Boolean =
@@ -633,75 +635,22 @@ class CombatResolver(rng: Random = Random(),
   // Player stat accessors (include equipped-item bonuses)
   // ---------------------------------------------
 
-  /** Sum one bonus field across both equipped accessory slots, applying the same affinity-doubling
-    * rule as weapon/armor bonuses to each accessory independently (its own typeTag against the
-    * player's affinityTags, not the accessory kind as a whole).
-    */
-  private def accessoryBonusSum(player: Player, extract: Accessory => Option[Int]): Int =
-    player.equippedAccessories.flatten.map: acc =>
-      val base = extract(acc).getOrElse(0)
-      base * (if acc.typeTag.exists(player.affinityTags.contains) then 2 else 1)
-    .sum
-
   /** Every set bonus effect currently active for `player` (see [[SetDef.activeBonuses]]). */
-  private[game] def activeSetBonuses(player: Player): List[SetBonusEffect] =
-    SetDef.activeBonuses(player.equippedSetIds, setDefs, player.classId)
+  private[game] def activeSetBonuses(player: Player): List[SetBonusEffect] = stats.activeSetBonuses(player)
 
   private def sumSetBonus(player: Player, extract: PartialFunction[SetBonusEffect, Int]): Int =
-    activeSetBonuses(player).collect(extract).sum
+    stats.sumSetBonus(player, extract)
 
   /** The player's chosen run perk, resolved against [[perkDefs]] (`None` if no perk is active or
     * its id isn't in the loaded catalog).
     */
-  private[game] def activePerkEffect(player: Player): Option[PerkEffect] =
-    player.activePerkId.flatMap(perkDefs.get).map(_.effect)
+  private[game] def activePerkEffect(player: Player): Option[PerkEffect] = stats.activePerkEffect(player)
 
-  /** Will be tuned later. */
   extension (player: Player)
-    /** Effective attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon
-      * and accessory bonuses + any active set FlatAttack bonus + any active FlatDamageBonus perk.
-      *
-      * The equipped weapon's bonus is doubled if its typeTag is in the player's affinityTags.
-      * Example: Hunter's Bow (+5 ATK, "ranged") held by an Archer (affinity: "ranged") → +10 ATK.
-      * Equipped accessories contribute the same way if they carry an attackBonus.
-      */
-    private def attack: Int =
-      val weaponBonus = player.equippedWeapon match {
-        case Some(w) => w.attackBonus * (if w.typeTag.exists(player.affinityTags.contains) then 2 else 1)
-        case None    => 0
-      }
-      val accessoryBonus = accessoryBonusSum(player, _.attackBonus)
-      val setBonus        = sumSetBonus(player, { case SetBonusEffect.FlatAttack(n) => n })
-      val perkBonus = activePerkEffect(player) match {
-        case Some(PerkEffect.FlatDamageBonus(n)) => n
-        case _                                   => 0
-      }
-      player.level * 5 + (player.maxHp / 10) + player.bonusAttack + weaponBonus + accessoryBonus + setBonus + perkBonus
-
-    /** Effective defense: level scaling + permanent bonus + affinity-aware armor and accessory
-      * bonuses + any active set FlatDefense bonus.
-      *
-      * The equipped armor's bonus is doubled if its typeTag is in the player's affinityTags.
-      * Example: Chain Mail (+6 DEF, "heavy") held by a Warrior (affinity: "heavy") → +12 DEF.
-      * Equipped accessories contribute the same way if they carry a defenseBonus.
-      */
-    private def defense: Int =
-      val armorBonus = player.equippedArmor match {
-        case Some(a) => a.defenseBonus * (if a.typeTag.exists(player.affinityTags.contains) then 2 else 1)
-        case None    => 0
-      }
-      val accessoryBonus = accessoryBonusSum(player, _.defenseBonus)
-      val setBonus        = sumSetBonus(player, { case SetBonusEffect.FlatDefense(n) => n })
-      player.level * 2 + player.bonusDefense + armorBonus + accessoryBonus + setBonus
-
-    /** Percent chance (0-100) of a critical hit on the player's next Attack action, summed across
-      * both equipped accessories' critChanceBonus (same affinity-doubling rule as attack/defense)
-      * plus any active set CritChancePercent bonus. Weapon/armor never contribute directly - crit
-      * chance is otherwise accessory-only in the current data.
-      */
-    private[game] def critChance: Int =
-      accessoryBonusSum(player, _.critChanceBonus) +
-        sumSetBonus(player, { case SetBonusEffect.CritChancePercent(n) => n })
+    /** Effective attack, defense and crit chance, see [[StatCalculator]]. */
+    private def attack: Int               = stats.attack(player)
+    private def defense: Int              = stats.defense(player)
+    private[game] def critChance: Int     = stats.critChance(player)
 
 object CombatResolver:
 

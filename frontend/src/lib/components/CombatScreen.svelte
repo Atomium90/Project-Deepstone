@@ -1,6 +1,7 @@
 <script lang="ts">
     import { gameState, client, combatLog, combatDamageEvents } from "../engine/StateStore";
     import { settings } from "../engine/SettingsStore";
+    import { t } from "../engine/i18n";
     import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, COLOR_ENTITY_ELITE, PLAYER_CLASS_COLORS, ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
@@ -190,6 +191,14 @@
 
             <StatBar label="HP" current={player?.hp ?? 0} max={player?.maxHp ?? 0} color={HP_BAR_COLOR} />
             <StatBar label={resourceLabel} current={player?.resourceCurrent ?? 0} max={player?.resourceMax ?? 0} color={resourceColor} />
+
+            {#if player?.stats}
+                <p class="combat-stats">
+                    <span>{$t("stats.short.attack")} <b>{player.stats.attack}</b></span>
+                    <span>{$t("stats.short.defense")} <b>{player.stats.defense}</b></span>
+                    <span>{$t("stats.short.crit")} <b>{Math.min(100, player.stats.critChance)}%</b></span>
+                </p>
+            {/if}
 
             {#each floaters.filter((f) => f.targetIsPlayer) as f (f.id)}
                 <span class="floater" class:heal={f.kind === "heal"} class:crit={f.crit}>
@@ -392,6 +401,20 @@
     @keyframes float-up {
         0%   { opacity: 1; transform: translate(-50%, 0); }
         100% { opacity: 0; transform: translate(-50%, -2.6rem); }
+    }
+
+    .combat-stats {
+        display: flex;
+        gap: 1rem;
+        font-family: monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.06em;
+        color: #666;
+    }
+
+    .combat-stats b {
+        color: #ccc;
+        margin-left: 0.15rem;
     }
 
     .combatant-name {

@@ -3,6 +3,8 @@ package roguelite.engine
 import munit.FunSuite
 import roguelite.game.combat.{ AbilityDef, AbilityEffect }
 import roguelite.game.core.GameEvent
+import roguelite.game.dungeon.{ Dungeon, Room, RoomType, Tile }
+import roguelite.game.items.{ Rarity, Weapon }
 import roguelite.game.items.{ SetBonus, SetBonusEffect, SetDef }
 import roguelite.game.progression.{ AchievementCondition, AchievementDef, AchievementProgress, AchievementStats }
 import roguelite.game.story.StoryProgress
@@ -113,6 +115,34 @@ class StateUpdateProjectionsSuite extends FunSuite:
   test("the story's oldest unseen card is attached to the update"):
     val story = StoryProgress().withCardEarned("prologue")
     assertEquals(projections().withStory(hubUpdate, story).pendingCard, Some("prologue"))
+
+  private def exploring(player: Player): ExplorationState =
+    val room = Room("r", RoomType.Combat, "dungeon", 3, 3, Vector.fill(3)(Vector.fill(3)(Tile.Floor)), Nil)
+    ExplorationState(player, Dungeon.fromRooms(List(room)).getOrElse(throw IllegalStateException("test dungeon")), 1, 1)
+
+  test("stats are attached while exploring, with the terms worth something and camelCase sources"):
+    val sword  = Weapon("w", "sword", "Sword", Rarity.Common, 6, Some("heavy"))
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(equippedWeapon = Some(sword))
+    val state  = exploring(player)
+    val stats  = projections().withStats(state.toStateUpdate(), state).player.stats.get
+    assertEquals(stats.attack, 5 + 12 + 12)
+    assertEquals(stats.attackTerms, List(StatTermView("level", 5), StatTermView("maxHp", 12), StatTermView("weapon", 12, affinity = true)))
+    assertEquals(stats.defense, 2)
+    assertEquals(stats.defenseTerms, List(StatTermView("level", 2)))
+    assertEquals(stats.critChance, 0)
+    assertEquals(stats.critTerms, Nil)
+    assertEquals(stats.critMultiplier, 1.5)
+
+  test("the ability cost in the stats is the discounted one, absent without an ability def"):
+    val state = exploring(PlayerFixtures.startingPlayer(ClassId.Warrior))
+    assertEquals(projections().withStats(state.toStateUpdate(), state).player.stats.flatMap(_.abilityCost), Some(40))
+    val archer = exploring(PlayerFixtures.startingPlayer(ClassId.Archer))
+    assertEquals(projections().withStats(archer.toStateUpdate(), archer).player.stats.map(_.abilityCost), Some(None))
+
+  test("stats are left out of the hub and the game over screen"):
+    assertEquals(projections().withStats(hubUpdate, HubState(PlayerFixtures.startingPlayer(ClassId.Warrior))).player.stats, None)
+    val over = GameOverState(PlayerFixtures.startingPlayer(ClassId.Warrior))
+    assertEquals(projections().withStats(over.toStateUpdate(), over).player.stats, None)
 
   test("enrich applies the catalogs, the achievements and the story in one go"):
     val defs     = List(achievement("a", 1))

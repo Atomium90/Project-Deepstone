@@ -136,7 +136,7 @@ case class Weapon(
     case None       => s"+$attackBonus ATK"
   }
   override def effectiveStatLine(affinityTags: Set[String]): String =
-    val effective = if typeTag.exists(affinityTags.contains) then attackBonus * 2 else attackBonus
+    val effective = attackBonus * Affinity.multiplier(typeTag, affinityTags)
     typeTag match {
       case Some(tag) => s"+$effective ATK [$tag]"
       case None      => s"+$effective ATK"
@@ -160,7 +160,7 @@ case class Armor(
     case None       => s"+$defenseBonus DEF"
   }
   override def effectiveStatLine(affinityTags: Set[String]): String =
-    val effective = if typeTag.exists(affinityTags.contains) then defenseBonus * 2 else defenseBonus
+    val effective = defenseBonus * Affinity.multiplier(typeTag, affinityTags)
     typeTag match {
       case Some(tag) => s"+$effective DEF [$tag]"
       case None      => s"+$effective DEF"
@@ -200,7 +200,7 @@ case class Accessory(
   override def effectiveStatLine(affinityTags: Set[String]): String =
     // hpBonus is never affinity-scaled (applied flat at pickup, see Player.equipAccessory) -
     // only attackBonus/defenseBonus/critChanceBonus are, same fields CombatResolver doubles.
-    val multiplier = if typeTag.exists(affinityTags.contains) then 2 else 1
+    val multiplier = Affinity.multiplier(typeTag, affinityTags)
     val parts = List(
       hpBonus.map(n => s"+$n MAX HP"),
       attackBonus.map(n => s"+${n * multiplier} ATK"),

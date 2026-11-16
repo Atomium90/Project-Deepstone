@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.combat.AbilityDef
+import roguelite.game.combat.{ AbilityDef, StatCalculator, StatTerm }
 import roguelite.game.core.GameEvent
 import roguelite.game.items.SetDef
 import roguelite.game.progression.{
@@ -30,11 +30,42 @@ final class StateUpdateProjections(abilityCatalog: List[AbilityView],
                                    npcDefs: Map[String, NpcDef]
 ):
 
+  private val statCalculator = StatCalculator(setDefs, perkDefs)
+
   /** The whole enrichment, in the order the session has always applied it. */
   def enrich(update: StateUpdate, state: GameState, progress: AchievementProgress, story: StoryProgress): StateUpdate =
     withStory(
-      withAbilityCost(withHubProgress(withAchievements(withCatalog(update), progress), progress, story), state),
+      withStats(
+        withAbilityCost(withHubProgress(withAchievements(withCatalog(update), progress), progress, story), state),
+        state
+      ),
       story
+    )
+
+  /** Attach the player's effective stats (see [[StatsView]]) while exploring or fighting, and nothing
+    * in the hub or on the game over screen: a hub upgrade's flat bonus only applies once a run begins,
+    * so a hub figure would be wrong.
+    */
+  def withStats(update: StateUpdate, state: GameState): StateUpdate =
+    state match
+      case exploring: ExplorationState => update.copy(player = update.player.copy(stats = Some(statsView(exploring.player))))
+      case fighting: CombatState       => update.copy(player = update.player.copy(stats = Some(statsView(fighting.player))))
+      case _                           => update
+
+  private def statsView(player: Player): StatsView =
+    def termViews(terms: List[StatTerm]): List[StatTermView] =
+      terms.filter(_.value != 0).map: term =>
+        val name = term.source.toString
+        StatTermView(name.head.toLower + name.tail, term.value, term.affinity)
+    StatsView(
+      attack = statCalculator.attack(player),
+      defense = statCalculator.defense(player),
+      critChance = statCalculator.critChance(player),
+      critMultiplier = StatCalculator.CritMultiplier,
+      abilityCost = abilityDefs.get(player.classId).map(AbilityDef.effectiveCost(player, _, setDefs, perkDefs)),
+      attackTerms = termViews(statCalculator.attackTerms(player)),
+      defenseTerms = termViews(statCalculator.defenseTerms(player)),
+      critTerms = termViews(statCalculator.critTerms(player))
     )
 
   /** Add what only the story knows: the card still to be shown, if any (see `StateUpdate.pendingCard`),

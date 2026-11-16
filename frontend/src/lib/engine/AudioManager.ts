@@ -39,12 +39,12 @@ class AudioManager {
 
     gameState.subscribe((state) => {
       if (!state) return;
-      // A MiniBoss checkpoint reuses the boss music too - same cosmetic treatment, it just never
-      // ends the run the way a real Boss room does.
+      // A MiniBoss is a harder fight, not a Boss: it shares the Elite music, the boss tracks are
+      // kept for the Bosses.
       const choice = this.planner.choose({
         phase: state.phase,
-        bossFight: (state.combat?.isBoss ?? false) || (state.combat?.isMiniBoss ?? false),
-        eliteFight: state.combat?.isElite ?? false,
+        bossFight: state.combat?.isBoss ?? false,
+        eliteFight: (state.combat?.isElite ?? false) || (state.combat?.isMiniBoss ?? false),
         section: currentSection(state),
       });
       this.music.play(choice ? { src: MUSIC_DIR + choice.file, resume: choice.resume } : null);

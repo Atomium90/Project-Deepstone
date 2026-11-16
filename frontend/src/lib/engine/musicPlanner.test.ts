@@ -137,7 +137,7 @@ describe("MusicPlanner fights", () => {
     }
   });
 
-  it("plays the combat pool against an Elite, then resumes the exploration track", () => {
+  it("plays the combat pool against an Elite or a MiniBoss, then resumes the exploration track", () => {
     const p = planner();
     p.choose(hub);
     const before = p.choose(exploring(0));
@@ -148,7 +148,7 @@ describe("MusicPlanner fights", () => {
     expect(after).toEqual({ file: before?.file, resume: true });
   });
 
-  it("plays the boss pool against a Boss or a MiniBoss", () => {
+  it("plays the boss pool against a Boss", () => {
     const p = planner();
     p.choose(hub);
     p.choose(exploring(0));
@@ -177,16 +177,56 @@ describe("MusicPlanner fights", () => {
     for (let i = 0; i < 6; i++) expect(p.choose(fight({ bossFight: true }))?.file).toBe(first?.file);
   });
 
-  it("rerolls the boss track after REROLL_AFTER_UNITS fights, never to the same one", () => {
+  it("plays a different boss track at every boss fight, all of them before one comes back", () => {
     const p = planner();
     p.choose(hub);
-    const first = p.choose(fight({ bossFight: true }))?.file;
-    for (let i = 1; i < REROLL_AFTER_UNITS; i++) {
+    const heard: (string | undefined)[] = [];
+    for (let i = 0; i < 3; i++) {
       p.choose(exploring(0));
-      expect(p.choose(fight({ bossFight: true }))?.file).toBe(first);
+      heard.push(p.choose(fight({ bossFight: true }))?.file);
     }
+    expect(new Set(heard).size).toBe(POOLS.boss.length);
+    // the pool is used up: the next fight starts a new round, not on the track just heard
     p.choose(exploring(0));
-    expect(p.choose(fight({ bossFight: true }))?.file).not.toBe(first);
+    expect(p.choose(fight({ bossFight: true }))?.file).not.toBe(heard[2]);
+  });
+
+  it("plays a different combat track at every Elite or MiniBoss fight", () => {
+    const p = planner();
+    p.choose(hub);
+    const heard: (string | undefined)[] = [];
+    for (let i = 0; i < POOLS.combat.length; i++) {
+      p.choose(exploring(0));
+      heard.push(p.choose(fight({ eliteFight: true }))?.file);
+    }
+    expect(new Set(heard).size).toBe(POOLS.combat.length);
+  });
+
+  it("keeps boss and combat tracks apart: one pool's rounds do not use up the other's", () => {
+    const p = planner();
+    p.choose(hub);
+    p.choose(exploring(0));
+    const boss = p.choose(fight({ bossFight: true }))?.file;
+    p.choose(exploring(0));
+    const combat = p.choose(fight({ eliteFight: true }))?.file;
+    expect(POOLS.boss).toContain(boss);
+    expect(POOLS.combat).toContain(combat);
+  });
+
+  it("plays the only track of a pool of one at every fight", () => {
+    const p = new MusicPlanner({ ...POOLS, boss: ["only_boss"] }, () => 0);
+    p.choose(hub);
+    for (let i = 0; i < 3; i++) {
+      p.choose(exploring(0));
+      expect(p.choose(fight({ bossFight: true }))?.file).toBe("only_boss");
+    }
+  });
+
+  it("plays nothing in a fight whose pool is empty", () => {
+    const p = new MusicPlanner({ ...POOLS, boss: [] }, () => 0);
+    p.choose(hub);
+    p.choose(exploring(0));
+    expect(p.choose(fight({ bossFight: true }))).toBeNull();
   });
 });
 

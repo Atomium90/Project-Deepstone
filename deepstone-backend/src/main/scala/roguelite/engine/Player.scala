@@ -1,6 +1,7 @@
 package roguelite.engine
 
-import roguelite.game.{ Accessory, Armor, KeyKind, PotionStack, Rarity, SetBonusEffect, SetDef, Weapon }
+import roguelite.game.items.{ Accessory, Armor, KeyKind, PotionStack, Rarity, SetBonusEffect, SetDef, Weapon }
+
 
 /** Full player data as stored on the server. */
 case class Player(
@@ -91,7 +92,7 @@ case class Player(
     * every equip/unequip, regardless of level-ups that happened in between.
     *
     * Must be called after every change to `equippedWeapon`/`equippedArmor`/
-    * `equippedAccessories` (see [[roguelite.game.EquipmentResolver]]) - it isn't automatic on
+    * `equippedAccessories` (see [[roguelite.game.items.EquipmentResolver]]) - it isn't automatic on
     * `copy`, since `Player` has no reference to the loaded [[SetDef]] catalog.
     */
   def reconcileSetHpBonus(setDefs: Map[String, SetDef]): Player =

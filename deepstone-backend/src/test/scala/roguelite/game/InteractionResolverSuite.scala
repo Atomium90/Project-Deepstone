@@ -3,6 +3,7 @@ package roguelite.game
 import munit.FunSuite
 import roguelite.engine.*
 import roguelite.game.core.GameEvent
+import roguelite.game.items.{ Consumable, ConsumableEffect, EquipSlot, EquipmentResolver, Item, Key, KeyKind, Rarity, Weapon }
 
 import scala.util.Random
 

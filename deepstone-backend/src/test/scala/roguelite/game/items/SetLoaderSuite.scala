@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.items
 
 import munit.CatsEffectSuite
 import roguelite.engine.ClassId

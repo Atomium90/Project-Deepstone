@@ -1,7 +1,8 @@
 package roguelite.engine
 
 import munit.FunSuite
-import roguelite.game.{ EquipSlot, Rarity }
+
+import roguelite.game.items.{ EquipSlot, Rarity }
 
 class MessageProtocolSuite extends FunSuite:
 

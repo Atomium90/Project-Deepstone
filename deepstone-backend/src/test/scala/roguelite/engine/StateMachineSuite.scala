@@ -3,6 +3,7 @@ package roguelite.engine
 import munit.FunSuite
 import roguelite.game.*
 import roguelite.game.core.GameEvent
+import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, EquipSlot, Item, PendingEquipChoice, PendingRewardChoice, PotionStack, Rarity, Weapon }
 import roguelite.game.story.{ Encounter, IdleContext, PendingScene }
 
 import scala.util.Random

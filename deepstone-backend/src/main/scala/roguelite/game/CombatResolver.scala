@@ -11,6 +11,7 @@ import roguelite.engine.{
   Player
 }
 import roguelite.game.core.GameEvent
+import roguelite.game.items.{ Accessory, Consumable, ConsumableEffect, EquipmentResolver, Item, LootTable, PickupOutcome, Rarity, SetBonusEffect, SetDef }
 
 import scala.util.{ boundary, Random }
 import boundary.break

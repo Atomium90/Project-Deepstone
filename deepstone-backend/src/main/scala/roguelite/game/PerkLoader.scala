@@ -5,6 +5,7 @@ import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 
 import roguelite.game.core.JsonResourceLoader
+import roguelite.game.items.Rarity
 
 /** Loads run perk definitions from `data/perks.json` on the classpath.
   *

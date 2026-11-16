@@ -1,6 +1,7 @@
 package roguelite.game
 
 import roguelite.engine.{ ClassId, Player }
+import roguelite.game.items.{ SetBonusEffect, SetDef }
 
 /** Effect produced when a class ability is activated.
   *

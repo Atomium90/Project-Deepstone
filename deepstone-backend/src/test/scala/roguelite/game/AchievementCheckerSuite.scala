@@ -3,6 +3,7 @@ package roguelite.game
 import munit.FunSuite
 import roguelite.engine.Difficulty
 import roguelite.game.core.GameEvent
+import roguelite.game.items.Rarity
 
 /** Tests for [[AchievementChecker]]: pure logic, no DB, no GameState fixtures needed - every fact
   * needed is already embedded in the [[GameEvent]] or passed explicitly.

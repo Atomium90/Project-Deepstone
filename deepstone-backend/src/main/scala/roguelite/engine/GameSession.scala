@@ -5,14 +5,14 @@ import cats.effect.kernel.Ref
 import cats.syntax.foldable.*
 import roguelite.game.MetaProgression
 import roguelite.db.Database
-import roguelite.game.Item
+import roguelite.game.items.Item
 import doobie.util.update
 import roguelite.game.UpgradeDef
 import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
 import roguelite.game.core.GameEvent
+import roguelite.game.items.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.story.{ ChapterDef, DeathContext, Encounter, Ending, EndingRules, GodMoment, GodVoice, NpcDef, PendingScene, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VoicePhase, VowRules }
-import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
 import roguelite.game.{ CombatResolver, Enemy, MinimapLayout, Npc, RoomType }
@@ -790,7 +790,7 @@ object GameSession:
     * @param abilityDefs   The loaded ability catalog (see [[roguelite.game.AbilityLoader]]),
     *                      projected once into the [[AbilityView]] catalog sent on every update.
     * @param achievementDefs The loaded achievement catalog (see [[roguelite.game.AchievementLoader]]).
-    * @param setDefs       The loaded equipment set catalog (see [[roguelite.game.SetLoader]]), used
+    * @param setDefs       The loaded equipment set catalog (see [[roguelite.game.items.SetLoader]]), used
     *                      to resolve the `StartingItem` upgrade effect's set HP reconciliation.
     * @param perkDefs      The loaded run-perk catalog (see [[roguelite.game.PerkLoader]]), a random
     *                      subset of which is offered on every fresh hub entry.

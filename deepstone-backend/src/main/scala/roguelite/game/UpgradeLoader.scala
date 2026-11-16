@@ -5,6 +5,7 @@ import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 import roguelite.engine.ClassId
 import roguelite.game.core.JsonResourceLoader
+import roguelite.game.items.Rarity
 
 /** Loads upgrade definitions from `data/upgrades.json` on the classpath.
   *

@@ -1,6 +1,8 @@
-package roguelite.game
+package roguelite.game.items
 
 import java.util.UUID
+
+import roguelite.game.LockedDoor
 
 /** Rarity tier for an item drop.
   *

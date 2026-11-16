@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.items
 
 /** Identifies one equipment or potion-belt slot on a [[roguelite.engine.Player]].
   *

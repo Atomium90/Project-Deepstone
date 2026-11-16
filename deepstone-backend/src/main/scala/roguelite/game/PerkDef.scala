@@ -1,5 +1,7 @@
 package roguelite.game
 
+import roguelite.game.items.Rarity
+
 /** Effect granted by a run perk, chosen once per HUB visit and applied for that run only - never
   * persisted, unlike [[UpgradeEffect]].
   *

@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.items
 
 import roguelite.engine.{ ExplorationState, GameState }
 import roguelite.game.core.GameEvent

@@ -1,6 +1,7 @@
-package roguelite.game
+package roguelite.game.items
 
 import roguelite.engine.{ ExplorationState, GameState, Player }
+import roguelite.game.Chest
 import roguelite.game.core.GameEvent
 
 /** Outcome of resolving an item pickup against the player's current equipment. */

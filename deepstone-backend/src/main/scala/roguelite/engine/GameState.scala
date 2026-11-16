@@ -1,7 +1,8 @@
 package roguelite.engine
 
+import roguelite.game.items.{ Accessory, Armor, Item, KeyKind, PendingEquipChoice, PendingRewardChoice, Weapon }
 import roguelite.game.story.{ Encounter, EndingRules, IdleContext, PendingScene }
-import roguelite.game.{ Accessory, Armor, Combat, Dungeon, EnemyStats, Item, KeyKind, MetaProgression, MinimapBuilder, PendingEquipChoice, PendingRewardChoice, PerkDef, RoomType, UpgradeDef, Weapon }
+import roguelite.game.{ Combat, Dungeon, EnemyStats, MetaProgression, MinimapBuilder, PerkDef, RoomType, UpgradeDef }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -12,7 +13,7 @@ import roguelite.game.{ Accessory, Armor, Combat, Dungeon, EnemyStats, Item, Key
   *   that don't have a specific player in scope (none today, but keeps this safe to call
   *   generically) still get the flat baseline instead of a build error.
   * @param count
-  *   Charge count for a potion-belt stack (see [[roguelite.game.PotionStack]]) - `None` for every
+  *   Charge count for a potion-belt stack (see [[roguelite.game.items.PotionStack]]) - `None` for every
   *   other item kind, which never stacks.
   */
 private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty, count: Option[Int] = None): ItemView =

@@ -2,6 +2,7 @@ package roguelite.game
 
 import munit.CatsEffectSuite
 import roguelite.engine.Difficulty
+import roguelite.game.items.Rarity
 
 /** Tests for [[AchievementLoader]]. The decode-path tests run against a small fixture (via
   * [[JsonResourceLoader.loadAllFromJson]]) covering each shape of [[AchievementCondition]] the DTO

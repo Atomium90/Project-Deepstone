@@ -1,8 +1,9 @@
-package roguelite.game
+package roguelite.game.items
 
 import munit.FunSuite
 import roguelite.engine.{ ClassId, CombatAction, CombatActionType, CombatState, Player }
 import roguelite.game.core.GameEvent
+import roguelite.game.{ AbilityDef, AbilityEffect, Combat, CombatResolver, Dungeon, Enemy, EnemyActionWeight, EnemyInstance, Room, RoomType, Tile }
 
 import scala.util.Random
 

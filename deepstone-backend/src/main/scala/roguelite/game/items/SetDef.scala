@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.items
 
 import roguelite.engine.ClassId
 
@@ -55,7 +55,7 @@ object SetDef:
     * and 4pc bonuses stack: a 4-piece set contributes both, not just the 4pc one.
     *
     * Sets are class-specific by design (`sets.csv`'s classId column, "un set par classe"):
-    * nothing in [[roguelite.game.EquipmentResolver]] stops a player from equipping another
+    * nothing in [[roguelite.game.items.EquipmentResolver]] stops a player from equipping another
     * class's gear, but doing so should never grant that set's bonus - otherwise a class could
     * stack a rival class's numeric bonuses (e.g. flat attack, crit chance) on top of its own kit,
     * which sets are meant to make distinct per class in the first place. Unknown setIds absent

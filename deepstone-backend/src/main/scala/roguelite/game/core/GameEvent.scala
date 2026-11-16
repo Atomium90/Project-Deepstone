@@ -1,7 +1,7 @@
 package roguelite.game.core
 
 import roguelite.engine.{ Difficulty, Player }
-import roguelite.game.{ Item, Rarity, SetDef }
+import roguelite.game.items.{ Item, Rarity, SetDef }
 
 /** Pure domain facts describing "achievement-worthy" things that happened during a state
   * transition. Emitted by the resolvers that already have the relevant context in scope

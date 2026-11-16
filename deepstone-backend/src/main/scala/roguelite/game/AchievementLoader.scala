@@ -5,6 +5,7 @@ import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 import roguelite.engine.Difficulty
 import roguelite.game.core.JsonResourceLoader
+import roguelite.game.items.Rarity
 
 /** Loads achievement definitions from `data/achievements.json` on the classpath. Resource reading
   * and error wrapping are handled by [[JsonResourceLoader]].

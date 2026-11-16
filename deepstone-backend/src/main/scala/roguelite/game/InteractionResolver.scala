@@ -2,6 +2,7 @@ package roguelite.game
 
 import roguelite.engine.{ CombatState, Direction, ExplorationState, GameOverState, GameState, Player, TransitionResult }
 import roguelite.game.core.GameEvent
+import roguelite.game.items.{ EquipmentResolver, Item, KeyKind, LootTable, PendingRewardChoice, PickupOutcome, SetDef }
 
 import scala.util.Random
 

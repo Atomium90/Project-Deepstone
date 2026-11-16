@@ -1,6 +1,7 @@
 package roguelite.game
 
 import roguelite.engine.ClassId
+import roguelite.game.items.Rarity
 
 /** Effect applied when an upgrade is unlocked.
   *

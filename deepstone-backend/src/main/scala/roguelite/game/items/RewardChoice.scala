@@ -1,9 +1,9 @@
-package roguelite.game
+package roguelite.game.items
 
 /** A [[Shrine]]'s rolled reward options, awaiting a follow-up `RewardChoice` action to pick one
   * (or walk away with nothing). Held on [[roguelite.engine.GameState.ExplorationState]] until
   * resolved - durable state, not a transient event, same discipline as
-  * [[roguelite.game.PendingEquipChoice]] (survives a reconnect or an unrelated action sent in
+  * [[roguelite.game.items.PendingEquipChoice]] (survives a reconnect or an unrelated action sent in
   * between). The Shrine entity itself is already removed from the room at the point this is
   * created (mirrors a [[Chest]] being removed on open), so nothing further ties back to it here.
   *

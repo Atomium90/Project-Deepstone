@@ -2,6 +2,7 @@ package roguelite.game
 
 import munit.CatsEffectSuite
 import roguelite.engine.ClassId
+import roguelite.game.items.Rarity
 
 /** Tests for [[UpgradeLoader]]. The decode-path tests run against a small fixture (via
   * [[JsonResourceLoader.loadAllFromJson]]) that is isolated from and never needs to change

@@ -1,6 +1,7 @@
 package roguelite.game
 
 import roguelite.engine.Difficulty
+import roguelite.game.items.Rarity
 
 /** Condition that must become true for an achievement to unlock.
   *

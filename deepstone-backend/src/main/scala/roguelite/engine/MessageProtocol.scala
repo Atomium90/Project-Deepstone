@@ -3,7 +3,8 @@ package roguelite.engine
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
 import io.circe.{ Decoder, Encoder }
-import roguelite.game.{ EquipSlot, Rarity, UpgradeCategory }
+import roguelite.game.UpgradeCategory
+import roguelite.game.items.{ EquipSlot, Item, Rarity }
 
 // -------------------
 // Shared enumerations
@@ -386,7 +387,7 @@ case class ItemView(
       * value when applicable, this isn't needed to compute that.
       */
     typeTag: Option[String] = None,
-    /** Charge count for a potion-belt stack (see [[roguelite.game.PotionStack]]). `None` for
+    /** Charge count for a potion-belt stack (see [[roguelite.game.items.PotionStack]]). `None` for
       * every other item kind, which never stacks - the client only shows a count badge when this
       * is present.
       */
@@ -394,14 +395,14 @@ case class ItemView(
 )
 
 /** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses
-  * [[roguelite.game.KeyKind.Specific]]/[[roguelite.game.KeyKind.Typed]]'s payload away (e.g.
-  * `"specific"`, not the door id it targets) since only [[roguelite.game.KeyKind.Generic]] has
+  * [[roguelite.game.items.KeyKind.Specific]]/[[roguelite.game.items.KeyKind.Typed]]'s payload away (e.g.
+  * `"specific"`, not the door id it targets) since only [[roguelite.game.items.KeyKind.Generic]] has
   * real content today and the client only ever needs a coarse count badge.
   */
 case class KeyCountView(keyKind: String, count: Int)
 
 /** The player's full equipment loadout: weapon/armor/accessory slots (auto-equip on pickup, no
-  * generic bag - see [[roguelite.game.EquipmentResolver]]), the potion belt, and key counts.
+  * generic bag - see [[roguelite.game.items.EquipmentResolver]]), the potion belt, and key counts.
   * Replaces the old flat `inventory: List[ItemView]` field.
   *
   * @param accessories always length [[roguelite.engine.Player.AccessorySlotCount]] (2).

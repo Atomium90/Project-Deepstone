@@ -1,6 +1,7 @@
 package roguelite.game
 
 import roguelite.engine.{ Direction, EntityView }
+import roguelite.game.items.Item
 
 /** An interactive object placed on a tile in a room.
   *
@@ -218,7 +219,7 @@ case class Sanctuary(id: String, x: Int, y: Int) extends Entity:
 /** A reward marker left behind by a defeated [[RoomType.MiniBoss]] enemy (see
   * [[CombatResolver.victory]]) - never authored in rooms.json, only ever created at runtime.
   * Interacting with it rolls 3 candidate items and offers a choice (see
-  * [[roguelite.game.RewardChoiceResolver]]), unlike [[Chest]]'s single immediate-resolve drop.
+  * [[roguelite.game.items.RewardChoiceResolver]]), unlike [[Chest]]'s single immediate-resolve drop.
   *
   * @param devoted
   *   Which Devoted the relic belongs to, when the Boss that fell was one: the Shrine then shows the

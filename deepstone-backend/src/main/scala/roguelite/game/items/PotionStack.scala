@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.items
 
 /** One occupied potion-belt slot: up to [[roguelite.engine.Player.potionCapacity]] charges of the
   * same typeId, stacked instead of one slot per pickup. `item` is always the highest-rarity copy

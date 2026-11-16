@@ -2,6 +2,8 @@ package roguelite.game
 
 import munit.CatsEffectSuite
 
+import roguelite.game.items.Rarity
+
 /** Tests for [[PerkLoader]]. The decode-path tests run against a small fixture (via
   * [[JsonResourceLoader.loadAllFromJson]]) that is isolated from and never needs to change
   * alongside `data/perks.json` - only the "real catalog" section at the bottom still touches the

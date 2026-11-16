@@ -4,6 +4,7 @@ import cats.effect.IO
 import munit.CatsEffectSuite
 import roguelite.db.Database
 import roguelite.game.*
+import roguelite.game.items.{ Consumable, ConsumableEffect, Item, Rarity, SetBonus, SetBonusEffect, SetDef }
 import roguelite.game.story.{ CardRecord, ChapterDef, Ending, NpcDef, RunOutcome, SceneDef, VowRecord, VowState, VowType }
 
 import scala.util.Random

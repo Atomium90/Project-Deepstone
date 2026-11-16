@@ -1,10 +1,10 @@
 package roguelite.engine
 
 import cats.effect.IO
+import roguelite.game.combat.{ CombatResolver, EnemyStats }
 import roguelite.game.dungeon.{ Dungeon, DungeonBuilder, InteractionResolver, Room, Sanctuary }
 import roguelite.game.items.{ EquipmentResolver, Item, PickupOutcome, RewardChoiceResolver, SetDef }
 import roguelite.game.progression.{ ClassDef, DifficultyTierDef, PerkDef, PerkEffect }
-import roguelite.game.{ CombatResolver, EnemyStats }
 
 import scala.util.Random
 import roguelite.game.progression.MetaProgression

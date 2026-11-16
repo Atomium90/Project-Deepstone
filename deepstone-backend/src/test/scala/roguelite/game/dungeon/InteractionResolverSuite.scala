@@ -2,10 +2,10 @@ package roguelite.game.dungeon
 
 import munit.FunSuite
 import roguelite.engine.*
+import roguelite.game.combat.{ EnemyActionWeight, EnemyStats }
 import roguelite.game.core.GameEvent
 import roguelite.game.items.{ Consumable, ConsumableEffect, EquipSlot, EquipmentResolver, Item, Key, KeyKind, Rarity, Weapon }
 import roguelite.game.progression.{ PerkDef, PerkEffect }
-import roguelite.game.{ EnemyActionWeight, EnemyStats }
 
 import scala.util.Random
 

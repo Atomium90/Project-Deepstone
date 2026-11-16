@@ -14,7 +14,7 @@ import scala.concurrent.duration.*
 import roguelite.db.Database
 import roguelite.game.items.Item
 import roguelite.game.progression.UpgradeDef
-import roguelite.game.AbilityDef
+import roguelite.game.combat.AbilityDef
 import roguelite.game.progression.AchievementDef
 import roguelite.game.items.SetDef
 import roguelite.game.progression.PerkDef

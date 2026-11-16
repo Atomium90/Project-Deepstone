@@ -2,7 +2,7 @@ package roguelite.game.items
 
 import munit.FunSuite
 import roguelite.engine.Difficulty
-import roguelite.game.{ EnemyInstance, LootEntry }
+import roguelite.game.combat.{ EnemyInstance, LootEntry }
 
 import scala.util.Random
 

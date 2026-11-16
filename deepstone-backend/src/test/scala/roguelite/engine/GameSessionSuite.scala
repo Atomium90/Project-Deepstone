@@ -4,6 +4,7 @@ import cats.effect.IO
 import munit.CatsEffectSuite
 import roguelite.db.Database
 import roguelite.game.*
+import roguelite.game.combat.{ AbilityDef, AbilityEffect, CombatResolver, EnemyActionWeight, EnemyStats }
 import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Enemy, Entity, Npc, Room, RoomType, Sanctuary, Tile }
 import roguelite.game.items.{ Consumable, ConsumableEffect, Item, Rarity, SetBonus, SetBonusEffect, SetDef }
 import roguelite.game.progression.{ AchievementCondition, AchievementDef, AchievementStats, ClassDef, DifficultyTierDef, PerkDef, PerkEffect, TierRequirement, UpgradeCategory, UpgradeDef, UpgradeEffect }

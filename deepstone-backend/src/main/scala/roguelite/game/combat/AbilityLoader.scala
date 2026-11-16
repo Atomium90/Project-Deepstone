@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.combat
 
 import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }

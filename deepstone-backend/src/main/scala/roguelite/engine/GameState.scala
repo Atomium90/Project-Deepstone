@@ -1,10 +1,10 @@
 package roguelite.engine
 
+import roguelite.game.combat.{ Combat, EnemyStats }
 import roguelite.game.dungeon.{ Dungeon, MinimapBuilder, RoomType }
 import roguelite.game.items.{ Accessory, Armor, Item, KeyKind, PendingEquipChoice, PendingRewardChoice, Weapon }
 import roguelite.game.progression.{ MetaProgression, PerkDef, UpgradeDef }
 import roguelite.game.story.{ Encounter, EndingRules, IdleContext, PendingScene }
-import roguelite.game.{ Combat, EnemyStats }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -157,7 +157,7 @@ case class HubState(player: Player,
     )
 
 /** @param enemyStats
-  *   The loaded enemy catalog (see [[roguelite.game.EnemyLoader]]), forwarded to
+  *   The loaded enemy catalog (see [[roguelite.game.combat.EnemyLoader]]), forwarded to
   *   [[roguelite.game.dungeon.Room.toView]] to resolve each enemy's `spriteId`. Defaults to empty so
   *   tests that don't care about sprites can keep using the shorter constructor.
   * @param pendingEquipChoice

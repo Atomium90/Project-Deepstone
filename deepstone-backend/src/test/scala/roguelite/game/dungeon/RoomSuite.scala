@@ -2,7 +2,7 @@ package roguelite.game.dungeon
 
 import munit.FunSuite
 import roguelite.engine.Direction
-import roguelite.game.{ EnemyActionWeight, EnemyStats }
+import roguelite.game.combat.{ EnemyActionWeight, EnemyStats }
 
 class RoomSuite extends FunSuite:
 

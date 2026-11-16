@@ -36,7 +36,7 @@ enum UpgradeEffect:
 
   /** Flat bonus added to the player's effective attack for every run, permanently. Reuses
     * [[roguelite.engine.Player.bonusAttack]] directly - the same field level-up perks already
-    * add to, already wired into the attack formula - so no new [[roguelite.game.CombatResolver]]
+    * add to, already wired into the attack formula - so no new [[roguelite.game.combat.CombatResolver]]
     * hook is needed.
     */
   case FlatAttackBoost(amount: Int)

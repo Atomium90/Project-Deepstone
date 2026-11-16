@@ -1,10 +1,10 @@
 package roguelite.game.dungeon
 
 import roguelite.engine.{ CombatState, Direction, ExplorationState, GameOverState, GameState, Player, TransitionResult }
+import roguelite.game.combat.{ Combat, EnemyInstance, EnemyStats }
 import roguelite.game.core.GameEvent
 import roguelite.game.items.{ EquipmentResolver, Item, KeyKind, LootTable, PendingRewardChoice, PickupOutcome, SetDef }
 import roguelite.game.progression.{ PerkDef, PerkEffect }
-import roguelite.game.{ Combat, EnemyInstance, EnemyStats }
 
 import scala.util.Random
 

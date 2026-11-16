@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.combat
 
 import roguelite.engine.{ ClassId, Player }
 import roguelite.game.items.{ SetBonusEffect, SetDef }

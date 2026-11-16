@@ -1,7 +1,7 @@
 package roguelite.game.items
 
 import roguelite.engine.Difficulty
-import roguelite.game.EnemyInstance
+import roguelite.game.combat.EnemyInstance
 
 import scala.util.Random
 

@@ -3,6 +3,7 @@ package roguelite.engine
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
 import io.circe.{ Decoder, Encoder }
+import roguelite.game.combat.Combat
 import roguelite.game.progression.UpgradeCategory
 import roguelite.game.items.{ EquipSlot, Item, Rarity }
 
@@ -299,12 +300,12 @@ case class CombatView(
       * cosmetic only: unlike `isBoss`, this never drives run-ending logic, see
       * [[roguelite.game.dungeon.Dungeon.isAtBoss]]. */
     isMiniBoss: Boolean = false,
-    /** Mirrors [[roguelite.game.EnemyInstance.isElite]], resolved at
+    /** Mirrors [[roguelite.game.combat.EnemyInstance.isElite]], resolved at
       * [[CombatState.toStateUpdate]] the same way `isBoss` is - always present once combat starts,
       * unlike the exploration-side [[EntityView.isElite]] which is optional. */
     isElite: Boolean = false,
     /** The player's class ability, resolved through any active set/perk cost discount (see
-      * [[roguelite.game.AbilityDef.effectiveCost]]) - the real cost to check affordability
+      * [[roguelite.game.combat.AbilityDef.effectiveCost]]) - the real cost to check affordability
       * against, not the static per-class catalog value in `StateUpdate.abilities`. `None` only if
       * the player's class has no loaded ability def. */
     abilityCost: Option[Int] = None
@@ -588,7 +589,7 @@ case class StateUpdate(
     combat: Option[CombatView] = None,
     hub: Option[HubView] = None,
     /** Defaults to fully empty so tests/fixtures that don't care about equipment can keep using
-      * the shorter constructor, same convention as [[roguelite.game.EnemyStats]]-carrying fields
+      * the shorter constructor, same convention as [[roguelite.game.combat.EnemyStats]]-carrying fields
       * elsewhere in this codebase.
       */
     equipment: EquipmentView = EquipmentView(

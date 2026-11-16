@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.combat
 
 /** Effect that remains pending until the player's next Attack action.
   *

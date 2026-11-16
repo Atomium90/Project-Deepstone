@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.combat
 
 import munit.CatsEffectSuite
 import roguelite.engine.Difficulty

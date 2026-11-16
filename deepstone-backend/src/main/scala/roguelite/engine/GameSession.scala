@@ -10,12 +10,12 @@ import roguelite.game.items.Item
 import doobie.util.update
 import roguelite.game.progression.UpgradeDef
 import roguelite.game.progression.UpgradeEffect
-import roguelite.game.AbilityDef
+import roguelite.game.combat.AbilityDef
 import roguelite.game.core.GameEvent
 import roguelite.game.items.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.progression.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, DifficultyTierDef, DifficultyUnlocks }
 import roguelite.game.story.{ ChapterDef, DeathContext, Encounter, Ending, EndingRules, GodMoment, GodVoice, NpcDef, PendingScene, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VoicePhase, VowRules }
-import roguelite.game.CombatResolver
+import roguelite.game.combat.CombatResolver
 import roguelite.game.progression.PerkDef
 import roguelite.game.dungeon.RoomLoader
 import roguelite.game.progression.ShardTopUp
@@ -167,7 +167,7 @@ class GameSession private (
         )
 
   /** Resolve `CombatView.abilityCost` against the player's live set/perk discounts (see
-    * [[roguelite.game.AbilityDef.effectiveCost]]) - a no-op outside combat, or if the player's
+    * [[roguelite.game.combat.AbilityDef.effectiveCost]]) - a no-op outside combat, or if the player's
     * class has no loaded ability def.
     */
   private def withAbilityCost(update: StateUpdate, state: GameState): StateUpdate =
@@ -787,7 +787,7 @@ object GameSession:
     * @param database      Per-server (shared) persistence layer.
     * @param itemDefs      Item prototype map, used to resolve the `StartingItem` upgrade effect.
     * @param upgradeDefs   The loaded upgrade catalog (see [[roguelite.game.progression.UpgradeLoader]]).
-    * @param abilityDefs   The loaded ability catalog (see [[roguelite.game.AbilityLoader]]),
+    * @param abilityDefs   The loaded ability catalog (see [[roguelite.game.combat.AbilityLoader]]),
     *                      projected once into the [[AbilityView]] catalog sent on every update.
     * @param achievementDefs The loaded achievement catalog (see [[roguelite.game.progression.AchievementLoader]]).
     * @param setDefs       The loaded equipment set catalog (see [[roguelite.game.items.SetLoader]]), used

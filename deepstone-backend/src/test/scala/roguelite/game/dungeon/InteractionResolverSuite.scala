@@ -188,7 +188,7 @@ class InteractionResolverSuite extends FunSuite:
       mergeEntities: List[Entity] = List(forkPrevDoor("merge_back", 4, None, "a"))
   ): ExplorationState =
     val rooms = List(
-      makeRoom("fork", entities = List(forkNextDoor("to_a", 2, Some("a"), "a"), forkNextDoor("to_b", 5, Some("b"), "b"))),
+      makeRoom("fork", roomType = RoomType.Fork, entities = List(forkNextDoor("to_a", 2, Some("a"), "a"), forkNextDoor("to_b", 5, Some("b"), "b"))),
       makeRoom("a", entities = List(forkPrevDoor("a_back", 4, None, "fork"), forkNextDoor("a_next", 4, None, "merge"))),
       makeRoom("b", entities = List(forkPrevDoor("b_back", 4, None, "fork"), forkNextDoor("b_next", 4, None, "merge"))),
       makeRoom("merge", entities = mergeEntities)
@@ -216,9 +216,56 @@ class InteractionResolverSuite extends FunSuite:
     val back = walk(forkMergeExploration(), "to_b", "b_next", "merge_back")
     assertEquals((back.playerX, back.playerY), (4, 4))
 
-  test("Taking the other branch after backing out updates the way back"):
-    val state = walk(forkMergeExploration(), "to_b", "b_next", "merge_back", "b_back", "to_a", "a_next", "merge_back")
-    assertEquals(state.dungeon.currentRoomId, "a")
+  // --- Door: a fork is a choice with no way back -----------------------------------
+
+  private def assertShut(state: ExplorationState, doorId: String): Unit =
+    val TransitionResult(next, log, events) = resolver().interact(state, doorId)
+    assertEquals(next, state)
+    assertEquals(log, List(InteractionResolver.ForkExitSealedLine))
+    assertEquals(events, Nil)
+
+  test("The way back to the fork is shut from the first room of branch A"):
+    assertShut(walk(forkMergeExploration(), "to_a"), "a_back")
+
+  test("The way back to the fork is shut from the first room of branch B"):
+    assertShut(walk(forkMergeExploration(), "to_b"), "b_back")
+
+  test("Backing out of the room after a fork reaches the branch taken, but never the fork or the other branch"):
+    val inBranch = walk(forkMergeExploration(), "to_b", "b_next", "merge_back")
+    assertEquals(inBranch.dungeon.currentRoomId, "b")
+    assertShut(inBranch, "b_back")
+
+  test("The way back stays shut when the player reached the branch without going forward through the fork"):
+    // nothing recorded in cameFrom: the door falls back on its own link, which still leads to the fork
+    val state = forkMergeExploration()
+    val inBranch = state.copy(dungeon = state.dungeon.copy(currentRoomId = "a"))
+    assertShut(inBranch, "a_back")
+
+  test("A branch's own way on stays open"):
+    val state = walk(forkMergeExploration(), "to_a")
+    assertEquals(walk(state, "a_next").dungeon.currentRoomId, "merge")
+
+  test("A trapped way back into a fork stays shut and does not spring"):
+    val inBranch = walk(forkMergeExploration(), "to_a")
+    val room     = inBranch.dungeon.currentRoom
+    val trapped  = room.entities.collect { case d: Door if d.id == "a_back" => d.copy(doorKind = DoorKind.Trapped) }.head
+    val trappedState = inBranch.copy(dungeon = inBranch.dungeon.copy(rooms = inBranch.dungeon.rooms.updated("a", room.copy(entities = room.entities.map(e => if e.id == "a_back" then trapped else e)))))
+    assertShut(trappedState, "a_back")
+
+  test("The fork's own way back to the room before it stays open"):
+    val lead = makeRoom("lead", entities = List(forkNextDoor("lead_next", 4, None, "fork")))
+    val fork = makeRoom("fork", roomType = RoomType.Fork,
+                        entities = List(forkPrevDoor("fork_back", 4, None, "lead"), forkNextDoor("to_a", 2, Some("a"), "a"), forkNextDoor("to_b", 5, Some("b"), "b"))
+    )
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), Dungeon(Map("lead" -> lead, "fork" -> fork), "fork"), 4, 3)
+    assertEquals(walk(state, "fork_back").dungeon.currentRoomId, "lead")
+
+  test("Only a way back into a Fork room is shut: the same room as a lead-in is open"):
+    // "fork" here is an ordinary Combat room, so the door of the room after it opens
+    val lead = makeRoom("lead")
+    val next = makeRoom("next", entities = List(forkPrevDoor("next_back", 4, None, "lead")))
+    val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), Dungeon(Map("lead" -> lead, "next" -> next), "next"), 4, 3)
+    assertEquals(walk(state, "next_back").dungeon.currentRoomId, "lead")
 
   test("A Prev door that names its branch keeps its link"):
     val taggedBack = forkPrevDoor("merge_back_b", 3, Some("b"), "b")

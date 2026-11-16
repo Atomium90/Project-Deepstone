@@ -554,6 +554,9 @@ case class MinimapSectionView(index: Int, theme: String)
   * @param lane
   *   0 for the upper branch of a fork and for every room outside one, 1 for the lower branch. The
   *   client centres the rooms outside a fork's branches on a row that has two lanes.
+  * @param closed
+  *   True for a room of a fork's branch the player did not take, once they are in the other one: the
+  *   way back to the fork is shut, so the room can no longer be reached.
   */
 case class MinimapNodeView(id: String,
                            roomType: Option[String],
@@ -561,7 +564,8 @@ case class MinimapNodeView(id: String,
                            current: Boolean,
                            section: Int,
                            column: Int,
-                           lane: Int
+                           lane: Int,
+                           closed: Boolean = false
 )
 
 /** A way from one map node to another, always in the forward direction.

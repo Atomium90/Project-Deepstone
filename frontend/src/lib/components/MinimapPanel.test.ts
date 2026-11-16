@@ -119,6 +119,27 @@ describe("MinimapPanel", () => {
         expect(titles).toEqual(["Section 1Dungeon", "Section 2Dark dungeon"]);
     });
 
+    test("draws a room of the branch not taken as closed, with a cross and no icon, even a boss revealed in advance", () => {
+        const closedMap: MinimapView = {
+            ...MAP,
+            nodes: MAP.nodes.map((n) => (n.id === "n3" ? { ...n, closed: true } : n.id === "n4" ? { ...n, closed: true } : n)),
+        };
+        gameState.set(stateWith(closedMap));
+        const { container } = render(MinimapPanel);
+        const closed = Array.from(container.querySelectorAll("[data-node][data-kind=closed]"));
+        expect(closed.length).toBe(2);
+        expect(closed.every((g) => g.querySelector(".cross") !== null)).toBe(true);
+        // the cross is all there is: no room icon under it, and nothing on hover about what the room was
+        expect(closed.every((g) => g.querySelector("svg") === null)).toBe(true);
+        expect(closed.map((g) => g.querySelector("title")?.textContent)).toEqual(["Closed", "Closed"]);
+    });
+
+    test("draws no cross on a room that is not closed", () => {
+        gameState.set(stateWith(MAP));
+        const { container } = render(MinimapPanel);
+        expect(container.querySelectorAll(".cross").length).toBe(0);
+    });
+
     test("lists every room type and every state in the legend", () => {
         gameState.set(stateWith(MAP));
         const { container } = render(MinimapPanel);
@@ -133,6 +154,7 @@ describe("MinimapPanel", () => {
             "Sanctuary",
             "You are here",
             "Known, not visited",
+            "Closed, no way back",
             "Unexplored",
         ]);
     });

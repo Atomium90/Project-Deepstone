@@ -1,7 +1,7 @@
 package roguelite.game
 
 import munit.CatsEffectSuite
-import roguelite.engine.{ ClassId, Difficulty, Direction, ExplorationState, PlayerFixtures }
+import roguelite.engine.{ ClassId, Difficulty, Direction, ExplorationState, PlayerFixtures, TransitionResult }
 import roguelite.game.combat.{ EnemyInstance, EnemyLoader }
 import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Dungeon, DungeonBuilder, Enemy, Entity, InteractionResolver, LockedDoor, MinimapBuilder, Npc, Room, RoomLoader, RoomType, Sanctuary, Tile }
 import roguelite.game.items.{ Accessory, Armor, ItemLoader, LootTable, SetLoader, Weapon }
@@ -238,8 +238,14 @@ class ContentIntegritySuite extends CatsEffectSuite:
                     case Some(target) => walkToTheEnd(d.navigateTo(target, forward = true).toOption.get, steps + 1)
                     case None         => (d, steps)
 
+                assertEquals(view.nodes.count(_.closed), 0, s"$where: nothing is closed before the player picks a branch")
+
                 val (end, steps) = walkToTheEnd(dungeon, 0)
                 val atEnd        = MinimapBuilder.build(end)
+                assertEquals(atEnd.nodes.count(_.closed),
+                             2 * dungeon.rooms.values.count(_.roomType == RoomType.Fork),
+                             s"$where: the two rooms of each branch not taken are closed"
+                )
                 assertEquals(atEnd.nodes.filter(_.current).map(_.roomType), List(Some("sanctuary")), s"$where: the run should end at the Sanctuary")
                 assertEquals(atEnd.nodes.count(_.visited), steps + 1, s"$where: one visited room per step, plus the start")
 
@@ -268,13 +274,21 @@ class ContentIntegritySuite extends CatsEffectSuite:
                   door <- room.entities.collect { case d: Door if d.doorKind == DoorKind.Normal => d }
                   if door.link.isInstanceOf[DoorLink.Resolved]
                 do
+                  val sealedBehindFork = door.link match
+                    case DoorLink.Resolved(ConnectorRole.Prev, _, target) => dungeon.rooms(target).roomType == RoomType.Fork
+                    case _                                                => false
                   val cleared = room.copy(entities = room.entities.filterNot(_.isInstanceOf[Enemy]))
                   val start = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior),
                                                dungeon.copy(rooms = dungeon.rooms.updated(room.id, cleared), currentRoomId = room.id),
                                                playerX = door.x,
                                                playerY = door.y
                   )
-                  resolver.interact(start, door.id).state match
+                  if sealedBehindFork then
+                    val TransitionResult(after, log, events) = resolver.interact(start, door.id)
+                    assertEquals(after, start, s"seed $seed at $difficulty: '${door.id}' of '${room.id}' leads back into a fork and must stay shut")
+                    assertEquals(log, List(InteractionResolver.ForkExitSealedLine))
+                    assertEquals(events, Nil)
+                  else resolver.interact(start, door.id).state match
                     case arrived: ExplorationState =>
                       val target = arrived.dungeon.currentRoom
                       assert(
@@ -283,6 +297,49 @@ class ContentIntegritySuite extends CatsEffectSuite:
                           s"${(arrived.playerX, arrived.playerY)} in '${target.id}', which is not walkable"
                       )
                     case other => fail(s"unexpected state after walking through '${door.id}': $other")
+
+  // A fork is a choice with no way back, so the one thing that must hold is that neither branch is a
+  // dead end: whichever the player takes, the run still reaches the Sanctuary, going through doors the
+  // way a player does (every enemy is cleared first: a Boss room keeps its way on shut while its
+  // enemy lives, and that is tested elsewhere).
+  test("either branch of every fork leads to the Sanctuary of a real dungeon, through the doors"):
+    RoomLoader
+      .loadAll()
+      .map:
+        rooms =>
+          val resolver = InteractionResolver(Map.empty, Map.empty)
+          def withoutEnemies(dungeon: Dungeon): Dungeon =
+            dungeon.copy(rooms = dungeon.rooms.view.mapValues(r => r.copy(entities = r.entities.filterNot(_.isInstanceOf[Enemy]))).toMap)
+
+          @scala.annotation.tailrec
+          def play(state: ExplorationState, branchIndex: Int, steps: Int): ExplorationState =
+            val room = state.dungeon.currentRoom
+            val forward = room.entities
+              .collect { case d: Door if d.link.role == ConnectorRole.Next => d }
+              .sortBy(d => d.link match
+                case DoorLink.Resolved(_, branch, _) => branch.getOrElse("")
+                case _                               => ""
+              )
+            if forward.isEmpty || steps > 300 then state
+            else
+              val door = if room.roomType == RoomType.Fork then forward(branchIndex) else forward.head
+              resolver.interact(state, door.id).state match
+                case next: ExplorationState => play(next, branchIndex, steps + 1)
+                case other                  => fail(s"unexpected state going through '${door.id}': $other")
+
+          for
+            difficulty  <- Difficulty.values.toList
+            seed        <- 1 to 25
+            branchIndex <- 0 to 1
+          do
+            DungeonBuilder(rooms, Random(seed.toLong)).build(difficulty)() match
+              case Left(err) => fail(s"seed $seed at $difficulty failed to build: $err")
+              case Right(dungeon) =>
+                val start = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), withoutEnemies(dungeon), 1, 1)
+                val end   = play(start, branchIndex, 0)
+                assertEquals(end.dungeon.currentRoom.roomType, RoomType.Sanctuary,
+                             s"seed $seed at $difficulty, branch $branchIndex: the run should reach the Sanctuary"
+                )
 
   // A run begins in the first room of the dungeon, which is always a Combat room (see
   // InteractionResolver.startSpawnPoint). Whatever the wall thickness of a room's theme, the player must

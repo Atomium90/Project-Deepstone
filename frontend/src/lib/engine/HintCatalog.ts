@@ -30,6 +30,7 @@ export const HINTS: readonly HintDef[] = [
     { id: "potions" },
     { id: "reward_choice" },
     { id: "elite" },
+    { id: "fork" },
     { id: "difficulty" },
     { id: "shop" },
     { id: "perks" },

@@ -106,6 +106,57 @@ class MinimapBuilderSuite extends FunSuite:
     assertEquals(view.edges.find(_.exit.contains("RIGHT")).map(e => lanes(e.to)), Some(0))
     assertEquals(view.edges.find(_.exit.contains("DOWN")).map(e => lanes(e.to)), Some(1))
 
+  // --- Closed branches ----------------------------------------------------------------
+
+  /** A fork whose branches have two rooms each, meeting in "m". The door on the right (branch "2")
+    * puts its branch on the upper lane, the door below (branch "1") on the lower one. */
+  private val twoRoomBranches: Dungeon =
+    dungeon(
+      room("f", RoomType.Fork, entities = List(forwardDoor("a1", Direction.Down, Some("1")), forwardDoor("b1", Direction.Right, Some("2")))),
+      room("a1", entities = List(forwardDoor("a2"))),
+      room("a2", entities = List(forwardDoor("m"))),
+      room("b1", entities = List(forwardDoor("b2"))),
+      room("b2", entities = List(forwardDoor("m"))),
+      room("m")
+    )
+
+  private def closedAt(dungeon: Dungeon): List[(Int, Int)] =
+    MinimapBuilder.build(dungeon).nodes.filter(_.closed).map(n => (n.column, n.lane))
+
+  private def walked(from: Dungeon, rooms: String*): Dungeon =
+    rooms.foldLeft(from)((d, id) => d.navigateTo(id, forward = true).toOption.get)
+
+  test("nothing is closed while the player is at the fork or before it"):
+    assertEquals(closedAt(twoRoomBranches), Nil)
+
+  test("the other branch closes once the player is in the lower one"):
+    assertEquals(closedAt(walked(twoRoomBranches, "a1")), List((1, 0), (2, 0)))
+
+  test("the other branch closes once the player is in the upper one"):
+    assertEquals(closedAt(walked(twoRoomBranches, "b1")), List((1, 1), (2, 1)))
+
+  test("the branch taken, the fork and the room where the branches meet are never closed"):
+    val view   = MinimapBuilder.build(walked(twoRoomBranches, "a1", "a2", "m"))
+    val closed = view.nodes.filter(_.closed)
+    assertEquals(closed.size, 2)
+    assert(closed.forall(n => n.lane == 0 && n.column > 0 && n.column < 3), s"unexpected closed rooms: $closed")
+
+  test("the abandoned branch stays closed after the player walks on past the merge"):
+    assertEquals(closedAt(walked(twoRoomBranches, "a1", "a2", "m")), List((1, 0), (2, 0)))
+
+  test("a branch of a single room closes too"):
+    assertEquals(closedAt(walked(forkDungeon, "a1")), List((1, 0)))
+
+  test("nothing is closed when the player has been in both branches"):
+    // the way back into a fork is shut in the game, but the map must not close a room already visited
+    val both = twoRoomBranches.copy(visited = Set("f", "a1", "b1"), currentRoomId = "m")
+    assertEquals(closedAt(both), Nil)
+
+  test("a dungeon with no fork has nothing to close"):
+    assertEquals(closedAt(walked(everyType, "combat_001")), Nil)
+    val line = dungeon(room("a", entities = List(forwardDoor("b"))), room("b", entities = List(forwardDoor("c"))), room("c"))
+    assertEquals(closedAt(walked(line, "b", "c")), Nil)
+
   // --- Sections -------------------------------------------------------------------
 
   test("each section is listed with its theme"):

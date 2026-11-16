@@ -64,6 +64,21 @@ describe("candidateHints", () => {
             expect(candidateHints(elite)).toContain("elite");
         });
 
+        test("offers the fork hint only in the room where the dungeon splits", () => {
+            const mapWith = (roomType: "fork" | "combat", current: boolean): StateUpdate["minimap"] => ({
+                sections: [{ index: 0, theme: "dungeon" }],
+                nodes: [
+                    { id: "n0", roomType: "combat", visited: true, current: !current, section: 0, column: 0, lane: 0 },
+                    { id: "n1", roomType, visited: true, current, section: 0, column: 1, lane: 0 },
+                ],
+                edges: [],
+            });
+            expect(candidateHints(makeState({ minimap: mapWith("fork", true) }))).toContain("fork");
+            expect(candidateHints(makeState({ minimap: mapWith("fork", false) }))).not.toContain("fork");
+            expect(candidateHints(makeState({ minimap: mapWith("combat", true) }))).not.toContain("fork");
+            expect(candidateHints(makeState())).not.toContain("fork");
+        });
+
         test("an Elite flag on something that is not an enemy does not count", () => {
             const state = makeState({ room: roomWith([makeEnemy({ kind: "chest", isElite: true })]) });
             expect(candidateHints(state)).not.toContain("elite");

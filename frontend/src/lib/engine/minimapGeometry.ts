@@ -27,9 +27,10 @@ const TITLE_CHAR_WIDTH = 7.4;
 /** Gap between a section's title and its rule, and between the title and the row's first room. */
 const TITLE_GAP = 14;
 
-/** How a room is drawn: where the player is, a room already visited, a room not visited whose type
- * is known in advance, or a room nothing is known about. */
-export type NodeKind = "current" | "visited" | "known" | "unknown";
+/** How a room is drawn: where the player is, a room already visited, a room that can no longer be
+ * reached (the branch of a fork not taken), a room not visited whose type is known in advance, or a
+ * room nothing is known about. */
+export type NodeKind = "current" | "visited" | "closed" | "known" | "unknown";
 
 export interface PlacedNode {
   node: MinimapNodeView;
@@ -84,11 +85,15 @@ const WALL_NAMES: Record<Direction, string> = { UP: "top", DOWN: "bottom", LEFT:
 function kindOf(node: MinimapNodeView): NodeKind {
   if (node.current) return "current";
   if (node.visited) return "visited";
+  if (node.closed) return "closed";
   if (node.roomType !== null) return "known";
   return "unknown";
 }
 
 function labelOf(node: MinimapNodeView): string {
+  // A room that can no longer be reached says nothing of what it was: the player is not told what
+  // they missed, even for a room whose type was known in advance.
+  if (node.closed && !node.visited) return "Closed";
   if (node.roomType === null) return "Unexplored";
   const name = ROOM_TYPE_LABELS[node.roomType];
   return node.visited ? name : `${name} (not visited)`;

@@ -22,6 +22,8 @@
     "hint.reward_choice.body": "A Shrine offers a choice of three items. You can only take one.",
     "hint.elite.title": "Elite enemy",
     "hint.elite.body": "A gold outline marks an Elite. It is tougher than other enemies, but it always drops an item of at least Rare quality.",
+    "hint.fork.title": "A fork",
+    "hint.fork.body": "The dungeon splits in two here. Once you step into a branch the way back to this room is shut, and the other branch is closed for the rest of the run. The map marks it with a cross.",
     "hint.difficulty.title": "Difficulty",
     "hint.difficulty.body": "Easy, Normal and Hard change how long the dungeon is and how strong the enemies are. Winning unlocks the next one, and you can pick any unlocked one before every run.",
     "hint.shop.title": "Hub upgrades",

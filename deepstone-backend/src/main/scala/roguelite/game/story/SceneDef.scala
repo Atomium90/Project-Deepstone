@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.story
 
 /** What an NPC asks of the player for a vow. Each kind is judged against the events of the run,
   * between the Rest where the vow was taken and the next one.

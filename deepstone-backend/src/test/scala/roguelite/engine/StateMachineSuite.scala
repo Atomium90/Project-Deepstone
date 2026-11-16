@@ -3,6 +3,7 @@ package roguelite.engine
 import munit.FunSuite
 import roguelite.game.*
 import roguelite.game.core.GameEvent
+import roguelite.game.story.{ Encounter, IdleContext, PendingScene }
 
 import scala.util.Random
 

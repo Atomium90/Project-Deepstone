@@ -2,6 +2,7 @@ package roguelite.engine
 
 import munit.FunSuite
 import roguelite.game.*
+import roguelite.game.story.{ Encounter, IdleContext, PendingScene, SceneDef, VowType }
 
 /** Covers the view-projection logic in GameState.scala (`toStateUpdate` on each of the 4 states,
   * plus the private helpers it delegates to - `itemToView`/`keyKindLabel`/`pendingChoiceToView`/

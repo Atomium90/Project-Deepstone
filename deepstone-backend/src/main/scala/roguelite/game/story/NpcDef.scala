@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.story
 
 /** One NPC of the Rest rooms, loaded from `data/npcs.json`.
   *

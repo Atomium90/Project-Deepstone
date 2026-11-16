@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.story
 
 import roguelite.engine.{ Difficulty, EndingAnswer }
 

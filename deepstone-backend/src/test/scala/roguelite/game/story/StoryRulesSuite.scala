@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.story
 
 import munit.FunSuite
 import roguelite.engine.Difficulty

@@ -18,7 +18,8 @@ import roguelite.game.AbilityDef
 import roguelite.game.AchievementDef
 import roguelite.game.SetDef
 import roguelite.game.PerkDef
-import roguelite.game.{ ChapterDef, DifficultyTierDef, NpcDef, SceneDef }
+import roguelite.game.DifficultyTierDef
+import roguelite.game.story.{ ChapterDef, NpcDef, SceneDef }
 
 /** Builds the HTTP routes for the game server.
   *

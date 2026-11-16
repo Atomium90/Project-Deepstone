@@ -2,6 +2,7 @@ package roguelite.game
 
 import munit.CatsEffectSuite
 import roguelite.engine.{ ClassId, Difficulty, Direction, ExplorationState, PlayerFixtures }
+import roguelite.game.story.{ ChapterLoader, NpcLoader, StoryLoader }
 
 import scala.util.Random
 

@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.story
 
 /** A conversation with a Rest NPC, or a Devoted's line before or after a fight, that the player has
   * started and not read to its end, kept on

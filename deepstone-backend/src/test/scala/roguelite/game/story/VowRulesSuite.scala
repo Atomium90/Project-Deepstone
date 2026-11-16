@@ -1,7 +1,8 @@
-package roguelite.game
+package roguelite.game.story
 
 import munit.FunSuite
 
+import roguelite.game.Rarity
 import roguelite.game.core.GameEvent
 
 class VowRulesSuite extends FunSuite:

@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.story
 
 import scala.util.Random
 

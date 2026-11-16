@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.story
 
 /** Which pool of short lines an NPC with nothing new to say draws from. */
 enum IdleContext:

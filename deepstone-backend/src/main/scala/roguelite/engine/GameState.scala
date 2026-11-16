@@ -1,26 +1,7 @@
 package roguelite.engine
 
-import roguelite.game.{
-  Accessory,
-  Armor,
-  Combat,
-  Dungeon,
-  Encounter,
-  EndingRules,
-  EnemyStats,
-  IdleContext,
-  Item,
-  KeyKind,
-  MetaProgression,
-  MinimapBuilder,
-  PendingEquipChoice,
-  PendingRewardChoice,
-  PendingScene,
-  PerkDef,
-  RoomType,
-  UpgradeDef,
-  Weapon
-}
+import roguelite.game.story.{ Encounter, EndingRules, IdleContext, PendingScene }
+import roguelite.game.{ Accessory, Armor, Combat, Dungeon, EnemyStats, Item, KeyKind, MetaProgression, MinimapBuilder, PendingEquipChoice, PendingRewardChoice, PerkDef, RoomType, UpgradeDef, Weapon }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -187,18 +168,18 @@ case class HubState(player: Player,
   *   the same way.
   * @param trapsInert
   *   Whether the traps summon nothing, because the running vow forbids a fight (see
-  *   [[roguelite.game.VowType.inertTraps]]). The pure resolvers cannot see the story, so
+  *   [[roguelite.game.story.VowType.inertTraps]]). The pure resolvers cannot see the story, so
   *   [[GameSession]] keeps this in step with it after every transition.
   * @param endingOpen
   *   Whether the Sanctuary asks the question of the light instead of ending the run (see
-  *   [[roguelite.game.EndingRules.isOffered]]). Kept in step by [[GameSession]] for the same reason as
+  *   [[roguelite.game.story.EndingRules.isOffered]]). Kept in step by [[GameSession]] for the same reason as
   *   `trapsInert`.
   * @param pendingEndingChoice
   *   Whether the Sanctuary has asked its question and awaits the answer, an `EndingChoice`. Durable like
   *   `pendingScene`, and it blocks movement and interaction the same way.
   * @param altarShut
   *   Whether the player has refused the light, so that a kill earns no Shard any more (see
-  *   [[roguelite.game.StoryProgress.shopClosed]]). Kept in step by [[GameSession]] like `trapsInert`, and
+  *   [[roguelite.game.story.StoryProgress.shopClosed]]). Kept in step by [[GameSession]] like `trapsInert`, and
   *   handed on to the fights that start from this state.
   */
 case class ExplorationState(player: Player,

@@ -1,5 +1,6 @@
-package roguelite.game
+package roguelite.game.story
 
+import roguelite.game.Rarity
 import roguelite.game.core.GameEvent
 
 /** The life of a vow, as pure transitions of [[StoryProgress]].

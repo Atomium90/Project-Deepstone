@@ -11,10 +11,11 @@ import roguelite.game.UpgradeDef
 import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
 import roguelite.game.core.GameEvent
+import roguelite.game.story.{ ChapterDef, DeathContext, Encounter, Ending, EndingRules, GodMoment, GodVoice, NpcDef, PendingScene, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VoicePhase, VowRules }
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
-import roguelite.game.{ ChapterDef, CombatResolver, DeathContext, Ending, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, VoicePhase, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
+import roguelite.game.{ CombatResolver, Enemy, MinimapLayout, Npc, RoomType }
 import roguelite.game.PerkDef
 import roguelite.game.RoomLoader
 import roguelite.game.ShardTopUp
@@ -801,12 +802,12 @@ object GameSession:
     * @param difficultyDefs The loaded difficulty tier catalog (see [[roguelite.game.DifficultyLoader]]),
     *                      which decides the tiers a `StartRun` may name and when the run perks open.
     *                      Empty by default, which leaves every tier available.
-    * @param sceneDefs     The loaded NPC scene catalog (see [[roguelite.game.StoryLoader]]), which
+    * @param sceneDefs     The loaded NPC scene catalog (see [[roguelite.game.story.StoryLoader]]), which
     *                      decides who stands in a Rest room and what they say. Empty by default, in
     *                      which case an NPC only ever says a short line.
-    * @param chapterDefs   The loaded chapter catalog (see [[roguelite.game.ChapterLoader]]), which
+    * @param chapterDefs   The loaded chapter catalog (see [[roguelite.game.story.ChapterLoader]]), which
     *                      decides what a victory opens. Empty by default, in which case none does.
-    * @param npcDefs       The loaded NPC catalog (see [[roguelite.game.NpcLoader]]), which gives each
+    * @param npcDefs       The loaded NPC catalog (see [[roguelite.game.story.NpcLoader]]), which gives each
     *                      NPC its sprite and tells when its real name is known. Empty by default, in
     *                      which case an NPC has no sprite of its own and is always known by its name.
     */

@@ -49,6 +49,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       case Some(door: Door) if isSealedByBoss(exp.dungeon.currentRoom, door) =>
         TransitionResult(exp, List(InteractionResolver.BossExitSealedLine))
 
+      case Some(door: Door) if isSealedBehindFork(exp.dungeon, door) =>
+        TransitionResult(exp, List(InteractionResolver.ForkExitSealedLine))
+
       case Some(door: Door) if door.doorKind == DoorKind.Trapped =>
         lift(handleTrappedDoor(exp, door))
 
@@ -93,6 +96,19 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     room.roomType == RoomType.Boss
       && door.link.role == ConnectorRole.Next
       && room.entities.exists(_.isInstanceOf[Enemy])
+
+  /** A fork is a choice: once the player is in a branch, the way back to the Fork room is shut, so
+    * the other branch cannot be reached any more. Only that one door is: from the room where the
+    * branches meet the player can still walk back along the branch they took, so nothing in it is
+    * lost, and the Fork room's own way back to the rooms before it stays open. Told by what the door
+    * leads to (a Fork room), never by an authored flag, since the same room is the head of a branch
+    * in one run and a lead-in room in another. No state of its own, like [[isSealedByBoss]].
+    */
+  private def isSealedBehindFork(dungeon: Dungeon, door: Door): Boolean =
+    door.link match
+      case DoorLink.Resolved(ConnectorRole.Prev, branch, linked) =>
+        dungeon.rooms.get(doorTarget(dungeon, ConnectorRole.Prev, branch, linked)).exists(_.roomType == RoomType.Fork)
+      case _ => false
 
   /** Shared by a normal Door and an already-unlocked LockedDoor: navigate to the target room and
     * place the player in front of the door they came through (see [[findSpawnPoint]]).
@@ -510,3 +526,6 @@ object InteractionResolver:
 
   /** What the player reads on trying the way on out of a Boss room while its guardian still stands. */
   val BossExitSealedLine: String = "The way on is sealed while the guardian of this room still stands."
+
+  /** What the way back to a Fork room says: the branch the player took is a choice with no return. */
+  val ForkExitSealedLine: String = "The way back is sealed: you chose this path and cannot turn back."

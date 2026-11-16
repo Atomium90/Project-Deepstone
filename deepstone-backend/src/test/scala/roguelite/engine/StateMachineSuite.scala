@@ -1,7 +1,6 @@
 package roguelite.engine
 
 import munit.FunSuite
-import roguelite.game.*
 import roguelite.game.combat.{ Combat, CombatResolver, EnemyActionWeight, EnemyInstance, EnemyStats }
 import roguelite.game.core.GameEvent
 import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Dungeon, Enemy, Entity, Room, RoomType, Sanctuary, Tile }

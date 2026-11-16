@@ -1,26 +1,10 @@
 package roguelite.engine
 
-import roguelite.game.{
-  Accessory,
-  Armor,
-  Combat,
-  Dungeon,
-  Encounter,
-  EndingRules,
-  EnemyStats,
-  IdleContext,
-  Item,
-  KeyKind,
-  MetaProgression,
-  MinimapBuilder,
-  PendingEquipChoice,
-  PendingRewardChoice,
-  PendingScene,
-  PerkDef,
-  RoomType,
-  UpgradeDef,
-  Weapon
-}
+import roguelite.game.combat.{ Combat, EnemyStats }
+import roguelite.game.dungeon.{ Dungeon, MinimapBuilder, RoomType }
+import roguelite.game.items.{ Accessory, Armor, Item, KeyKind, PendingEquipChoice, PendingRewardChoice, Weapon }
+import roguelite.game.progression.{ MetaProgression, PerkDef, UpgradeDef }
+import roguelite.game.story.{ Encounter, EndingRules, IdleContext, PendingScene }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -31,7 +15,7 @@ import roguelite.game.{
   *   that don't have a specific player in scope (none today, but keeps this safe to call
   *   generically) still get the flat baseline instead of a build error.
   * @param count
-  *   Charge count for a potion-belt stack (see [[roguelite.game.PotionStack]]) - `None` for every
+  *   Charge count for a potion-belt stack (see [[roguelite.game.items.PotionStack]]) - `None` for every
   *   other item kind, which never stacks.
   */
 private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty, count: Option[Int] = None): ItemView =
@@ -135,7 +119,7 @@ sealed trait GameState:
   def toStateUpdate(log: List[String] = Nil): StateUpdate
 
 /** @param upgradeDefs
-  *   The loaded upgrade catalog (see [[roguelite.game.UpgradeLoader]]), used to render [[HubView]].
+  *   The loaded upgrade catalog (see [[roguelite.game.progression.UpgradeLoader]]), used to render [[HubView]].
   *   Defaults to empty so tests that don't care about the upgrade list can keep using
   *   `HubState(player)`.
   * @param perkOptions
@@ -173,8 +157,8 @@ case class HubState(player: Player,
     )
 
 /** @param enemyStats
-  *   The loaded enemy catalog (see [[roguelite.game.EnemyLoader]]), forwarded to
-  *   [[roguelite.game.Room.toView]] to resolve each enemy's `spriteId`. Defaults to empty so
+  *   The loaded enemy catalog (see [[roguelite.game.combat.EnemyLoader]]), forwarded to
+  *   [[roguelite.game.dungeon.Room.toView]] to resolve each enemy's `spriteId`. Defaults to empty so
   *   tests that don't care about sprites can keep using the shorter constructor.
   * @param pendingEquipChoice
   *   A pickup awaiting a keep/replace decision (see [[PendingEquipChoice]]). Durable server
@@ -187,18 +171,18 @@ case class HubState(player: Player,
   *   the same way.
   * @param trapsInert
   *   Whether the traps summon nothing, because the running vow forbids a fight (see
-  *   [[roguelite.game.VowType.inertTraps]]). The pure resolvers cannot see the story, so
+  *   [[roguelite.game.story.VowType.inertTraps]]). The pure resolvers cannot see the story, so
   *   [[GameSession]] keeps this in step with it after every transition.
   * @param endingOpen
   *   Whether the Sanctuary asks the question of the light instead of ending the run (see
-  *   [[roguelite.game.EndingRules.isOffered]]). Kept in step by [[GameSession]] for the same reason as
+  *   [[roguelite.game.story.EndingRules.isOffered]]). Kept in step by [[GameSession]] for the same reason as
   *   `trapsInert`.
   * @param pendingEndingChoice
   *   Whether the Sanctuary has asked its question and awaits the answer, an `EndingChoice`. Durable like
   *   `pendingScene`, and it blocks movement and interaction the same way.
   * @param altarShut
   *   Whether the player has refused the light, so that a kill earns no Shard any more (see
-  *   [[roguelite.game.StoryProgress.shopClosed]]). Kept in step by [[GameSession]] like `trapsInert`, and
+  *   [[roguelite.game.story.StoryProgress.shopClosed]]). Kept in step by [[GameSession]] like `trapsInert`, and
   *   handed on to the fights that start from this state.
   */
 case class ExplorationState(player: Player,
@@ -237,7 +221,7 @@ case class ExplorationState(player: Player,
   * @param enemyEntityId
   *   Id of the Enemy entity in the room, used to remove it after a victorious combat.
   * @param enemyStats
-  *   Same role as on [[ExplorationState]] - forwarded to [[roguelite.game.Room.toView]].
+  *   Same role as on [[ExplorationState]] - forwarded to [[roguelite.game.dungeon.Room.toView]].
   * @param altarShut
   *   Copied from the [[ExplorationState]] the fight started from: whether a kill earns no Shard.
   */

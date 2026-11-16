@@ -1,7 +1,12 @@
 package roguelite.engine
 
 import munit.FunSuite
-import roguelite.game.*
+import roguelite.game.combat.{ Combat, CombatResolver, EnemyActionWeight, EnemyInstance, EnemyStats }
+import roguelite.game.core.GameEvent
+import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Dungeon, Enemy, Entity, Room, RoomType, Sanctuary, Tile }
+import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, EquipSlot, Item, PendingEquipChoice, PendingRewardChoice, PotionStack, Rarity, Weapon }
+import roguelite.game.progression.{ ClassDef, DifficultyTierDef, MetaProgression, PerkDef, PerkEffect, UpgradeCategory, UpgradeDef, UpgradeEffect }
+import roguelite.game.story.{ Encounter, IdleContext, PendingScene }
 
 import scala.util.Random
 

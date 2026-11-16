@@ -2,6 +2,11 @@ package roguelite.game
 
 import munit.CatsEffectSuite
 import roguelite.engine.{ ClassId, Difficulty, Direction, ExplorationState, PlayerFixtures }
+import roguelite.game.combat.{ EnemyInstance, EnemyLoader }
+import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Dungeon, DungeonBuilder, Enemy, Entity, InteractionResolver, LockedDoor, MinimapBuilder, Npc, Room, RoomLoader, RoomType, Sanctuary, Tile }
+import roguelite.game.items.{ Accessory, Armor, ItemLoader, LootTable, SetLoader, Weapon }
+import roguelite.game.progression.{ ClassLoader, DifficultyLoader }
+import roguelite.game.story.{ ChapterLoader, NpcLoader, StoryLoader }
 
 import scala.util.Random
 

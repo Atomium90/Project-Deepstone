@@ -1,29 +1,15 @@
 package roguelite.engine
 
 import cats.effect.IO
-import roguelite.game.{
-  ClassDef,
-  CombatResolver,
-  DifficultyTierDef,
-  Dungeon,
-  DungeonBuilder,
-  EnemyStats,
-  EquipmentResolver,
-  InteractionResolver,
-  Item,
-  PerkDef,
-  PerkEffect,
-  PickupOutcome,
-  Room,
-  RewardChoiceResolver,
-  Sanctuary,
-  SetDef
-}
+import roguelite.game.combat.{ CombatResolver, EnemyStats }
+import roguelite.game.dungeon.{ Dungeon, DungeonBuilder, InteractionResolver, Room, Sanctuary }
+import roguelite.game.items.{ EquipmentResolver, Item, PickupOutcome, RewardChoiceResolver, SetDef }
+import roguelite.game.progression.{ ClassDef, DifficultyTierDef, PerkDef, PerkEffect }
 
 import scala.util.Random
-import roguelite.game.MetaProgression
-import roguelite.game.UpgradeDef
-import roguelite.game.UpgradeEffect
+import roguelite.game.progression.MetaProgression
+import roguelite.game.progression.UpgradeDef
+import roguelite.game.progression.UpgradeEffect
 
 /** Processes player actions and produces new game states.
   *
@@ -33,7 +19,7 @@ import roguelite.game.UpgradeEffect
   *   - [[LootTable]] for all drop rolls
   *
   * @param roomPool
-  *   All available rooms, keyed by id. A fresh [[roguelite.game.Dungeon]] is assembled from this
+  *   All available rooms, keyed by id. A fresh [[roguelite.game.dungeon.Dungeon]] is assembled from this
   *   pool via [[DungeonBuilder]] on every `StartRun`, so each run gets a different layout.
   * @param enemyStats
   *   Lookup table of enemy stats keyed by typeId.
@@ -43,7 +29,7 @@ import roguelite.game.UpgradeEffect
   *   Definitions of all playable classes (warrior, mage…), used to build the player at run start.
   * @param upgradeDefs
   *   The loaded upgrade catalog, used to build [[HubState]] and to gate `StartRun` behind any
-  *   matching `UnlockClass` upgrade (see [[roguelite.game.UpgradeEffect.UnlockClass]]).
+  *   matching `UnlockClass` upgrade (see [[roguelite.game.progression.UpgradeEffect.UnlockClass]]).
   * @param resolver
   *   Resolves combat turns.
   * @param rng

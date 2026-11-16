@@ -1,0 +1,246 @@
+package roguelite.game.dungeon
+
+import munit.FunSuite
+import roguelite.engine.Direction
+import roguelite.game.combat.{ EnemyActionWeight, EnemyStats }
+
+class RoomSuite extends FunSuite:
+
+  /** A small 4×4 room with walls on the border and floor inside. */
+  def testRoom(entities: List[Entity] = Nil): Room =
+    val tiles = Vector.tabulate(4, 4): (row, col) =>
+      if row == 0 || row == 3 || col == 0 || col == 3 then Tile.Wall else Tile.Floor
+    Room(id = "test_room", roomType = RoomType.Combat, theme = "dungeon", width = 4, height = 4, tiles = tiles, entities = entities)
+
+  // -- tileAt ----------------------------------------------------------------
+
+  test("tileAt returns Wall for border tiles"):
+    val room = testRoom()
+    assertEquals(room.tileAt(0, 0), Tile.Wall)
+    assertEquals(room.tileAt(3, 3), Tile.Wall)
+
+  test("tileAt returns Floor for inner tiles"):
+    val room = testRoom()
+    assertEquals(room.tileAt(1, 1), Tile.Floor)
+    assertEquals(room.tileAt(2, 2), Tile.Floor)
+
+  test("tileAt returns Wall for out-of-bounds coordinates"):
+    val room = testRoom()
+    assertEquals(room.tileAt(-1, 0), Tile.Wall)
+    assertEquals(room.tileAt(99, 99), Tile.Wall)
+
+  // -- isWalkable ------------------------------------------------------------
+
+  test("isWalkable is true for inner floor tiles"):
+    assert(testRoom().isWalkable(1, 1))
+
+  test("isWalkable is false for wall tiles"):
+    assert(!testRoom().isWalkable(0, 0))
+
+  test("isWalkable is false for a floor tile occupied by an entity"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val room  = testRoom(entities = List(enemy))
+    assert(!room.isWalkable(2, 2))
+    assert(room.isWalkable(1, 1)) // an unoccupied floor tile is unaffected
+
+  // -- entity lookup ---------------------------------------------------------
+
+  test("entityById finds an existing entity"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val room  = testRoom(entities = List(enemy))
+    assertEquals(room.entityById("e1"), Some(enemy))
+
+  test("entityById returns None for unknown id"):
+    assertEquals(testRoom().entityById("nope"), None)
+
+  test("entityAt finds an entity at the given position"):
+    val chest = Chest("c1", x = 2, y = 1)
+    val room  = testRoom(entities = List(chest))
+    assertEquals(room.entityAt(2, 1), Some(chest))
+
+  test("entityAt returns None when no entity is at that position"):
+    assertEquals(testRoom().entityAt(1, 1), None)
+
+  // -- removeEntity ----------------------------------------------------------
+
+  test("removeEntity removes the entity with the given id"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val room  = testRoom(entities = List(enemy))
+    val after = room.removeEntity("e1")
+    assertEquals(after.entities, Nil)
+
+  test("removeEntity leaves other entities untouched"):
+    val e1   = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val e2   = Enemy("e2", x = 1, y = 1, typeId = "orc", label = "Orc")
+    val room = testRoom(entities = List(e1, e2))
+    val after = room.removeEntity("e1")
+    assertEquals(after.entities, List(e2))
+
+  // -- toView ----------------------------------------------------------------
+
+  test("toView includes the room's id"):
+    val view = testRoom().toView(playerX = 1, playerY = 1, enemyStats = Map.empty)
+    assertEquals(view.roomId, "test_room")
+
+  test("toView sets correct player position"):
+    val view = testRoom().toView(playerX = 2, playerY = 1, enemyStats = Map.empty)
+    assertEquals(view.playerX, 2)
+    assertEquals(view.playerY, 1)
+
+  test("toView serializes floor tiles as 'floor' strings"):
+    val view = testRoom().toView(1, 1, Map.empty)
+    assertEquals(view.tiles(1)(1), "floor")
+
+  test("toView serializes wall tiles as 'wall' strings"):
+    val view = testRoom().toView(1, 1, Map.empty)
+    assertEquals(view.tiles(0)(0), "wall")
+
+  test("toView includes all entity views"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val view  = testRoom(entities = List(enemy)).toView(1, 1, Map.empty)
+    assertEquals(view.entities.length, 1)
+    assertEquals(view.entities.head.kind, "enemy")
+
+  test("toView resolves an enemy's spriteId from the enemy catalog"):
+    val enemy      = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    val goblinStats = EnemyStats(
+      typeId = "goblin",
+      label = "Goblin",
+      spriteId = "mob_orc_rogue_idle",
+      maxHp = 20,
+      attack = 8,
+      defense = 2,
+      xpReward = 15,
+      actions = List(EnemyActionWeight("ATTACK", 100))
+    )
+    val view = testRoom(entities = List(enemy)).toView(1, 1, Map("goblin" -> goblinStats))
+    assertEquals(view.entities.head.spriteId, Some("mob_orc_rogue_idle"))
+
+  test("toView leaves spriteId unset when the enemy's typeId isn't in the catalog"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "unknown_type", label = "???")
+    val view  = testRoom(entities = List(enemy)).toView(1, 1, Map.empty)
+    assertEquals(view.entities.head.spriteId, None)
+
+  test("toView omits an unrevealed secret door"):
+    val secretDoor = Door("d1",
+                          x = 2,
+                          y = 2,
+                          direction = Direction.Down,
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
+                          doorKind = DoorKind.Secret,
+                          revealed = false
+    )
+    val view = testRoom(entities = List(secretDoor)).toView(1, 1, Map.empty)
+    assertEquals(view.entities, Nil)
+
+  test("toView includes a revealed secret door"):
+    val secretDoor = Door("d1",
+                          x = 2,
+                          y = 2,
+                          direction = Direction.Down,
+                          link = DoorLink.Resolved(ConnectorRole.Next, None, "r2"),
+                          doorKind = DoorKind.Secret,
+                          revealed = true
+    )
+    val view = testRoom(entities = List(secretDoor)).toView(1, 1, Map.empty)
+    assertEquals(view.entities.length, 1)
+
+  test("toView reports a chest's state as its protocol string"):
+    val view = testRoom(entities = List(Chest("c1", x = 2, y = 2))).toView(1, 1, Map.empty)
+    assertEquals(view.entities.head.state, Some("closed"))
+
+  test("a trapped chest looks exactly like an untrapped one to the client"):
+    assertEquals(Chest("c1", x = 2, y = 2, trapped = true).toView, Chest("c1", x = 2, y = 2).toView)
+
+  test("every ChestState has its own protocol string"):
+    assertEquals(ChestState.values.map(_.toProtocolString).toList, List("closed", "open_full", "open_empty", "sprung"))
+
+  test("toView leaves state unset for entities that are not chests"):
+    val enemy = Enemy("e1", x = 2, y = 2, typeId = "goblin", label = "Goblin")
+    assertEquals(testRoom(entities = List(enemy)).toView(1, 1, Map.empty).entities.head.state, None)
+
+  // -- forkBranchTags ----------------------------------------------------------
+
+  private def nextDoor(id: String, branch: Option[String]): Door =
+    Door(id, x = 1, y = 0, direction = Direction.Down, link = DoorLink.Unresolved(ConnectorRole.Next, branch))
+
+  test("forkBranchTags returns the two distinct tags of the next doors, sorted"):
+    val room = testRoom(entities = List(nextDoor("d1", Some("2")), nextDoor("d2", Some("1"))))
+    assertEquals(room.forkBranchTags, Some(("1", "2")))
+
+  test("forkBranchTags treats next doors sharing a tag as one branch"):
+    val room = testRoom(entities = List(nextDoor("d1", Some("a")), nextDoor("d2", Some("a")), nextDoor("d3", Some("b"))))
+    assertEquals(room.forkBranchTags, Some(("a", "b")))
+
+  test("forkBranchTags ignores prev doors"):
+    val prev = Door("p", x = 1, y = 0, direction = Direction.Up, link = DoorLink.Unresolved(ConnectorRole.Prev, Some("z")))
+    val room = testRoom(entities = List(prev, nextDoor("d1", Some("a")), nextDoor("d2", Some("b"))))
+    assertEquals(room.forkBranchTags, Some(("a", "b")))
+
+  test("forkBranchTags is None unless there are exactly two distinct tags"):
+    assertEquals(testRoom(entities = Nil).forkBranchTags, None)
+    assertEquals(testRoom(entities = List(nextDoor("d1", Some("a")))).forkBranchTags, None)
+    assertEquals(
+      testRoom(entities = List(nextDoor("d1", Some("a")), nextDoor("d2", Some("b")), nextDoor("d3", Some("c")))).forkBranchTags,
+      None
+    )
+
+  test("forkBranchTags is None when a next door carries no tag"):
+    val room = testRoom(entities = List(nextDoor("d1", Some("a")), nextDoor("d2", Some("b")), nextDoor("d3", None)))
+    assertEquals(room.forkBranchTags, None)
+
+  // -- withFloorAt -------------------------------------------------------------
+
+  test("withFloorAt replaces exactly the tile at (x, y) with Floor"):
+    val updated = testRoom().withFloorAt(0, 0)
+    assertEquals(updated.tileAt(0, 0), Tile.Floor)
+    assertEquals(updated.tileAt(3, 0), Tile.Wall) // other border tiles untouched
+
+  // -- updateEntity -------------------------------------------------------------
+
+  test("updateEntity replaces only the entity with the matching id"):
+    val e1    = Enemy("e1", x = 1, y = 1, typeId = "goblin", label = "Goblin")
+    val e2    = Enemy("e2", x = 2, y = 2, typeId = "orc", label = "Orc")
+    val room  = testRoom(entities = List(e1, e2))
+    val after = room.updateEntity("e1") { case e: Enemy => e.copy(label = "Changed"); case o => o }
+    assertEquals(after.entityById("e1").map(_.asInstanceOf[Enemy].label), Some("Changed"))
+    assertEquals(after.entityById("e2"), Some(e2))
+
+  test("updateEntity is a no-op when the id is not found"):
+    val e1    = Enemy("e1", x = 1, y = 1, typeId = "goblin", label = "Goblin")
+    val room  = testRoom(entities = List(e1))
+    val after = room.updateEntity("nope") { case e: Enemy => e.copy(label = "Changed"); case o => o }
+    assertEquals(after.entities, List(e1))
+
+  // -- withEntities ------------------------------------------------------------
+
+  test("withEntities appends new entities to the room"):
+    val e1    = Enemy("e1", x = 1, y = 1, typeId = "goblin", label = "Goblin")
+    val e2    = Enemy("e2", x = 2, y = 2, typeId = "orc", label = "Orc")
+    val room  = testRoom(entities = List(e1))
+    val after = room.withEntities(List(e2))
+    assertEquals(after.entities, List(e1, e2))
+
+  // -- nearbyFreeTiles ---------------------------------------------------------
+
+  test("nearbyFreeTiles returns the origin tile itself if it is free"):
+    assertEquals(testRoom().nearbyFreeTiles(1, 1, count = 1), List((1, 1)))
+
+  test("nearbyFreeTiles skips excluded tiles and searches outward"):
+    val found = testRoom().nearbyFreeTiles(1, 1, count = 1, exclude = Set((1, 1)))
+    assertEquals(found, List((1, 2)))
+
+  test("nearbyFreeTiles skips tiles occupied by another entity"):
+    val chest = Chest("c1", x = 1, y = 1)
+    val found = testRoom(entities = List(chest)).nearbyFreeTiles(1, 1, count = 1)
+    assertEquals(found, List((1, 2)))
+
+  test("nearbyFreeTiles never returns wall tiles"):
+    val room  = testRoom()
+    val found = room.nearbyFreeTiles(0, 0, count = 4)
+    assert(found.forall { case (x, y) => room.isWalkable(x, y) }, s"expected only walkable tiles: $found")
+
+  test("nearbyFreeTiles returns fewer tiles than requested when the room runs out of space"):
+    // testRoom only has 4 floor tiles total: (1,1), (1,2), (2,1), (2,2)
+    val found = testRoom().nearbyFreeTiles(1, 1, count = 10)
+    assertEquals(found.size, 4)

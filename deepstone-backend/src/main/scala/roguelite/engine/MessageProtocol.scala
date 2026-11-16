@@ -3,7 +3,9 @@ package roguelite.engine
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
 import io.circe.{ Decoder, Encoder }
-import roguelite.game.{ EquipSlot, Rarity, UpgradeCategory }
+import roguelite.game.combat.Combat
+import roguelite.game.progression.UpgradeCategory
+import roguelite.game.items.{ EquipSlot, Item, Rarity }
 
 // -------------------
 // Shared enumerations
@@ -59,11 +61,11 @@ enum Difficulty:
     case Difficulty.Hard     => 1.25
     case Difficulty.Hardcore => 1.5
 
-  /** Number of sequential sections in a run, passed to [[roguelite.game.DungeonBuilder.build]].
+  /** Number of sequential sections in a run, passed to [[roguelite.game.dungeon.DungeonBuilder.build]].
     * Every section follows the same fixed room template and ends in its own
-    * [[roguelite.game.RoomType.Boss]] room; every section but the last is followed by a guaranteed
-    * [[roguelite.game.RoomType.Rest]] room before the next one starts (the last section ends at the
-    * dungeon's one [[roguelite.game.RoomType.Sanctuary]] instead). Same per-difficulty scaling
+    * [[roguelite.game.dungeon.RoomType.Boss]] room; every section but the last is followed by a guaranteed
+    * [[roguelite.game.dungeon.RoomType.Rest]] room before the next one starts (the last section ends at the
+    * dungeon's one [[roguelite.game.dungeon.RoomType.Sanctuary]] instead). Same per-difficulty scaling
     * convention as [[eliteChance]] - harder means more content, not just tougher content.
     */
   def biomeCount: Int = this match
@@ -72,7 +74,7 @@ enum Difficulty:
     case Difficulty.Hard | Difficulty.Hardcore => 3
 
   /** Per-enemy probability of rolling Elite at dungeon build time (see
-    * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties.
+    * [[roguelite.game.dungeon.DungeonBuilder]]). Higher on harder difficulties.
     */
   def eliteChance: Double = this match
     case Difficulty.Easy   => 0.08
@@ -80,7 +82,7 @@ enum Difficulty:
     case Difficulty.Hard | Difficulty.Hardcore => 0.12
 
   /** Per-chest probability of being trapped, rolled at dungeon build time (see
-    * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties. A room never holds more than
+    * [[roguelite.game.dungeon.DungeonBuilder]]). Higher on harder difficulties. A room never holds more than
     * one rolled trap, so the share of rooms that actually end up trapped is lower than this suggests
     * once a room has several chests.
     */
@@ -90,7 +92,7 @@ enum Difficulty:
     case Difficulty.Hard | Difficulty.Hardcore => 0.16
 
   /** Per-door probability of being trapped, rolled at dungeon build time (see
-    * [[roguelite.game.DungeonBuilder]]). Lower than [[trappedChestChance]]: a trapped door forces a
+    * [[roguelite.game.dungeon.DungeonBuilder]]). Lower than [[trappedChestChance]]: a trapped door forces a
     * fight to get through, where a chest can simply be left closed.
     */
   def trappedDoorChance: Double = this match
@@ -178,7 +180,7 @@ case class EndingChoice(answer: EndingAnswer, npc: Option[String] = None) extend
 /** Lightweight view of the player sent to the client every update.
   *
   * @param affinityTags
-  *   The class's affinity tags (see [[roguelite.game.ClassDef]]). Purely informational - every
+  *   The class's affinity tags (see [[roguelite.game.progression.ClassDef]]). Purely informational - every
   *   [[ItemView.statLine]] already reflects whether the item's own `typeTag` benefits from the
   *   affinity doubling CombatResolver applies (resolved server-side, see
   *   [[roguelite.engine.GameState]]'s `itemToView`), so the client never needs to compare this
@@ -201,12 +203,12 @@ case class PlayerView(
   *
   * @param spriteId
   *   Atlas sprite key to draw (see frontend/public/atlas/entities.json). Only set for enemies -
-  *   resolved from enemies.json's spriteId at the [[roguelite.game.Room.toView]] boundary, not
+  *   resolved from enemies.json's spriteId at the [[roguelite.game.dungeon.Room.toView]] boundary, not
   *   carried on the entity itself, so it's never a second place to remember when adding an enemy.
   *   Absent for every other kind, which each render with one fixed sprite per kind client-side.
   * @param isElite
-  *   Only set for enemies, mirrors [[roguelite.game.Enemy.isElite]] directly (rolled once at
-  *   dungeon build time, see [[roguelite.game.DungeonBuilder]]). Unlike `Chest.trapped`/
+  *   Only set for enemies, mirrors [[roguelite.game.dungeon.Enemy.isElite]] directly (rolled once at
+  *   dungeon build time, see [[roguelite.game.dungeon.DungeonBuilder]]). Unlike `Chest.trapped`/
   *   `Door.doorKind`, which deliberately stay hidden from the client, Elite status must be visible
   *   before the player engages - the whole point is anticipation, not a combat-time surprise.
   */
@@ -225,7 +227,7 @@ case class EntityView(
       */
     direction: Option[String] = None,
     /** Only set for "chest" - "closed" | "open_full" | "open_empty" | "sprung" (see
-      * [[roguelite.game.ChestState]]). The client picks the chest's sprite from it and knows whether
+      * [[roguelite.game.dungeon.ChestState]]). The client picks the chest's sprite from it and knows whether
       * pressing E can still do anything. A trapped chest reports "closed" until its trap goes off,
       * so this never gives the trap away.
       */
@@ -248,20 +250,20 @@ case class GodLineView(moment: String, phase: String)
   *
   * @param theme
   *   Which client-side sprite set to render this room with (e.g. "dungeon", "darkDungeon") - see
-  *   [[roguelite.game.Room]]'s own doc.
+  *   [[roguelite.game.dungeon.Room]]'s own doc.
   * @param floorSprite
   *   Same shape as `tiles`, one optional explicit floor sprite key per cell - meaningful
   *   regardless of whether that cell is "floor" or "wall" (a wall cell still has a floor drawn
   *   underneath it client-side). `None` means "use the room's `theme` default floor". See
-  *   [[roguelite.game.Room]]'s own doc for the full authoring picture.
+  *   [[roguelite.game.dungeon.Room]]'s own doc for the full authoring picture.
   * @param wallSprite
   *   Same shape as `tiles`, one optional explicit wall sprite key per cell - only meaningful where
   *   `tiles` is "wall". `None` means "use the room's `theme` default wall". See
-  *   [[roguelite.game.Room]]'s own doc.
+  *   [[roguelite.game.dungeon.Room]]'s own doc.
   * @param decoration
   *   Same shape as `tiles` again, one optional sprite drawn *on top of* whatever `floorSprite`/
   *   `wallSprite`/the theme default already resolved for that cell - never a replacement. See
-  *   [[roguelite.game.Room]]'s own doc.
+  *   [[roguelite.game.dungeon.Room]]'s own doc.
   */
 case class RoomView(
     roomId: String,
@@ -293,17 +295,17 @@ case class CombatView(
     isPlayerTurn: Boolean,
     spriteId: Option[String] = None,
     isBoss: Boolean = false,
-    /** True when the current room is a [[roguelite.game.RoomType.MiniBoss]] checkpoint. Resolved
+    /** True when the current room is a [[roguelite.game.dungeon.RoomType.MiniBoss]] checkpoint. Resolved
       * the same way as `isBoss` (from the room's type, not a per-enemy flag) - deliberately
       * cosmetic only: unlike `isBoss`, this never drives run-ending logic, see
-      * [[roguelite.game.Dungeon.isAtBoss]]. */
+      * [[roguelite.game.dungeon.Dungeon.isAtBoss]]. */
     isMiniBoss: Boolean = false,
-    /** Mirrors [[roguelite.game.EnemyInstance.isElite]], resolved at
+    /** Mirrors [[roguelite.game.combat.EnemyInstance.isElite]], resolved at
       * [[CombatState.toStateUpdate]] the same way `isBoss` is - always present once combat starts,
       * unlike the exploration-side [[EntityView.isElite]] which is optional. */
     isElite: Boolean = false,
     /** The player's class ability, resolved through any active set/perk cost discount (see
-      * [[roguelite.game.AbilityDef.effectiveCost]]) - the real cost to check affordability
+      * [[roguelite.game.combat.AbilityDef.effectiveCost]]) - the real cost to check affordability
       * against, not the static per-class catalog value in `StateUpdate.abilities`. `None` only if
       * the player's class has no loaded ability def. */
     abilityCost: Option[Int] = None
@@ -386,7 +388,7 @@ case class ItemView(
       * value when applicable, this isn't needed to compute that.
       */
     typeTag: Option[String] = None,
-    /** Charge count for a potion-belt stack (see [[roguelite.game.PotionStack]]). `None` for
+    /** Charge count for a potion-belt stack (see [[roguelite.game.items.PotionStack]]). `None` for
       * every other item kind, which never stacks - the client only shows a count badge when this
       * is present.
       */
@@ -394,14 +396,14 @@ case class ItemView(
 )
 
 /** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses
-  * [[roguelite.game.KeyKind.Specific]]/[[roguelite.game.KeyKind.Typed]]'s payload away (e.g.
-  * `"specific"`, not the door id it targets) since only [[roguelite.game.KeyKind.Generic]] has
+  * [[roguelite.game.items.KeyKind.Specific]]/[[roguelite.game.items.KeyKind.Typed]]'s payload away (e.g.
+  * `"specific"`, not the door id it targets) since only [[roguelite.game.items.KeyKind.Generic]] has
   * real content today and the client only ever needs a coarse count badge.
   */
 case class KeyCountView(keyKind: String, count: Int)
 
 /** The player's full equipment loadout: weapon/armor/accessory slots (auto-equip on pickup, no
-  * generic bag - see [[roguelite.game.EquipmentResolver]]), the potion belt, and key counts.
+  * generic bag - see [[roguelite.game.items.EquipmentResolver]]), the potion belt, and key counts.
   * Replaces the old flat `inventory: List[ItemView]` field.
   *
   * @param accessories always length [[roguelite.engine.Player.AccessorySlotCount]] (2).
@@ -473,7 +475,7 @@ case class RelicView(devoted: Int, readable: Boolean)
   *   is when the player must answer with `accept` in [[SceneDone]]. `None` when it offers none.
   * @param revealed
   *   Whether the player knows the real name of the speaker, which some NPC give away in a scene of
-  *   theirs (see [[roguelite.game.NpcDef.revealedBy]]). Until then the client shows the title,
+  *   theirs (see [[roguelite.game.story.NpcDef.revealedBy]]). Until then the client shows the title,
   *   `story.<npc>.name`, afterwards `story.<npc>.name_revealed` when it exists. True for every NPC
   *   that gives its name from the start, and for a Devoted.
   */
@@ -587,7 +589,7 @@ case class StateUpdate(
     combat: Option[CombatView] = None,
     hub: Option[HubView] = None,
     /** Defaults to fully empty so tests/fixtures that don't care about equipment can keep using
-      * the shorter constructor, same convention as [[roguelite.game.EnemyStats]]-carrying fields
+      * the shorter constructor, same convention as [[roguelite.game.combat.EnemyStats]]-carrying fields
       * elsewhere in this codebase.
       */
     equipment: EquipmentView = EquipmentView(

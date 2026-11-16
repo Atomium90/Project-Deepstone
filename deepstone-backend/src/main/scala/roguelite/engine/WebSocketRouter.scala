@@ -12,13 +12,14 @@ import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.*
 import roguelite.db.Database
-import roguelite.game.Item
-import roguelite.game.UpgradeDef
-import roguelite.game.AbilityDef
-import roguelite.game.AchievementDef
-import roguelite.game.SetDef
-import roguelite.game.PerkDef
-import roguelite.game.{ ChapterDef, DifficultyTierDef, NpcDef, SceneDef }
+import roguelite.game.items.Item
+import roguelite.game.progression.UpgradeDef
+import roguelite.game.combat.AbilityDef
+import roguelite.game.progression.AchievementDef
+import roguelite.game.items.SetDef
+import roguelite.game.progression.PerkDef
+import roguelite.game.progression.DifficultyTierDef
+import roguelite.game.story.{ ChapterDef, NpcDef, SceneDef }
 
 /** Builds the HTTP routes for the game server.
   *

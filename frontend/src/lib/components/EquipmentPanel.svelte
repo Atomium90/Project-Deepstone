@@ -2,6 +2,7 @@
     import { gameState, equippedSetCounts } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import EquipSlotBox from "./EquipSlotBox.svelte";
+    import StatsPanel from "./StatsPanel.svelte";
 
     $: equipment = $gameState?.equipment;
     $: keyCount = equipment?.keys.reduce((sum, k) => sum + k.count, 0) ?? 0;
@@ -15,6 +16,7 @@
         .filter(({ count }) => count >= 2);
 </script>
 
+<div class="equipment-layout">
 <div class="equipment-panel">
     <p class="section-label">Equipment</p>
 
@@ -66,12 +68,26 @@
         <p class="muted">No equipment loaded.</p>
     {/if}
 </div>
+<StatsPanel />
+</div>
 
 <style>
+    .equipment-layout {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 2.5rem 3.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .equipment-layout > :global(.stats-panel) {
+        /* lines the first row of stats up with the first row of slots */
+        padding-top: 0;
+    }
+
     .equipment-panel {
         display: flex;
         flex-direction: column;
-        margin-top: 1.5rem;
     }
 
     .section-label {

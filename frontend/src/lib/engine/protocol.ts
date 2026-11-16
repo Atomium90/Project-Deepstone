@@ -127,6 +127,34 @@ export interface PlayerView {
    * item's own typeTag benefits from the affinity doubling CombatResolver applies - this is
    * carried mainly so the UI can gray out an off-affinity item's stat line as a visual cue. */
   affinityTags: string[];
+  /** The numbers the combat math really uses, already resolved on the server (affinity, set bonuses,
+   * run perk). Only sent while exploring or fighting: the Hub shows none, since some of them (a
+   * hub upgrade's flat bonus) only apply once a run begins. */
+  stats?: StatsView | null;
+}
+
+/** Where a part of a stat comes from, for the breakdown shown on hover. */
+export type StatTermSource = "level" | "maxHp" | "bonus" | "weapon" | "armor" | "accessories" | "set" | "perk";
+
+export interface StatTermView {
+  source: StatTermSource;
+  value: number;
+  /** True when the item bonus in `value` is doubled by the class's affinity. */
+  affinity?: boolean;
+}
+
+export interface StatsView {
+  attack: number;
+  defense: number;
+  /** In percent. Can exceed 100 (a crit is then guaranteed), the client shows at most 100. */
+  critChance: number;
+  critMultiplier: number;
+  /** The class ability's cost once set and perk discounts are applied, null when the class has no
+   * ability def. */
+  abilityCost?: number | null;
+  attackTerms: StatTermView[];
+  defenseTerms: StatTermView[];
+  critTerms: StatTermView[];
 }
 
 export interface EntityView {

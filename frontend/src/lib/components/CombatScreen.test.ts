@@ -165,3 +165,37 @@ describe("CombatScreen keyboard shortcuts", () => {
         expect(hints).toEqual(["1", "2"]);
     });
 });
+
+describe("CombatScreen stats line", () => {
+    afterEach(cleanup);
+
+    const stats = {
+        attack: 43,
+        defense: 18,
+        critChance: 5,
+        critMultiplier: 1.5,
+        abilityCost: 40,
+        attackTerms: [],
+        defenseTerms: [],
+        critTerms: [],
+    };
+
+    test("shows attack, defense and crit under the player's bars", () => {
+        gameState.set(combatState({}, { stats }));
+        const { container } = render(CombatScreen);
+        const line = container.querySelector(".combat-stats");
+        expect(line?.textContent?.replace(/\s+/g, " ").trim()).toBe("ATK 43 DEF 18 CRIT 5%");
+    });
+
+    test("shows a crit chance above 100 as 100", () => {
+        gameState.set(combatState({}, { stats: { ...stats, critChance: 140 } }));
+        const { container } = render(CombatScreen);
+        expect(container.querySelector(".combat-stats")?.textContent).toContain("100%");
+    });
+
+    test("shows no line when the server sent no stats", () => {
+        gameState.set(combatState());
+        const { container } = render(CombatScreen);
+        expect(container.querySelector(".combat-stats")).toBeNull();
+    });
+});

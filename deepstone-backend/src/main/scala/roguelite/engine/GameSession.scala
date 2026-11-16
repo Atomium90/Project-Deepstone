@@ -42,13 +42,11 @@ class GameSession private (
     itemDefs: Map[String, Item],
     upgradeDefs: Map[String, UpgradeDef],
     achievementDefs: Map[String, AchievementDef],
-    abilityCatalog: List[AbilityView],
+    projections: StateUpdateProjections,
     debugMode: Boolean,
     setDefs: Map[String, SetDef] = Map.empty,
-    setCatalog: List[SetView] = Nil,
     perkDefs: Map[String, PerkDef] = Map.empty,
     rng: Random = Random(),
-    abilityDefs: Map[ClassId, AbilityDef] = Map.empty,
     difficultyDefs: Map[Difficulty, DifficultyTierDef] = Map.empty,
     sceneDefs: Map[String, SceneDef] = Map.empty,
     chapterDefs: Map[Int, ChapterDef] = Map.empty,
@@ -94,10 +92,7 @@ class GameSession private (
       progress <- achievementRef.get
       story    <- storyRef.get
       withDebug <- withDebugRooms(update, state)
-    yield withStory(
-      withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress, story), state),
-      story
-    )
+    yield projections.enrich(withDebug, state, progress, story)
 
   /** Return the current state snapshot without changing anything. Useful for sending the initial
     * state right after connection.
@@ -108,100 +103,7 @@ class GameSession private (
       progress  <- achievementRef.get
       story     <- storyRef.get
       withDebug <- withDebugRooms(state.toStateUpdate(), state)
-    yield withStory(
-      withAbilityCost(withHubProgress(withAchievements(withCatalog(withDebug), progress), progress, story), state),
-      story
-    )
-
-  /** Add what only the story knows: the card still to be shown, if any (see `StateUpdate.pendingCard`),
-    * which is read from the story and not from the game state so it is the same in every phase and
-    * survives a reconnection, whether the inscription of a relic on offer can be read yet, and what
-    * the NPC catalog says of the NPCs on screen: their sprite, and whether the one speaking has given
-    * its real name away.
-    */
-  private def withStory(update: StateUpdate, story: StoryProgress): StateUpdate =
-    val readable = story.chapter >= StoryRules.RelicReadableFromChapter
-    def withSprite(entity: EntityView): EntityView =
-      if entity.kind == "npc" then entity.copy(spriteId = npcDefs.get(entity.id).map(_.spriteId)) else entity
-    def withName(scene: PendingSceneView): PendingSceneView =
-      scene.copy(revealed = npcDefs.get(scene.npc).flatMap(_.revealedBy).forall(story.scenesSeen.contains))
-    update.copy(
-      room = update.room.map(room => room.copy(entities = room.entities.map(withSprite))),
-      pendingScene = update.pendingScene.map(withName),
-      pendingEndingChoice =
-        update.pendingEndingChoice.map(_.copy(candidates = EndingRules.candidates(npcDefs, sceneDefs, story))),
-      pendingCard = story.pendingCard,
-      pendingRewardChoice =
-        update.pendingRewardChoice.map(choice => choice.copy(relic = choice.relic.map(_.copy(readable = readable))))
-    )
-
-  /** Attach how many runs the player has finished, and which difficulty tiers are unlocked, to the
-    * hub view (see [[HubView]]), the same "enrich the update with live meta outside the pure state"
-    * step as [[withAchievements]]. A no-op outside the hub.
-    */
-  private def withHubProgress(update: StateUpdate, progress: AchievementProgress, story: StoryProgress): StateUpdate =
-    update.copy(hub =
-      update.hub.map(
-        _.copy(runsCompleted = progress.stats.runsCompleted,
-               difficulties = difficultyViews(progress.stats, story),
-               shopClosed = story.shopClosed
-        )
-      )
-    )
-
-  /** The tiers the hub shows. A tier only the story opens is left out until the story has opened it. */
-  private def difficultyViews(stats: AchievementStats, story: StoryProgress): List[DifficultyView] =
-    Difficulty.values.toList.filter(DifficultyUnlocks.isShown(difficultyDefs, _, story.openedTiers)).map:
-      difficulty =>
-        DifficultyView(
-          id = difficulty,
-          unlocked = DifficultyUnlocks.isUnlocked(difficultyDefs, difficulty, stats, story.openedTiers),
-          requirement = DifficultyUnlocks.progress(difficultyDefs, difficulty, stats).map:
-            p =>
-              TierRequirementView(winsAt = p.requirement.winsAt,
-                                  wins = p.requirement.wins,
-                                  winsDone = p.winsDone,
-                                  shardsSpent = p.requirement.shardsSpent,
-                                  shardsSpentDone = p.shardsSpentDone
-              )
-        )
-
-  /** Resolve `CombatView.abilityCost` against the player's live set/perk discounts (see
-    * [[roguelite.game.combat.AbilityDef.effectiveCost]]) - a no-op outside combat, or if the player's
-    * class has no loaded ability def.
-    */
-  private def withAbilityCost(update: StateUpdate, state: GameState): StateUpdate =
-    state match
-      case combat: CombatState =>
-        abilityDefs.get(combat.player.classId) match
-          case None => update
-          case Some(ability) =>
-            val cost = AbilityDef.effectiveCost(combat.player, ability, setDefs, perkDefs)
-            update.copy(combat = update.combat.map(_.copy(abilityCost = Some(cost))))
-      case _ => update
-
-  /** Attach the static per-class ability catalog and the equipment set catalog to every outgoing
-    * update, so the client never has to hardcode ability names/costs/resource labels or set
-    * names/bonus text. See [[AbilityView]] and [[SetView]].
-    */
-  private def withCatalog(update: StateUpdate): StateUpdate =
-    update.copy(abilities = abilityCatalog, sets = setCatalog)
-
-  /** Attach the full achievement catalog (locked and unlocked) to every outgoing update, so the
-    * client never has to hardcode achievement labels or descriptions. See [[AchievementView]].
-    */
-  private def withAchievements(update: StateUpdate, progress: AchievementProgress): StateUpdate =
-    update.copy(achievements = achievementCatalog(progress))
-
-  /** Every achievement, except a hidden one that has not been unlocked yet. */
-  private def achievementCatalog(progress: AchievementProgress): List[AchievementView] =
-    achievementDefs.values.toList
-      .filter(d => !d.hidden || progress.isUnlocked(d.id))
-      .sortBy(_.displayOrder)
-      .map(d => toAchievementView(d, progress.isUnlocked(d.id)))
-
-  private def toAchievementView(d: AchievementDef, unlocked: Boolean): AchievementView =
-    AchievementView(id = d.id, label = d.label, description = d.description, unlocked = unlocked)
+    yield projections.enrich(withDebug, state, progress, story)
 
   /** Dev tooling only, and only when the backend was started with `--debug`: attaches the list of
     * hand-converted Tiled rooms currently sitting in the backend's `debug-rooms/` folder, so the hub
@@ -258,8 +160,8 @@ class GameSession private (
     yield finalNext
       .toStateUpdate(transitionResult.log ++ extraLog)
       .copy(newlyUnlocked = newlyUnlocked,
-            damageEvents = toDamageEventViews(transitionResult.events),
-            soundEvents = toSoundEventTags(transitionResult.events),
+            damageEvents = StateUpdateProjections.toDamageEventViews(transitionResult.events),
+            soundEvents = StateUpdateProjections.toSoundEventTags(transitionResult.events),
             godLine = line.map((moment, phase) => GodLineView(moment.id, phase.id)),
             fightLines = fightLines
       )
@@ -286,28 +188,6 @@ class GameSession private (
             )
             Some((GodVoice.deathMoment(context, phase), phase))
       case _ => None
-
-  /** Pure projection of the damage/heal facts in a transition's events - no DB/IO needed, unlike
-    * achievements, since nothing here is persisted.
-    */
-  private def toDamageEventViews(events: List[GameEvent]): List[DamageEventView] =
-    events.collect {
-      case GameEvent.DamageDealt(targetIsPlayer, amount, crit) =>
-        DamageEventView(targetIsPlayer = targetIsPlayer, amount = amount, kind = "damage", crit = crit)
-      case GameEvent.Healed(amount) =>
-        DamageEventView(targetIsPlayer = true, amount = amount, kind = "heal")
-    }
-
-  /** Pure projection of the facts worth a client-side sound cue - same rationale as
-    * [[toDamageEventViews]]. Plain string tags: the client owns the tag-to-file mapping.
-    */
-  private def toSoundEventTags(events: List[GameEvent]): List[String] =
-    events.collect {
-      case GameEvent.ItemPickedUp(_, _, _, _, _) => "pickup"
-      case GameEvent.LeveledUp(_)        => "level_up"
-      case GameEvent.DoorUnlockedWithKey => "door_unlock"
-      case GameEvent.DoorOpened          => "door_open"
-    }
 
   /** Side-effects and state enrichment triggered by specific state transitions. Returns the state
     * to carry on with, plus any log lines the enrichment itself produced.
@@ -575,7 +455,7 @@ class GameSession private (
 
   /** Save what changed between two states of the story, then keep the new one. */
   private def updateStory(prev: StoryProgress, next: StoryProgress): IO[Unit] =
-    GameSession.persistStory(database, prev, next) *> storyRef.set(next)
+    StoryPersistence.save(database, prev, next) *> storyRef.set(next)
 
   /** Add a [[ShardTopUp.Grant]] to the balance, in memory and in the database. */
   private def applyShardTopUp(meta: MetaProgression, grant: ShardTopUp.Grant): IO[MetaProgression] =
@@ -596,7 +476,7 @@ class GameSession private (
         _ <-
           if newlyUnlockedDefs.isEmpty && updatedStats == progress.stats then IO.unit
           else persistAchievementProgress(progress, updatedStats, newlyUnlockedDefs)
-      yield newlyUnlockedDefs.map(d => toAchievementView(d, unlocked = true))
+      yield newlyUnlockedDefs.map(d => projections.toAchievementView(d, unlocked = true))
 
   /** Same as [[processAchievementEvents]], for the two conditions only reachable from a successful
     * upgrade purchase ([[roguelite.game.progression.AchievementCondition.TotalShardsSpent]],
@@ -616,7 +496,7 @@ class GameSession private (
         upgradeDefs.size
       )
       _ <- persistAchievementProgress(progress, updatedStats, newlyUnlockedDefs)
-    yield newlyUnlockedDefs.map(d => toAchievementView(d, unlocked = true))
+    yield newlyUnlockedDefs.map(d => projections.toAchievementView(d, unlocked = true))
 
   private def persistAchievementProgress(prevProgress: AchievementProgress,
                                          updatedStats: AchievementStats,
@@ -833,7 +713,7 @@ object GameSession:
       savedStory           <- database.loadStoryProgress()
       // A vow still running was taken in a run that this session cannot continue.
       story = VowRules.onSessionStart(savedStory)
-      _ <- persistStory(database, savedStory, story)
+      _ <- StoryPersistence.save(database, savedStory, story)
       initPlayer = Player(classId = ClassId.Warrior,
                           hp = 100,
                           maxHp = 100,
@@ -848,8 +728,17 @@ object GameSession:
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
       storyRef       <- Ref.of[IO, StoryProgress](story)
-      abilityCatalog = abilityDefs.values.map(toAbilityView).toList
-      setCatalog     = setDefs.values.map(toSetView).toList
+      projections = StateUpdateProjections(
+        abilityCatalog = abilityDefs.values.map(StateUpdateProjections.toAbilityView).toList,
+        setCatalog = setDefs.values.map(StateUpdateProjections.toSetView).toList,
+        achievementDefs = achievementDefs,
+        abilityDefs = abilityDefs,
+        setDefs = setDefs,
+        perkDefs = perkDefs,
+        difficultyDefs = difficultyDefs,
+        sceneDefs = sceneDefs,
+        npcDefs = npcDefs
+      )
     yield new GameSession(stateRef,
                           metaRef,
                           achievementRef,
@@ -859,39 +748,16 @@ object GameSession:
                           itemDefs,
                           upgradeDefs,
                           achievementDefs,
-                          abilityCatalog,
+                          projections,
                           debugMode,
                           setDefs,
-                          setCatalog,
                           perkDefs,
                           rng,
-                          abilityDefs,
                           difficultyDefs,
                           sceneDefs,
                           chapterDefs,
                           npcDefs
     )
-
-  /** Save what changed between two states of the story: the chapter and the last outcome, the scenes
-    * newly played, every vow that is not as it was, the streak of deaths, the relics newly read, whether
-    * Hardcore has just been opened and the cards newly earned or seen.
-    */
-  private def persistStory(database: Database, prev: StoryProgress, next: StoryProgress): IO[Unit] =
-    for
-      _ <- IO.whenA(next.chapter != prev.chapter || next.lastRun != prev.lastRun)(
-        database.saveStoryState(next.chapter, next.lastRun)
-      )
-      _ <- (next.scenesSeen -- prev.scenesSeen).toList.traverse_(database.recordSceneSeen)
-      _ <- next.vows.toList
-        .filterNot((npc, record) => prev.vows.get(npc).contains(record))
-        .traverse_((npc, record) => database.saveVow(npc, record))
-      _ <- IO.whenA(next.deathStreak != prev.deathStreak)(database.saveDeathStreak(next.deathStreak))
-      _ <- IO.whenA(next.hardcoreUnlocked && !prev.hardcoreUnlocked)(database.saveHardcoreUnlocked())
-      _ <- next.ending.filter(prev.ending != Some(_)).traverse_(database.saveEnding)
-      _ <- (next.relicsRead -- prev.relicsRead).toList.sorted.traverse_(database.recordRelicRead)
-      _ <- next.cards.filterNot(card => prev.cards.exists(_.id == card.id)).traverse_(card => database.recordCardEarned(card.id))
-      _ <- next.cards.filter(card => card.seen && !prev.cards.contains(card)).traverse_(card => database.markCardSeen(card.id))
-    yield ()
 
   /** Number of perks offered per hub visit, out of the full catalog. */
   private val PerkOptionsCount = 3
@@ -952,21 +818,3 @@ object GameSession:
           .sortBy(_.toString)
       finally walk.close()
     else Nil
-
-  private def toAbilityView(a: AbilityDef): AbilityView =
-    AbilityView(
-      classId = a.classId,
-      id = a.id,
-      name = a.name,
-      cost = a.cost,
-      resourceName = a.resourceName,
-      description = a.description
-    )
-
-  private def toSetView(s: SetDef): SetView =
-    SetView(id = s.id,
-           name = s.name,
-           classId = s.classId,
-           bonus2pcLabel = s.twoPiece.label,
-           bonus4pcLabel = s.fourPiece.label
-    )

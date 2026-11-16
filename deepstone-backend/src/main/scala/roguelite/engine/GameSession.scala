@@ -10,8 +10,9 @@ import doobie.util.update
 import roguelite.game.UpgradeDef
 import roguelite.game.UpgradeEffect
 import roguelite.game.AbilityDef
+import roguelite.game.core.GameEvent
 import roguelite.game.{ EquipmentResolver, PickupOutcome, SetDef }
-import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, GameEvent }
+import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
 import roguelite.game.{ ChapterDef, CombatResolver, DeathContext, Ending, EndingRules, Encounter, Enemy, GodMoment, GodVoice, MinimapLayout, VoicePhase, Npc, NpcDef, PendingScene, RoomType, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VowRules }
 import roguelite.game.PerkDef

@@ -4,6 +4,8 @@ import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 
+import roguelite.game.core.JsonResourceLoader
+
 /** Loads run perk definitions from `data/perks.json` on the classpath.
   *
   * Mirrors [[UpgradeLoader]]: resource reading and error wrapping are handled by

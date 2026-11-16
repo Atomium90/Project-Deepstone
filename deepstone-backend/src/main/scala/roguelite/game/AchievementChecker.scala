@@ -1,5 +1,7 @@
 package roguelite.game
 
+import roguelite.game.core.GameEvent
+
 /** Pure resolver that checks which achievements just became newly satisfied, and updates the
   * lifetime counters ([[AchievementStats]]) that back the count-based conditions.
   *

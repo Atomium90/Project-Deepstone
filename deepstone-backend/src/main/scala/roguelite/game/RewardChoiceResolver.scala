@@ -1,6 +1,7 @@
 package roguelite.game
 
 import roguelite.engine.{ ExplorationState, GameState }
+import roguelite.game.core.GameEvent
 
 /** Resolves a follow-up `RewardChoice` action against a [[roguelite.engine.GameState.ExplorationState]]'s
   * `pendingRewardChoice` (see [[PendingRewardChoice]]), mirroring

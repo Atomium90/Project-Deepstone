@@ -4,6 +4,7 @@ import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 import roguelite.engine.Direction
+import roguelite.game.core.JsonResourceLoader
 
 /** Loads and parses room definitions from the JSON data file at startup.
   *

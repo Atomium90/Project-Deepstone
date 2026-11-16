@@ -4,6 +4,7 @@ import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 import roguelite.engine.Difficulty
+import roguelite.game.core.JsonResourceLoader
 
 /** Loads the chapters from `data/chapters.json` on the classpath.
   *

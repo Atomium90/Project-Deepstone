@@ -4,6 +4,8 @@ import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 
+import roguelite.game.core.JsonResourceLoader
+
 /** Loads item definitions from `data/items.json` on the classpath.
  *
  * Item data is immutable reference data: read once at startup and held for the lifetime of the

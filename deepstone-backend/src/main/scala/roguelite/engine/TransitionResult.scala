@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.GameEvent
+import roguelite.game.core.GameEvent
 
 /** Result of one pure state transition ([[StateMachine.applyActionPure]] or
   * [[roguelite.game.InteractionResolver.interact]]).

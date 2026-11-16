@@ -10,6 +10,7 @@ import roguelite.engine.{
   GameState,
   Player
 }
+import roguelite.game.core.GameEvent
 
 import scala.util.{ boundary, Random }
 import boundary.break

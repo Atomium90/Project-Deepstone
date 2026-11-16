@@ -4,6 +4,8 @@ import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 
+import roguelite.game.core.JsonResourceLoader
+
 /** Loads enemy definitions from `data/enemies.json` on the classpath.
   *
   * Enemy data is immutable reference data: read once at startup and held for the lifetime of the

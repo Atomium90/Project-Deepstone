@@ -4,6 +4,7 @@ import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
 import roguelite.engine.ClassId
+import roguelite.game.core.JsonResourceLoader
 
 /** Loads class definitions from `data/classes.json` on the classpath.
   *

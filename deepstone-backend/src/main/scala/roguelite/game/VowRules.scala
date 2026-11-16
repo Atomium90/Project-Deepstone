@@ -1,5 +1,7 @@
 package roguelite.game
 
+import roguelite.game.core.GameEvent
+
 /** The life of a vow, as pure transitions of [[StoryProgress]].
   *
   * A vow is offered at the end of a scene. Turned down, it stays `Declined` and can be offered

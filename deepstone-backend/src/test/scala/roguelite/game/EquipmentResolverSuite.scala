@@ -2,6 +2,7 @@ package roguelite.game
 
 import munit.FunSuite
 import roguelite.engine.{ ClassId, ExplorationState, Player, PlayerFixtures }
+import roguelite.game.core.GameEvent
 
 /** Tests for [[EquipmentResolver]]: `resolvePickup` (auto-equip into an empty slot, offer a
   * choice on a collision) and `resolveChoice` (resolve that choice). Every item kind x

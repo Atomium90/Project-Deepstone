@@ -2,6 +2,7 @@ package roguelite.game
 
 import munit.FunSuite
 import roguelite.engine.*
+import roguelite.game.core.GameEvent
 
 import scala.util.Random
 

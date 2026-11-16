@@ -2,6 +2,8 @@ package roguelite.game
 
 import munit.FunSuite
 
+import roguelite.game.core.GameEvent
+
 class VowRulesSuite extends FunSuite:
 
   private val vows: Map[String, VowType] = Map("npc.1" -> VowType.NoPotion)

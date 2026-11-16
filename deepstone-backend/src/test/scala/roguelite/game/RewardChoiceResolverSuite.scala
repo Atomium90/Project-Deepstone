@@ -2,6 +2,7 @@ package roguelite.game
 
 import munit.FunSuite
 import roguelite.engine.{ ClassId, ExplorationState, Player, PlayerFixtures }
+import roguelite.game.core.GameEvent
 
 /** Tests for [[RewardChoiceResolver]]: resolving a follow-up `RewardChoice` action against a
   * [[PendingRewardChoice]] - walking away, an invalid pick, and each [[PickupOutcome]] the chosen

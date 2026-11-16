@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.core
 
 import cats.effect.IO
 import cats.syntax.either.*

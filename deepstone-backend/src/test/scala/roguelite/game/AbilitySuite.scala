@@ -10,6 +10,7 @@ import roguelite.engine.{
   GameOverState,
   Player
 }
+import roguelite.game.dungeon.{ Dungeon, Enemy, Room, RoomType, Tile }
 
 import scala.util.Random
 

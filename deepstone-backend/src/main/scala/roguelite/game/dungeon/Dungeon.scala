@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.dungeon
 
 /** A dungeon is a set of rooms connected by doors.
   *

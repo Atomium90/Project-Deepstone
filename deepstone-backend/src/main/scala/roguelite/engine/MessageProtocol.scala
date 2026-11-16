@@ -60,11 +60,11 @@ enum Difficulty:
     case Difficulty.Hard     => 1.25
     case Difficulty.Hardcore => 1.5
 
-  /** Number of sequential sections in a run, passed to [[roguelite.game.DungeonBuilder.build]].
+  /** Number of sequential sections in a run, passed to [[roguelite.game.dungeon.DungeonBuilder.build]].
     * Every section follows the same fixed room template and ends in its own
-    * [[roguelite.game.RoomType.Boss]] room; every section but the last is followed by a guaranteed
-    * [[roguelite.game.RoomType.Rest]] room before the next one starts (the last section ends at the
-    * dungeon's one [[roguelite.game.RoomType.Sanctuary]] instead). Same per-difficulty scaling
+    * [[roguelite.game.dungeon.RoomType.Boss]] room; every section but the last is followed by a guaranteed
+    * [[roguelite.game.dungeon.RoomType.Rest]] room before the next one starts (the last section ends at the
+    * dungeon's one [[roguelite.game.dungeon.RoomType.Sanctuary]] instead). Same per-difficulty scaling
     * convention as [[eliteChance]] - harder means more content, not just tougher content.
     */
   def biomeCount: Int = this match
@@ -73,7 +73,7 @@ enum Difficulty:
     case Difficulty.Hard | Difficulty.Hardcore => 3
 
   /** Per-enemy probability of rolling Elite at dungeon build time (see
-    * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties.
+    * [[roguelite.game.dungeon.DungeonBuilder]]). Higher on harder difficulties.
     */
   def eliteChance: Double = this match
     case Difficulty.Easy   => 0.08
@@ -81,7 +81,7 @@ enum Difficulty:
     case Difficulty.Hard | Difficulty.Hardcore => 0.12
 
   /** Per-chest probability of being trapped, rolled at dungeon build time (see
-    * [[roguelite.game.DungeonBuilder]]). Higher on harder difficulties. A room never holds more than
+    * [[roguelite.game.dungeon.DungeonBuilder]]). Higher on harder difficulties. A room never holds more than
     * one rolled trap, so the share of rooms that actually end up trapped is lower than this suggests
     * once a room has several chests.
     */
@@ -91,7 +91,7 @@ enum Difficulty:
     case Difficulty.Hard | Difficulty.Hardcore => 0.16
 
   /** Per-door probability of being trapped, rolled at dungeon build time (see
-    * [[roguelite.game.DungeonBuilder]]). Lower than [[trappedChestChance]]: a trapped door forces a
+    * [[roguelite.game.dungeon.DungeonBuilder]]). Lower than [[trappedChestChance]]: a trapped door forces a
     * fight to get through, where a chest can simply be left closed.
     */
   def trappedDoorChance: Double = this match
@@ -202,12 +202,12 @@ case class PlayerView(
   *
   * @param spriteId
   *   Atlas sprite key to draw (see frontend/public/atlas/entities.json). Only set for enemies -
-  *   resolved from enemies.json's spriteId at the [[roguelite.game.Room.toView]] boundary, not
+  *   resolved from enemies.json's spriteId at the [[roguelite.game.dungeon.Room.toView]] boundary, not
   *   carried on the entity itself, so it's never a second place to remember when adding an enemy.
   *   Absent for every other kind, which each render with one fixed sprite per kind client-side.
   * @param isElite
-  *   Only set for enemies, mirrors [[roguelite.game.Enemy.isElite]] directly (rolled once at
-  *   dungeon build time, see [[roguelite.game.DungeonBuilder]]). Unlike `Chest.trapped`/
+  *   Only set for enemies, mirrors [[roguelite.game.dungeon.Enemy.isElite]] directly (rolled once at
+  *   dungeon build time, see [[roguelite.game.dungeon.DungeonBuilder]]). Unlike `Chest.trapped`/
   *   `Door.doorKind`, which deliberately stay hidden from the client, Elite status must be visible
   *   before the player engages - the whole point is anticipation, not a combat-time surprise.
   */
@@ -226,7 +226,7 @@ case class EntityView(
       */
     direction: Option[String] = None,
     /** Only set for "chest" - "closed" | "open_full" | "open_empty" | "sprung" (see
-      * [[roguelite.game.ChestState]]). The client picks the chest's sprite from it and knows whether
+      * [[roguelite.game.dungeon.ChestState]]). The client picks the chest's sprite from it and knows whether
       * pressing E can still do anything. A trapped chest reports "closed" until its trap goes off,
       * so this never gives the trap away.
       */
@@ -249,20 +249,20 @@ case class GodLineView(moment: String, phase: String)
   *
   * @param theme
   *   Which client-side sprite set to render this room with (e.g. "dungeon", "darkDungeon") - see
-  *   [[roguelite.game.Room]]'s own doc.
+  *   [[roguelite.game.dungeon.Room]]'s own doc.
   * @param floorSprite
   *   Same shape as `tiles`, one optional explicit floor sprite key per cell - meaningful
   *   regardless of whether that cell is "floor" or "wall" (a wall cell still has a floor drawn
   *   underneath it client-side). `None` means "use the room's `theme` default floor". See
-  *   [[roguelite.game.Room]]'s own doc for the full authoring picture.
+  *   [[roguelite.game.dungeon.Room]]'s own doc for the full authoring picture.
   * @param wallSprite
   *   Same shape as `tiles`, one optional explicit wall sprite key per cell - only meaningful where
   *   `tiles` is "wall". `None` means "use the room's `theme` default wall". See
-  *   [[roguelite.game.Room]]'s own doc.
+  *   [[roguelite.game.dungeon.Room]]'s own doc.
   * @param decoration
   *   Same shape as `tiles` again, one optional sprite drawn *on top of* whatever `floorSprite`/
   *   `wallSprite`/the theme default already resolved for that cell - never a replacement. See
-  *   [[roguelite.game.Room]]'s own doc.
+  *   [[roguelite.game.dungeon.Room]]'s own doc.
   */
 case class RoomView(
     roomId: String,
@@ -294,10 +294,10 @@ case class CombatView(
     isPlayerTurn: Boolean,
     spriteId: Option[String] = None,
     isBoss: Boolean = false,
-    /** True when the current room is a [[roguelite.game.RoomType.MiniBoss]] checkpoint. Resolved
+    /** True when the current room is a [[roguelite.game.dungeon.RoomType.MiniBoss]] checkpoint. Resolved
       * the same way as `isBoss` (from the room's type, not a per-enemy flag) - deliberately
       * cosmetic only: unlike `isBoss`, this never drives run-ending logic, see
-      * [[roguelite.game.Dungeon.isAtBoss]]. */
+      * [[roguelite.game.dungeon.Dungeon.isAtBoss]]. */
     isMiniBoss: Boolean = false,
     /** Mirrors [[roguelite.game.EnemyInstance.isElite]], resolved at
       * [[CombatState.toStateUpdate]] the same way `isBoss` is - always present once combat starts,

@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.dungeon
 
 import roguelite.engine.Difficulty
 
@@ -229,7 +229,7 @@ class DungeonBuilder(pool: Map[String, Room], rng: Random = Random(), themeSeque
    *
    * Proof-of-concept for Phase 4's branching dungeons (fork/merge rooms): demonstrates that
    * primitive already generalizes to a non-linear shape without further changes, now that a room
-   * can carry more than one door per role (see [[roguelite.game.DoorLink]]'s `branch`). Not a
+   * can carry more than one door per role (see [[roguelite.game.dungeon.DoorLink]]'s `branch`). Not a
    * general topology generator - real content-driven branching dungeons are later authoring work;
    * this only proves the mechanism against a hardcoded shape in [[DungeonBuilderSuite]].
    *

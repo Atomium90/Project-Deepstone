@@ -46,7 +46,7 @@ enum UpgradeEffect:
     * re-checked against the hub catalog per chest - same "resolve once onto Player" discipline as
     * `bonusAttack`/`potionCapacity`. Deliberately weaker than the Lucky Find perk's one-shot
     * Rare-or-better first chest (this applies to every chest, not just the first), so the upgrade
-    * doesn't make the perk redundant - see [[roguelite.game.InteractionResolver.handleChest]] for
+    * doesn't make the perk redundant - see [[roguelite.game.dungeon.InteractionResolver.handleChest]] for
     * how the two combine when both are active.
     */
   case GuaranteedChestRarity(minRarity: Rarity)

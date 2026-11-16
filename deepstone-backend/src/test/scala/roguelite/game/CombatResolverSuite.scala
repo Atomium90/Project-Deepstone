@@ -3,6 +3,7 @@ package roguelite.game
 import munit.FunSuite
 import roguelite.engine.*
 import roguelite.game.core.GameEvent
+import roguelite.game.dungeon.{ Chest, Dungeon, Enemy, Entity, Room, RoomType, Shrine, Tile }
 import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, EquipSlot, Item, Key, KeyKind, PotionStack, Rarity, Weapon }
 
 import scala.util.Random

@@ -13,9 +13,10 @@ import org.http4s.StaticFile
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 import roguelite.engine.{ RequestGuard, SecurityHeaders, ServerLimits, StateMachine, WebSocketRouter }
+import roguelite.game.dungeon.RoomLoader
 import roguelite.game.items.{ ItemLoader, SetLoader }
 import roguelite.game.story.{ ChapterLoader, NpcLoader, StoryLoader }
-import roguelite.game.{ AbilityLoader, AchievementLoader, ClassLoader, CombatResolver, DifficultyLoader, EnemyLoader, PerkLoader, RoomLoader, UpgradeLoader }
+import roguelite.game.{ AbilityLoader, AchievementLoader, ClassLoader, CombatResolver, DifficultyLoader, EnemyLoader, PerkLoader, UpgradeLoader }
 import roguelite.db.Database
 
 import java.io.IOException

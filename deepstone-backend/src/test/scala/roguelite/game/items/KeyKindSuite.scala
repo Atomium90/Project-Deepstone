@@ -2,7 +2,7 @@ package roguelite.game.items
 
 import munit.FunSuite
 import roguelite.engine.Direction
-import roguelite.game.LockedDoor
+import roguelite.game.dungeon.LockedDoor
 
 class KeyKindSuite extends FunSuite:
 

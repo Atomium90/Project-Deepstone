@@ -3,7 +3,7 @@ package roguelite.game.items
 import munit.FunSuite
 import roguelite.engine.{ ClassId, ExplorationState, Player, PlayerFixtures }
 import roguelite.game.core.GameEvent
-import roguelite.game.{ Dungeon, Room, RoomType, Tile }
+import roguelite.game.dungeon.{ Dungeon, Room, RoomType, Tile }
 
 /** Tests for [[RewardChoiceResolver]]: resolving a follow-up `RewardChoice` action against a
   * [[PendingRewardChoice]] - walking away, an invalid pick, and each [[PickupOutcome]] the chosen

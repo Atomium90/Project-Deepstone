@@ -2,6 +2,7 @@ package roguelite.game
 
 import munit.FunSuite
 import roguelite.engine.{ ClassId, CombatAction, CombatActionType, CombatState, Player }
+import roguelite.game.dungeon.{ Dungeon, Enemy, Room, RoomType, Tile }
 import roguelite.game.items.{ Accessory, Armor, Item, Rarity, Weapon }
 
 import scala.util.Random

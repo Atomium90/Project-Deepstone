@@ -1,4 +1,4 @@
-package roguelite.game
+package roguelite.game.dungeon
 
 import roguelite.engine.Direction
 

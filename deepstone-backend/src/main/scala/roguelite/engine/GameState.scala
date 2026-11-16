@@ -1,8 +1,9 @@
 package roguelite.engine
 
+import roguelite.game.dungeon.{ Dungeon, MinimapBuilder, RoomType }
 import roguelite.game.items.{ Accessory, Armor, Item, KeyKind, PendingEquipChoice, PendingRewardChoice, Weapon }
 import roguelite.game.story.{ Encounter, EndingRules, IdleContext, PendingScene }
-import roguelite.game.{ Combat, Dungeon, EnemyStats, MetaProgression, MinimapBuilder, PerkDef, RoomType, UpgradeDef }
+import roguelite.game.{ Combat, EnemyStats, MetaProgression, PerkDef, UpgradeDef }
 
 /** Convert a game-layer Item to the protocol ItemView. Defined at file level so all GameState
   * subtypes (which live in this file) can use it without repeating the mapping.
@@ -156,7 +157,7 @@ case class HubState(player: Player,
 
 /** @param enemyStats
   *   The loaded enemy catalog (see [[roguelite.game.EnemyLoader]]), forwarded to
-  *   [[roguelite.game.Room.toView]] to resolve each enemy's `spriteId`. Defaults to empty so
+  *   [[roguelite.game.dungeon.Room.toView]] to resolve each enemy's `spriteId`. Defaults to empty so
   *   tests that don't care about sprites can keep using the shorter constructor.
   * @param pendingEquipChoice
   *   A pickup awaiting a keep/replace decision (see [[PendingEquipChoice]]). Durable server
@@ -219,7 +220,7 @@ case class ExplorationState(player: Player,
   * @param enemyEntityId
   *   Id of the Enemy entity in the room, used to remove it after a victorious combat.
   * @param enemyStats
-  *   Same role as on [[ExplorationState]] - forwarded to [[roguelite.game.Room.toView]].
+  *   Same role as on [[ExplorationState]] - forwarded to [[roguelite.game.dungeon.Room.toView]].
   * @param altarShut
   *   Copied from the [[ExplorationState]] the fight started from: whether a kill earns no Shard.
   */

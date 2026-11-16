@@ -1,8 +1,9 @@
 package roguelite.engine
 
 import cats.effect.IO
+import roguelite.game.dungeon.{ Dungeon, DungeonBuilder, InteractionResolver, Room, Sanctuary }
 import roguelite.game.items.{ EquipmentResolver, Item, PickupOutcome, RewardChoiceResolver, SetDef }
-import roguelite.game.{ ClassDef, CombatResolver, DifficultyTierDef, Dungeon, DungeonBuilder, EnemyStats, InteractionResolver, PerkDef, PerkEffect, Room, Sanctuary }
+import roguelite.game.{ ClassDef, CombatResolver, DifficultyTierDef, EnemyStats, PerkDef, PerkEffect }
 
 import scala.util.Random
 import roguelite.game.MetaProgression
@@ -17,7 +18,7 @@ import roguelite.game.UpgradeEffect
   *   - [[LootTable]] for all drop rolls
   *
   * @param roomPool
-  *   All available rooms, keyed by id. A fresh [[roguelite.game.Dungeon]] is assembled from this
+  *   All available rooms, keyed by id. A fresh [[roguelite.game.dungeon.Dungeon]] is assembled from this
   *   pool via [[DungeonBuilder]] on every `StartRun`, so each run gets a different layout.
   * @param enemyStats
   *   Lookup table of enemy stats keyed by typeId.

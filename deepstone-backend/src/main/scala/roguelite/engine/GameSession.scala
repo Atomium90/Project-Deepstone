@@ -5,6 +5,7 @@ import cats.effect.kernel.Ref
 import cats.syntax.foldable.*
 import roguelite.game.MetaProgression
 import roguelite.db.Database
+import roguelite.game.dungeon.{ Enemy, MinimapLayout, Npc, RoomType }
 import roguelite.game.items.Item
 import doobie.util.update
 import roguelite.game.UpgradeDef
@@ -15,9 +16,9 @@ import roguelite.game.items.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.story.{ ChapterDef, DeathContext, Encounter, Ending, EndingRules, GodMoment, GodVoice, NpcDef, PendingScene, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VoicePhase, VowRules }
 import roguelite.game.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats }
 import roguelite.game.{ DifficultyTierDef, DifficultyUnlocks }
-import roguelite.game.{ CombatResolver, Enemy, MinimapLayout, Npc, RoomType }
+import roguelite.game.CombatResolver
 import roguelite.game.PerkDef
-import roguelite.game.RoomLoader
+import roguelite.game.dungeon.RoomLoader
 import roguelite.game.ShardTopUp
 
 import java.nio.file.{ Files, NoSuchFileException, Path }

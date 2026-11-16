@@ -4,6 +4,7 @@ import cats.effect.IO
 import munit.CatsEffectSuite
 import roguelite.db.Database
 import roguelite.game.*
+import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Enemy, Entity, Npc, Room, RoomType, Sanctuary, Tile }
 import roguelite.game.items.{ Consumable, ConsumableEffect, Item, Rarity, SetBonus, SetBonusEffect, SetDef }
 import roguelite.game.story.{ CardRecord, ChapterDef, Ending, NpcDef, RunOutcome, SceneDef, VowRecord, VowState, VowType }
 

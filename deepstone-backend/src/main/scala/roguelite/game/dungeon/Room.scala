@@ -1,6 +1,7 @@
-package roguelite.game
+package roguelite.game.dungeon
 
 import roguelite.engine.RoomView
+import roguelite.game.{ Combat, EnemyStats }
 
 // Tile
 

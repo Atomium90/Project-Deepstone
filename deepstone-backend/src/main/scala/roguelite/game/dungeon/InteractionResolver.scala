@@ -1,8 +1,9 @@
-package roguelite.game
+package roguelite.game.dungeon
 
 import roguelite.engine.{ CombatState, Direction, ExplorationState, GameOverState, GameState, Player, TransitionResult }
 import roguelite.game.core.GameEvent
 import roguelite.game.items.{ EquipmentResolver, Item, KeyKind, LootTable, PendingRewardChoice, PickupOutcome, SetDef }
+import roguelite.game.{ Combat, EnemyInstance, EnemyStats, PerkDef, PerkEffect }
 
 import scala.util.Random
 
@@ -353,7 +354,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
   /** The dungeon's one true ending: transitions straight to `GameOverState(victory = true)` and
     * emits `RunEnded`, exactly what a boss kill used to do directly in `CombatResolver.victory`
-    * before that responsibility moved here - see [[roguelite.game.Sanctuary]]'s own doc for why the
+    * before that responsibility moved here - see [[roguelite.game.dungeon.Sanctuary]]'s own doc for why the
     * win is deliberately gated behind an explicit Interact rather than firing on the killing blow.
     *
     * Once the story has come to the light (see [[ExplorationState.endingOpen]]) the run does not end

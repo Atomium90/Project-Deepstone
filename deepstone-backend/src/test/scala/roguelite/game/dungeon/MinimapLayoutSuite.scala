@@ -1,8 +1,8 @@
-package roguelite.game
+package roguelite.game.dungeon
 
 import munit.FunSuite
 import roguelite.engine.Direction
-import roguelite.game.MinimapLayout.{ Link, Slot }
+import roguelite.game.dungeon.MinimapLayout.{ Link, Slot }
 
 class MinimapLayoutSuite extends FunSuite:
 

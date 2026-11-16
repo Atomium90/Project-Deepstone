@@ -74,9 +74,15 @@
                 >
                     <title>{n.label}</title>
                     <rect width={NODE_SIZE} height={NODE_SIZE} rx="8" />
-                    <svg x={(NODE_SIZE - ICON_SIZE) / 2} y={(NODE_SIZE - ICON_SIZE) / 2} width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
-                        {#each iconFor(n.node.roomType) as d}<path {d} />{/each}
-                    </svg>
+                    {#if n.kind !== "closed"}
+                        <svg x={(NODE_SIZE - ICON_SIZE) / 2} y={(NODE_SIZE - ICON_SIZE) / 2} width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24">
+                            {#each iconFor(n.node.roomType) as d}<path {d} />{/each}
+                        </svg>
+                    {/if}
+                    {#if n.kind === "closed"}
+                        <!-- A cross over the room: the way to it is shut for good. -->
+                        <path class="cross" d="M10 10 L34 34 M34 10 L10 34" />
+                    {/if}
                     {#if n.node.current}
                         <svg class="pin" x={(NODE_SIZE - PIN_SIZE) / 2} y={-PIN_SIZE - 2} width={PIN_SIZE} height={PIN_SIZE} viewBox="0 0 24 24">
                             {#each PIN_ICON as d}<path {d} />{/each}
@@ -106,6 +112,12 @@
                     <svg width="14" height="14" viewBox="0 0 24 24">{#each ROOM_ICONS.boss as d}<path {d} />{/each}</svg>
                 </span>
                 Known, not visited
+            </li>
+            <li>
+                <span class="swatch closed">
+                    <svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 5 L19 19 M19 5 L5 19" /></svg>
+                </span>
+                Closed, no way back
             </li>
             <li>
                 <span class="swatch unknown">
@@ -201,6 +213,14 @@
     .node.t-sanctuary { color: var(--sanctuary); }
     .node.known.t-sanctuary rect { stroke: var(--sanctuary); }
 
+    /* A branch not taken: dimmed, dotted, and the boss or sanctuary tint does not show through. */
+    .node.closed,
+    .node.closed.t-boss,
+    .node.closed.t-miniboss,
+    .node.closed.t-sanctuary { color: var(--icon-unknown); opacity: 0.6; }
+    .node.closed rect { stroke: var(--border); stroke-dasharray: 2 4; }
+    .node .cross { stroke-width: 2.5; }
+
     .node.current { color: var(--current); }
     .node.current rect {
         fill: var(--current-fill);
@@ -247,6 +267,7 @@
     .swatch.visited { border-color: var(--visited-border); color: var(--icon); }
     .swatch.known,
     .swatch.unknown { border-style: dashed; }
+    .swatch.closed { border-style: dotted; color: var(--icon-unknown); opacity: 0.7; }
     .swatch.unknown { color: var(--icon-unknown); }
     .swatch.t-boss,
     .swatch.t-miniboss { color: var(--enemy); }

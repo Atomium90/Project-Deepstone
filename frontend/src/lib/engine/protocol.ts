@@ -465,6 +465,9 @@ export interface MinimapNodeView {
   /** 0 for the upper branch of a fork and for every room outside one, 1 for the lower branch. A
    * room outside a fork's branches sits on the middle line of a row that has two lanes. */
   lane: number;
+  /** True for a room of a fork's branch the player did not take, once they are in the other one:
+   * the way back to the fork is shut, so the room can no longer be reached. */
+  closed?: boolean;
 }
 
 /** A way from one map node to another, always forward. */

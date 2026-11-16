@@ -97,6 +97,33 @@ describe("layoutMinimap how a room is drawn", () => {
         expect(g.nodes.map((n) => n.kind)).toEqual(["visited", "known", "unknown"]);
     });
 
+    test("a room of the branch not taken is closed and gives its type away to nobody", () => {
+        const g = layoutMinimap(
+            map({
+                nodes: [
+                    node("hidden", 0, 0, 0, { roomType: null, closed: true }),
+                    node("boss", 0, 1, 0, { roomType: "boss", closed: true }),
+                    node("open", 0, 2, 0, { roomType: "boss" }),
+                ],
+            })
+        );
+        expect(g.nodes.map((n) => n.kind)).toEqual(["closed", "closed", "known"]);
+        expect(g.nodes.map((n) => n.label)).toEqual(["Closed", "Closed", "Boss (not visited)"]);
+    });
+
+    test("a room the player has been in is never drawn as closed, nor is the one they stand in", () => {
+        const g = layoutMinimap(
+            map({
+                nodes: [
+                    node("seen", 0, 0, 0, { visited: true, closed: true, roomType: "loot" }),
+                    node("here", 0, 1, 0, { visited: true, current: true, closed: true, roomType: "combat" }),
+                ],
+            })
+        );
+        expect(g.nodes.map((n) => n.kind)).toEqual(["visited", "current"]);
+        expect(g.nodes.map((n) => n.label)).toEqual(["Loot", "Combat"]);
+    });
+
     test("the hover text names the type, and says nothing for a hidden room", () => {
         const g = layoutMinimap(
             map({

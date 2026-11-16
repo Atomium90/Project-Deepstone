@@ -46,6 +46,8 @@ export function candidateHints(state: StateUpdate): string[] {
             if (state.pendingRewardChoice) hints.push("reward_choice");
             hints.push("controls");
             if (state.room?.entities.some((entity) => entity.kind === "enemy" && entity.isElite)) hints.push("elite");
+            // In the room where the dungeon splits in two: the choice made here has no way back.
+            if (state.minimap?.nodes.some((node) => node.current && node.roomType === "fork")) hints.push("fork");
             hints.push(...itemHints(state));
             if (visibleItems(state).length > 0) hints.push("menus");
             return hints;

@@ -1,5 +1,7 @@
 package roguelite.engine
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 
 import roguelite.game.items.{ EquipSlot, Rarity }
@@ -216,7 +218,7 @@ class MessageProtocolSuite extends FunSuite:
                           xp = 0,
                           metaCurrency = 0
       ),
-      log = List("Welcome to the hub.")
+      log = List(LogLine.raw("Welcome to the hub."))
     )
     val json = MessageProtocol.encodeUpdate(update)
     assert(json.contains("\"hub\""), s"Expected 'hub' phase in JSON: $json")
@@ -304,7 +306,7 @@ class MessageProtocolSuite extends FunSuite:
                           xp = 0,
                           metaCurrency = 0
       ),
-      log = List("You strike the Orc for 24 damage.", "Orc has been defeated!"),
+      log = List(LogLine.of("log.combat.strike", "enemy" -> "orc", "damage" -> 24), LogLine.of("log.combat.defeated", "enemy" -> "orc")),
       fightLines = 1
     )
     val json = io.circe.parser.parse(MessageProtocol.encodeUpdate(update)).toOption.get.hcursor

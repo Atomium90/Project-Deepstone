@@ -1,5 +1,7 @@
 package roguelite.game.dungeon
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.*
 import roguelite.game.combat.{ EnemyActionWeight, EnemyStats }
@@ -374,7 +376,7 @@ class InteractionResolverSuite extends FunSuite:
   test("Interact with unknown entity id returns error log"):
     val TransitionResult(next, log, _) = resolver().interact(explorationAt(3, 3), "ghost")
     assert(next.isInstanceOf[ExplorationState])
-    assert(log.exists(_.contains("No entity found")))
+    assert(log.hasKey("log.interact.noEntity"))
 
   // --- Enemy -------------------------------------------------------------------
 
@@ -442,7 +444,7 @@ class InteractionResolverSuite extends FunSuite:
     val state           = explorationAt(3, 3, entities = List(badEnemy))
     val TransitionResult(next, log, _)  = resolver().interact(state, "e2")
     assert(next.isInstanceOf[ExplorationState])
-    assert(log.exists(_.contains("Unknown enemy type")))
+    assert(log.hasKey("log.combat.unknownEnemy"))
 
   // --- Chest -------------------------------------------------------------------
 
@@ -470,7 +472,7 @@ class InteractionResolverSuite extends FunSuite:
     val chest       = Chest("c1", x = 3, y = 3)
     val state       = explorationAt(3, 3, entities = List(chest))
     val TransitionResult(_, log, _) = resolver().interact(state, "c1")
-    assert(log.exists(_.toLowerCase.contains("empty")), s"Expected 'empty' in log: $log")
+    assert(log.hasKey("log.chest.openEmpty"), s"Expected the empty-chest line in log: $log")
 
   test("Trapped chest spawns enemies instead of giving loot"):
     val chest           = Chest("c1", x = 3, y = 3, trapped = true)
@@ -482,7 +484,7 @@ class InteractionResolverSuite extends FunSuite:
     assert(spawned.nonEmpty, "expected at least one enemy to spawn from the trap")
     assert(spawned.forall(_.typeId == "goblin"), s"expected only goblin typeIds: $spawned")
     assertEquals(nextExp.player, state.player)
-    assert(log.exists(_.toLowerCase.contains("trap")), s"expected trap message in log: $log")
+    assert(log.hasKey("log.trap.chest"), s"expected trap message in log: $log")
 
   test("Trapped chest enemies spawn on free tiles, not on the player"):
     val chest        = Chest("c1", x = 3, y = 3, trapped = true)
@@ -505,7 +507,7 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(next, log, _) = noEnemiesResolver.interact(state, "c1")
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoom.entities.collect { case e: Enemy => e }, Nil)
-    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-happens message: $log")
+    assert(log.hasKey("log.trap.chestEmpty"), s"expected a nothing-happens message: $log")
 
   // --- Inert traps ---------------------------------------------------------------
 
@@ -516,7 +518,7 @@ class InteractionResolverSuite extends FunSuite:
     val room = next.asInstanceOf[ExplorationState].dungeon.currentRoom
     assertEquals(room.entities.collect { case e: Enemy => e }, Nil)
     assertEquals(room.entities.collectFirst { case c: Chest => c.state }, Some(ChestState.Sprung))
-    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-emerges message: $log")
+    assert(log.hasKey("log.trap.chestEmpty"), s"expected a nothing-emerges message: $log")
 
   test("a trapped chest still springs its ambush when the traps are not inert"):
     val chest = Chest("c1", x = 3, y = 3, trapped = true)
@@ -531,7 +533,7 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(guardiansIn(exp), Nil)
     assertEquals((exp.playerX, exp.playerY), (4, 4))
     assertEquals(exp.dungeon.currentRoom.entityById("door_trap").collect { case d: Door => d.doorKind }, Some(DoorKind.Normal))
-    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-emerges message: $log")
+    assert(log.hasKey("log.trap.doorEmpty"), s"expected a nothing-emerges message: $log")
 
   // --- Shrine --------------------------------------------------------------------
 
@@ -550,7 +552,7 @@ class InteractionResolverSuite extends FunSuite:
     val TransitionResult(next, log, _) = resolver(itemDefs = itemDefs).interact(state, "s1")
     val exp = next.asInstanceOf[ExplorationState]
     assertEquals(exp.pendingRewardChoice.map(_.options.length), Some(3))
-    assert(log.exists(_.toLowerCase.contains("shrine")), s"expected a shrine-related log line: $log")
+    assert(log.hasKey("log.shrine.offer"), s"expected a shrine-related log line: $log")
 
   test("Interact with Shrine with empty itemDefs still offers a choice, with 0 options"):
     val shrine = Shrine("s1", x = 3, y = 3)
@@ -657,7 +659,7 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(nextExp.player.equippedWeapon, Some(existingWeapon))
     assertEquals(nextExp.pendingEquipChoice.map(_.currentItems.keySet), Some(Set(EquipSlot.WeaponSlot)))
     assertEquals(events, Nil)
-    assert(log.exists(_.toLowerCase.contains("choose")), s"expected a choice-prompt message: $log")
+    assert(log.hasKey("log.chest.foundChoice"), s"expected a choice-prompt message: $log")
 
   test("A key taken from a chest increments the player's key count instead of offering a choice"):
     val held  = Key("k1", "rusty_key", "Rusty Key", Rarity.Common, KeyKind.Generic)
@@ -667,7 +669,7 @@ class InteractionResolverSuite extends FunSuite:
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.player.keyCounts.get(KeyKind.Generic), Some(1))
     assertEquals(nextExp.pendingEquipChoice, None)
-    assert(log.exists(_.toLowerCase.contains("find")), s"expected a pickup message: $log")
+    assert(log.hasKey("log.chest.foundBack"), s"expected a pickup message: $log")
     events match
       case List(GameEvent.ItemPickedUp(_, _, _, _, _)) => ()
       case other                                        => fail(s"expected a single ItemPickedUp, got $other")
@@ -688,7 +690,7 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(nextExp.player.equippedWeapon, Some(existingWeapon))
     assertEquals(nextExp.pendingEquipChoice, None)
     assertEquals(events, Nil)
-    assert(log.exists(_.toLowerCase.contains("already have a better")), s"expected a discard message: $log")
+    assert(log.hasKey("log.chest.foundWorse"), s"expected a discard message: $log")
 
   test("An empty chest emits no events"):
     val chest    = Chest("c1", x = 3, y = 3)
@@ -734,7 +736,7 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(chestIn(next, "c1").state, ChestState.OpenEmpty)
     assertEquals(chestIn(next, "c1").contents, None)
     assertEquals(next.asInstanceOf[ExplorationState].pendingEquipChoice, None)
-    assert(log.exists(_.toLowerCase.contains("already have a better")), s"expected a discard message: $log")
+    assert(log.hasKey("log.chest.foundWorse"), s"expected a discard message: $log")
 
   test("A full chest whose item has since become a worse duplicate empties when opened again"):
     val held = Weapon("held", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)
@@ -754,7 +756,7 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(next.asInstanceOf[ExplorationState].player.equippedWeapon, Some(held))
     assertEquals(chestIn(next, "c1").state, ChestState.OpenEmpty)
     assertEquals(chestIn(next, "c1").contents, None)
-    assert(log.exists(_.contains("Practice Sword")), s"expected the item's name in the log: $log")
+    assert(log.has("log.chest.foundBack", "item" -> "practice_sword"), s"expected the item in the log: $log")
     events match
       case List(GameEvent.ItemPickedUp(_, _, _, _, _)) => ()
       case other                                        => fail(s"expected a single ItemPickedUp, got $other")
@@ -787,7 +789,7 @@ class InteractionResolverSuite extends FunSuite:
 
     val TransitionResult(again, log, _) = resolver().interact(taken.asInstanceOf[ExplorationState], "c1")
     assertEquals(again.asInstanceOf[ExplorationState].pendingEquipChoice, None)
-    assert(log.exists(_.toLowerCase.contains("empty")), s"expected an empty-chest message: $log")
+    assert(log.hasKey("log.chest.empty"), s"expected an empty-chest message: $log")
 
   test("Taking a full chest's item again does not touch the Lucky Find perk"):
     val held  = Weapon("held", "practice_sword", "Practice Sword", Rarity.Common, attackBonus = 3)
@@ -803,7 +805,7 @@ class InteractionResolverSuite extends FunSuite:
       val state = explorationAt(3, 3, entities = List(Chest("c1", x = 3, y = 3, state = chestState)))
       val TransitionResult(next, log, events) = resolver(itemDefs = practiceSwordDefs).interact(state, "c1")
       assertEquals(next, state, s"state for a $chestState chest")
-      assert(log.exists(_.toLowerCase.contains("empty")), s"expected an empty-chest message for $chestState: $log")
+      assert(log.hasKey("log.chest.empty"), s"expected an empty-chest message for $chestState: $log")
       assertEquals(events, Nil)
     }
 
@@ -910,7 +912,7 @@ class InteractionResolverSuite extends FunSuite:
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r1")
     assertEquals(nextExp.player.keyCounts, Map.empty)
-    assert(log.exists(_.toLowerCase.contains("locked")), s"expected locked message: $log")
+    assert(log.hasKey("log.door.locked"), s"expected locked message: $log")
 
   test("Interact with LockedDoor with a matching key unlocks it, consumes the key, and navigates"):
     val lockedDoor      = LockedDoor("ld1", x = 3, y = 3, direction = Direction.Down, targetRoomId = "r2")
@@ -920,7 +922,7 @@ class InteractionResolverSuite extends FunSuite:
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r2")
     assertEquals(nextExp.player.keyCounts.getOrElse(KeyKind.Generic, 0), 0)
-    assert(log.exists(_.toLowerCase.contains("unlock")), s"expected unlock message: $log")
+    assert(log.hasKey("log.door.unlock"), s"expected unlock message: $log")
     val persistedDoor =
       nextExp.dungeon.rooms("r1").entityById("ld1").collect { case d: LockedDoor => d }
     assertEquals(persistedDoor.map(_.unlocked), Some(true))
@@ -933,7 +935,7 @@ class InteractionResolverSuite extends FunSuite:
     val nextExp         = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.dungeon.currentRoomId, "r1")
     assertEquals(nextExp.player.keyCounts.getOrElse(KeyKind.Specific("other_door"), 0), 1)
-    assert(log.exists(_.toLowerCase.contains("locked")), s"expected locked message: $log")
+    assert(log.hasKey("log.door.locked"), s"expected locked message: $log")
 
   test("Interact with an already-unlocked LockedDoor navigates without touching the inventory"):
     val lockedDoor =
@@ -990,7 +992,7 @@ class InteractionResolverSuite extends FunSuite:
     val guardian = guardiansIn(nextExp).headOption.getOrElse(fail("expected a guardian to appear"))
     assertEquals((guardian.x, guardian.y), (4, 4))
     assertEquals(guardian.typeId, "goblin")
-    assert(log.exists(_.toLowerCase.contains("trap")), s"expected trap message: $log")
+    assert(log.hasKey("log.trap.door"), s"expected trap message: $log")
 
   test("The player is thrown back away from the door's own wall, whichever wall it is on"):
     val cases = List(
@@ -1048,7 +1050,7 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(nextExp.dungeon.currentRoom.entityById("door_trap").collect { case d: Door => d.doorKind },
                  Some(DoorKind.Normal)
     )
-    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-happens message: $log")
+    assert(log.hasKey("log.trap.doorEmpty"), s"expected a nothing-happens message: $log")
 
   test("A trapped door in a room with no free tile to retreat to spawns nothing"):
     // A 3x3 room whose only floor tile is the one the player stands on.
@@ -1059,7 +1061,7 @@ class InteractionResolverSuite extends FunSuite:
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(guardiansIn(nextExp), Nil)
     assertEquals((nextExp.playerX, nextExp.playerY), (1, 1))
-    assert(log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-happens message: $log")
+    assert(log.hasKey("log.trap.doorEmpty"), s"expected a nothing-happens message: $log")
 
   // --- Secret door --------------------------------------------------------------
 
@@ -1075,7 +1077,7 @@ class InteractionResolverSuite extends FunSuite:
     val state           = explorationAt(3, 3, entities = List(secretDoor))
     val TransitionResult(next, log, _)  = resolver().interact(state, "door_secret")
     assertEquals(next.asInstanceOf[ExplorationState].dungeon.currentRoomId, "r1")
-    assert(log.exists(_.contains("No entity found")), s"expected not-found message: $log")
+    assert(log.hasKey("log.interact.noEntity"), s"expected not-found message: $log")
 
   test("A revealed secret door behaves like a normal door"):
     val secretDoor = Door("door_secret",

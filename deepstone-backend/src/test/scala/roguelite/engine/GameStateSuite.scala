@@ -1,5 +1,7 @@
 package roguelite.engine
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.game.combat.{ Combat, EnemyActionWeight, EnemyInstance, EnemyStats }
 import roguelite.game.dungeon.{ ConnectorRole, Door, DoorLink, Dungeon, Entity, Room, RoomType, Tile }
@@ -58,10 +60,10 @@ class GameStateSuite extends FunSuite:
 
   test("ExplorationState.toStateUpdate has EXPLORATION phase and carries the room and the log"):
     val state  = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
-    val update = state.toStateUpdate(List("hello"))
+    val update = state.toStateUpdate(List(LogLine.raw("hello")))
     assertEquals(update.phase, GamePhase.Exploration)
     assert(update.room.isDefined)
-    assertEquals(update.log, List("hello"))
+    assertEquals(update.log, List(LogLine.raw("hello")))
 
   test("ExplorationState.toStateUpdate resolves a pending equip choice into a view, with the same affinity-doubled statLine as the equipped items"):
     val player  = PlayerFixtures.startingPlayer(ClassId.Warrior) // affinityTags = Set("heavy")

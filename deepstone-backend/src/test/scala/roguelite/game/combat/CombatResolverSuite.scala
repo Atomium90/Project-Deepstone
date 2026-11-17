@@ -1,5 +1,7 @@
 package roguelite.game.combat
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.*
 import roguelite.game.core.GameEvent
@@ -148,7 +150,7 @@ class CombatResolverSuite extends FunSuite:
       case Some(d) =>
         assert(d.crit, s"expected a crit-flagged DamageDealt: $events")
       case None => fail(s"expected a DamageDealt event: $events")
-    assert(log.exists(_.contains("Critical hit")), s"expected a crit callout in the log: $log")
+    assert(log.hasKey("log.combat.strikeCrit"), s"expected a crit callout in the log: $log")
 
   test("Arcane Blast (FlatDamage) never crits even with guaranteed crit chance equipped"):
     val guaranteedCrit =
@@ -180,37 +182,37 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) =
       resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
     assert(next.player.metaCurrency > fullHpPlayer().metaCurrency)
-    assert(log.exists(_.contains("Shard")), s"expected the Shards in the log: $log")
+    assert(log.hasKey("log.combat.xpShards"), s"expected the Shards in the log: $log")
 
   test("the line that tells an enemy has fallen names it, and comes after the blow that killed it"):
-    assertEquals(CombatResolver.defeatedLine("Goblin"), "Goblin has been defeated!")
+    assertEquals(CombatResolver.defeatedLine("goblin"), LogLine.of("log.combat.defeated", "enemy" -> "goblin"))
     val (_, log, _) = resolver().resolve(combatState(weakEnemy(hp = 1)), CombatAction(CombatActionType.Attack))
-    val at          = log.indexOf(CombatResolver.defeatedLine("Goblin"))
+    val at          = log.indexWhere(_.key == CombatResolver.DefeatedKey)
     assert(at > 0, s"the blow comes before the line: $log")
-    assert(log.drop(at + 1).exists(_.startsWith("You gain")), s"the outcome comes after it: $log")
+    assert(log.drop(at + 1).exists(l => l.key == "log.combat.xp" || l.key == "log.combat.xpShards"), s"the outcome comes after it: $log")
 
   test("Victory counts the Shards it earns, one per 5 XP, and says Shard for exactly one"):
-    def xpLine(xpReward: Int): Option[String] =
+    def xpLine(xpReward: Int): Option[LogLine] =
       val state = combatState(weakEnemy(hp = 1).copy(xpReward = xpReward))
       val (_, log, _) = resolver().resolve(state, CombatAction(CombatActionType.Attack))
-      log.find(_.startsWith("You gain"))
-    assertEquals(xpLine(xpReward = 3), Some("You gain 3 XP and 1 Shard."))
-    assertEquals(xpLine(xpReward = 15), Some("You gain 15 XP and 3 Shards."))
+      log.find(_.key.startsWith("log.combat.xp"))
+    assertEquals(xpLine(xpReward = 3), Some(LogLine.of("log.combat.xpShards", "xp" -> 3, "count" -> 1)))
+    assertEquals(xpLine(xpReward = 15), Some(LogLine.of("log.combat.xpShards", "xp" -> 15, "count" -> 3)))
 
   test("Victory earns no Shard once the altar is shut, and does not mention them"):
     val shut = combatState(weakEnemy(hp = 1)).copy(altarShut = true)
     val (next, log, _) = resolver().resolve(shut, CombatAction(CombatActionType.Attack))
     assertEquals(next.player.metaCurrency, fullHpPlayer().metaCurrency)
     assert(next.player.xp > 0, "the XP is still earned")
-    assert(!log.exists(_.contains("Shard")), s"no Shard may be mentioned: $log")
+    assert(!log.hasKey("log.combat.xpShards"), s"no Shard may be mentioned: $log")
 
   test("Victory earns no Shard on a Hardcore run, and does not mention them"):
     val hardcore = combatState(weakEnemy(hp = 1)).copy(difficulty = Difficulty.Hardcore)
     val (next, log, _) = resolver().resolve(hardcore, CombatAction(CombatActionType.Attack))
     assertEquals(next.player.metaCurrency, fullHpPlayer().metaCurrency)
     assert(next.player.xp > 0, "the XP is still earned")
-    assert(!log.exists(_.contains("Shard")), s"no Shard may be mentioned: $log")
-    assert(log.exists(_.contains("You gain")), s"expected the XP in the log: $log")
+    assert(!log.hasKey("log.combat.xpShards"), s"no Shard may be mentioned: $log")
+    assert(log.hasKey("log.combat.xp"), s"expected the XP in the log: $log")
 
   test("Victory awards XP to the player"):
     val (next, _, _) =
@@ -226,7 +228,7 @@ class CombatResolverSuite extends FunSuite:
   test("Attack log mentions damage dealt"):
     val (_, log, _) =
       resolver().resolve(combatState(weakEnemy(hp = 999)), CombatAction(CombatActionType.Attack))
-    assert(log.exists(_.contains("damage")))
+    assert(log.exists(_.key.startsWith("log.combat.strike")))
 
   // --- Defend --------------------------------------------------------------
 
@@ -264,7 +266,7 @@ class CombatResolverSuite extends FunSuite:
                                          CombatAction(CombatActionType.Attack)
     )
     assert(next.isInstanceOf[ExplorationState], s"expected ExplorationState, got $next")
-    assert(log.exists(_.toLowerCase.contains("defeated")), s"expected a defeat message in log: $log")
+    assert(log.hasKey("log.combat.defeated"), s"expected a defeat message in log: $log")
 
   test("player death in the boss room is still a defeat, not a victory"):
     val (next, _, _) = resolver().resolve(combatStateInBossRoom(strongEnemy(), player = lowHpPlayer),
@@ -286,7 +288,7 @@ class CombatResolverSuite extends FunSuite:
     assert(shrine.isDefined, "expected a Shrine to be spawned in the room")
     assertEquals((shrine.get.x, shrine.get.y), (3, 3), "expected the Shrine at the defeated enemy's position")
     assertEquals(exp.player.potionBelt.flatten.toList, Nil, "expected no normal loot drop on a Boss kill")
-    assert(log.exists(_.toLowerCase.contains("shrine")), s"expected a shrine-related log line: $log")
+    assert(log.hasKey("log.combat.leavesShrine"), s"expected a shrine-related log line: $log")
 
   // --- MiniBoss victory (Chest spawn) ----------------------------------------
 
@@ -324,7 +326,7 @@ class CombatResolverSuite extends FunSuite:
     assertEquals((chest.get.x, chest.get.y), (3, 3), "expected the Chest at the defeated enemy's position")
     assertEquals(chest.get.trapped, false, "expected the spawned Chest to never be trapped")
     assertEquals(exp.player.potionBelt.flatten.toList, Nil, "expected no normal loot drop on a MiniBoss kill")
-    assert(log.exists(_.toLowerCase.contains("chest")), s"expected a chest-related log line: $log")
+    assert(log.hasKey("log.combat.leavesChest"), s"expected a chest-related log line: $log")
 
   test("MiniBoss victory emits EnemyDefeated(isBoss = false) - only a section's real Boss kill sets isBoss"):
     val (_, _, events) =
@@ -452,7 +454,7 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, events) =
       CombatResolver(Random(0), itemDefs).resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
     assertEquals(next.player.keyCounts.get(KeyKind.Generic), Some(1))
-    assert(log.exists(_.contains("dropped")), s"expected a drop message: $log")
+    assert(log.hasKey("log.loot.dropped"), s"expected a drop message: $log")
     assert(events.exists(_.isInstanceOf[GameEvent.ItemPickedUp]), s"expected ItemPickedUp: $events")
 
   test("a kill that drops a lower-or-equal rarity duplicate of an equipped item is discarded"):
@@ -467,7 +469,7 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, events) =
       CombatResolver(Random(0), itemDefs).resolve(combatState(enemy, player = playerWithWeapon), CombatAction(CombatActionType.Attack))
     assertEquals(next.player.equippedWeapon, Some(existingWeapon))
-    assert(log.exists(_.contains("already have a better")), s"expected a discard message: $log")
+    assert(log.hasKey("log.loot.droppedWorse"), s"expected a discard message: $log")
     assert(!events.exists(_.isInstanceOf[GameEvent.ItemPickedUp]), s"discard should not emit ItemPickedUp: $events")
 
   // --- Item use ------------------------------------------------------------
@@ -477,14 +479,14 @@ class CombatResolverSuite extends FunSuite:
                                          CombatAction(CombatActionType.Item, itemId = None)
     )
     assert(next.isInstanceOf[CombatState])
-    assert(log.exists(_.toLowerCase.contains("no item")))
+    assert(log.hasKey("log.combat.noItemSelected"))
 
   test("Item with unknown id returns 'not found'"):
     val (next, log, _) = resolver().resolve(combatState(weakEnemy(hp = 50)),
                                          CombatAction(CombatActionType.Item, itemId = Some("ghost"))
     )
     assert(next.isInstanceOf[CombatState])
-    assert(log.exists(_.toLowerCase.contains("not found")))
+    assert(log.hasKey("log.combat.itemNotFound"))
 
   test("Item action with an equipped weapon's id (not in the potion belt) returns 'not found'"):
     val sword = Weapon("w1", "iron_sword", "Iron Sword", Rarity.Common, 3)
@@ -492,7 +494,7 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("w1")))
     assert(next.isInstanceOf[CombatState])
-    assert(log.exists(_.toLowerCase.contains("not found")))
+    assert(log.hasKey("log.combat.itemNotFound"))
 
   test("HealFixed potion heals player and removes it from the potion belt"):
     val potion = Consumable("p1",
@@ -507,7 +509,7 @@ class CombatResolverSuite extends FunSuite:
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("p1")))
     assert(next.player.hp > 50)
     assertEquals(next.player.potionBelt.flatten.find(_.item.id == "p1"), None)
-    assert(log.exists(_.contains("Health Potion")))
+    assert(log.has("log.combat.useHeal", "item" -> "health_potion"))
 
   test("using any potion emits ConsumableUsed with its typeId, regardless of effect kind"):
     val ether = Consumable("p1", "ether", "Ether", Rarity.Common, ConsumableEffect.RestoreResource(20))
@@ -544,7 +546,7 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("e1")))
     assert(next.player.resourceCurrent > 0)
-    assert(log.exists(_.contains("Ether")))
+    assert(log.hasKey("log.combat.useResource"))
 
   test("using an item triggers enemy counter-turn"):
     val potion = Consumable("p1", "hp", "HP Potion", Rarity.Common, ConsumableEffect.HealFixed(5))
@@ -566,7 +568,7 @@ class CombatResolverSuite extends FunSuite:
     assertEquals(next.asInstanceOf[CombatState].combat.activeBuffs,
                  List(TimedBuff(TimedBuffEffect.AttackBonusPercent(50), 2))
     )
-    assert(log.exists(_.contains("Battle Brew")))
+    assert(log.hasKey("log.combat.useAttackBuff"))
 
   test("using a second AttackBuff potion refreshes duration instead of stacking"):
     val brew1 = Consumable("b1", "battle_brew", "Battle Brew", Rarity.Common, ConsumableEffect.AttackBuff(50, 5))
@@ -597,7 +599,7 @@ class CombatResolverSuite extends FunSuite:
     assertEquals(next.asInstanceOf[CombatState].combat.activeBuffs,
                  List(TimedBuff(TimedBuffEffect.CritChanceBonusPercent(30), 1))
     )
-    assert(log.exists(_.contains("Focus Tonic")))
+    assert(log.hasKey("log.combat.useCritBuff"))
 
   test("an AttackBuff and a CritBuff coexist without clobbering each other"):
     val brew  = Consumable("b1", "battle_brew", "Battle Brew", Rarity.Common, ConsumableEffect.AttackBuff(50, 5))
@@ -622,7 +624,7 @@ class CombatResolverSuite extends FunSuite:
     val state = combatState(weakEnemy(hp = 500), player = fullHpPlayer())
     val withBuff = state.copy(combat = state.combat.copy(activeBuffs = List(buff)))
     val (next, log, _) = resolver().resolve(withBuff, CombatAction(CombatActionType.Attack))
-    assert(log.exists(_.contains("Critical hit!")), s"expected a guaranteed crit: $log")
+    assert(log.hasKey("log.combat.strikeCrit"), s"expected a guaranteed crit: $log")
     assert(next.isInstanceOf[CombatState])
 
   test("an expiring CritChanceBonusPercent buff logs its own expiry message, distinct from AttackBonusPercent's"):
@@ -630,14 +632,14 @@ class CombatResolverSuite extends FunSuite:
     val state = combatState(weakEnemy(hp = 500))
     val withBuff = state.copy(combat = state.combat.copy(activeBuffs = List(buff)))
     val (_, log, _) = resolver().resolve(withBuff, CombatAction(CombatActionType.Defend))
-    assert(log.exists(_.contains("sharpened senses dull")), s"expected the crit-buff expiry message: $log")
+    assert(log.hasKey("log.combat.critBuffEnds"), s"expected the crit-buff expiry message: $log")
 
   // --- Enemy actions the resolver doesn't recognize ---------------------------
 
   test("an enemy action type the resolver doesn't recognize makes it hesitate instead of crashing"):
     val confusedEnemy = weakEnemy(hp = 500).copy(actions = List(EnemyActionWeight("ROAR", 100)))
     val (next, log, _) = resolver().resolve(combatState(confusedEnemy), CombatAction(CombatActionType.Defend))
-    assert(log.exists(_.contains("hesitates")), s"expected a hesitation message: $log")
+    assert(log.hasKey("log.combat.enemyHesitates"), s"expected a hesitation message: $log")
     assert(next.asInstanceOf[CombatState].combat.isPlayerTurn, "turn should return to the player")
 
   // --- FlatDamage potion -------------------------------------------------------
@@ -649,7 +651,7 @@ class CombatResolverSuite extends FunSuite:
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("f1")))
     val nextCombat = next.asInstanceOf[CombatState].combat
     assertEquals(nextCombat.enemy.hp, 75)
-    assert(log.exists(_.contains("25 damage")), s"expected the damage amount in the log: $log")
+    assert(log.has("log.combat.useFlatDamage", "amount" -> 25), s"expected the damage amount in the log: $log")
     assert(events.exists { case GameEvent.DamageDealt(false, 25, _) => true; case _ => false },
            s"expected a DamageDealt event: $events"
     )
@@ -660,7 +662,7 @@ class CombatResolverSuite extends FunSuite:
     val (next, log, _) =
       resolver().resolve(state, CombatAction(CombatActionType.Item, itemId = Some("f1")))
     assert(!next.isInstanceOf[CombatState], s"expected combat to end, got $next")
-    assert(log.exists(_.contains("defeated")), s"expected a victory log line: $log")
+    assert(log.hasKey("log.combat.defeated"), s"expected a victory log line: $log")
 
   // --- Inventory stat bonuses ----------------------------------------------
 
@@ -707,7 +709,7 @@ class CombatResolverSuite extends FunSuite:
       .resolve(combatState(enemy), CombatAction(CombatActionType.Attack))
     assert(next.isInstanceOf[ExplorationState])
     assertEquals(next.player.potionBelt.flatten.toList.map(_.item.typeId), List("health_potion"))
-    assert(log.exists(_.contains("dropped")))
+    assert(log.hasKey("log.loot.dropped"))
 
   test("enemy with 0% drop leaves the potion belt empty on defeat"):
     val itemDefs: Map[String, Item] = Map(

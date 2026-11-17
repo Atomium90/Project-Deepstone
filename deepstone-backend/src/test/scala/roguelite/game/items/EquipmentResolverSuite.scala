@@ -1,5 +1,7 @@
 package roguelite.game.items
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.{ ClassId, ExplorationState, Player, PlayerFixtures }
 import roguelite.game.core.GameEvent
@@ -241,7 +243,7 @@ class EquipmentResolverSuite extends FunSuite:
     val exp = explorationState()
     val (next, log, events) = EquipmentResolver.resolveChoice(exp, Some(EquipSlot.WeaponSlot))
     assertEquals(next, exp)
-    assert(log.exists(_.toLowerCase.contains("no equip choice")), s"expected a no-pending-choice message: $log")
+    assert(log.hasKey("log.equip.nonePending"), s"expected a no-pending-choice message: $log")
     assertEquals(events, Nil)
 
   test("resolveChoice(None) discards the new item and clears the pending choice"):
@@ -251,7 +253,7 @@ class EquipmentResolverSuite extends FunSuite:
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.pendingEquipChoice, None)
     assertEquals(nextExp.player.equippedWeapon, Some(sword))
-    assert(log.exists(_.contains(sword2.name)), s"expected the discarded item's name in the log: $log")
+    assert(log.has("log.equip.leave", "item" -> sword2.typeId), s"expected the discarded item in the log: $log")
     assertEquals(events, Nil)
 
   test("resolveChoice targeting the offered weapon slot equips the new weapon"):
@@ -261,7 +263,7 @@ class EquipmentResolverSuite extends FunSuite:
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.pendingEquipChoice, None)
     assertEquals(nextExp.player.equippedWeapon, Some(sword2))
-    assert(log.exists(_.contains(sword2.name)))
+    assert(log.has("log.equip.equip", "item" -> sword2.typeId))
     assert(events.exists {
       case GameEvent.ItemPickedUp(full, _, _, _, _) => full == nextExp.player.isFullyEquipped
       case _                                         => false
@@ -301,7 +303,7 @@ class EquipmentResolverSuite extends FunSuite:
     val (next, log, events) = EquipmentResolver.resolveChoice(exp, Some(EquipSlot.ArmorSlot))
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.pendingEquipChoice, Some(pending))
-    assert(log.exists(_.toLowerCase.contains("invalid")), s"expected an invalid-slot message: $log")
+    assert(log.hasKey("log.equip.invalidSlot"), s"expected an invalid-slot message: $log")
     assertEquals(events, Nil)
 
   // --- resolveChoice: a pickup that came from a chest -------------------------------

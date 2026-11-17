@@ -1,5 +1,6 @@
 <script lang="ts">
     import { ITEM_RARITY_COLORS } from "../engine/constants";
+    import { t } from "../engine/i18n";
     import { gameState, equippedSetCounts } from "../engine/StateStore";
     import type { ItemView } from "../engine/protocol";
 
@@ -20,7 +21,7 @@
 
 <div class="item-tooltip">
     <p class="tooltip-name" style="color:{ITEM_RARITY_COLORS[item.rarity]}">{item.name}</p>
-    <p class="tooltip-kind">{item.kind}{item.count && item.count > 1 ? ` · x${item.count}` : ""}</p>
+    <p class="tooltip-kind">{$t(`itemKind.${item.kind}`)}{item.count && item.count > 1 ? ` · x${item.count}` : ""}</p>
     <p class="tooltip-stat" class:off-affinity={offAffinity}>{item.statLine}</p>
     {#if item.setId}
         <div class="tooltip-set" style="--set-accent:{ITEM_RARITY_COLORS.epic}">

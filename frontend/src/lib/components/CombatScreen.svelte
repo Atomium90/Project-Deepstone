@@ -98,6 +98,14 @@
         ? `player_${player.classId}_${player.hp <= 0 ? "ko" : (playerCombatAnim ?? "idle_right")}`
         : null;
     $: combat         = $gameState?.combat;
+    // The prefix is part of the text, not glued on, so a language can put it where it belongs.
+    $: enemyName = !combat
+        ? "—"
+        : combat.isElite
+          ? $t("combat.elite", { name: combat.enemyLabel })
+          : combat.isMiniBoss
+            ? $t("combat.miniboss", { name: combat.enemyLabel })
+            : combat.enemyLabel;
     $: equipment      = $gameState?.equipment;
     $: abilities      = $gameState?.abilities ?? [];
 
@@ -187,7 +195,7 @@
                     <Sprite spriteId={playerSpriteId} fallbackColor={PLAYER_CLASS_COLORS[player.classId]} size={112} animated />
                 </div>
             {/if}
-            <p class="combatant-name">{player?.classId.toUpperCase() ?? "—"}</p>
+            <p class="combatant-name">{player ? $t(`class.${player.classId}.name`).toUpperCase() : "—"}</p>
 
             <StatBar label="HP" current={player?.hp ?? 0} max={player?.maxHp ?? 0} color={HP_BAR_COLOR} />
             <StatBar label={resourceLabel} current={player?.resourceCurrent ?? 0} max={player?.resourceMax ?? 0} color={resourceColor} />
@@ -228,7 +236,7 @@
                     <Sprite spriteId={combat.spriteId} fallbackColor={COLOR_ENTITY_ENEMY} size={112} />
                 </div>
             {/if}
-            <p class="combatant-name">{combat?.isElite ? "Elite " : combat?.isMiniBoss ? "Mini-Boss " : ""}{combat?.enemyLabel ?? "—"}</p>
+            <p class="combatant-name">{enemyName}</p>
 
             <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0}
                      color={combat?.isElite ? COLOR_ENTITY_ELITE : HP_BAR_COLOR} />
@@ -298,7 +306,7 @@
                             <span class="picker-name"><KeyHint key={String(i + 1)} />{item.name}{item.count && item.count > 1 ? ` x${item.count}` : ""}</span>
                             <span class="picker-stat">{item.statLine}</span>
                             <span class="picker-rarity" style="color:{ITEM_RARITY_COLORS[item.rarity]}">
-                                {item.rarity}
+                                {$t(`rarity.${item.rarity}`)}
                             </span>
                         </button>
                     {/each}

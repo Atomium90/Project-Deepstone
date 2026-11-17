@@ -3,6 +3,7 @@
     import { fly } from "svelte/transition";
     import { gameState, client, explorationLog, pendingScene, debugRoomsCache, minimap } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
+    import { t } from "../engine/i18n";
     import { Renderer } from "../engine/Renderer";
     import { keyCommand, type KeyCommand } from "../engine/explorationKeys";
     import { conversationBox } from "../engine/dialoguePlacement";
@@ -129,6 +130,8 @@
         }
     });
 
+    $: if (renderer) renderer.loadingText = $t("exploration.loading");
+
     // Reactively push new state to the renderer whenever the store updates
     $: if (renderer && $gameState?.room && $gameState?.player) {
         renderer.update($gameState.room, $gameState.player);
@@ -198,7 +201,7 @@
 
         {#if player}
             <aside class="stats-panel">
-                <div class="class-badge">{player.classId.toUpperCase()}</div>
+                <div class="class-badge">{$t(`class.${player.classId}.name`).toUpperCase()}</div>
 
                 <!-- HP -->
                 <StatBar layout="column" label="HP" current={player.hp} max={player.maxHp} color={HP_BAR_COLOR} />

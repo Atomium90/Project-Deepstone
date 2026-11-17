@@ -157,6 +157,9 @@ export class Renderer {
 
   /** Id of the room last passed to update(), used to detect a room change so the lerp doesn't
    * slide the player sprite across an unrelated room. */
+  /** Shown on the canvas while the room is not there yet. Set by the component, which owns the texts. */
+  loadingText = "Loading room…";
+
   private currentRoomId: string | null = null;
 
   /** Which way the player sprite is currently facing - only updated by a horizontal move, so
@@ -990,7 +993,7 @@ export class Renderer {
     ctx.fillStyle = COLOR_LOADING_TEXT;
     ctx.font = "14px monospace";
     ctx.textAlign = "center";
-    ctx.fillText("Loading room…", cssWidth / 2, cssHeight / 2);
+    ctx.fillText(this.loadingText, cssWidth / 2, cssHeight / 2);
   }
 }
 

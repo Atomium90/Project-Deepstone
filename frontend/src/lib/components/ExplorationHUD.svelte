@@ -3,6 +3,7 @@
     import { fly } from "svelte/transition";
     import { gameState, client, explorationLog, pendingScene, debugRoomsCache, minimap } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
+    import { bindings, keyNames } from "../engine/KeyStore";
     import { t } from "../engine/i18n";
     import { catalog } from "../engine/catalogText";
     import { Renderer } from "../engine/Renderer";
@@ -98,17 +99,19 @@
     /** Which key does what, and that the run is paused behind the Character screen, is decided by
      * keyCommand. Guarded against native key-repeat: a held key acts once. */
     function handleKeyDown(e: KeyboardEvent): void {
-        const command = keyCommand(e.key, $characterTab, $minimap !== null, $pendingScene !== null);
-        if (!command || heldKeys.has(e.key)) return;
+        const command = keyCommand({ key: e.key, code: e.code }, $bindings, $characterTab, $minimap !== null, $pendingScene !== null);
+        // Held by the key's place, which does not change when Shift does the character it types.
+        const held = e.code || e.key;
+        if (!command || heldKeys.has(held)) return;
 
         // Also keeps the arrow keys from scrolling the page.
         e.preventDefault();
-        heldKeys.add(e.key);
+        heldKeys.add(held);
         runCommand(command);
     }
 
     function handleKeyUp(e: KeyboardEvent): void {
-        heldKeys.delete(e.key);
+        heldKeys.delete(e.code || e.key);
     }
 
     onMount(() => {
@@ -133,6 +136,7 @@
     });
 
     $: if (renderer) renderer.loadingText = $t("exploration.loading");
+    $: if (renderer) renderer.interactLabel = $keyNames.interact;
 
     // Reactively push new state to the renderer whenever the store updates
     $: if (renderer && $gameState?.room && $gameState?.player) {
@@ -241,10 +245,10 @@
                 </div>
 
                 <p class="controls-hint">
-                    {$t("hud.move", { keys: $t("hud.moveKeys") })}<br />
-                    {$t("hud.interact", { key: "E" })}<br />
-                    {$t("hud.equipmentKey", { key: "I" })}<br />
-                    {$t("hud.map", { key: "M" })}{#if isDebugRoom}<br />{$t("hud.debugRoom", { keys: "ç / à" })}{/if}
+                    {$t("hud.move", { keys: $t("hud.moveKeys", $keyNames) })}<br />
+                    {$t("hud.interact", { key: $keyNames.interact })}<br />
+                    {$t("hud.equipmentKey", { key: $keyNames.equipment })}<br />
+                    {$t("hud.map", { key: $keyNames.map })}{#if isDebugRoom}<br />{$t("hud.debugRoom", { keys: "ç / à" })}{/if}
                 </p>
             </aside>
         {/if}

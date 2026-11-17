@@ -2,6 +2,7 @@
     import { activeHint, dismissHint } from "../engine/HintStore";
     import { hintPosition } from "../engine/HintCatalog";
     import { t } from "../engine/i18n";
+    import { keyNames } from "../engine/KeyStore";
 </script>
 
 <!-- The texts of a hint live in the lang files under hint.<id>.title and hint.<id>.body, and its
@@ -9,7 +10,7 @@
 {#if $activeHint}
     <aside class="hint-card pos-{hintPosition($activeHint)}" role="status">
         <span class="hint-title">{$t(`hint.${$activeHint}.title`)}</span>
-        <p class="hint-body">{$t(`hint.${$activeHint}.body`)}</p>
+        <p class="hint-body">{$t(`hint.${$activeHint}.body`, $keyNames)}</p>
         <button class="hint-dismiss" on:click={dismissHint}>{$t("hint.dismiss")}</button>
     </aside>
 {/if}

@@ -2,6 +2,7 @@
     import { HINTS } from "../engine/HintCatalog";
     import { isHintSeen, tutorial } from "../engine/HintStore";
     import { t } from "../engine/i18n";
+    import { keyNames } from "../engine/KeyStore";
 
     // A journal of the hints already discovered, in the catalog's order rather than the order they
     // were seen in. After Skip every hint counts as discovered, so the whole list shows.
@@ -15,7 +16,7 @@
         {#each discovered as hint (hint.id)}
             <article class="entry">
                 <h3 class="entry-title">{$t(`hint.${hint.id}.title`)}</h3>
-                <p class="entry-body">{$t(`hint.${hint.id}.body`)}</p>
+                <p class="entry-body">{$t(`hint.${hint.id}.body`, $keyNames)}</p>
             </article>
         {/each}
     {/if}

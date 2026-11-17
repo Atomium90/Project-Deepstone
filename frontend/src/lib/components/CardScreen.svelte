@@ -4,6 +4,8 @@
     import { client } from "../engine/StateStore";
     import { dictionaries, language, lookup, t } from "../engine/i18n";
     import { numberedTexts } from "../engine/sceneText";
+    import { bindings, keyNames } from "../engine/KeyStore";
+    import { isAdvanceKey } from "../engine/keybindings";
 
     /** The card the server waits for the player to have seen, or null when there is none. */
     export let cardId: string | null = null;
@@ -65,7 +67,7 @@
 
     function handleKeyDown(e: KeyboardEvent): void {
         if (cardId === null || e.repeat) return;
-        if (e.key === "e" || e.key === "E" || e.key === " " || e.key === "Enter") {
+        if (isAdvanceKey({ key: e.key, code: e.code }, $bindings)) {
             e.preventDefault();
             advance();
         }
@@ -88,7 +90,7 @@
                 <p class="card-line" class:visible={i < shown}>{line}</p>
             {/each}
         </div>
-        <p class="card-hint" class:visible={shown >= lines.length}>{$t("story.continue")}</p>
+        <p class="card-hint" class:visible={shown >= lines.length}>{$t("story.continue", $keyNames)}</p>
     </div>
 {/if}
 

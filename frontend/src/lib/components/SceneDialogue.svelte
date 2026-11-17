@@ -7,6 +7,8 @@
     import { buildScript, type SceneScript } from "../engine/sceneText";
     import { placeBubble, type Box, type Size } from "../engine/dialoguePlacement";
     import { digitOf } from "../engine/choiceKeys";
+    import { bindings, keyNames } from "../engine/KeyStore";
+    import { isAdvanceKey } from "../engine/keybindings";
     import type { PendingSceneView } from "../engine/protocol";
 
     /** The conversation the server holds pending, or null. */
@@ -87,7 +89,7 @@
             if (digit === 2) choose(false);
             return; // anything else is left to the buttons, so Space and Enter still press the focused one
         }
-        if (e.key === "e" || e.key === "E" || e.key === " " || e.key === "Enter") {
+        if (isAdvanceKey({ key: e.key, code: e.code }, $bindings)) {
             e.preventDefault();
             advance();
         }
@@ -120,7 +122,7 @@
                 </button>
             </div>
         {:else}
-            <p class="dialogue-hint">{$t("story.continue")}</p>
+            <p class="dialogue-hint">{$t("story.continue", $keyNames)}</p>
         {/if}
     </div>
 {/if}

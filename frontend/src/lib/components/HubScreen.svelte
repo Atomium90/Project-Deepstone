@@ -5,6 +5,7 @@
     import { tutorial, showHint } from "../engine/HintStore";
     import { t } from "../engine/i18n";
     import { catalog } from "../engine/catalogText";
+    import { logText } from "../engine/logText";
     import {
         PLAYER_CLASS_COLORS,
         CLASS_INFO,
@@ -166,7 +167,8 @@
      * displayed message no longer corresponds to their action. Fine for now,
      * would need a dedicated feedback field in the protocol to fix properly.
      */
-    $: feedback = hubState?.log.at(-1) ?? "";
+    $: feedbackLine = hubState?.log.at(-1);
+    $: feedback = feedbackLine ? $logText(feedbackLine) : "";
 </script>
 
 <div class="hub-root">

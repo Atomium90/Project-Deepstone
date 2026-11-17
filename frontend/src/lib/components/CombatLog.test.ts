@@ -17,7 +17,7 @@ describe("CombatLog", () => {
     });
 
     test("renders one line per log entry, in order, without the placeholder", () => {
-        const { container } = render(CombatLog, { log: ["You hit the Goblin.", "The Goblin hits back."] });
+        const { container } = render(CombatLog, { log: [{ key: "log.raw", params: { text: "You hit the Goblin." } }, { key: "log.raw", params: { text: "The Goblin hits back." } }] });
         const lines = Array.from(container.querySelectorAll(".log-line"));
         expect(lines.map((l) => l.textContent)).toEqual(["You hit the Goblin.", "The Goblin hits back."]);
         expect(lines.some((l) => l.classList.contains("muted"))).toBe(false);

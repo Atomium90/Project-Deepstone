@@ -1,8 +1,10 @@
 <script lang="ts">
     import { afterUpdate } from "svelte";
     import { t } from "../engine/i18n";
+    import { logText } from "../engine/logText";
+    import type { LogLine } from "../engine/protocol";
 
-    export let log: string[] = [];
+    export let log: LogLine[] = [];
 
     /** What the panel is called: the log of a fight and the log of the exploration share it. */
     export let title: string | null = null;
@@ -21,7 +23,7 @@
     <p class="log-title">{title ?? $t("log.combat")}</p>
     <ul class="log-list" bind:this={logEl}>
         {#each log as line, i (i)}
-            <li class="log-line">{line}</li>
+            <li class="log-line">{$logText(line)}</li>
         {/each}
         {#if log.length === 0}
             <li class="log-line muted">{$t("log.empty")}</li>

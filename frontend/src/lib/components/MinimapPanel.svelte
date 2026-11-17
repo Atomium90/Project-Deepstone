@@ -2,7 +2,8 @@
     import { minimap } from "../engine/StateStore";
     import { layoutMinimap, NODE_SIZE, CHIP_SIZE, PAD_X } from "../engine/minimapGeometry";
     import { ROOM_ICONS, UNKNOWN_ICON, PIN_ICON, ARROW_ICONS } from "../engine/minimapIcons";
-    import { MINIMAP_COLORS as C, ROOM_TYPE_LABELS } from "../engine/constants";
+    import { MINIMAP_COLORS as C } from "../engine/constants";
+    import { t } from "../engine/i18n";
     import type { RoomTypeName } from "../engine/protocol";
 
     const ICON_SIZE = 22;
@@ -11,7 +12,7 @@
 
     const LEGEND_TYPES: RoomTypeName[] = ["combat", "loot", "rest", "fork", "miniboss", "boss", "sanctuary"];
 
-    $: geometry = $minimap ? layoutMinimap($minimap) : null;
+    $: geometry = $minimap ? layoutMinimap($minimap, $t) : null;
 
     /** The glyph of a room: its type's icon, or a question mark while the type is hidden. */
     function iconFor(roomType: RoomTypeName | null): readonly string[] {
@@ -39,7 +40,7 @@
             viewBox="0 0 {geometry.width} {geometry.height}"
             style="max-width:{geometry.width}px"
             role="img"
-            aria-label="Dungeon map"
+            aria-label={$t("minimap.aria")}
         >
             {#each geometry.sections as s (s.section.index)}
                 <text class="section-title" data-section x={s.x} y={s.baseline}>
@@ -98,37 +99,37 @@
                     <span class="swatch visited t-{type}">
                         <svg width="14" height="14" viewBox="0 0 24 24">{#each ROOM_ICONS[type] as d}<path {d} />{/each}</svg>
                     </span>
-                    {ROOM_TYPE_LABELS[type]}
+                    {$t(`room.${type}`)}
                 </li>
             {/each}
             <li>
                 <span class="swatch current">
                     <svg width="14" height="14" viewBox="0 0 24 24">{#each PIN_ICON as d}<path {d} />{/each}</svg>
                 </span>
-                You are here
+                {$t("minimap.legend.here")}
             </li>
             <li>
                 <span class="swatch known t-boss">
                     <svg width="14" height="14" viewBox="0 0 24 24">{#each ROOM_ICONS.boss as d}<path {d} />{/each}</svg>
                 </span>
-                Known, not visited
+                {$t("minimap.legend.known")}
             </li>
             <li>
                 <span class="swatch closed">
                     <svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 5 L19 19 M19 5 L5 19" /></svg>
                 </span>
-                Closed, no way back
+                {$t("minimap.legend.closed")}
             </li>
             <li>
                 <span class="swatch unknown">
                     <svg width="14" height="14" viewBox="0 0 24 24">{#each UNKNOWN_ICON as d}<path {d} />{/each}</svg>
                 </span>
-                Unexplored
+                {$t("minimap.legend.unexplored")}
             </li>
         </ul>
     </div>
 {:else}
-    <p class="muted">The map is only available during a run.</p>
+    <p class="muted">{$t("minimap.unavailable")}</p>
 {/if}
 
 <style>

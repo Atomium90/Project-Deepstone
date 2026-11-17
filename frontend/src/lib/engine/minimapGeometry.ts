@@ -1,5 +1,5 @@
 import type { Direction, MinimapEdgeView, MinimapNodeView, MinimapSectionView, MinimapView } from "./protocol";
-import { ROOM_TYPE_LABELS, THEME_LABELS } from "./constants";
+import { dictionaries, translate, type Translator } from "./i18n";
 
 // All in SVG user units, which the panel scales to its width.
 
@@ -80,7 +80,8 @@ export interface MinimapGeometry {
   edges: PlacedEdge[];
 }
 
-const WALL_NAMES: Record<Direction, string> = { UP: "top", DOWN: "bottom", LEFT: "left", RIGHT: "right" };
+/** The English texts, for a caller that does not pass a translator of its own. */
+const english: Translator = (key, params) => translate(dictionaries, "en", key, params);
 
 function kindOf(node: MinimapNodeView): NodeKind {
   if (node.current) return "current";
@@ -90,19 +91,19 @@ function kindOf(node: MinimapNodeView): NodeKind {
   return "unknown";
 }
 
-function labelOf(node: MinimapNodeView): string {
+function labelOf(node: MinimapNodeView, tr: Translator): string {
   // A room that can no longer be reached says nothing of what it was: the player is not told what
   // they missed, even for a room whose type was known in advance.
-  if (node.closed && !node.visited) return "Closed";
-  if (node.roomType === null) return "Unexplored";
-  const name = ROOM_TYPE_LABELS[node.roomType];
-  return node.visited ? name : `${name} (not visited)`;
+  if (node.closed && !node.visited) return tr("minimap.closed");
+  if (node.roomType === null) return tr("minimap.unexplored");
+  const name = tr(`room.${node.roomType}`);
+  return node.visited ? name : tr("minimap.notVisited", { name });
 }
 
 /** Works out where everything on the map goes. A section is a row; a row with a fork has two lanes,
  * the rooms on the fork's branches sit on one lane each and every other room of that row sits on the
  * middle line between them. */
-export function layoutMinimap(map: MinimapView): MinimapGeometry {
+export function layoutMinimap(map: MinimapView, tr: Translator = english): MinimapGeometry {
   const maxColumn = Math.max(0, ...map.nodes.map((n) => n.column));
   const width = PAD_X * 2 + maxColumn * COLUMN_PITCH + NODE_SIZE;
 
@@ -129,7 +130,7 @@ export function layoutMinimap(map: MinimapView): MinimapGeometry {
       x: PAD_X + node.column * COLUMN_PITCH,
       y: (tops.get(node.section) ?? 0) + SECTION_HEADER_HEIGHT + PIN_HEIGHT + laneOffset,
       kind: kindOf(node),
-      label: labelOf(node),
+      label: labelOf(node, tr),
     };
   });
   const placedById = new Map(nodes.map((p) => [p.node.id, p]));
@@ -159,7 +160,7 @@ export function layoutMinimap(map: MinimapView): MinimapGeometry {
           x: x1 + (x2 - x1) * CHIP_POSITION - CHIP_SIZE / 2,
           y: y1 + (y2 - y1) * CHIP_POSITION - CHIP_SIZE / 2,
           direction: edge.exit,
-          label: `Take the door on the ${WALL_NAMES[edge.exit]} wall`,
+          label: tr(`minimap.exit.${edge.exit}`),
         }
       : null;
 
@@ -167,8 +168,11 @@ export function layoutMinimap(map: MinimapView): MinimapGeometry {
   }
 
   const sections: PlacedSection[] = map.sections.map((section) => {
-    const title = `Section ${section.index + 1}`;
-    const theme = THEME_LABELS[section.theme] ?? section.theme;
+    const title = tr("minimap.section", { n: section.index + 1 });
+    // A theme with no text is shown by its id.
+    const themeKey = `theme.${section.theme}`;
+    const themeText = tr(themeKey);
+    const theme = themeText === themeKey ? section.theme : themeText;
     const top = tops.get(section.index) ?? 0;
     // Starts to the right of the room column, so the link coming down from the previous section
     // does not run through the title.

@@ -6,7 +6,6 @@
     import { t } from "../engine/i18n";
     import {
         PLAYER_CLASS_COLORS,
-        CURRENCY_NAME,
         CLASS_INFO,
         CLASS_UNLOCK_UPGRADE_ID,
         DIFFICULTY_INFO,
@@ -121,7 +120,7 @@
         if (requirement.winsDone < requirement.wins) {
             lines.push(
                 $t("hub.difficulty.needWins", {
-                    tier: DIFFICULTY_INFO[requirement.winsAt].label,
+                    tier: $t(`difficulty.${requirement.winsAt}.name`),
                     done: requirement.winsDone,
                     wins: requirement.wins,
                 }),
@@ -130,7 +129,7 @@
         if (requirement.shardsSpentDone < requirement.shardsSpent) {
             lines.push(
                 $t("hub.difficulty.needShards", {
-                    currency: CURRENCY_NAME,
+                    currency: $t("currency.name"),
                     done: requirement.shardsSpentDone,
                     needed: requirement.shardsSpent,
                 }),
@@ -181,7 +180,7 @@
         <div class="shards">
             <img class="shards-symbol" src={ICON_SHARD} alt="" />
             <span class="shards-amount">{shards}</span>
-            <span class="shards-label">{CURRENCY_NAME}</span>
+            <span class="shards-label">{$t("currency.name")}</span>
         </div>
     </header>
 
@@ -210,9 +209,9 @@
                             <img class="lock-badge" src={ICON_LOCK} alt="" />
                         {/if}
                         <img class="class-icon" src={info.icon} alt="" />
-                        <span class="class-name">{info.label}</span>
-                        <span class="class-desc">{info.description}</span>
-                        <span class="class-affinity">Affinity: {info.affinity}</span>
+                        <span class="class-name">{$t(`class.${c}.name`)}</span>
+                        <span class="class-desc">{$t(`class.${c}.desc`)}</span>
+                        <span class="class-affinity">Affinity: {$t(`class.${c}.affinity`)}</span>
                     </button>
                 {/each}
             </div>
@@ -231,13 +230,13 @@
                         disabled={!unlocked}
                         style="--accent: {color}"
                         on:click={() => selectDifficulty(d)}
-                        title={unlocked ? info.description : missingFor(tiers.find((tier) => tier.id === d)).join(" · ")}
+                        title={unlocked ? $t(`difficulty.${d}.desc`) : missingFor(tiers.find((tier) => tier.id === d)).join(" · ")}
                     >
                         {#if !unlocked}
                             <img class="lock-badge" src={ICON_LOCK} alt="" />
                         {/if}
                         <span class="difficulty-icon">{info.icon}</span>
-                        <span class="difficulty-name">{info.label}</span>
+                        <span class="difficulty-name">{$t(`difficulty.${d}.name`)}</span>
                     </button>
                 {/each}
             </div>
@@ -248,7 +247,7 @@
 
             {#if nextLockedTier}
                 <p class="difficulty-hint">
-                    {$t("hub.difficulty.next", { tier: DIFFICULTY_INFO[nextLockedTier.id].label })}
+                    {$t("hub.difficulty.next", { tier: $t(`difficulty.${nextLockedTier.id}.name`) })}
                     {#each missingFor(nextLockedTier) as line}
                         <span class="difficulty-need">{line}</span>
                     {/each}
@@ -258,7 +257,7 @@
             <button class="start-btn" on:click={startRun}>
                 ▶ Start Run
                 <span class="start-class">
-                    as {CLASS_INFO[selectedClass].label} · {DIFFICULTY_INFO[selectedDifficulty].label}
+                    as {$t(`class.${selectedClass}.name`)} · {$t(`difficulty.${selectedDifficulty}.name`)}
                 </span>
             </button>
         </section>

@@ -1,5 +1,5 @@
 import { writable, derived, type Readable } from "svelte/store";
-import type { StateUpdate } from "./protocol";
+import type { LogLine, StateUpdate } from "./protocol";
 import { GameClient } from "./GameClient";
 
 /** How many equipped weapon/armor/accessory pieces carry each setId - the same counting rule as
@@ -51,12 +51,12 @@ export const gamePhase = derived(gameState, ($s) => $s?.phase ?? null);
  * history of the run. */
 export const LOG_HISTORY_SIZE = 10;
 
-const fightLog = writable<string[]>([]);
-const walkLog = writable<string[]>([]);
+const fightLog = writable<LogLine[]>([]);
+const walkLog = writable<LogLine[]>([]);
 let phaseBefore: StateUpdate["phase"] | null = null;
 
 /** The latest `LOG_HISTORY_SIZE` lines once `added` follow `lines`. */
-const keepLatest = (lines: string[], added: string[]): string[] => [...lines, ...added].slice(-LOG_HISTORY_SIZE);
+const keepLatest = (lines: LogLine[], added: LogLine[]): LogLine[] => [...lines, ...added].slice(-LOG_HISTORY_SIZE);
 
 // Every update carries only the lines of its own action, so the two logs are built here from the
 // updates that go by. The log of a fight tells that fight only. The log of the exploration is kept
@@ -87,12 +87,12 @@ gameState.subscribe(($s) => {
 
 /** The log of the fight going on, `LOG_HISTORY_SIZE` lines at most, from its first line. Drives the
  * log of CombatScreen. */
-export const combatLog: Readable<string[]> = { subscribe: fightLog.subscribe };
+export const combatLog: Readable<LogLine[]> = { subscribe: fightLog.subscribe };
 
 /** The log of the exploration, `LOG_HISTORY_SIZE` lines at most, kept from one fight to the next and
  * fed by what happens outside the fights, plus the fight that begins and what its victory brings.
  * Cleared when a run begins and when the connection is lost. Drives the log of ExplorationHUD. */
-export const explorationLog: Readable<string[]> = { subscribe: walkLog.subscribe };
+export const explorationLog: Readable<LogLine[]> = { subscribe: walkLog.subscribe };
 
 /** Derived convenience: achievements newly earned by the most recent action, if any - cleared back
  * to [] on the next update that doesn't earn a new one. Drives AchievementToast.svelte. */

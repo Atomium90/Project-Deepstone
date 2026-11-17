@@ -210,7 +210,7 @@ describe("watchHints", () => {
         const state = makeState({ equipment: makeEquipment({ weapon: makeItem({ typeTag: "heavy" }) }) });
         gameState.set(state);
         dismissHint(); // controls
-        gameState.set({ ...state, log: ["moved"] });
+        gameState.set({ ...state, log: [{ key: "log.door.pass", params: { direction: "UP" } }] });
         expect(get(activeHint)).toBe("affinity");
     });
 
@@ -224,7 +224,7 @@ describe("watchHints", () => {
     test("shows no second hint while one is on screen", () => {
         const state = makeState({ equipment: makeEquipment({ weapon: makeItem({ typeTag: "heavy" }) }) });
         gameState.set(state);
-        gameState.set({ ...state, log: ["moved"] });
+        gameState.set({ ...state, log: [{ key: "log.door.pass", params: { direction: "UP" } }] });
         expect(get(activeHint)).toBe("controls");
         dismissHint();
         expect(get(activeHint)).toBeNull();
@@ -233,7 +233,7 @@ describe("watchHints", () => {
     test("never shows a hint twice", () => {
         gameState.set(makeState());
         dismissHint();
-        gameState.set(makeState({ log: ["moved"] }));
+        gameState.set(makeState({ log: [{ key: "log.door.pass", params: { direction: "UP" } }] }));
         expect(get(activeHint)).toBeNull();
     });
 

@@ -338,6 +338,13 @@ export interface ItemStats {
   turns?: number;
 }
 
+/** One line of the log: a key (`log.combat.strike`) and what goes into its text. A param that names
+ * something of the game holds an id (an enemy type, an item type...), never a display name. */
+export interface LogLine {
+  key: string;
+  params: Record<string, string | number>;
+}
+
 /** A single item as seen by the client, whether equipped, in the potion belt, or shown in a
  * pickup choice. */
 export interface ItemView {
@@ -533,7 +540,9 @@ export interface StateUpdate {
   sets: SetView[];
   /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
   victory: boolean;
-  log: string[];
+  /** What happened, as lines of data: a key into the language file and the ids and figures that go
+   * into its text. The server writes no words, see logText.ts. */
+  log: LogLine[];
   /** On the update that ends a won fight: how many of the first lines of `log` only tell the blows
    * exchanged, which belong to the log of the fight and to no other. The lines after them tell what the
    * victory brings (the enemy fallen, the XP, the loot) and belong to the exploration log too. Absent,

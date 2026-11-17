@@ -50,7 +50,7 @@
                 style="border-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}; background-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}1a"
             >
                 <span class="item-name">{$catalog.itemName(choice.newItem)}</span>
-                <span class="item-stat" class:off-affinity={isOffAffinity(choice.newItem)}>{choice.newItem.statLine}</span>
+                <span class="item-stat" class:off-affinity={isOffAffinity(choice.newItem)}>{$catalog.itemStatLine(choice.newItem)}</span>
             </div>
 
             <!-- Weapon/armor naturally offer a single option here; accessories/potions can offer
@@ -64,7 +64,7 @@
                                 ? ` ${$t("item.stack", { count: option.current.count })}`
                                 : ""}
                         </span>
-                        <span class="option-stat" class:off-affinity={isOffAffinity(option.current)}>{option.current.statLine}</span>
+                        <span class="option-stat" class:off-affinity={isOffAffinity(option.current)}>{$catalog.itemStatLine(option.current)}</span>
                         <span class="option-action">{$t("equip.replace")}</span>
                     </button>
                 {/each}

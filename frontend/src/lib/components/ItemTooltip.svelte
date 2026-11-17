@@ -23,7 +23,7 @@
 <div class="item-tooltip">
     <p class="tooltip-name" style="color:{ITEM_RARITY_COLORS[item.rarity]}">{$catalog.itemName(item)}</p>
     <p class="tooltip-kind">{$t(`itemKind.${item.kind}`)}{item.count && item.count > 1 ? ` · ${$t("item.stack", { count: item.count })}` : ""}</p>
-    <p class="tooltip-stat" class:off-affinity={offAffinity}>{item.statLine}</p>
+    <p class="tooltip-stat" class:off-affinity={offAffinity}>{$catalog.itemStatLine(item)}</p>
     {#if item.setId}
         <div class="tooltip-set" style="--set-accent:{ITEM_RARITY_COLORS.epic}">
             <p class="set-name">{$t("set.partOf", { name: setView ? $catalog.setName(setView) : item.setId, count: setCount })}</p>

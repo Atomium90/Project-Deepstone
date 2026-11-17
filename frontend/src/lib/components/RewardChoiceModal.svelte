@@ -59,7 +59,7 @@
                         on:click={() => pick(option)}
                     >
                         <span class="option-name"><KeyHint key={String(i + 1)} />{$catalog.itemName(option)}</span>
-                        <span class="option-stat" class:off-affinity={isOffAffinity(option)}>{option.statLine}</span>
+                        <span class="option-stat" class:off-affinity={isOffAffinity(option)}>{$catalog.itemStatLine(option)}</span>
                         <span class="option-action">{$t("reward.take")}</span>
                     </button>
                 {/each}

@@ -305,7 +305,7 @@
                                 on:click={() => useItem(item)}
                         >
                             <span class="picker-name"><KeyHint key={String(i + 1)} />{$catalog.itemName(item)}{item.count && item.count > 1 ? ` ${$t("item.stack", { count: item.count })}` : ""}</span>
-                            <span class="picker-stat">{item.statLine}</span>
+                            <span class="picker-stat">{$catalog.itemStatLine(item)}</span>
                             <span class="picker-rarity" style="color:{ITEM_RARITY_COLORS[item.rarity]}">
                                 {$t(`rarity.${item.rarity}`)}
                             </span>

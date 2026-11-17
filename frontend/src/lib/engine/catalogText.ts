@@ -1,6 +1,13 @@
 import { derived, type Readable } from "svelte/store";
-import { dictionaries, language, lookup, translate } from "./i18n";
+import { dictionaries, language, lookup, translate, type TranslateParams } from "./i18n";
 import type { AbilityView, AchievementView, ItemView, PerkView, SetView, UpgradeView } from "./protocol";
+
+const STAT_ORDER = [
+  ["maxHp", "item.stat.maxHp"],
+  ["attack", "item.stat.attack"],
+  ["defense", "item.stat.defense"],
+  ["critChance", "item.stat.crit"],
+] as const;
 
 /**
  * The names and descriptions of the game's catalogs (items, enemies, perks, upgrades, achievements,
@@ -11,6 +18,8 @@ import type { AbilityView, AchievementView, ItemView, PerkView, SetView, Upgrade
  */
 export interface CatalogText {
   itemName(item: Pick<ItemView, "typeId" | "name">): string;
+  /** The one-line stat summary of an item ("+8 ATK [heavy]", "Heal 30 HP"). */
+  itemStatLine(item: Pick<ItemView, "statLine" | "stats" | "typeTag">): string;
   enemyName(typeId: string, fallback: string): string;
   perkLabel(perk: Pick<PerkView, "id" | "label">): string;
   perkDescription(perk: Pick<PerkView, "id" | "description">): string;
@@ -22,7 +31,7 @@ export interface CatalogText {
   abilityDescription(ability: Pick<AbilityView, "id" | "description">): string;
   abilityResource(ability: Pick<AbilityView, "id" | "resourceName">): string;
   setName(set: Pick<SetView, "id" | "name">): string;
-  setBonus(set: Pick<SetView, "id" | "bonus2pcLabel" | "bonus4pcLabel">, pieces: 2 | 4): string;
+  setBonus(set: Pick<SetView, "bonus2pcLabel" | "bonus4pcLabel" | "bonus2pc" | "bonus4pc">, pieces: 2 | 4): string;
 }
 
 /** Builds the catalog texts for one language. Exported for tests. */
@@ -31,6 +40,26 @@ export function catalogTextFor(language: string): CatalogText {
     lookup(dictionaries, language, key) === null ? fallback : translate(dictionaries, language, key);
   return {
     itemName: (item) => text(`item.${item.typeId}.name`, item.name),
+    itemStatLine: (item) => {
+      const stats = item.stats;
+      if (!stats) return item.statLine;
+      const tr = (key: string, params: TranslateParams): string => translate(dictionaries, language, key, params);
+      if (stats.effect) {
+        // A turn count is passed as `count`, which picks the singular or plural text.
+        return tr(`item.effect.${stats.effect}`, {
+          ...(stats.amount !== undefined ? { amount: stats.amount } : {}),
+          ...(stats.percent !== undefined ? { percent: stats.percent } : {}),
+          ...(stats.turns !== undefined ? { count: stats.turns } : {}),
+        });
+      }
+      const parts = STAT_ORDER.flatMap(([field, key]) => {
+        const value = stats[field];
+        return value === undefined ? [] : [tr(key, { value })];
+      });
+      if (parts.length === 0) return item.statLine;
+      const tag = item.typeTag ? ` ${tr("item.stat.tag", { tag: tr(`tag.${item.typeTag}`, {}) })}` : "";
+      return parts.join(", ") + tag;
+    },
     enemyName: (typeId, fallback) => text(`enemy.${typeId}`, fallback),
     perkLabel: (perk) => text(`perk.${perk.id}.label`, perk.label),
     perkDescription: (perk) => text(`perk.${perk.id}.desc`, perk.description),
@@ -42,8 +71,12 @@ export function catalogTextFor(language: string): CatalogText {
     abilityDescription: (ability) => text(`ability.${ability.id}.desc`, ability.description),
     abilityResource: (ability) => text(`ability.${ability.id}.resource`, ability.resourceName),
     setName: (set) => text(`set.${set.id}.name`, set.name),
-    setBonus: (set, pieces) =>
-      text(`set.${set.id}.bonus${pieces}`, pieces === 2 ? set.bonus2pcLabel : set.bonus4pcLabel),
+    setBonus: (set, pieces) => {
+      const bonus = pieces === 2 ? set.bonus2pc : set.bonus4pc;
+      const label = pieces === 2 ? set.bonus2pcLabel : set.bonus4pcLabel;
+      if (!bonus) return label;
+      return text(`set.effect.${bonus.effect}`, label).replace("{value}", String(bonus.value));
+    },
   };
 }
 

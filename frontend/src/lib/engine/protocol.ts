@@ -323,6 +323,21 @@ export interface HubView {
   shopClosed?: boolean;
 }
 
+/** The numbers behind an item's stat line, already resolved for the viewing player (the
+ * affinity-doubled values where that applies). Equipment fills the stat fields it has; a consumable
+ * or a key names its `effect` with the figures that go with it. The client writes the line. */
+export interface ItemStats {
+  maxHp?: number;
+  attack?: number;
+  defense?: number;
+  critChance?: number;
+  /** "healFixed" | "healPercent" | "restoreResource" | "attackBuff" | "flatDamage" | "critBuff" | "opensDoor". */
+  effect?: string;
+  amount?: number;
+  percent?: number;
+  turns?: number;
+}
+
 /** A single item as seen by the client, whether equipped, in the potion belt, or shown in a
  * pickup choice. */
 export interface ItemView {
@@ -334,6 +349,8 @@ export interface ItemView {
   /** One-line stat summary, e.g. "+3 ATK" or "Heal 30 HP". Already resolved server-side for the
    * viewing player's class - the affinity-doubled value when applicable, not a flat baseline. */
   statLine: string;
+  /** The same figures as `statLine`, as data, for the client to write the line in its language. */
+  stats?: ItemStats;
   /** Atlas sprite key hint for the item's icon. Undefined until an icon pack is chosen and
    * items.json gains real values - falls back to a plain color box client-side. */
   iconId?: string;
@@ -434,6 +451,15 @@ export interface SetView {
   classId: ClassId;
   bonus2pcLabel: string;
   bonus4pcLabel: string;
+  /** The two bonuses as an effect id and a figure, for the client to write them. */
+  bonus2pc?: SetBonusView;
+  bonus4pc?: SetBonusView;
+}
+
+/** One set bonus as data: the effect ("MaxHpPercent", "FlatDefense"...) and its figure (0 when it has none). */
+export interface SetBonusView {
+  effect: string;
+  value: number;
 }
 
 /** A room type as named on the wire. */

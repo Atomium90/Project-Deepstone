@@ -877,5 +877,18 @@
     "enemy.lich.the": "la Liche",
     "enemy.lich.The": "La Liche",
     "enemy.ogre_warlord.the": "le Seigneur de guerre ogre",
-    "enemy.ogre_warlord.The": "Le Seigneur de guerre ogre"
+    "enemy.ogre_warlord.The": "Le Seigneur de guerre ogre",
+    "controls.title": "Contrôles",
+    "controls.help": "Cliquez sur une touche, puis appuyez sur celle que vous voulez. Échap annule. Les flèches déplacent toujours.",
+    "controls.press": "Appuyez sur une touche…",
+    "controls.reset": "Rétablir les contrôles",
+    "controls.reserved": "Cette touche ne peut pas être utilisée.",
+    "controls.taken": "Déjà utilisée pour : {action}.",
+    "controls.action.moveUp": "Aller en haut",
+    "controls.action.moveDown": "Aller en bas",
+    "controls.action.moveLeft": "Aller à gauche",
+    "controls.action.moveRight": "Aller à droite",
+    "controls.action.interact": "Interagir",
+    "controls.action.equipment": "Équipement",
+    "controls.action.map": "Carte"
 }

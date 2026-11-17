@@ -877,5 +877,18 @@
     "enemy.lich.the": "the Lich",
     "enemy.lich.The": "The Lich",
     "enemy.ogre_warlord.the": "the Ogre Warlord",
-    "enemy.ogre_warlord.The": "The Ogre Warlord"
+    "enemy.ogre_warlord.The": "The Ogre Warlord",
+    "controls.title": "Controls",
+    "controls.help": "Click a key, then press the one you want. Escape cancels. The arrow keys always move.",
+    "controls.press": "Press a key…",
+    "controls.reset": "Reset controls",
+    "controls.reserved": "That key cannot be used.",
+    "controls.taken": "Already used for: {action}.",
+    "controls.action.moveUp": "Move up",
+    "controls.action.moveDown": "Move down",
+    "controls.action.moveLeft": "Move left",
+    "controls.action.moveRight": "Move right",
+    "controls.action.interact": "Interact",
+    "controls.action.equipment": "Equipment",
+    "controls.action.map": "Map"
 }

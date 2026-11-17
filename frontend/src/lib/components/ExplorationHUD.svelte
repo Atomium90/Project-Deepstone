@@ -157,7 +157,7 @@
     $: player          = $gameState?.player;
     $: equipment       = $gameState?.equipment;
     $: abilities       = $gameState?.abilities ?? [];
-    $: resourceLabel   = player ? abilities.find((a) => a.classId === player.classId)?.resourceName ?? "Resource" : "Resource";
+    $: resourceLabel   = player ? abilities.find((a) => a.classId === player.classId)?.resourceName ?? $t("stat.resource") : $t("stat.resource");
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : COLOR_ENTITY_FALLBACK;
 
     /** Weapon + armor + 2 accessory slots + the potion belt, in one flat display grid. */
@@ -180,7 +180,7 @@
 -->
 <div class="hud-root">
     <div class="exploration-log">
-        <CombatLog log={$explorationLog} title="Exploration Log" />
+        <CombatLog log={$explorationLog} title={$t("log.exploration")} />
     </div>
 
     <div class="hud-main" bind:this={hudMainEl}>
@@ -204,25 +204,25 @@
                 <div class="class-badge">{$t(`class.${player.classId}.name`).toUpperCase()}</div>
 
                 <!-- HP -->
-                <StatBar layout="column" label="HP" current={player.hp} max={player.maxHp} color={HP_BAR_COLOR} />
+                <StatBar layout="column" label={$t("stat.hp")} current={player.hp} max={player.maxHp} color={HP_BAR_COLOR} />
 
                 <!-- Resource -->
                 <StatBar layout="column" label={resourceLabel} current={player.resourceCurrent} max={player.resourceMax} color={resourceColor} />
 
                 <!-- Level / XP -->
                 <div class="stat-block inline">
-                    <span class="stat-label">Level</span>
+                    <span class="stat-label">{$t("stat.level")}</span>
                     <span class="stat-value">{player.level}</span>
                 </div>
 
                 <div class="stat-block inline">
-                    <span class="stat-label">XP</span>
+                    <span class="stat-label">{$t("stat.xp")}</span>
                     <span class="stat-value">{player.xp}</span>
                 </div>
 
                 <!-- Equipment -->
                 <div class="inv-section">
-                    <span class="stat-label">Equipment</span>
+                    <span class="stat-label">{$t("hud.equipment")}</span>
                     <div class="inv-grid">
                         {#each slots as item}
                             <EquipSlotBox {item} size={40} />
@@ -233,7 +233,12 @@
                     {/if}
                 </div>
 
-                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E<br />Equipment: I<br />Map: M{#if isDebugRoom}<br />Debug room: ç / à{/if}</p>
+                <p class="controls-hint">
+                    {$t("hud.move", { keys: $t("hud.moveKeys") })}<br />
+                    {$t("hud.interact", { key: "E" })}<br />
+                    {$t("hud.equipmentKey", { key: "I" })}<br />
+                    {$t("hud.map", { key: "M" })}{#if isDebugRoom}<br />{$t("hud.debugRoom", { keys: "ç / à" })}{/if}
+                </p>
             </aside>
         {/if}
     </div>

@@ -1,10 +1,11 @@
 <script lang="ts">
     import { afterUpdate } from "svelte";
+    import { t } from "../engine/i18n";
 
     export let log: string[] = [];
 
     /** What the panel is called: the log of a fight and the log of the exploration share it. */
-    export let title = "Combat Log";
+    export let title: string | null = null;
 
     let logEl: HTMLUListElement;
 
@@ -17,13 +18,13 @@
 </script>
 
 <div class="log-wrapper">
-    <p class="log-title">{title}</p>
+    <p class="log-title">{title ?? $t("log.combat")}</p>
     <ul class="log-list" bind:this={logEl}>
         {#each log as line, i (i)}
             <li class="log-line">{line}</li>
         {/each}
         {#if log.length === 0}
-            <li class="log-line muted">No events yet.</li>
+            <li class="log-line muted">{$t("log.empty")}</li>
         {/if}
     </ul>
 </div>

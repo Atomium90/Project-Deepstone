@@ -110,7 +110,7 @@
     $: abilities      = $gameState?.abilities ?? [];
 
     $: abilityInfo     = player ? abilities.find((a) => a.classId === player.classId) ?? null : null;
-    $: resourceLabel   = abilityInfo?.resourceName ?? "Resource";
+    $: resourceLabel   = abilityInfo?.resourceName ?? $t("stat.resource");
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : "#888";
     $: isPlayerTurn    = combat?.isPlayerTurn ?? false;
 
@@ -197,7 +197,7 @@
             {/if}
             <p class="combatant-name">{player ? $t(`class.${player.classId}.name`).toUpperCase() : "—"}</p>
 
-            <StatBar label="HP" current={player?.hp ?? 0} max={player?.maxHp ?? 0} color={HP_BAR_COLOR} />
+            <StatBar label={$t("stat.hp")} current={player?.hp ?? 0} max={player?.maxHp ?? 0} color={HP_BAR_COLOR} />
             <StatBar label={resourceLabel} current={player?.resourceCurrent ?? 0} max={player?.resourceMax ?? 0} color={resourceColor} />
 
             {#if player?.stats}
@@ -217,11 +217,11 @@
 
         <!-- VS divider -->
         <div class="vs-divider">
-            <span>VS</span>
+            <span>{$t("combat.vs")}</span>
             {#if isPlayerTurn}
-                <span class="turn-badge player-turn">Your turn</span>
+                <span class="turn-badge player-turn">{$t("combat.yourTurn")}</span>
             {:else}
-                <span class="turn-badge enemy-turn">Enemy turn</span>
+                <span class="turn-badge enemy-turn">{$t("combat.enemyTurn")}</span>
             {/if}
         </div>
 
@@ -238,7 +238,7 @@
             {/if}
             <p class="combatant-name">{enemyName}</p>
 
-            <StatBar label="HP" current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0}
+            <StatBar label={$t("stat.hp")} current={combat?.enemyHp ?? 0} max={combat?.enemyMaxHp ?? 0}
                      color={combat?.isElite ? COLOR_ENTITY_ELITE : HP_BAR_COLOR} />
 
             {#each floaters.filter((f) => !f.targetIsPlayer) as f (f.id)}
@@ -258,7 +258,7 @@
                     disabled={!isPlayerTurn}
                     on:click={() => sendAction("ATTACK")}
             >
-                <span class="action-label"><KeyHint key="1" />⚔ Attack</span>
+                <span class="action-label"><KeyHint key="1" />⚔ {$t("combat.attack")}</span>
             </button>
 
             <button
@@ -266,7 +266,7 @@
                     disabled={!isPlayerTurn}
                     on:click={() => sendAction("DEFEND")}
             >
-                <span class="action-label"><KeyHint key="2" />🛡 Defend</span>
+                <span class="action-label"><KeyHint key="2" />🛡 {$t("combat.defend")}</span>
             </button>
 
             <button
@@ -275,7 +275,7 @@
                     title={abilityInfo?.description ?? ""}
                     on:click={() => sendAction("ABILITY")}
             >
-                <span class="action-label"><KeyHint key="3" />✦ {abilityInfo?.name ?? "Ability"}</span>
+                <span class="action-label"><KeyHint key="3" />✦ {abilityInfo?.name ?? $t("combat.ability")}</span>
                 <span class="ability-cost">
                     {effectiveAbilityCost ?? 0} {resourceLabel}
                 </span>
@@ -286,24 +286,24 @@
                     class="action-btn item"
                     class:active={itemPickerOpen}
                     disabled={!isPlayerTurn || !hasConsumables}
-                    title={hasConsumables ? "Use a consumable" : "No consumables in inventory"}
+                    title={hasConsumables ? $t("combat.useConsumable") : $t("combat.noConsumables")}
                     on:click={toggleItemPicker}
             >
-                <span class="action-label"><KeyHint key="4" />⊕ Item {hasConsumables ? `(${totalConsumableCharges})` : ""}</span>
+                <span class="action-label"><KeyHint key="4" />⊕ {$t("combat.item")} {hasConsumables ? `(${totalConsumableCharges})` : ""}</span>
             </button>
         </div>
 
         <!-- Consumable picker (shown when Item button is toggled) -->
         {#if itemPickerOpen && isPlayerTurn}
             <div class="item-picker">
-                <p class="picker-title">Choose a consumable <span class="picker-back"><KeyHint key="0" />back</span></p>
+                <p class="picker-title">{$t("combat.chooseConsumable")} <span class="picker-back"><KeyHint key="0" />{$t("combat.back")}</span></p>
                 <div class="picker-list">
                     {#each consumables as item, i}
                         <button
                                 class="picker-row"
                                 on:click={() => useItem(item)}
                         >
-                            <span class="picker-name"><KeyHint key={String(i + 1)} />{item.name}{item.count && item.count > 1 ? ` x${item.count}` : ""}</span>
+                            <span class="picker-name"><KeyHint key={String(i + 1)} />{item.name}{item.count && item.count > 1 ? ` ${$t("item.stack", { count: item.count })}` : ""}</span>
                             <span class="picker-stat">{item.statLine}</span>
                             <span class="picker-rarity" style="color:{ITEM_RARITY_COLORS[item.rarity]}">
                                 {$t(`rarity.${item.rarity}`)}

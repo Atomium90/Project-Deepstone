@@ -406,7 +406,7 @@ class CombatResolverSuite extends FunSuite:
     events match
       case Nil => () // player may not have died this turn, inconclusive
       case _ =>
-        assert(events.exists { case GameEvent.RunEnded(victory, _, _) => !victory; case _ => false },
+        assert(events.exists { case GameEvent.RunEnded(victory, _, _, _) => !victory; case _ => false },
                s"expected RunEnded(false): $events"
         )
 

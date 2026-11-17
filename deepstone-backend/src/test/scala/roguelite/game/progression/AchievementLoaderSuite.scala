@@ -19,7 +19,8 @@ class AchievementLoaderSuite extends CatsEffectSuite:
       |  {"id":"test_amount","label":"L","description":"d","displayOrder":3,"condition":{"type":"TotalShardsSpent","amount":100}},
       |  {"id":"test_count","label":"L","description":"d","displayOrder":4,"condition":{"type":"RunsWon","count":3}},
       |  {"id":"test_rarity","label":"L","description":"d","displayOrder":5,"condition":{"type":"LootRarity","rarity":"epic"}},
-      |  {"id":"test_difficulty","label":"L","description":"d","displayOrder":6,"condition":{"type":"WinOnDifficulty","difficulty":"hard"}}
+      |  {"id":"test_difficulty","label":"L","description":"d","displayOrder":6,"condition":{"type":"WinOnDifficulty","difficulty":"hard"}},
+      |  {"id":"test_risky","label":"L","description":"d","displayOrder":7,"condition":{"type":"WinWithRiskyPerk"}}
       |]""".stripMargin
 
   test("an achievement is shown from the start unless it says it is hidden"):
@@ -35,7 +36,7 @@ class AchievementLoaderSuite extends CatsEffectSuite:
 
   test("loadAllFromJson keys each entry by its id"):
     for defs <- AchievementLoader.loadAllFromJson(fixture)
-    yield assertEquals(defs.size, 6)
+    yield assertEquals(defs.size, 7)
 
   test("every condition shape decodes to its own case class"):
     for defs <- AchievementLoader.loadAllFromJson(fixture)
@@ -46,6 +47,7 @@ class AchievementLoaderSuite extends CatsEffectSuite:
       assertEquals(defs("test_count").condition, AchievementCondition.RunsWon(3))
       assertEquals(defs("test_rarity").condition, AchievementCondition.LootRarity(Rarity.Epic))
       assertEquals(defs("test_difficulty").condition, AchievementCondition.WinOnDifficulty(Difficulty.Hard))
+      assertEquals(defs("test_risky").condition, AchievementCondition.WinWithRiskyPerk)
 
   test("ReachLevel missing its 'level' field fails to parse"):
     val bad = """[{"id":"x","label":"L","description":"d","displayOrder":1,"condition":{"type":"ReachLevel"}}]"""

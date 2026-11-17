@@ -1154,6 +1154,34 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(meta.currency, 160, "the bonus is saved with the run")
   }
 
+  db.test("winning a Hard run with a risky perk unlocks risk_taker, and the perk does not count among the perks won with") {
+    database =>
+      val tiers = Map(
+        Difficulty.Easy   -> DifficultyTierDef(Difficulty.Easy, None, List("dungeon")),
+        Difficulty.Normal -> DifficultyTierDef(Difficulty.Normal, None, List("dungeon")),
+        Difficulty.Hard   -> DifficultyTierDef(Difficulty.Hard, None, List("dungeon"))
+      )
+      val risky = PerkDef("daring", "Daring", "d", icon = "*", effect = PerkEffect.EnemyStatPercent(10), risky = true, shardBonusPercent = 10)
+      val riskTaker = AchievementDef("risk_taker", "Risk Taker", "d", 99, AchievementCondition.WinWithRiskyPerk)
+      for
+        _       <- database.saveStoryState(5, None)
+        _       <- seedFirstVictory(database)
+        session <- GameSession.create(smWithRest, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs + (riskTaker.id -> riskTaker),
+                                      rng = Random(0L), sceneDefs = testScenes, chapterDefs = endingChapters, npcDefs = endingNpcs,
+                                      perkDefs = Map(risky.id -> risky), difficultyDefs = tiers)
+        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Hard), riskyPerkId = Some("daring")))
+        _       <- List.fill(5)(goThroughDoor(session)).foldLeft(IO.unit)((acc, door) => acc *> door.void)
+        _       <- session.handle(Interact("sanct_1"))
+        _       <- session.handle(CardSeen("ch6"))
+        entered <- session.handle(EndingChoice(EndingAnswer.Enter))
+        stats   <- database.loadAchievementStats()
+      yield
+        assertEquals(entered.phase, GamePhase.GameOver)
+        assert(entered.newlyUnlocked.exists(_.id == "risk_taker"), s"expected risk_taker: ${entered.newlyUnlocked}")
+        assertEquals(stats.perksWonWith, Set.empty[String])
+  }
+
   db.test("a perk that pays a win bonus pays nothing when the light is refused, which gives every Shard up") {
     database =>
       for

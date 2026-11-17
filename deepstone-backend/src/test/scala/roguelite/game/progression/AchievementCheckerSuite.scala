@@ -446,6 +446,35 @@ class AchievementCheckerSuite extends FunSuite:
     assert(!repeatOfExisting.map(_.id).contains("jack_of_all_trades"))
   }
 
+  test("winning with a risky perk unlocks risk_taker; losing with it, or winning without it, does not") {
+    val riskTaker = defOf("risk_taker", AchievementCondition.WinWithRiskyPerk)
+    def ids(victory: Boolean, risky: Option[String]): List[String] =
+      AchievementChecker
+        .checkEvents(Map(riskTaker.id -> riskTaker),
+                     Set.empty,
+                     AchievementStats.empty,
+                     List(GameEvent.RunEnded(victory, Difficulty.Hard, activePerkId = None, riskyPerkId = risky))
+        )
+        ._2
+        .map(_.id)
+    assertEquals(ids(victory = true, Some("hunted")), List("risk_taker"))
+    assertEquals(ids(victory = false, Some("hunted")), Nil)
+    assertEquals(ids(victory = true, None), Nil)
+  }
+
+  test("a risky perk is not one of the kinds of perk won with, so it never feeds jack_of_all_trades") {
+    val fourDistinct =
+      AchievementStats(perksWonWith = Set("heavy_hand", "herbalist_blessing", "efficient_casting", "lucky_find"))
+    val (stats, unlocked) = AchievementChecker.checkEvents(
+      allDefs,
+      Set.empty,
+      fourDistinct,
+      List(GameEvent.RunEnded(victory = true, difficulty = Difficulty.Hard, activePerkId = None, riskyPerkId = Some("hunted")))
+    )
+    assertEquals(stats.perksWonWith, fourDistinct.perksWonWith)
+    assert(!unlocked.map(_.id).contains("jack_of_all_trades"))
+  }
+
   test("a win that crosses all three run-count thresholds unlocks veteran, champion, and win_streak together") {
     val startingStats = AchievementStats(runsCompleted = 4, runsWon = 4, currentWinStreak = 4)
     val (_, unlocked) = AchievementChecker.checkEvents(

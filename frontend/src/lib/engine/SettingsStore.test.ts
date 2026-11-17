@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, vi } from "vitest";
 import { get } from "svelte/store";
 
 const STORAGE_KEY = "deepstone-settings";
-const DEFAULTS = { reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en" };
+const DEFAULTS = { reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en", keys: {} };
 
 /** loadSettings() runs once at module import time, reading whatever is in localStorage at that
  * moment - so each scenario needs a fresh module instance (vi.resetModules) after seeding storage,
@@ -33,7 +33,7 @@ describe("SettingsStore", () => {
     test("a save from before showHints existed gets it switched on", async () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ reduceScreenShake: true, sfxVolume: 20, musicVolume: 30 }));
         const { settings } = await import("./SettingsStore");
-        expect(get(settings)).toEqual({ reduceScreenShake: true, sfxVolume: 20, musicVolume: 30, showHints: true, language: "en" });
+        expect(get(settings)).toEqual({ reduceScreenShake: true, sfxVolume: 20, musicVolume: 30, showHints: true, language: "en", keys: {} });
     });
 
     test("a stored language that has a file is kept", async () => {
@@ -65,7 +65,7 @@ describe("SettingsStore", () => {
 
     test("persists updates back to localStorage", async () => {
         const { settings } = await import("./SettingsStore");
-        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90, showHints: false, language: "en" };
+        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90, showHints: false, language: "en", keys: {} };
         settings.set(updated);
         expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual(updated);
     });
@@ -75,7 +75,7 @@ describe("SettingsStore", () => {
         const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
             throw new Error("QuotaExceededError");
         });
-        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90, showHints: false, language: "en" };
+        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90, showHints: false, language: "en", keys: {} };
         expect(() => settings.set(updated)).not.toThrow();
         expect(get(settings)).toEqual(updated);
         setItemSpy.mockRestore();

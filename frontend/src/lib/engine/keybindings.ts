@@ -32,6 +32,67 @@ export const DEFAULT_BINDINGS: Bindings = {
   map: { key: "m" },
 };
 
+/** The keys a player has set, by action: the place of the key (`KeyboardEvent.code`). An action with
+ * no entry is on its default key. */
+export type KeyOverrides = Partial<Record<KeyAction, string>>;
+
+/** Punctuation keys a player can bind, besides the letters. Digits stay for the choices of fights and
+ * windows, and Space, Enter, Escape, Tab, the arrows and the modifiers belong to the game. */
+const BINDABLE_PUNCTUATION = new Set([
+  "Backquote",
+  "Minus",
+  "Equal",
+  "BracketLeft",
+  "BracketRight",
+  "Backslash",
+  "Semicolon",
+  "Quote",
+  "Comma",
+  "Period",
+  "Slash",
+]);
+
+/** Whether a key place can be given to an action. */
+export function isBindableCode(code: string): boolean {
+  return /^Key[A-Z]$/.test(code) || BINDABLE_PUNCTUATION.has(code);
+}
+
+/** The action, other than `except`, that a key press is already on, or null when it is free. */
+export function takenBy(press: KeyPress, except: KeyAction, bindings: Bindings): KeyAction | null {
+  return KEY_ACTIONS.find((action) => action !== except && pressMatches(bindings[action], press)) ?? null;
+}
+
+/** The bindings in use: the defaults, with the keys the player has set in place of theirs. */
+export function resolveBindings(overrides: KeyOverrides): Bindings {
+  const resolved: Bindings = { ...DEFAULT_BINDINGS };
+  for (const action of KEY_ACTIONS) {
+    const code = overrides[action];
+    if (code !== undefined) resolved[action] = { code };
+  }
+  return resolved;
+}
+
+/**
+ * The keys a stored value really sets: an unknown action, a key that cannot be bound, or a key an
+ * action before it already has is left out (a hand-edited or older save must never leave an unknown
+ * key behind or two actions on one place).
+ */
+export function sanitizeOverrides(raw: unknown): KeyOverrides {
+  if (typeof raw !== "object" || raw === null) return {};
+  const stored = raw as Record<string, unknown>;
+  const kept: KeyOverrides = {};
+  for (const action of KEY_ACTIONS) {
+    const code = stored[action];
+    if (typeof code !== "string" || !isBindableCode(code)) continue;
+    const bindings = resolveBindings(kept);
+    // Only a key place held by another action is checked: a letter binding (E, I, M) is told apart by the
+    // character, which a stored place does not carry. The window that sets keys checks the real press.
+    if (takenBy({ key: "", code }, action, bindings) !== null) continue;
+    kept[action] = code;
+  }
+  return kept;
+}
+
 /** The arrow keys always move, whatever the bindings are. */
 const ARROWS: Record<string, KeyAction> = {
   ArrowUp: "moveUp",

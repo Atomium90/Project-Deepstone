@@ -1,8 +1,9 @@
-import { derived, readable, writable } from "svelte/store";
-import { DEFAULT_BINDINGS, keyTexts, type Bindings, type LayoutMap } from "./keybindings";
+import { derived, writable, type Readable } from "svelte/store";
+import { resolveBindings, keyTexts, type Bindings, type LayoutMap } from "./keybindings";
+import { settings } from "./SettingsStore";
 
-/** The keys the game reads while exploring. */
-export const bindings = readable<Bindings>(DEFAULT_BINDINGS);
+/** The keys the game reads while exploring: the defaults, with the ones the player set in Settings. */
+export const bindings: Readable<Bindings> = derived(settings, ($settings) => resolveBindings($settings.keys));
 
 /** What the keys type on this keyboard, once the browser has said (Chromium does, Firefox and Safari
  * do not): lets the texts say "Z" for the key that is W on QWERTY on an AZERTY keyboard. */

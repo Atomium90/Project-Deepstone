@@ -38,7 +38,7 @@ describe("CharacterScreen", () => {
         await fireEvent.click(settingsTab);
 
         expect(container.querySelector(".equipment-panel")).toBeNull();
-        expect(container.querySelectorAll(".setting-row")).toHaveLength(6);
+        expect(container.querySelectorAll(".setting-row")).toHaveLength(7);
     });
 
     test("the Credits tab is there with no run going, and shows the credits panel", async () => {
@@ -130,8 +130,21 @@ describe("CharacterScreen", () => {
         });
     });
 
+    test("the language selector lists every language by its own name and drives the setting", async () => {
+        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en" });
+        characterTab.set("settings");
+        const { container } = render(CharacterScreen);
+        const select = container.querySelector(".language-select") as HTMLSelectElement;
+        expect(Array.from(select.options).map((o) => o.textContent)).toEqual(["English", "Français"]);
+        expect(select.value).toBe("en");
+
+        await fireEvent.change(select, { target: { value: "fr" } });
+        expect(get(settings).language).toBe("fr");
+        settings.update((s) => ({ ...s, language: "en" }));
+    });
+
     test("the reduce-screen-shake checkbox is bound to the settings store", async () => {
-        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true });
+        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en" });
         characterTab.set("settings");
         const { container } = render(CharacterScreen);
         const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;

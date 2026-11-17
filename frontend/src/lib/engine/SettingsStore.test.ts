@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, vi } from "vitest";
 import { get } from "svelte/store";
 
 const STORAGE_KEY = "deepstone-settings";
-const DEFAULTS = { reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true };
+const DEFAULTS = { reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en" };
 
 /** loadSettings() runs once at module import time, reading whatever is in localStorage at that
  * moment - so each scenario needs a fresh module instance (vi.resetModules) after seeding storage,
@@ -33,12 +33,39 @@ describe("SettingsStore", () => {
     test("a save from before showHints existed gets it switched on", async () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ reduceScreenShake: true, sfxVolume: 20, musicVolume: 30 }));
         const { settings } = await import("./SettingsStore");
-        expect(get(settings)).toEqual({ reduceScreenShake: true, sfxVolume: 20, musicVolume: 30, showHints: true });
+        expect(get(settings)).toEqual({ reduceScreenShake: true, sfxVolume: 20, musicVolume: 30, showHints: true, language: "en" });
+    });
+
+    test("a stored language that has a file is kept", async () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ language: "fr" }));
+        const { settings } = await import("./SettingsStore");
+        expect(get(settings).language).toBe("fr");
+    });
+
+    test("a stored language with no file falls back to the detected one", async () => {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ language: "xx" }));
+        const { settings } = await import("./SettingsStore");
+        expect(get(settings).language).toBe("en");
+    });
+
+    test("with no stored language, the browser's preferred language is used", async () => {
+        const spy = vi.spyOn(navigator, "languages", "get").mockReturnValue(["fr-CA", "en"]);
+        const { settings } = await import("./SettingsStore");
+        expect(get(settings).language).toBe("fr");
+        spy.mockRestore();
+    });
+
+    test("changing the language drives the language store and the page's lang attribute", async () => {
+        const { settings } = await import("./SettingsStore");
+        const i18n = await import("./i18n");
+        settings.update((s) => ({ ...s, language: "fr" }));
+        expect(get(i18n.language)).toBe("fr");
+        expect(document.documentElement.lang).toBe("fr");
     });
 
     test("persists updates back to localStorage", async () => {
         const { settings } = await import("./SettingsStore");
-        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90, showHints: false };
+        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90, showHints: false, language: "en" };
         settings.set(updated);
         expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual(updated);
     });
@@ -48,7 +75,7 @@ describe("SettingsStore", () => {
         const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
             throw new Error("QuotaExceededError");
         });
-        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90, showHints: false };
+        const updated = { reduceScreenShake: true, sfxVolume: 10, musicVolume: 90, showHints: false, language: "en" };
         expect(() => settings.set(updated)).not.toThrow();
         expect(get(settings)).toEqual(updated);
         setItemSpy.mockRestore();

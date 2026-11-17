@@ -5,7 +5,7 @@ import { gameState } from "../engine/StateStore";
 import type { StateUpdate, ItemView } from "../engine/protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "i1", typeId: "t1", name: "Iron Sword", kind: "weapon", rarity: "common", statLine: "+3 ATK", ...overrides };
+    return { id: "i1", typeId: "t1", kind: "weapon", rarity: "common", stats: { attack: 3 }, ...overrides };
 }
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -36,13 +36,13 @@ describe("EquipSlotBox", () => {
     });
 
     test("shows an abbreviation fallback (first letter of each word) when the item has no iconId", () => {
-        const { container } = render(EquipSlotBox, { item: makeItem({ name: "Iron Sword", iconId: undefined }) });
-        expect(container.querySelector(".abbrev")?.textContent).toBe("IS");
+        const { container } = render(EquipSlotBox, { item: makeItem({ typeId: "silver_spear", iconId: undefined }) });
+        expect(container.querySelector(".abbrev")?.textContent).toBe("SS");
     });
 
     test("caps the abbreviation at 2 characters for a longer name", () => {
-        const { container } = render(EquipSlotBox, { item: makeItem({ name: "Practice Sword Of Doom", iconId: undefined }) });
-        expect(container.querySelector(".abbrev")?.textContent).toBe("PS");
+        const { container } = render(EquipSlotBox, { item: makeItem({ typeId: "wooden_emerald_bow", iconId: undefined }) });
+        expect(container.querySelector(".abbrev")?.textContent).toBe("WE");
     });
 
     test("shows a stack count badge only when count > 1", () => {

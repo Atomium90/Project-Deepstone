@@ -118,18 +118,17 @@ describe("catalog texts", () => {
 
 describe("catalogTextFor", () => {
     test("reads the text of an id, in the language asked", () => {
-        expect(catalogTextFor("en").itemName({ typeId: "steel_plate", name: "Server name" })).toBe("Steel Plate");
+        expect(catalogTextFor("en").itemName({ typeId: "steel_plate" })).toBe("Steel Plate");
     });
 
-    test("falls back to the server's text for an id with no key", () => {
-        expect(catalogTextFor("en").itemName({ typeId: "no_such_item", name: "Server name" })).toBe("Server name");
-        expect(catalogTextFor("en").enemyName("no_such_enemy", "Server label")).toBe("Server label");
+    test("shows the id itself when it has no text, so a missing text is noticed", () => {
+        expect(catalogTextFor("en").itemName({ typeId: "no_such_item" })).toBe("no_such_item");
+        expect(catalogTextFor("en").enemyName("no_such_enemy")).toBe("no_such_enemy");
+        expect(catalogTextFor("en").perkLabel({ id: "no_such_perk" })).toBe("no_such_perk");
     });
 
     test("writes a set bonus from its effect and figure", () => {
         const set = {
-            bonus2pcLabel: "x",
-            bonus4pcLabel: "y",
             bonus2pc: { effect: "MaxHpPercent", value: 5 },
             bonus4pc: { effect: "FlatDefense", value: 2 },
         };
@@ -137,16 +136,10 @@ describe("catalogTextFor", () => {
         expect(catalogTextFor("en").setBonus(set, 4)).toBe("+2 flat DEF in combat");
     });
 
-    test("a set bonus with no data falls back to the server's label", () => {
-        const set = { bonus2pcLabel: "label 2", bonus4pcLabel: "label 4" };
-        expect(catalogTextFor("en").setBonus(set, 2)).toBe("label 2");
-        expect(catalogTextFor("en").setBonus(set, 4)).toBe("label 4");
-    });
 });
 
 describe("item stat lines", () => {
-    const line = (stats: ItemStats | undefined, typeTag?: string, statLine = "server line"): string =>
-        catalogTextFor("en").itemStatLine({ stats, typeTag, statLine });
+    const line = (stats: ItemStats, typeTag?: string): string => catalogTextFor("en").itemStatLine({ stats, typeTag });
 
     test("a weapon or armor shows its figure with its affinity tag", () => {
         expect(line({ attack: 8 }, "heavy")).toBe("+8 ATK [heavy]");
@@ -170,10 +163,6 @@ describe("item stat lines", () => {
         expect(line({ effect: "opensDoor" })).toBe("Opens a locked door");
     });
 
-    test("an item with no data keeps the server's line", () => {
-        expect(line(undefined)).toBe("server line");
-        expect(line({})).toBe("server line");
-    });
 
     test("every consumable effect and affinity tag the server can send has a text", () => {
         const effects = ["healFixed", "healPercent", "restoreResource", "flatDamage", "opensDoor"];

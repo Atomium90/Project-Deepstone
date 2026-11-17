@@ -3,7 +3,7 @@ import { chestSpriteKey, entitySpriteKey, isEntityInteractable } from "./entityS
 import type { EntityView } from "./protocol";
 
 function entity(kind: EntityView["kind"], state?: EntityView["state"]): EntityView {
-  return { id: "e1", kind, x: 1, y: 1, label: "x", state };
+  return { id: "e1", kind, x: 1, y: 1, state };
 }
 
 describe("chestSpriteKey", () => {

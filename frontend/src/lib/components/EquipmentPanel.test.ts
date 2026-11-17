@@ -5,11 +5,11 @@ import { gameState } from "../engine/StateStore";
 import type { StateUpdate, ItemView, SetView, EquipmentView } from "../engine/protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "i1", typeId: "t1", name: "Item", kind: "weapon", rarity: "common", statLine: "+3 ATK", setId: "light_soldier", ...overrides };
+    return { id: "i1", typeId: "t1", kind: "weapon", rarity: "common", stats: { attack: 3 }, setId: "light_soldier", ...overrides };
 }
 
 function makeSet(overrides: Partial<SetView> = {}): SetView {
-    return { id: "light_soldier", name: "Light Soldier", classId: "warrior", bonus2pcLabel: "+5% max HP", bonus4pcLabel: "+2 flat DEF", ...overrides };
+    return { id: "light_soldier", classId: "warrior", bonus2pc: { effect: "MaxHpPercent", value: 5 }, bonus4pc: { effect: "FlatDefense", value: 2 }, ...overrides };
 }
 
 function makeEquipment(overrides: Partial<EquipmentView> = {}): EquipmentView {

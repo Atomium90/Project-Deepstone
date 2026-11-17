@@ -17,7 +17,7 @@ import {
 import type { StateUpdate, ItemView, EquipmentView, MinimapView, LogLine } from "./protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "i1", typeId: "t1", name: "Item", kind: "weapon", rarity: "common", statLine: "+1 ATK", ...overrides };
+    return { id: "i1", typeId: "t1", kind: "weapon", rarity: "common", stats: { attack: 1 }, ...overrides };
 }
 
 function makeEquipment(overrides: Partial<EquipmentView> = {}): EquipmentView {
@@ -162,7 +162,7 @@ describe("StateStore derived stores", () => {
     test("transient fields (newlyUnlocked/damageEvents/soundEvents) clear on the next update that omits them", () => {
         gameState.set(
             makeState({
-                newlyUnlocked: [{ id: "a1", label: "L", description: "D", unlocked: true }],
+                newlyUnlocked: [{ id: "a1", unlocked: true }],
                 damageEvents: [{ targetIsPlayer: false, amount: 5, kind: "damage", crit: false }],
                 soundEvents: ["pickup"],
             })

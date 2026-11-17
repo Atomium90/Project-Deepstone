@@ -1,6 +1,7 @@
 package roguelite.game.story
 
 import roguelite.engine.Difficulty
+import roguelite.game.core.LogLine
 
 /** How the story moves forward, as pure transitions of [[StoryProgress]]. */
 object StoryRules:
@@ -66,11 +67,11 @@ object StoryRules:
     *   the conversation offers one, since the client only knows what it was told: anything else is
     *   refused, and so is taking a vow while another one runs.
     */
-  def complete(progress: StoryProgress, encounter: Encounter, accept: Option[Boolean]): Either[String, StoryProgress] =
+  def complete(progress: StoryProgress, encounter: Encounter, accept: Option[Boolean]): Either[LogLine, StoryProgress] =
     (encounter.offeredVow, accept) match
-      case (Some(_), None)    => Left("This conversation ends with a vow, which needs an answer")
-      case (None, Some(_))    => Left("This conversation offers no vow")
-      case (Some(_), Some(true)) if VowRules.hasActive(progress) => Left("Another vow is already running")
+      case (Some(_), None)    => Left(LogLine.of("log.story.vowNeedsAnswer"))
+      case (None, Some(_))    => Left(LogLine.of("log.story.noVowOffered"))
+      case (Some(_), Some(true)) if VowRules.hasActive(progress) => Left(LogLine.of("log.story.vowRunning"))
       case _ =>
         val answered = accept match
           case Some(taken) =>

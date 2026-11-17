@@ -2,8 +2,9 @@ package roguelite.engine
 
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
-import io.circe.{ Decoder, Encoder }
+import io.circe.{ Decoder, Encoder, Json }
 import roguelite.game.combat.Combat
+import roguelite.game.core.{ LogLine, LogValue }
 import roguelite.game.progression.UpgradeCategory
 import roguelite.game.items.{ EquipSlot, Item, ItemStats, Rarity }
 
@@ -673,7 +674,7 @@ case class StateUpdate(
       * the player died.
       */
     victory: Boolean = false,
-    log: List[String] = Nil,
+    log: List[LogLine] = Nil,
     /** On the update that ends a won fight: how many of the first lines of `log` only tell the blows
       * exchanged, which belong to the log of the fight and to no other. The lines after them tell what
       * the victory brings (the enemy fallen, the XP, the loot) and belong to the exploration log too.
@@ -840,6 +841,11 @@ object MessageProtocol:
     yield action
 
   // Views (server → client)
+  given Encoder[LogValue] = Encoder.instance:
+    case LogValue.Text(value) => Json.fromString(value)
+    case LogValue.Num(value)  => Json.fromInt(value)
+  given Encoder[LogLine]  = Encoder.instance: line =>
+    Json.obj("key" -> Json.fromString(line.key), "params" -> line.params.asJson)
   given Encoder[StatTermView] = deriveEncoder
   given Encoder[StatsView]    = deriveEncoder
   given Encoder[PlayerView]  = deriveEncoder

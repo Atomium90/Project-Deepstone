@@ -2,6 +2,7 @@ package roguelite.engine
 
 import cats.effect.IO
 import roguelite.game.combat.{ CombatResolver, EnemyStats }
+import roguelite.game.core.LogLine
 import roguelite.game.dungeon.{ Dungeon, DungeonBuilder, InteractionResolver, Room, Sanctuary }
 import roguelite.game.items.{ EquipmentResolver, Item, PickupOutcome, RewardChoiceResolver, SetDef }
 import roguelite.game.progression.{ ClassDef, DifficultyTierDef, PerkDef, PerkEffect }
@@ -79,7 +80,7 @@ class StateMachine(roomPool: Map[String, Room],
 
   /** Lifts a plain (state, log) transition result into the richer type `applyActionPure` returns,
     * so every action that reports no events can keep its existing shape untouched. */
-  private def lift(r: (GameState, List[String])): TransitionResult = TransitionResult(r._1, r._2)
+  private def lift(r: (GameState, List[LogLine])): TransitionResult = TransitionResult(r._1, r._2)
 
   def transition(state: GameState, action: PlayerAction): IO[TransitionResult] =
     IO.pure(applyActionPure(state, action))
@@ -105,9 +106,9 @@ class StateMachine(roomPool: Map[String, Room],
 
           (lockedBehind, classDefs.get(classId)) match {
             case (Some(u), _) =>
-              (hub, List(s"${u.label} required — purchase it in the hub to unlock this class."))
+              (hub, List(LogLine.of("log.run.classLocked", "upgrade" -> u.id)))
 
-            case (None, None) => (hub, List(s"Unknown class '$classId'. Cannot start run."))
+            case (None, None) => (hub, List(LogLine.of("log.run.unknownClass", "class" -> classId.toString.toLowerCase)))
 
             case (None, Some(classDef)) =>
               val difficulty = difficultyOpt.getOrElse(StateMachine.DefaultDifficulty)
@@ -115,7 +116,7 @@ class StateMachine(roomPool: Map[String, Room],
               val themes = difficultyDefs.get(difficulty).map(_.themes).getOrElse(Nil)
               DungeonBuilder(roomPool, rng, themes).build(difficulty = difficulty)() match {
                 case Left(err) =>
-                  (hub, List(s"Failed to build dungeon: $err"))
+                  (hub, List(LogLine.of("log.run.buildFailed", "error" -> err)))
 
                 case Right(dungeon) =>
                   val basePlayer = Player(
@@ -187,20 +188,20 @@ class StateMachine(roomPool: Map[String, Room],
                                       difficulty,
                                       enemyStats = enemyStats
                     )
-                  val perkLog = chosenPerk.map(p => s"Run perk active: ${p.label}").toList
-                  (nextState, s"A new run begins. Good luck, $classId." :: perkLog)
+                  val perkLog = chosenPerk.map(p => LogLine.of("log.run.perkActive", "perk" -> p.id)).toList
+                  (nextState, LogLine.of("log.run.begin", "class" -> classId.toString.toLowerCase) :: perkLog)
               }
           }
         })
 
       case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _, _, _)) =>
         // BuyUpgrade is intercepted by GameSession (needs DB access); reject here as a safety net
-        lift((hub, List("Upgrade purchases must be routed through GameSession.")))
+        lift((hub, List(LogLine.raw("Upgrade purchases must be routed through GameSession."))))
 
       case (hub: HubState, HubAction(HubActionType.DebugLoadRoom, _, _, _, _, _)) =>
         // DebugLoadRoom is intercepted by GameSession (needs IO to read the room file); reject
         // here as a safety net, same precedent as BuyUpgrade above.
-        lift((hub, List("Debug room loading must be routed through GameSession.")))
+        lift((hub, List(LogLine.raw("Debug room loading must be routed through GameSession."))))
 
       // Return to hub after death: GameSession enriches the HubState with real meta
       case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _, _, _)) =>
@@ -218,7 +219,7 @@ class StateMachine(roomPool: Map[String, Room],
         // MetaProgression.empty is a placeholder; GameSession replaces it with the real meta
         lift(
           (HubState(hubPlayer, upgradeDefs, MetaProgression.empty),
-           List("You return to the hub, wiser from your journey.")
+           List(LogLine.of("log.hub.return"))
           )
         )
 
@@ -277,12 +278,12 @@ class StateMachine(roomPool: Map[String, Room],
       case (exp: ExplorationState, SceneDone(_)) =>
         // SceneDone is intercepted by GameSession (the story it updates is saved to the database);
         // reject here as a safety net, same precedent as BuyUpgrade in the hub.
-        lift((exp, List("Conversations must be finished through GameSession.")))
+        lift((exp, List(LogLine.raw("Conversations must be finished through GameSession."))))
 
       case (exp: ExplorationState, EndingChoice(_, _)) =>
         // EndingChoice is intercepted by GameSession (what it changes is saved to the database);
         // reject here as a safety net, same precedent as SceneDone above.
-        lift((exp, List("The answer to the light must be given through GameSession.")))
+        lift((exp, List(LogLine.raw("The answer to the light must be given through GameSession."))))
 
       // -- Combat -----------------------------------------------------------
 
@@ -296,7 +297,9 @@ class StateMachine(roomPool: Map[String, Room],
         lift(
           (currentState,
            List(
-             s"Action ${invalidAction.getClass.getSimpleName} is not valid in state ${currentState.getClass.getSimpleName}."
+             LogLine.raw(
+               s"Action ${invalidAction.getClass.getSimpleName} is not valid in state ${currentState.getClass.getSimpleName}."
+             )
            )
           )
         )

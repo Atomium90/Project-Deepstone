@@ -1,6 +1,7 @@
 package roguelite.game.story
 
 import roguelite.engine.{ Difficulty, EndingAnswer }
+import roguelite.game.core.LogLine
 
 /** When the player is asked what to do with the light of the Sanctuary, and who could take their
   * place. Pure functions of what the story remembers.
@@ -35,14 +36,14 @@ object EndingRules:
   /** What the player's answer means, or why it is refused. Only letting someone take the player's
     * place names an NPC, and it must be one of the `candidates` the question listed.
     */
-  def ending(answer: EndingAnswer, npc: Option[String], candidates: List[String]): Either[String, Ending] =
+  def ending(answer: EndingAnswer, npc: Option[String], candidates: List[String]): Either[LogLine, Ending] =
     (answer, npc) match
       case (EndingAnswer.Enter, None)                                    => Right(Ending.Entered)
       case (EndingAnswer.Refuse, None)                                   => Right(Ending.Refused)
       case (EndingAnswer.Replace, Some(who)) if candidates.contains(who) => Right(Ending.Replaced(who))
-      case (EndingAnswer.Replace, Some(_))                               => Left("That one cannot take your place.")
-      case (EndingAnswer.Replace, None)                                  => Left("Say who takes your place.")
-      case (_, Some(_))                                                  => Left("Only letting someone take your place names who.")
+      case (EndingAnswer.Replace, Some(_))                               => Left(LogLine.of("log.ending.cannotReplace"))
+      case (EndingAnswer.Replace, None)                                  => Left(LogLine.of("log.ending.sayWho"))
+      case (_, Some(_))                                                  => Left(LogLine.of("log.ending.noWho"))
 
   /** The story once the player has given `ending` as their answer. Entering the light and refusing it
     * bring their card at once, and refusing also opens the Hardcore tier, which has a card of its own

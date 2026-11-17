@@ -8,7 +8,7 @@ import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, It
 
 import scala.util.Random
 
-/** Tests for run-perk effect resolution in [[CombatResolver]]: [[CombatResolver.activePerkEffect]]
+/** Tests for run-perk effect resolution in [[CombatResolver]]: [[CombatResolver.activePerkEffects]]
   * and each perk kind actually showing up in combat math, mirroring [[SetBonusSuite]]'s style for
   * the equivalent set-bonus tests.
   */
@@ -63,27 +63,27 @@ class PerkEffectSuite extends FunSuite:
     case _                => fail("expected CombatState (enemy should survive with 500 HP and 0 defense)")
 
   // -----------------------------------------------------------------------
-  // activePerkEffect
+  // activePerkEffects
   // -----------------------------------------------------------------------
 
   private val heavyHand = PerkDef("heavy_hand", "Heavy Hand", "+1 flat damage per hit this run",
                                   icon = "*", effect = PerkEffect.FlatDamageBonus(1)
   )
 
-  test("activePerkEffect is None when no perk is active") {
+  test("activePerkEffects is empty when no perk is active") {
     val resolver = CombatResolver(Random(1), perkDefs = Map(heavyHand.id -> heavyHand))
-    assertEquals(resolver.activePerkEffect(makePlayer()), None)
+    assertEquals(resolver.activePerkEffects(makePlayer()), Nil)
   }
 
-  test("activePerkEffect is None when the active perk id isn't in the loaded catalog") {
+  test("activePerkEffects is empty when the active perk id isn't in the loaded catalog") {
     val resolver = CombatResolver(Random(1), perkDefs = Map.empty)
-    assertEquals(resolver.activePerkEffect(makePlayer(activePerkId = Some("heavy_hand"))), None)
+    assertEquals(resolver.activePerkEffects(makePlayer(activePerkId = Some("heavy_hand"))), Nil)
   }
 
-  test("activePerkEffect resolves the active perk's effect from the catalog") {
+  test("activePerkEffects resolves the active perk's effects from the catalog") {
     val resolver = CombatResolver(Random(1), perkDefs = Map(heavyHand.id -> heavyHand))
-    assertEquals(resolver.activePerkEffect(makePlayer(activePerkId = Some("heavy_hand"))),
-                Some(PerkEffect.FlatDamageBonus(1))
+    assertEquals(resolver.activePerkEffects(makePlayer(activePerkId = Some("heavy_hand"))),
+                List(PerkEffect.FlatDamageBonus(1))
     )
   }
 

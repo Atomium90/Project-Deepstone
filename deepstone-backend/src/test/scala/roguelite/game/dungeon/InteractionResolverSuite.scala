@@ -615,6 +615,36 @@ class InteractionResolverSuite extends FunSuite:
     assertEquals(next.asInstanceOf[GameOverState].victory, true)
     assertEquals(events.size, 1)
 
+  test("Interact with Sanctuary pays the Shards of a risky perk for the win, and says so"):
+    val sanctuary = Sanctuary("s1", x = 3, y = 3)
+    val bargain   = PerkDef("bargain", "B", "d", "*", PerkEffect.EnemyStatPercent(15), risky = true, victoryShardBonus = 50)
+    val player    = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(activeRiskyPerkId = Some("bargain"), metaCurrency = 100)
+    val state     = ExplorationState(player, dungeonWith(List(sanctuary)), 3, 3)
+    val TransitionResult(next, log, _) = resolver(perkDefs = Map("bargain" -> bargain)).interact(state, "s1")
+    assertEquals(next.asInstanceOf[GameOverState].player.metaCurrency, 150)
+    assert(log.has("log.run.victoryBonus", "count" -> 50), s"expected the bonus line: $log")
+
+  test("Interact with Sanctuary pays nothing on a run that takes no blessing, nor once the altar is shut"):
+    val sanctuary = Sanctuary("s1", x = 3, y = 3)
+    val bargain   = PerkDef("bargain", "B", "d", "*", PerkEffect.EnemyStatPercent(15), risky = true, victoryShardBonus = 50)
+    val player    = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(activeRiskyPerkId = Some("bargain"), metaCurrency = 100)
+    val base      = ExplorationState(player, dungeonWith(List(sanctuary)), 3, 3)
+    for state <- List(base.copy(difficulty = Difficulty.Hardcore), base.copy(altarShut = true)) do
+      val TransitionResult(next, log, _) = resolver(perkDefs = Map("bargain" -> bargain)).interact(state, "s1")
+      assertEquals(next.asInstanceOf[GameOverState].player.metaCurrency, 100)
+      assert(!log.hasKey("log.run.victoryBonus"), s"expected no bonus line: $log")
+
+  test("a risky perk that makes enemies tougher scales the one the player meets, in HP and attack"):
+    val enemy  = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
+    val hunted = PerkDef("hunted", "H", "d", "*", PerkEffect.EnemyStatPercent(25), risky = true)
+    val player = PlayerFixtures.startingPlayer(ClassId.Warrior).copy(activeRiskyPerkId = Some("hunted"))
+    val state  = ExplorationState(player, dungeonWith(List(enemy)), 3, 3)
+    val plain  = resolver().interact(explorationAt(3, 3, entities = List(enemy)), "e1").state.asInstanceOf[CombatState].combat.enemy
+    val tough  = resolver(perkDefs = Map("hunted" -> hunted)).interact(state, "e1").state.asInstanceOf[CombatState].combat.enemy
+    assertEquals(tough.maxHp, math.round(plain.maxHp * 1.25).toInt)
+    assertEquals(tough.attack, math.round(plain.attack * 1.25).toInt)
+    assertEquals(tough.xpReward, plain.xpReward)
+
   test("a fight starts with the altar as shut as the exploration it started from"):
     val enemy = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
     val shut  = explorationAt(3, 3, entities = List(enemy)).copy(altarShut = true)

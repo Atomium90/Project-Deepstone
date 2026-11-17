@@ -41,7 +41,7 @@ case class Enemy(
     label: String,
     isElite: Boolean = false
 ) extends Entity:
-  def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, label = label, isElite = Some(isElite))
+  def toView: EntityView = EntityView(id = id, kind = "enemy", x = x, y = y, isElite = Some(isElite))
 
 /** Where a [[Chest]] is in its life, which decides both its sprite and whether interacting with it
   * can still do anything.
@@ -88,7 +88,7 @@ case class Chest(
   def emptied: Chest = copy(state = ChestState.OpenEmpty, contents = None)
 
   def toView: EntityView =
-    EntityView(id = id, kind = "chest", x = x, y = y, label = "Chest", state = Some(state.toProtocolString))
+    EntityView(id = id, kind = "chest", x = x, y = y, state = Some(state.toProtocolString))
 
 /** Sub-behavior of a [[Door]]. Normal doors always navigate to their resolved target; a Trapped door
   * springs on first use instead (see [[InteractionResolver]]'s trapped-door handling): it throws the
@@ -161,7 +161,7 @@ case class Door(
     revealed: Boolean = true
 ) extends Entity:
   def toView: EntityView =
-    EntityView(id = id, kind = "door", x = x, y = y, label = direction.toString, direction = Some(direction.toString.toUpperCase))
+    EntityView(id = id, kind = "door", x = x, y = y, direction = Some(direction.toString.toUpperCase))
 
 /** A passage gated by a matching [[Key]] in the player's inventory. Once `unlocked`, behaves
   * exactly like a normal [[Door]].
@@ -179,7 +179,7 @@ case class LockedDoor(
     unlocked: Boolean = false
 ) extends Entity:
   def toView: EntityView =
-    EntityView(id = id, kind = "locked_door", x = x, y = y, label = direction.toString, direction = Some(direction.toString.toUpperCase))
+    EntityView(id = id, kind = "locked_door", x = x, y = y, direction = Some(direction.toString.toUpperCase))
 
 /** A static, friendly character standing in a Rest room. Speaking to it opens a conversation that
   * depends on what the story remembers, see [[roguelite.engine.GameSession]]. The conversation is
@@ -200,7 +200,7 @@ case class Npc(
     y: Int,
     name: String
 ) extends Entity:
-  def toView: EntityView = EntityView(id = id, kind = "npc", x = x, y = y, label = name)
+  def toView: EntityView = EntityView(id = id, kind = "npc", x = x, y = y)
 
 /** The dungeon's one true ending marker, authored directly in rooms.json (mirrors [[Npc]], not
   * runtime-spawned like [[Shrine]] below) - exactly one per dungeon, always in the [[RoomType.Sanctuary]]
@@ -214,7 +214,7 @@ case class Sanctuary(id: String, x: Int, y: Int) extends Entity:
   // anchored top-left/expanding down-right for a simple, grid-aligned zone rather than trying to
   // replicate the centered sprite's uneven (and much fiddlier) pixel overlap tile-for-tile.
   override def occupiedTiles: List[(Int, Int)] = List((x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1))
-  def toView: EntityView = EntityView(id = id, kind = "sanctuary", x = x, y = y, label = "Sanctuary")
+  def toView: EntityView = EntityView(id = id, kind = "sanctuary", x = x, y = y)
 
 /** A reward marker left behind by a defeated [[RoomType.MiniBoss]] enemy (see
   * [[CombatResolver.victory]]) - never authored in rooms.json, only ever created at runtime.
@@ -226,4 +226,4 @@ case class Sanctuary(id: String, x: Int, y: Int) extends Entity:
   *   inscription of that relic (see [[roguelite.game.combat.EnemyStats.devoted]]).
   */
 case class Shrine(id: String, x: Int, y: Int, devoted: Option[Int] = None) extends Entity:
-  def toView: EntityView = EntityView(id = id, kind = "shrine", x = x, y = y, label = "Shrine")
+  def toView: EntityView = EntityView(id = id, kind = "shrine", x = x, y = y)

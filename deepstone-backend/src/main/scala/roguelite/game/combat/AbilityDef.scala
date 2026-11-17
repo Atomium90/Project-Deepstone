@@ -40,7 +40,7 @@ object AbilityDef:
     * Pure resolution shared by [[CombatResolver]] (the resource check/deduction) and the
     * `toStateUpdate` boundary (so the client sees the real, player-specific cost instead of the
     * static per-class catalog value) - same "resolve once at the view boundary" discipline already
-    * used for `PlayerView.maxHp`/`ItemView.statLine`.
+    * used for `PlayerView.maxHp`/`ItemView.stats`.
     */
   def effectiveCost(player: Player,
                     ability: AbilityDef,

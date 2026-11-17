@@ -3,6 +3,11 @@
 # closed on its own. Security fixes arrive the same way for the frontend. For sbt GitHub only
 # offers version updates, so the backend libraries are also checked by hand against the
 # advisories before a release (see RELEASING.md).
+#
+# The npm and sbt entries ignore the major versions the project cannot take yet, so that no pull
+# request is opened for them over and over: Svelte 5 (with the Vite, Vitest and svelte-check
+# majors it drags along, and TypeScript 7), sbt 2 and munit 1. Minor and patch updates of those
+# same libraries still come through. Take one off the list when the project is ready for it.
 version: 2
 
 updates:
@@ -35,6 +40,21 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      - dependency-name: "svelte"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "svelte-check"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@sveltejs/vite-plugin-svelte"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "vitest"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@vitest/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "sbt"
     directory: "/deepstone-backend"
@@ -51,3 +71,8 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      - dependency-name: "org.scala-sbt:sbt"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.scalameta:munit_3"
+        update-types: ["version-update:semver-major"]

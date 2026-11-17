@@ -105,6 +105,18 @@ class SetBonusSuite extends FunSuite:
     fourPiece = SetBonus(SetBonusEffect.FlatDefense(4), "+4 flat DEF")
   )
 
+  test("every bonus effect has an id and a figure, 0 for the one that has none"):
+    assertEquals(SetBonusEffect.MaxHpPercent(5).id, "MaxHpPercent")
+    assertEquals(SetBonusEffect.MaxHpPercent(5).value, 5)
+    assertEquals(SetBonusEffect.FlatDefense(2).id, "FlatDefense")
+    assertEquals(SetBonusEffect.FlatAttack(3).id, "FlatAttack")
+    assertEquals(SetBonusEffect.CritChancePercent(5).id, "CritChancePercent")
+    assertEquals(SetBonusEffect.AttackDamagePercent(10).id, "AttackDamagePercent")
+    assertEquals(SetBonusEffect.AbilityCostReductionPercent(15).value, 15)
+    assertEquals(SetBonusEffect.HealOnKillPercent(10).id, "HealOnKillPercent")
+    assertEquals(SetBonusEffect.FirstAttackAlwaysCrit.id, "FirstAttackAlwaysCrit")
+    assertEquals(SetBonusEffect.FirstAttackAlwaysCrit.value, 0)
+
   test("activeSetBonuses is empty with 0 or 1 pieces equipped") {
     val resolver = CombatResolver(Random(1), setDefs = Map("two_piece_set" -> twoPieceOnly))
     assertEquals(resolver.activeSetBonuses(withSetPieces(makePlayer(), "two_piece_set", 0)), Nil)

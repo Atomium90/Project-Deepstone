@@ -69,10 +69,18 @@ class StateUpdateProjectionsSuite extends FunSuite:
       AbilityView(ClassId.Warrior, "berserker_slash", "Berserker Slash", 40, "Rage", "Hit twice")
     )
 
-  test("a set def projects to its two bonus labels"):
+  test("a set def projects to its two bonus labels and its two bonuses as data"):
     assertEquals(
       StateUpdateProjections.toSetView(fireSet),
-      SetView("fire_mage", "Fire Mage", ClassId.Mage, "+2 ATK", "+5% crit")
+      SetView(
+        "fire_mage",
+        "Fire Mage",
+        ClassId.Mage,
+        "+2 ATK",
+        "+5% crit",
+        SetBonusView("FlatAttack", 2),
+        SetBonusView("CritChancePercent", 5)
+      )
     )
 
   test("every update carries the ability and set catalogs"):

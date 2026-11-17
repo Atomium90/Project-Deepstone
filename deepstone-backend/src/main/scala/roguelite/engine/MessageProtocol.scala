@@ -5,7 +5,7 @@ import io.circe.syntax.*
 import io.circe.{ Decoder, Encoder }
 import roguelite.game.combat.Combat
 import roguelite.game.progression.UpgradeCategory
-import roguelite.game.items.{ EquipSlot, Item, Rarity }
+import roguelite.game.items.{ EquipSlot, Item, ItemStats, Rarity }
 
 // -------------------
 // Shared enumerations
@@ -419,7 +419,11 @@ case class ItemView(
       * every other item kind, which never stacks - the client only shows a count badge when this
       * is present.
       */
-    count: Option[Int] = None
+    count: Option[Int] = None,
+    /** The numbers behind `statLine`, already resolved for the viewing player (affinity included),
+      * for the client to write the line in its own language. See [[roguelite.game.items.ItemStats]].
+      */
+    stats: ItemStats = ItemStats()
 )
 
 /** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses
@@ -609,8 +613,14 @@ case class SetView(id: String,
                    name: String,
                    classId: ClassId,
                    bonus2pcLabel: String,
-                   bonus4pcLabel: String
+                   bonus4pcLabel: String,
+                   /** The two bonuses as an effect id and a figure, for the client to write them. */
+                   bonus2pc: SetBonusView,
+                   bonus4pc: SetBonusView
 )
+
+/** One set bonus as data: the effect (see [[roguelite.game.items.SetBonusEffect.id]]) and its figure. */
+case class SetBonusView(effect: String, value: Int)
 
 /** Full game state snapshot sent by the server after every action. */
 case class StateUpdate(
@@ -853,6 +863,8 @@ object MessageProtocol:
   given Encoder[PendingEndingChoiceView] = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
+  given Encoder[ItemStats]       = deriveEncoder
+  given Encoder[SetBonusView]    = deriveEncoder
   given Encoder[SetView]         = deriveEncoder
   given Encoder[GodLineView]     = deriveEncoder
   given Encoder[MinimapSectionView] = deriveEncoder

@@ -106,6 +106,11 @@ sealed trait Item:
     */
   def effectiveStatLine(affinityTags: Set[String]): String = statLine
 
+  /** The numbers behind [[effectiveStatLine]], for the client to turn into text in its own
+    * language. Same affinity resolution, so the two always agree.
+    */
+  def effectiveStats(affinityTags: Set[String]): ItemStats
+
   /** Flavor text, e.g. "Warm to the touch, humming with barely-checked fury." Absent for every
     * item authored before the item-pool rework; not yet surfaced to the client (see ItemView).
     */
@@ -141,6 +146,8 @@ case class Weapon(
       case Some(tag) => s"+$effective ATK [$tag]"
       case None      => s"+$effective ATK"
     }
+  def effectiveStats(affinityTags: Set[String]): ItemStats =
+    ItemStats(attack = Some(attackBonus * Affinity.multiplier(typeTag, affinityTags)))
   def withNewId: Item  = copy(id = Item.newId())
 
 case class Armor(
@@ -165,6 +172,8 @@ case class Armor(
       case Some(tag) => s"+$effective DEF [$tag]"
       case None      => s"+$effective DEF"
     }
+  def effectiveStats(affinityTags: Set[String]): ItemStats =
+    ItemStats(defense = Some(defenseBonus * Affinity.multiplier(typeTag, affinityTags)))
   def withNewId: Item  = copy(id = Item.newId())
 
 /** Accessories may carry any combination of hpBonus/attackBonus/defenseBonus/critChanceBonus -
@@ -209,6 +218,15 @@ case class Accessory(
     ).flatten
     val tagSuffix = typeTag.map(tag => s" [$tag]").getOrElse("")
     parts.mkString(", ") + tagSuffix
+  def effectiveStats(affinityTags: Set[String]): ItemStats =
+    // Same rule as effectiveStatLine: hpBonus is never scaled by affinity.
+    val multiplier = Affinity.multiplier(typeTag, affinityTags)
+    ItemStats(
+      maxHp = hpBonus,
+      attack = attackBonus.map(_ * multiplier),
+      defense = defenseBonus.map(_ * multiplier),
+      critChance = critChanceBonus.map(_ * multiplier)
+    )
   def withNewId: Item  = copy(id = Item.newId())
 
 case class Consumable(
@@ -229,6 +247,7 @@ case class Consumable(
     case ConsumableEffect.FlatDamage(n)      => s"Deal $n damage"
     case ConsumableEffect.CritBuff(pct, t)   => s"+$pct% crit chance for $t turns"
   }
+  def effectiveStats(affinityTags: Set[String]): ItemStats = ItemStats.of(effect)
   def withNewId: Item = copy(id = Item.newId())
 
 /** What a [[Key]] is able to unlock. Only [[KeyKind.Generic]] has content in V0.2, the other
@@ -261,6 +280,7 @@ case class Key(
 ) extends Item:
   val kind = "key"
   def statLine: String = "Opens a locked door"
+  def effectiveStats(affinityTags: Set[String]): ItemStats = ItemStats(effect = Some(ItemStats.OpensDoor))
   def withNewId: Item = copy(id = Item.newId())
 
 object Item:

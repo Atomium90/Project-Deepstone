@@ -28,6 +28,28 @@ enum SetBonusEffect:
   /** Heal a percentage of the killing blow's damage as HP when an enemy is defeated. */
   case HealOnKillPercent(percent: Int)
 
+  /** Stable name of the effect, the key the client builds the bonus text from. */
+  def id: String = this match
+    case MaxHpPercent(_)                => "MaxHpPercent"
+    case FlatDefense(_)                 => "FlatDefense"
+    case FlatAttack(_)                  => "FlatAttack"
+    case CritChancePercent(_)           => "CritChancePercent"
+    case AttackDamagePercent(_)         => "AttackDamagePercent"
+    case FirstAttackAlwaysCrit          => "FirstAttackAlwaysCrit"
+    case AbilityCostReductionPercent(_) => "AbilityCostReductionPercent"
+    case HealOnKillPercent(_)           => "HealOnKillPercent"
+
+  /** The figure of the effect (a percentage or a flat amount), 0 for an effect that has none. */
+  def value: Int = this match
+    case MaxHpPercent(n)                => n
+    case FlatDefense(n)                 => n
+    case FlatAttack(n)                  => n
+    case CritChancePercent(n)           => n
+    case AttackDamagePercent(n)         => n
+    case FirstAttackAlwaysCrit          => 0
+    case AbilityCostReductionPercent(n) => n
+    case HealOnKillPercent(n)           => n
+
 /** One tier's payload within a set: the mechanical effect plus the exact flavor text from
   * sets.csv, shown as-is in tooltips/badges rather than derived from the effect at render time.
   */

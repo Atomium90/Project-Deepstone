@@ -39,7 +39,8 @@ private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty, 
       case a: Accessory => a.typeTag
       case _            => None
     },
-    count = count
+    count = count,
+    stats = item.effectiveStats(playerAffinityTags)
   )
 
 /** Coarse display label for a key kind - collapses `Specific`/`Typed`'s payload away, see

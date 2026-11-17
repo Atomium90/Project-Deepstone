@@ -270,6 +270,41 @@ class ItemLoaderSuite extends CatsEffectSuite:
     assertEquals(trinket.effectiveStatLine(Set("heavy")), trinket.statLine)
 
   // ---------------------------------------------
+  // Item.effectiveStats (pure) - the same numbers as the stat line, as data
+  // ---------------------------------------------
+
+  test("effectiveStats gives a Weapon's attack, doubled on an affinity match"):
+    val bow = Weapon("", "t", "Bow", Rarity.Common, attackBonus = 5, typeTag = Some("ranged"))
+    assertEquals(bow.effectiveStats(Set("ranged")), ItemStats(attack = Some(10)))
+    assertEquals(bow.effectiveStats(Set("heavy")), ItemStats(attack = Some(5)))
+
+  test("effectiveStats gives an Armor's defense, doubled on an affinity match"):
+    val plate = Armor("", "t", "Plate", Rarity.Common, defenseBonus = 4, typeTag = Some("heavy"))
+    assertEquals(plate.effectiveStats(Set("heavy")), ItemStats(defense = Some(8)))
+    assertEquals(plate.effectiveStats(Set.empty), ItemStats(defense = Some(4)))
+
+  test("effectiveStats gives only the fields an Accessory has, never scaling hpBonus"):
+    val trinket = Accessory("", "t", "Trinket", Rarity.Common, hpBonus = Some(10), typeTag = Some("magic"), attackBonus = Some(2), critChanceBonus = Some(4))
+    assertEquals(
+      trinket.effectiveStats(Set("magic")),
+      ItemStats(maxHp = Some(10), attack = Some(4), critChance = Some(8))
+    )
+
+  test("effectiveStats names the effect of each consumable with its figures"):
+    def stats(effect: ConsumableEffect): ItemStats =
+      Consumable("", "t", "Potion", Rarity.Common, effect).effectiveStats(Set.empty)
+    assertEquals(stats(ConsumableEffect.HealFixed(30)), ItemStats(effect = Some("healFixed"), amount = Some(30)))
+    assertEquals(stats(ConsumableEffect.HealPercent(25)), ItemStats(effect = Some("healPercent"), percent = Some(25)))
+    assertEquals(stats(ConsumableEffect.RestoreResource(20)), ItemStats(effect = Some("restoreResource"), amount = Some(20)))
+    assertEquals(stats(ConsumableEffect.AttackBuff(20, 3)), ItemStats(effect = Some("attackBuff"), percent = Some(20), turns = Some(3)))
+    assertEquals(stats(ConsumableEffect.FlatDamage(40)), ItemStats(effect = Some("flatDamage"), amount = Some(40)))
+    assertEquals(stats(ConsumableEffect.CritBuff(15, 2)), ItemStats(effect = Some("critBuff"), percent = Some(15), turns = Some(2)))
+
+  test("effectiveStats of a Key says it opens a locked door"):
+    val key = Key("", "t", "Key", Rarity.Common, KeyKind.Generic)
+    assertEquals(key.effectiveStats(Set.empty), ItemStats(effect = Some("opensDoor")))
+
+  // ---------------------------------------------
   // Rarity (pure)
   // ---------------------------------------------
 

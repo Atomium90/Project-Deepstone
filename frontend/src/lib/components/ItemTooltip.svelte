@@ -15,8 +15,8 @@
      * bonus, so the tooltip must reflect that rather than showing a misleading "active" state. */
     $: classMatches = setView !== undefined && setView.classId === $gameState?.player.classId;
 
-    /** True when this item carries an affinity tag the player's class doesn't have - statLine is
-     * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
+    /** True when this item carries an affinity tag the player's class doesn't have - the item's stats are
+     * already the correct (unscaled) numbers in that case, this only dims the line as a visual cue. */
     $: offAffinity = item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
 </script>
 

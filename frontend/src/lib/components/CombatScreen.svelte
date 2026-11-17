@@ -103,10 +103,10 @@
     $: enemyName = !combat
         ? "—"
         : combat.isElite
-          ? $t("combat.elite", { name: $catalog.enemyName(combat.enemyId, combat.enemyLabel) })
+          ? $t("combat.elite", { name: $catalog.enemyName(combat.enemyId) })
           : combat.isMiniBoss
-            ? $t("combat.miniboss", { name: $catalog.enemyName(combat.enemyId, combat.enemyLabel) })
-            : $catalog.enemyName(combat.enemyId, combat.enemyLabel);
+            ? $t("combat.miniboss", { name: $catalog.enemyName(combat.enemyId) })
+            : $catalog.enemyName(combat.enemyId);
     $: equipment      = $gameState?.equipment;
     $: abilities      = $gameState?.abilities ?? [];
 

@@ -30,8 +30,8 @@
         if (index !== null) pick(choice.options[index]);
     }
 
-    /** True when `item` carries an affinity tag the player's class doesn't have - `statLine` is
-     * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
+    /** True when `item` carries an affinity tag the player's class doesn't have - the item's stats are
+     * already the correct (unscaled) numbers in that case, this only dims the line as a visual cue. */
     function isOffAffinity(item: ItemView): boolean {
         return item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
     }

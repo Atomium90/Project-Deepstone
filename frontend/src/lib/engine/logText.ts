@@ -15,13 +15,13 @@ type ParamResolver = (language: string, id: string) => string;
  * A param that is not listed here is shown as it is (a figure, or a text made for the player).
  */
 const RESOLVERS: Record<string, ParamResolver> = {
-  enemy: (lang, id) => catalogTextFor(lang).enemyName(id, id),
-  item: (lang, id) => catalogTextFor(lang).itemName({ typeId: id, name: id }),
-  ability: (lang, id) => catalogTextFor(lang).abilityName({ id, name: id }),
+  enemy: (lang, id) => catalogTextFor(lang).enemyName(id),
+  item: (lang, id) => catalogTextFor(lang).itemName({ typeId: id }),
+  ability: (lang, id) => catalogTextFor(lang).abilityName({ id }),
   // The resource a line speaks of (Rage, Focus, Mana) is named by the ability that uses it.
-  resource: (lang, id) => catalogTextFor(lang).abilityResource({ id, resourceName: id }),
-  upgrade: (lang, id) => catalogTextFor(lang).upgradeLabel({ id, label: id }),
-  perk: (lang, id) => catalogTextFor(lang).perkLabel({ id, label: id }),
+  resource: (lang, id) => catalogTextFor(lang).abilityResource({ id }),
+  upgrade: (lang, id) => catalogTextFor(lang).upgradeLabel({ id }),
+  perk: (lang, id) => catalogTextFor(lang).perkLabel({ id }),
   class: (lang, id) => translate(dictionaries, lang, `class.${id}.name`),
   difficulty: (lang, id) => translate(dictionaries, lang, `difficulty.${id}.name`),
   direction: (lang, id) => translate(dictionaries, lang, `direction.${id}`),
@@ -47,7 +47,7 @@ export function logLineText(line: LogLine, lang: string): string {
 function articleForms(line: LogLine, lang: string): Record<string, string> {
   const id = line.params.enemy;
   if (typeof id !== "string") return {};
-  const plain = catalogTextFor(lang).enemyName(id, id);
+  const plain = catalogTextFor(lang).enemyName(id);
   return {
     enemy_the: lookup(dictionaries, lang, `enemy.${id}.the`) ?? plain,
     enemy_The: lookup(dictionaries, lang, `enemy.${id}.The`) ?? plain,

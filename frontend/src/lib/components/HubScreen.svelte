@@ -161,13 +161,9 @@
         client.send({ type: "HUB_ACTION", action: "DEBUGLOADROOM", debugRoomId: id });
     }
 
-    /**
-     * The last log line from the server, shown as feedback after a buy attempt.
-     * Fragile: if another log entry arrives before the player reads it, the
-     * displayed message no longer corresponds to their action. Fine for now,
-     * would need a dedicated feedback field in the protocol to fix properly.
-     */
-    $: feedbackLine = hubState?.log.at(-1);
+    /** The server's answer to what the player just did in the Hub (a purchase, a refusal, the bonus
+     * Shards of a return): a field of its own, so it never depends on which log line came last. */
+    $: feedbackLine = hubState?.notice;
     $: feedback = feedbackLine ? $logText(feedbackLine) : "";
 </script>
 

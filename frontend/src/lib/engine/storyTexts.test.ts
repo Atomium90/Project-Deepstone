@@ -8,6 +8,8 @@ import { numberedTexts, type TextLookup } from "./sceneText";
 
 /** The longest a line may be: one bubble, a sentence or two very short ones. */
 const MAX_LINE_LENGTH = 90;
+/** French runs longer than English for the same sentence, so its bubbles get more room. */
+const MAX_LINE_LENGTH_FR = 110;
 
 interface Scene {
     id: string;
@@ -207,6 +209,30 @@ describe("the texts of the story catalog", () => {
         for (const key of storyKeys.filter((k) => k.startsWith("story.npc."))) {
             const npc = key.split(".").slice(1, 3).join(".");
             expect(npcs, `${key} belongs to ${npc}, which has no scene`).toContain(npc);
+        }
+    });
+});
+
+describe("the French texts of the story", () => {
+    const french = dictionaries.fr;
+
+    test("every English line of the story is in French", () => {
+        expect(storyKeys.filter((key) => !(key in french))).toEqual([]);
+    });
+
+    test(`no French line is longer than ${MAX_LINE_LENGTH_FR} characters`, () => {
+        for (const key of storyKeys) {
+            expect(french[key].length, `${key} is ${french[key].length} characters long`).toBeLessThanOrEqual(MAX_LINE_LENGTH_FR);
+        }
+    });
+
+    test("the name an NPC looks for is the name of the Devoted in French too", () => {
+        expect(french["story.npc.5.loved"]).toBe(french["story.boss.4.name"]);
+    });
+
+    test("a line that names the Devoted keeps its {name}", () => {
+        for (const key of storyKeys.filter((k) => texts[k].includes("{name}"))) {
+            expect(french[key], `${key} lost its {name}`).toContain("{name}");
         }
     });
 });

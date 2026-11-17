@@ -45,7 +45,16 @@ function numbersIn(value: unknown): Set<string> {
 
 /** The numbers a text states, leaving out the ones that are words ("4-piece", "2x"). */
 function numbersOf(text: string): string[] {
-    return (text.replace(/\d+-piece/g, "").replace(/\d+\s*[×x](?![a-z])/g, "").match(/\d+/g) ?? []);
+    return (
+        text
+            .replace(/\d+-piece/g, "")
+            .replace(/\d+\s*[×x](?![a-z])/g, "")
+            // "4 pièces" in French is the size of a set, not a figure of the data.
+            .replace(/\d+ pièces/g, "")
+            // "x2" is a multiplier written the other way round.
+            .replace(/[×x]\d+/g, "")
+            .match(/\d+/g) ?? []
+    );
 }
 
 describe("catalog texts", () => {
@@ -86,13 +95,14 @@ describe("catalog texts", () => {
         expect(orphans).toEqual([]);
     });
 
-    test("a number written in a description is one of the entry's own numbers", () => {
+    test.each(Object.keys(dictionaries))("a number written in a %s description is one of the entry's own numbers", (code) => {
         // A balance change in the data that is not echoed in the text would leave the player
         // reading the old figure.
+        const texts = dictionaries[code];
         const stale: string[] = [];
         const check = (key: string, entry: Entry): void => {
             const allowed = numbersIn(entry);
-            for (const n of numbersOf(english[key])) {
+            for (const n of numbersOf(texts[key])) {
                 if (!allowed.has(n)) stale.push(`${key} says ${n}`);
             }
         };

@@ -121,6 +121,106 @@ describe("HubScreen", () => {
         expect(lastCall).not.toHaveProperty("perkId");
     });
 
+    describe("the risky perks", () => {
+        const withRisky = () =>
+            makeState({
+                hub: {
+                    upgrades: [],
+                    perks: [makePerk({ id: "heavy_hand" })],
+                    riskyPerks: [makePerk({ id: "hunted", risky: true })],
+                    runsCompleted: 1,
+                    difficulties: [],
+                },
+            });
+
+        test("are a row of their own, marked risky, with the ordinary perks left alone", async () => {
+            gameState.set(withRisky());
+            const { container } = render(HubScreen);
+            await tick();
+            expect(container.querySelectorAll(".perk-list:not(.risky-list) .perk-card")).toHaveLength(1);
+            const risky = Array.from(container.querySelectorAll(".risky-list .perk-card.risky"));
+            expect(risky.map((el) => el.querySelector(".perk-label")?.textContent)).toEqual(["Hunted"]);
+            expect(container.querySelector(".risky-label")?.textContent).toContain("Hard only");
+        });
+
+        test("bring the right panel back on their own", async () => {
+            gameState.set(
+                makeState({ hub: { upgrades: [], perks: [], riskyPerks: [makePerk({ id: "hunted", risky: true })], runsCompleted: 1, difficulties: [] } }),
+            );
+            const { container } = render(HubScreen);
+            await tick();
+            expect(container.querySelector(".risky-list")).not.toBeNull();
+        });
+
+        test("are out of play until Hard is the chosen difficulty", async () => {
+            gameState.set(withRisky());
+            const { container } = render(HubScreen);
+            await tick();
+            expect(container.querySelector(".risky-list")?.classList.contains("off")).toBe(true);
+            await fireEvent.click(container.querySelectorAll(".difficulty-card")[DIFFICULTY_CARD.hard]);
+            expect(container.querySelector(".risky-list")?.classList.contains("off")).toBe(false);
+        });
+
+        test("one is sent with the run only on Hard, and toggles out again", async () => {
+            gameState.set(withRisky());
+            const { container } = render(HubScreen);
+            const sendSpy = vi.spyOn(client, "send");
+            const card = container.querySelector(".perk-card.risky")!;
+            const startBtn = container.querySelector("button.start-btn")!;
+
+            // Chosen, but on a tier where it does not count: not sent.
+            await fireEvent.click(card);
+            await fireEvent.click(startBtn);
+            expect(sendSpy.mock.calls.at(-1)![0]).not.toHaveProperty("riskyPerkId");
+
+            // On Hard it is.
+            await fireEvent.click(container.querySelectorAll(".difficulty-card")[DIFFICULTY_CARD.hard]);
+            await fireEvent.click(startBtn);
+            expect(sendSpy).toHaveBeenLastCalledWith(expect.objectContaining({ difficulty: "hard", riskyPerkId: "hunted" }));
+
+            // Chosen again, it is dropped.
+            await fireEvent.click(card);
+            await fireEvent.click(startBtn);
+            expect(sendSpy.mock.calls.at(-1)![0]).not.toHaveProperty("riskyPerkId");
+        });
+
+        test("a single risky perk is offered, to take or to leave", async () => {
+            gameState.set(withRisky());
+            const { container } = render(HubScreen);
+            const sendSpy = vi.spyOn(client, "send");
+            await fireEvent.click(container.querySelectorAll(".difficulty-card")[DIFFICULTY_CARD.hard]);
+            expect(container.querySelectorAll(".perk-card.risky")).toHaveLength(1);
+
+            // Left alone, the run starts without it.
+            await fireEvent.click(container.querySelector("button.start-btn")!);
+            expect(sendSpy.mock.calls.at(-1)![0]).not.toHaveProperty("riskyPerkId");
+
+            // Taken, it goes with the run.
+            await fireEvent.click(container.querySelector(".perk-card.risky")!);
+            expect(container.querySelectorAll(".perk-card.risky.selected")).toHaveLength(1);
+            await fireEvent.click(container.querySelector("button.start-btn")!);
+            expect(sendSpy).toHaveBeenLastCalledWith(expect.objectContaining({ riskyPerkId: "hunted" }));
+        });
+
+        test("an ordinary perk and a risky one are chosen independently", async () => {
+            gameState.set(withRisky());
+            const { container } = render(HubScreen);
+            const sendSpy = vi.spyOn(client, "send");
+            await fireEvent.click(container.querySelectorAll(".difficulty-card")[DIFFICULTY_CARD.hard]);
+            await fireEvent.click(container.querySelector(".perk-list:not(.risky-list) .perk-card")!);
+            await fireEvent.click(container.querySelector(".perk-card.risky")!);
+            await fireEvent.click(container.querySelector("button.start-btn")!);
+            expect(sendSpy).toHaveBeenLastCalledWith(expect.objectContaining({ perkId: "heavy_hand", riskyPerkId: "hunted" }));
+        });
+
+        test("are not shown when the server offers none", async () => {
+            gameState.set(makeState({ hub: { upgrades: [], perks: [makePerk({ id: "heavy_hand" })], runsCompleted: 1, difficulties: [] } }));
+            const { container } = render(HubScreen);
+            await tick();
+            expect(container.querySelector(".risky-list")).toBeNull();
+        });
+    });
+
     test("Buy is disabled below cost and sends BUYUPGRADE once affordable", async () => {
         gameState.set(
             makeState({

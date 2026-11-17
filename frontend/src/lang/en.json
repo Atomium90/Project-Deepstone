@@ -890,5 +890,17 @@
     "controls.action.moveRight": "Move right",
     "controls.action.interact": "Interact",
     "controls.action.equipment": "Equipment",
-    "controls.action.map": "Map"
+    "controls.action.map": "Map",
+    "perk.hunted.label": "Hunted",
+    "perk.hunted.desc": "Enemies have 25% more HP and attack. Kills earn 60% more Shards, and a win pays 30",
+    "perk.fragile_vessel.label": "Fragile Vessel",
+    "perk.fragile_vessel.desc": "30% less max HP. Kills earn 50% more Shards, and a win pays 25",
+    "perk.bitter_draught.label": "Bitter Draught",
+    "perk.bitter_draught.desc": "Potions heal 40% less. Kills earn 40% more Shards, and a win pays 20",
+    "perk.strained_spirit.label": "Strained Spirit",
+    "perk.strained_spirit.desc": "Abilities cost 40% more. Kills earn 40% more Shards, and a win pays 20",
+    "perk.devils_bargain.label": "Devil's Bargain",
+    "perk.devils_bargain.desc": "Enemies have 15% more HP and attack, and you have 15% less max HP. Kills earn 90% more Shards, and a win pays 50",
+    "log.run.victoryBonus.one": "Your perk pays {count} Shard for the win.",
+    "log.run.victoryBonus.other": "Your perk pays {count} Shards for the win."
 }

@@ -890,5 +890,17 @@
     "controls.action.moveRight": "Aller à droite",
     "controls.action.interact": "Interagir",
     "controls.action.equipment": "Équipement",
-    "controls.action.map": "Carte"
+    "controls.action.map": "Carte",
+    "perk.hunted.label": "Traqué",
+    "perk.hunted.desc": "Les ennemis ont 25 % de PV et d'attaque en plus. Chaque victoire rapporte 60 % d'Éclats en plus, et une expédition gagnée en paie 30",
+    "perk.fragile_vessel.label": "Vase fragile",
+    "perk.fragile_vessel.desc": "30 % de PV max en moins. Chaque victoire rapporte 50 % d'Éclats en plus, et une expédition gagnée en paie 25",
+    "perk.bitter_draught.label": "Breuvage amer",
+    "perk.bitter_draught.desc": "Les potions soignent 40 % de moins. Chaque victoire rapporte 40 % d'Éclats en plus, et une expédition gagnée en paie 20",
+    "perk.strained_spirit.label": "Esprit tendu",
+    "perk.strained_spirit.desc": "Les capacités coûtent 40 % de plus. Chaque victoire rapporte 40 % d'Éclats en plus, et une expédition gagnée en paie 20",
+    "perk.devils_bargain.label": "Pacte du diable",
+    "perk.devils_bargain.desc": "Les ennemis ont 15 % de PV et d'attaque en plus, et vous avez 15 % de PV max en moins. Chaque victoire rapporte 90 % d'Éclats en plus, et une expédition gagnée en paie 50",
+    "log.run.victoryBonus.one": "Votre atout paie {count} Éclat pour la victoire.",
+    "log.run.victoryBonus.other": "Votre atout paie {count} Éclats pour la victoire."
 }

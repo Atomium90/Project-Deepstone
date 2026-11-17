@@ -35,7 +35,11 @@ function effectOf(bonus: unknown): string {
 function numbersIn(value: unknown): Set<string> {
     const found = new Set<string>();
     const walk = (v: unknown): void => {
-        if (typeof v === "number") found.add(String(v));
+        if (typeof v === "number") {
+            found.add(String(v));
+            // A malus is stored negative and written as its size ("40% less").
+            found.add(String(Math.abs(v)));
+        }
         else if (Array.isArray(v)) v.forEach(walk);
         else if (v !== null && typeof v === "object") Object.values(v).forEach(walk);
     };

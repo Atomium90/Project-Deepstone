@@ -1,6 +1,17 @@
 import { describe, test, expect, beforeEach } from "vitest";
 import { get } from "svelte/store";
-import { dictionaries, language, lookup, t, translate, type Dictionaries } from "./i18n";
+import {
+    availableLanguages,
+    detectLanguage,
+    dictionaries,
+    language,
+    languageName,
+    lookup,
+    pluralCategory,
+    t,
+    translate,
+    type Dictionaries,
+} from "./i18n";
 
 const sample: Dictionaries = {
     en: { "greeting": "Hello", "found": "Found {count} {thing}", "english.only": "Only in English" },
@@ -51,7 +62,64 @@ describe("translate", () => {
     });
 });
 
+describe("plurals", () => {
+    const plural: Dictionaries = {
+        en: { "keys.one": "{count} key", "keys.other": "{count} keys", "plain": "No forms" },
+        fr: { "keys.one": "{count} cle", "keys.other": "{count} cles" },
+    };
+
+    test("picks the form of the count's plural category", () => {
+        expect(translate(plural, "en", "keys", { count: 1 })).toBe("1 key");
+        expect(translate(plural, "en", "keys", { count: 3 })).toBe("3 keys");
+        expect(translate(plural, "en", "keys", { count: 0 })).toBe("0 keys");
+    });
+
+    test("follows the rules of the language: zero is singular in French", () => {
+        expect(translate(plural, "fr", "keys", { count: 0 })).toBe("0 cle");
+        expect(translate(plural, "fr", "keys", { count: 2 })).toBe("2 cles");
+    });
+
+    test("a key with no plural forms is used as is, even with a count", () => {
+        expect(translate(plural, "en", "plain", { count: 2 })).toBe("No forms");
+    });
+
+    test("falls back to the .other form when the category has no text", () => {
+        const only: Dictionaries = { en: { "n.other": "{count} things" } };
+        expect(translate(only, "en", "n", { count: 1 })).toBe("1 things");
+    });
+
+    test("an invalid language tag counts as other instead of throwing", () => {
+        expect(pluralCategory("not a language", 1)).toBe("other");
+    });
+});
+
+describe("language detection", () => {
+    test("takes the first preference that has a file, by its primary subtag", () => {
+        expect(detectLanguage(["en", "fr"], ["de-DE", "fr-CA", "en"])).toBe("fr");
+    });
+
+    test("falls back to English when no preference has a file", () => {
+        expect(detectLanguage(["en", "fr"], ["de-DE", "ja"])).toBe("en");
+        expect(detectLanguage(["en", "fr"], [])).toBe("en");
+    });
+
+    test("lists English first, then the others by code", () => {
+        expect(availableLanguages({ fr: {}, de: {}, en: {} })).toEqual(["en", "de", "fr"]);
+    });
+
+    test("names a language in itself, or by its code when its file has no name", () => {
+        expect(languageName({ fr: { "lang.name": "Francais" }, de: {} }, "fr")).toBe("Francais");
+        expect(languageName({ de: {} }, "de")).toBe("de");
+    });
+});
+
 describe("language files", () => {
+    test("every language file names itself", () => {
+        for (const code of Object.keys(dictionaries)) {
+            expect(dictionaries[code]["lang.name"], `${code}.json has no lang.name`).toBeTruthy();
+        }
+    });
+
     test("English is bundled", () => {
         expect(Object.keys(dictionaries)).toContain("en");
     });

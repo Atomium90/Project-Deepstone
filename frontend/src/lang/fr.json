@@ -706,6 +706,8 @@
     "achievement.boss_slayer.desc": "Vaincre un boss du donjon.",
     "achievement.hardcore_victory.label": "Sans la lumière",
     "achievement.hardcore_victory.desc": "Remporter une expédition en Hardcore.",
+    "achievement.risk_taker.label": "Tête brûlée",
+    "achievement.risk_taker.desc": "Remporter une expédition avec un atout risqué.",
     "ability.berserker_slash.name": "Entaille du berserker",
     "ability.berserker_slash.resource": "Rage",
     "ability.berserker_slash.desc": "Dégâts x2 à votre prochaine attaque",

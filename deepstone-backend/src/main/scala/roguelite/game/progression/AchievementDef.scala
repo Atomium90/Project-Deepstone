@@ -44,6 +44,11 @@ enum AchievementCondition:
     */
   case DistinctPerksWonWith(count: Int)
 
+  /** Win a run with a risky perk taken. Risky perks are not among the kinds counted by
+    * [[DistinctPerksWonWith]]: they are a separate slot and never reach `perksWonWith`.
+    */
+  case WinWithRiskyPerk
+
 /** Static definition of one achievement, loaded from `data/achievements.json`.
   *
   * @param displayOrder

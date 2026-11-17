@@ -160,5 +160,12 @@
     "displayOrder": 22,
     "condition": { "type": "WinOnDifficulty", "difficulty": "hardcore" },
     "hidden": true
+  },
+  {
+    "id": "risk_taker",
+    "label": "Risk Taker",
+    "description": "Win a run with a risky perk.",
+    "displayOrder": 23,
+    "condition": { "type": "WinWithRiskyPerk" }
   }
 ]

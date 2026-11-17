@@ -44,8 +44,14 @@ enum GameEvent:
   /** A hidden secret door was revealed by proximity. */
   case SecretDoorRevealed
 
-  /** A run ended, win or lose. */
-  case RunEnded(victory: Boolean, difficulty: Difficulty, activePerkId: Option[String])
+  /** A run ended, win or lose. `activePerkId` is the ordinary perk, `riskyPerkId` the risky one (the two
+    * are kept apart so that a risky perk never counts as a kind of ordinary perk won with).
+    */
+  case RunEnded(victory: Boolean,
+                difficulty: Difficulty,
+                activePerkId: Option[String],
+                riskyPerkId: Option[String] = None
+  )
 
   /** Damage was dealt to a combatant. `targetIsPlayer` distinguishes the player taking a hit from
     * the player's attack landing on the enemy - `amount` is always positive. `crit` is true only

@@ -396,7 +396,7 @@ class GameSession private (
         progress =>
           val afterFacts = VowRules.onEvents(progress, vowTypes, events)
           val afterRun = events.foldLeft(afterFacts):
-            case (current, GameEvent.RunEnded(victory, difficulty, _)) =>
+            case (current, GameEvent.RunEnded(victory, difficulty, _, _)) =>
               val outcome = if victory then RunOutcome.Won else RunOutcome.Lost
               StoryRules.onRunEnded(chapterDefs, current, outcome, difficulty, vowTypes)
             case (current, _) => current
@@ -464,7 +464,11 @@ class GameSession private (
     val bonus    = if paysBonus then PerkDef.winBonus(exp.player, perkDefs, exp.difficulty.usesBlessings, exp.altarShut) else 0
     val bonusLog = if bonus > 0 then List(LogLine.of("log.run.victoryBonus", "count" -> bonus)) else Nil
     val over     = GameOverState(exp.player.copy(metaCurrency = exp.player.metaCurrency + bonus), victory = true)
-    val ended = GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId)
+    val ended = GameEvent.RunEnded(victory = true,
+                                   difficulty = exp.difficulty,
+                                   activePerkId = exp.player.activePerkId,
+                                   riskyPerkId = exp.player.activeRiskyPerkId
+    )
     stateRef.set(over) *> settle(exp, TransitionResult(over, log ++ bonusLog, List(ended)))
 
   /** Save what changed between two states of the story, then keep the new one. */

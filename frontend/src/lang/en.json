@@ -706,6 +706,8 @@
     "achievement.boss_slayer.desc": "Defeat a dungeon boss.",
     "achievement.hardcore_victory.label": "Without the Light",
     "achievement.hardcore_victory.desc": "Win a run in Hardcore.",
+    "achievement.risk_taker.label": "Risk Taker",
+    "achievement.risk_taker.desc": "Win a run with a risky perk.",
     "ability.berserker_slash.name": "Berserker Slash",
     "ability.berserker_slash.resource": "Rage",
     "ability.berserker_slash.desc": "2× damage on your next attack",

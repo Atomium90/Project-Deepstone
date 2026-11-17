@@ -612,7 +612,8 @@ class CombatResolver(rng: Random = Random(),
      defeatLog,
      List(GameEvent.RunEnded(victory = false,
                              difficulty = state.difficulty,
-                             activePerkId = deadPlayer.activePerkId
+                             activePerkId = deadPlayer.activePerkId,
+                             riskyPerkId = deadPlayer.activeRiskyPerkId
      ))
     )
 

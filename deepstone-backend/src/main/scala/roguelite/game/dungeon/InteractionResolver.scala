@@ -383,7 +383,13 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       val (paid, bonusLog) = winBonus(exp)
       (GameOverState(paid, victory = true),
        LogLine.of("log.sanctuary.victory") :: bonusLog,
-       List(GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId))
+       List(
+         GameEvent.RunEnded(victory = true,
+                            difficulty = exp.difficulty,
+                            activePerkId = exp.player.activePerkId,
+                            riskyPerkId = exp.player.activeRiskyPerkId
+         )
+       )
       )
 
   /** The player with the Shards their risky perk pays for a won run, and the line that tells it. Nothing

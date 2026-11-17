@@ -2,7 +2,7 @@
     import { get } from "svelte/store";
     import { gameState, client } from "../engine/StateStore";
     import { PLAYER_CLASS_COLORS } from "../engine/constants";
-    import { dictionaries, language, lookup } from "../engine/i18n";
+    import { dictionaries, language, lookup, t } from "../engine/i18n";
     import { pickGodLine } from "../engine/godVoice";
     import Sprite from "./Sprite.svelte";
     import type { PlayerView } from "../engine/protocol";
@@ -40,9 +40,9 @@
         {/if}
 
         <div class="skull">{victory ? "★" : "†"}</div>
-        <h1 class="title">{victory ? "VICTORY" : "DEFEATED"}</h1>
+        <h1 class="title">{victory ? $t("gameover.victory") : $t("gameover.defeat")}</h1>
         <p class="subtitle">
-            {victory ? "You have conquered the dungeon." : "The dungeon claims another soul."}
+            {victory ? $t("gameover.victoryText") : $t("gameover.defeatText")}
         </p>
         {#if godText}
             <p class="god-line">{godText}</p>
@@ -52,22 +52,22 @@
         {#if player}
             <div class="stats">
                 <div class="stat-row">
-                    <span class="stat-label">Level reached</span>
+                    <span class="stat-label">{$t("gameover.level")}</span>
                     <span class="stat-value">{player.level}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">Experience</span>
-                    <span class="stat-value">{player.xp} XP</span>
+                    <span class="stat-label">{$t("gameover.experience")}</span>
+                    <span class="stat-value">{$t("gameover.xp", { xp: player.xp })}</span>
                 </div>
                 <div class="stat-row shards-row">
-                    <span class="stat-label">Total Shards</span>
+                    <span class="stat-label">{$t("gameover.totalShards", { currency: $t("currency.name") })}</span>
                     <span class="stat-value shards">◈ {player.metaCurrency}</span>
                 </div>
             </div>
         {/if}
 
         <button class="return-btn" on:click={returnToHub}>
-            ↩ Return to Hub
+            {$t("gameover.return")}
         </button>
 
     </div>

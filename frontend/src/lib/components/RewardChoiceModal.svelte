@@ -42,7 +42,7 @@
     {@const choice = $pendingRewardChoice}
     <div class="backdrop">
         <div class="modal">
-            <p class="modal-title">Shrine's offering - choose one</p>
+            <p class="modal-title">{$t("reward.title")}</p>
 
             {#if choice.relic}
                 <p class="relic">
@@ -59,12 +59,12 @@
                     >
                         <span class="option-name"><KeyHint key={String(i + 1)} />{option.name}</span>
                         <span class="option-stat" class:off-affinity={isOffAffinity(option)}>{option.statLine}</span>
-                        <span class="option-action">Take</span>
+                        <span class="option-action">{$t("reward.take")}</span>
                     </button>
                 {/each}
             </div>
 
-            <button class="leave-btn" on:click={leave}><KeyHint key="0" />Leave empty-handed</button>
+            <button class="leave-btn" on:click={leave}><KeyHint key="0" />{$t("reward.leave")}</button>
         </div>
     </div>
 {/if}

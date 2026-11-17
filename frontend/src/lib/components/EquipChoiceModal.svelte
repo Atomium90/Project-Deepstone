@@ -1,6 +1,7 @@
 <script lang="ts">
     import { gameState, pendingEquipChoice, client } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
+    import { t } from "../engine/i18n";
     import type { EquipChoiceOptionView, ItemView } from "../engine/protocol";
     import { createGrace, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
     import KeyHint from "./KeyHint.svelte";
@@ -41,7 +42,7 @@
     {@const choice = $pendingEquipChoice}
     <div class="backdrop">
         <div class="modal">
-            <p class="modal-title">New item found</p>
+            <p class="modal-title">{$t("equip.newItem")}</p>
 
             <div
                 class="new-item"
@@ -59,16 +60,16 @@
                     <button class="option-row" on:click={() => replace(option)}>
                         <span class="option-name">
                             <KeyHint key={String(i + 1)} />{option.current.name}{option.current.count && option.current.count > 1
-                                ? ` x${option.current.count}`
+                                ? ` ${$t("item.stack", { count: option.current.count })}`
                                 : ""}
                         </span>
                         <span class="option-stat" class:off-affinity={isOffAffinity(option.current)}>{option.current.statLine}</span>
-                        <span class="option-action">Replace</span>
+                        <span class="option-action">{$t("equip.replace")}</span>
                     </button>
                 {/each}
             </div>
 
-            <button class="keep-btn" on:click={keepCurrent}><KeyHint key="0" />Keep what I have</button>
+            <button class="keep-btn" on:click={keepCurrent}><KeyHint key="0" />{$t("equip.keep")}</button>
         </div>
     </div>
 {/if}

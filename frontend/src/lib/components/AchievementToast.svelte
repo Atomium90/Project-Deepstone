@@ -1,5 +1,6 @@
 <script lang="ts">
     import { achievementToast } from "../engine/StateStore";
+    import { t } from "../engine/i18n";
     import type { AchievementView } from "../engine/protocol";
 
     let visible: AchievementView[] = [];
@@ -20,7 +21,7 @@
             <div class="toast">
                 <span class="toast-icon">🏆</span>
                 <div class="toast-body">
-                    <span class="toast-title">Achievement Unlocked</span>
+                    <span class="toast-title">{$t("achievement.unlocked")}</span>
                     <span class="toast-label">{a.label}</span>
                 </div>
             </div>

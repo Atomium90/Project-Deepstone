@@ -21,17 +21,17 @@
 
 <div class="item-tooltip">
     <p class="tooltip-name" style="color:{ITEM_RARITY_COLORS[item.rarity]}">{item.name}</p>
-    <p class="tooltip-kind">{$t(`itemKind.${item.kind}`)}{item.count && item.count > 1 ? ` · x${item.count}` : ""}</p>
+    <p class="tooltip-kind">{$t(`itemKind.${item.kind}`)}{item.count && item.count > 1 ? ` · ${$t("item.stack", { count: item.count })}` : ""}</p>
     <p class="tooltip-stat" class:off-affinity={offAffinity}>{item.statLine}</p>
     {#if item.setId}
         <div class="tooltip-set" style="--set-accent:{ITEM_RARITY_COLORS.epic}">
-            <p class="set-name">Part of: {setView?.name ?? item.setId} ({setCount}/4)</p>
+            <p class="set-name">{$t("set.partOf", { name: setView?.name ?? item.setId, count: setCount })}</p>
             {#if setView}
                 <p class="set-bonus" class:active={classMatches && setCount >= 2}>
-                    2pc: {setView.bonus2pcLabel}
+                    {$t("set.bonus2pc", { label: setView.bonus2pcLabel })}
                 </p>
                 <p class="set-bonus" class:active={classMatches && setCount >= 4}>
-                    4pc: {setView.bonus4pcLabel}
+                    {$t("set.bonus4pc", { label: setView.bonus4pcLabel })}
                 </p>
             {/if}
         </div>

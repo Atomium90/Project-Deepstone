@@ -160,6 +160,9 @@ export class Renderer {
   /** Shown on the canvas while the room is not there yet. Set by the component, which owns the texts. */
   loadingText = "Loading room…";
 
+  /** What the keycap badge over something to interact with says: the name of the interact key. */
+  interactLabel = "E";
+
   private currentRoomId: string | null = null;
 
   /** Which way the player sprite is currently facing - only updated by a horizontal move, so
@@ -901,7 +904,7 @@ export class Renderer {
     );
   }
 
-  /** Draws a small dark keycap-style badge (like a keyboard key) with "E" centered in it, its
+  /** Draws a small dark keycap-style badge (like a keyboard key) with the interact key centered in it, its
    * bottom edge resting at `anchorY` and floating up periodically for a subtle "this is alive"
    * cue - replaces the old pulsing ring halo around the entity itself. */
   private drawInteractBadge(cx: number, anchorY: number): void {
@@ -933,10 +936,11 @@ export class Renderer {
     ctx.stroke();
 
     ctx.fillStyle = INTERACT_BADGE_TEXT;
-    ctx.font = "bold 10px monospace";
+    // A longer name than one letter (a rebound Space, say) is drawn smaller to stay inside the key.
+    ctx.font = `bold ${this.interactLabel.length > 1 ? 7 : 10}px monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("E", cx, badgeCenterY);
+    ctx.fillText(this.interactLabel, cx, badgeCenterY, INTERACT_BADGE_SIZE - 3);
     ctx.textBaseline = "alphabetic";
   }
 

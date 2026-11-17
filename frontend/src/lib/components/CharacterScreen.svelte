@@ -9,6 +9,7 @@
     import CreditsPanel from "./CreditsPanel.svelte";
     import EquipmentPanel from "./EquipmentPanel.svelte";
     import HelpPanel from "./HelpPanel.svelte";
+    import KeyBindingsPanel from "./KeyBindingsPanel.svelte";
     import MinimapPanel from "./MinimapPanel.svelte";
 
     /** Set once the reset button was pressed, so the press visibly did something. Cleared when the
@@ -139,6 +140,7 @@
                         {tutorialWasReset ? $t("settings.resetDone") : $t("settings.resetButton")}
                     </button>
                 </div>
+                <KeyBindingsPanel />
             {:else if $characterTab === "achievements"}
                 <AchievementsPanel />
             {:else if $characterTab === "map"}

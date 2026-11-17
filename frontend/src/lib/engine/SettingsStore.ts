@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import { availableLanguages, detectLanguage, language } from "./i18n";
+import { sanitizeOverrides, type KeyOverrides } from "./keybindings";
 
 /** Client-only preferences, persisted to localStorage. The first store in the codebase that
  * isn't derived from server state - everything else in StateStore.ts is a projection of
@@ -14,11 +15,13 @@ export interface Settings {
   showHints: boolean;
   /** The language code shown (a file of src/lang). Detected from the browser the first time. */
   language: string;
+  /** The keys the player has set (see keybindings.ts), by action. Missing means the default key. */
+  keys: KeyOverrides;
 }
 
 const STORAGE_KEY = "deepstone-settings";
 
-const DEFAULTS: Omit<Settings, "language"> = {
+const DEFAULTS: Omit<Settings, "language" | "keys"> = {
   reduceScreenShake: false,
   sfxVolume: 70,
   musicVolume: 50,
@@ -37,7 +40,8 @@ function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const merged = { ...DEFAULTS, language: detected, ...JSON.parse(raw) } as Settings;
+      const stored = JSON.parse(raw);
+      const merged = { ...DEFAULTS, language: detected, ...stored, keys: sanitizeOverrides(stored?.keys) } as Settings;
       // A stored language whose file is gone (or a hand-edited value) must not leave the game
       // showing keys.
       return available.includes(merged.language) ? merged : { ...merged, language: detected };
@@ -45,7 +49,7 @@ function loadSettings(): Settings {
   } catch {
     // Corrupt/inaccessible storage -> fall through to defaults.
   }
-  return { ...DEFAULTS, language: detected };
+  return { ...DEFAULTS, language: detected, keys: {} };
 }
 
 export const settings = writable<Settings>(loadSettings());

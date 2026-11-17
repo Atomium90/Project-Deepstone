@@ -131,7 +131,7 @@ describe("CharacterScreen", () => {
     });
 
     test("the language selector lists every language by its own name and drives the setting", async () => {
-        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en" });
+        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en", keys: {} });
         characterTab.set("settings");
         const { container } = render(CharacterScreen);
         const select = container.querySelector(".language-select") as HTMLSelectElement;
@@ -144,7 +144,7 @@ describe("CharacterScreen", () => {
     });
 
     test("the reduce-screen-shake checkbox is bound to the settings store", async () => {
-        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en" });
+        settings.set({ reduceScreenShake: false, sfxVolume: 70, musicVolume: 50, showHints: true, language: "en", keys: {} });
         characterTab.set("settings");
         const { container } = render(CharacterScreen);
         const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;

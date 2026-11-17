@@ -1,5 +1,6 @@
 import type { Direction } from "./protocol";
 import type { CharacterTab } from "./CharacterStore";
+import { actionOf, directionOf, type Bindings, type KeyPress } from "./keybindings";
 
 /** What a key press asks the exploration screen to do. */
 export type KeyCommand =
@@ -9,24 +10,6 @@ export type KeyCommand =
   | { kind: "openTab"; tab: CharacterTab }
   | { kind: "closeOverlay" };
 
-const MOVE_KEYS: Record<string, Direction> = {
-  ArrowUp: "UP",
-  ArrowDown: "DOWN",
-  ArrowLeft: "LEFT",
-  ArrowRight: "RIGHT",
-  z: "UP",
-  s: "DOWN",
-  q: "LEFT",
-  d: "RIGHT",
-};
-
-/** The Character screen tab a key opens, if any. The map key does nothing when there is no map. */
-function tabForKey(key: string, mapAvailable: boolean): CharacterTab | null {
-  if (key === "i" || key === "I") return "equipment";
-  if ((key === "m" || key === "M") && mapAvailable) return "map";
-  return null;
-}
-
 /** Turns a key press into a command, or null when the key does nothing right now.
  *
  * The Character screen's own keys work whether or not the screen is open: pressing one opens its
@@ -34,6 +17,8 @@ function tabForKey(key: string, mapAvailable: boolean): CharacterTab | null {
  * is ignored while the screen is open, so the run is paused behind it: the player neither walks nor
  * interacts while looking at their equipment or the map.
  *
+ * @param press The key pressed: the character it types and its place on the keyboard.
+ * @param bindings Which key does what (see keybindings.ts); the arrow keys always move.
  * @param openTab The Character screen tab that is open, or null when it is closed.
  * @param mapAvailable Whether the server sent a map, which is what the map key needs.
  * @param conversationPending Whether a conversation with a Rest NPC is waiting to be read to its end.
@@ -41,19 +26,24 @@ function tabForKey(key: string, mapAvailable: boolean): CharacterTab | null {
  * advance the conversation belong to the conversation itself.
  */
 export function keyCommand(
-  key: string,
+  press: KeyPress,
+  bindings: Bindings,
   openTab: CharacterTab | null,
   mapAvailable: boolean,
   conversationPending = false,
 ): KeyCommand | null {
-  const tab = tabForKey(key, mapAvailable);
+  const action = actionOf(press, bindings);
+
+  // The map key does nothing when there is no map, and then is no more than any other unbound key.
+  const tab: CharacterTab | null = action === "equipment" ? "equipment" : action === "map" && mapAvailable ? "map" : null;
   if (tab !== null) return openTab === tab ? { kind: "closeOverlay" } : { kind: "openTab", tab };
 
   if (openTab !== null || conversationPending) return null;
 
-  if (key === "ç" || key === "à") return { kind: "debugRoom", step: key === "à" ? 1 : -1 };
-  if (key === "e" || key === "E") return { kind: "interact" };
+  // Dev tooling, tied to the characters of the keys it was written on.
+  if (press.key === "ç" || press.key === "à") return { kind: "debugRoom", step: press.key === "à" ? 1 : -1 };
+  if (action === "interact") return { kind: "interact" };
 
-  const direction = MOVE_KEYS[key];
+  const direction = action === null ? null : directionOf(action);
   return direction ? { kind: "move", direction } : null;
 }

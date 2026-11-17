@@ -116,7 +116,7 @@ test("the map shows the run, pauses it while open, and follows the player throug
 
     // The run is paused behind the open screen: the player does not walk.
     const paused = (await currentState(page))!.room!;
-    for (const key of ["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "z", "q", "s", "d"]) {
+    for (const key of ["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "w", "a", "s", "d"]) {
         await page.keyboard.press(key);
     }
     await page.waitForTimeout(400);

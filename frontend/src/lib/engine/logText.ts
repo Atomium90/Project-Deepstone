@@ -1,6 +1,6 @@
 import { derived, type Readable } from "svelte/store";
 import { catalogTextFor } from "./catalogText";
-import { dictionaries, language, translate } from "./i18n";
+import { dictionaries, language, lookup, translate } from "./i18n";
 import type { LogLine } from "./protocol";
 
 /** The key of a line that carries its own English text (dev-only lines and safety nets). */
@@ -35,7 +35,23 @@ export function logLineText(line: LogLine, lang: string): string {
       return [name, name in RESOLVERS && typeof value === "string" ? RESOLVERS[name](lang, value) : value];
     }),
   );
-  return translate(dictionaries, lang, line.key, params);
+  return translate(dictionaries, lang, line.key, { ...params, ...articleForms(line, lang) });
+}
+
+/**
+ * An enemy's name with its definite article, `enemy_the` and, at the start of a sentence,
+ * `enemy_The` ("the Goblin" and "The Goblin", "le Gobelin" and "Le Gobelin"). The article depends on
+ * the noun (le, la, l'), so it is a text of the language file: `enemy.<id>.the` and `enemy.<id>.The`.
+ * A language with no such text gets the plain name.
+ */
+function articleForms(line: LogLine, lang: string): Record<string, string> {
+  const id = line.params.enemy;
+  if (typeof id !== "string") return {};
+  const plain = catalogTextFor(lang).enemyName(id, id);
+  return {
+    enemy_the: lookup(dictionaries, lang, `enemy.${id}.the`) ?? plain,
+    enemy_The: lookup(dictionaries, lang, `enemy.${id}.The`) ?? plain,
+  };
 }
 
 /** Use as `$logText(line)` in a component. A store, so a language change rewrites the lines. */

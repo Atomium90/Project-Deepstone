@@ -56,6 +56,13 @@ class GameStateSuite extends FunSuite:
     val views = hub.toStateUpdate().hub.get.upgrades.map(u => u.id -> u.unlocked).toMap
     assertEquals(views, Map("a" -> false, "b" -> true))
 
+  test("HubState.toStateUpdate offers the last line of its log as the notice, and none when there is no line"):
+    val hub = HubState(PlayerFixtures.startingPlayer(ClassId.Warrior), Map.empty, MetaProgression.empty)
+    assertEquals(hub.toStateUpdate().notice, None)
+    val lines = List(LogLine.of("log.shards.topUp", "count" -> 5), LogLine.of("log.hub.return"))
+    assertEquals(hub.toStateUpdate(lines).notice, Some(LogLine.of("log.hub.return")))
+    assertEquals(hub.toStateUpdate(lines).log, lines)
+
   // --- ExplorationState --------------------------------------------------------------
 
   test("ExplorationState.toStateUpdate has EXPLORATION phase and carries the room and the log"):
@@ -73,7 +80,7 @@ class GameStateSuite extends FunSuite:
     assertEquals(view.newItem.typeId, "practice_sword")
     assertEquals(view.options.map(_.slot), List(EquipSlot.WeaponSlot))
     // weapon.typeTag is None, so affinity doesn't double it - just confirms the resolved (not raw) statLine flows through.
-    assertEquals(view.newItem.statLine, weapon.effectiveStatLine(player.affinityTags))
+    assertEquals(view.newItem.stats, weapon.effectiveStats(player.affinityTags))
 
   test("ExplorationState.toStateUpdate has no pendingEquipChoice when none is set"):
     val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)

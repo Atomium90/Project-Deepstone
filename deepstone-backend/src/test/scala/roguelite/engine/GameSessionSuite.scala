@@ -2208,8 +2208,8 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(update.sets.length, testSetDefs.size)
         val lightSoldier = update.sets.find(_.id == "light_soldier").getOrElse(fail("expected light_soldier"))
         assertEquals(lightSoldier.classId, ClassId.Warrior)
-        assertEquals(lightSoldier.bonus2pcLabel, "+5% max HP")
-        assertEquals(lightSoldier.bonus4pcLabel, "+2 flat DEF in combat")
+        assertEquals(lightSoldier.bonus2pc, SetBonusView("MaxHpPercent", 5))
+        assertEquals(lightSoldier.bonus4pc, SetBonusView("FlatDefense", 2))
   }
 
   db.test("winning the first combat unlocks first_blood and persists it") {

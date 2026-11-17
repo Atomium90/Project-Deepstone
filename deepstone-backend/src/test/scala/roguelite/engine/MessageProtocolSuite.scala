@@ -378,10 +378,10 @@ class MessageProtocolSuite extends FunSuite:
       ),
       pendingEquipChoice = Some(
         PendingEquipChoiceView(
-          newItem = ItemView("i1", "iron_sword", "Iron Sword", "weapon", "common", "+3 ATK"),
+          newItem = ItemView("i1", "iron_sword", "weapon", "common"),
           options = List(
             EquipChoiceOptionView(EquipSlot.WeaponSlot,
-                                  ItemView("i0", "hunters_bow", "Hunter's Bow", "weapon", "common", "+5 ATK")
+                                  ItemView("i0", "hunters_bow", "weapon", "common")
             )
           )
         )
@@ -421,7 +421,6 @@ class MessageProtocolSuite extends FunSuite:
       ),
       combat = Some(
         CombatView(enemyId = "e1",
-                   enemyLabel = "Dungeon Boss",
                    enemyHp = 50,
                    enemyMaxHp = 50,
                    isPlayerTurn = true,

@@ -6,7 +6,7 @@ import munit.FunSuite
 import roguelite.game.combat.{ Combat, CombatResolver, EnemyActionWeight, EnemyInstance, EnemyStats }
 import roguelite.game.core.GameEvent
 import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Dungeon, Enemy, Entity, Room, RoomType, Sanctuary, Tile }
-import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, EquipSlot, Item, PendingEquipChoice, PendingRewardChoice, PotionStack, Rarity, Weapon }
+import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, EquipSlot, Item, ItemStats, PendingEquipChoice, PendingRewardChoice, PotionStack, Rarity, Weapon }
 import roguelite.game.progression.{ ClassDef, DifficultyTierDef, MetaProgression, PerkDef, PerkEffect, UpgradeCategory, UpgradeDef, UpgradeEffect }
 import roguelite.game.story.{ Encounter, IdleContext, PendingScene }
 
@@ -625,7 +625,7 @@ class StateMachineSuite extends FunSuite:
     val update =
       CombatState(hubPlayer, simpleDungeon(), 1, 1, Combat(instance), "e1").toStateUpdate()
     assert(update.combat.isDefined)
-    assertEquals(update.combat.get.enemyLabel, "Goblin")
+    assertEquals(update.combat.get.enemyId, goblinStats.typeId)
 
   test("GameOverState.toStateUpdate has GameOver phase"):
     assertEquals(GameOverState(hubPlayer).toStateUpdate().phase, GamePhase.GameOver)
@@ -689,9 +689,9 @@ class StateMachineSuite extends FunSuite:
     val player = PlayerFixtures.startingPlayer(ClassId.Warrior) // affinityTags = Set("heavy")
       .copy(equippedWeapon = Some(matchingWeapon), equippedArmor = Some(mismatchedArmor))
     val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
-    assertEquals(update.equipment.weapon.map(_.statLine), Some("+10 ATK [heavy]"))
+    assertEquals(update.equipment.weapon.map(_.stats), Some(ItemStats(attack = Some(10))))
     assertEquals(update.equipment.weapon.flatMap(_.typeTag), Some("heavy"))
-    assertEquals(update.equipment.armor.map(_.statLine), Some("+4 DEF [ranged]"))
+    assertEquals(update.equipment.armor.map(_.stats), Some(ItemStats(defense = Some(4))))
     assertEquals(update.player.affinityTags, List("heavy"))
 
   // --- Debug room loading (dev tooling) -------------------------------------

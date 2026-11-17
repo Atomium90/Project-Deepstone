@@ -4,34 +4,120 @@
     "label": "Well Stocked",
     "description": "Start the run with one extra Health Potion",
     "icon": "🧪",
-    "effect": { "type": "ExtraStartingItem", "typeId": "health_potion" }
+    "effect": {
+      "type": "ExtraStartingItem",
+      "typeId": "health_potion"
+    }
   },
   {
     "id": "heavy_hand",
     "label": "Heavy Hand",
     "description": "+1 flat damage per hit this run",
     "icon": "👊",
-    "effect": { "type": "FlatDamageBonus", "amount": 1 }
+    "effect": {
+      "type": "FlatDamageBonus",
+      "amount": 1
+    }
   },
   {
     "id": "herbalist_blessing",
     "label": "Herbalist's Blessing",
     "description": "Potions heal 50% more this run",
     "icon": "🌿",
-    "effect": { "type": "PotionHealBonusPercent", "amount": 50 }
+    "effect": {
+      "type": "PotionHealBonusPercent",
+      "amount": 50
+    }
   },
   {
     "id": "efficient_casting",
     "label": "Efficient Casting",
     "description": "Abilities cost 20% less this run",
     "icon": "✦",
-    "effect": { "type": "AbilityCostReductionPercent", "amount": 20 }
+    "effect": {
+      "type": "AbilityCostReductionPercent",
+      "amount": 20
+    }
   },
   {
     "id": "lucky_find",
     "label": "Lucky Find",
     "description": "The first chest you open this run is guaranteed Rare or better",
     "icon": "🍀",
-    "effect": { "type": "GuaranteedRarityFirstChest", "minRarity": "rare" }
+    "effect": {
+      "type": "GuaranteedRarityFirstChest",
+      "minRarity": "rare"
+    }
+  },
+  {
+    "id": "hunted",
+    "label": "Hunted",
+    "description": "Enemies have 25% more HP and attack. Kills earn 60% more Shards, and a win pays 30",
+    "icon": "🐺",
+    "risky": true,
+    "shardBonusPercent": 60,
+    "victoryShardBonus": 30,
+    "effect": {
+      "type": "EnemyStatPercent",
+      "amount": 25
+    }
+  },
+  {
+    "id": "fragile_vessel",
+    "label": "Fragile Vessel",
+    "description": "30% less max HP. Kills earn 50% more Shards, and a win pays 25",
+    "icon": "💔",
+    "risky": true,
+    "shardBonusPercent": 50,
+    "victoryShardBonus": 25,
+    "effect": {
+      "type": "MaxHpPercent",
+      "amount": -30
+    }
+  },
+  {
+    "id": "bitter_draught",
+    "label": "Bitter Draught",
+    "description": "Potions heal 40% less. Kills earn 40% more Shards, and a win pays 20",
+    "icon": "🍷",
+    "risky": true,
+    "shardBonusPercent": 40,
+    "victoryShardBonus": 20,
+    "effect": {
+      "type": "PotionHealBonusPercent",
+      "amount": -40
+    }
+  },
+  {
+    "id": "strained_spirit",
+    "label": "Strained Spirit",
+    "description": "Abilities cost 40% more. Kills earn 40% more Shards, and a win pays 20",
+    "icon": "🌀",
+    "risky": true,
+    "shardBonusPercent": 40,
+    "victoryShardBonus": 20,
+    "effect": {
+      "type": "AbilityCostReductionPercent",
+      "amount": -40
+    }
+  },
+  {
+    "id": "devils_bargain",
+    "label": "Devil's Bargain",
+    "description": "Enemies have 15% more HP and attack, and you have 15% less max HP. Kills earn 90% more Shards, and a win pays 50",
+    "icon": "😈",
+    "risky": true,
+    "shardBonusPercent": 90,
+    "victoryShardBonus": 50,
+    "effect": {
+      "type": "EnemyStatPercent",
+      "amount": 15
+    },
+    "extraEffects": [
+      {
+        "type": "MaxHpPercent",
+        "amount": -15
+      }
+    ]
   }
 ]

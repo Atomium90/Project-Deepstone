@@ -24,6 +24,8 @@ case class Player(
     keyCounts: Map[KeyKind, Int] = Map.empty,
     activeSetHpBonusFlat: Int = 0,
     activePerkId: Option[String] = None,
+    /** The risky perk taken into the run, if any: a malus in exchange for more Shards. */
+    activeRiskyPerkId: Option[String] = None,
     firstChestBonusUsed: Boolean = false,
     chestRarityFloor: Option[Rarity] = None
 ):

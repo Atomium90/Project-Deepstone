@@ -91,6 +91,8 @@ object AchievementLoader extends JsonResourceLoader[AchievementDef, String]:
           .map(AchievementCondition.DistinctPerksWonWith.apply)
       case "DefeatElite" =>
         Right(AchievementCondition.DefeatElite)
+      case "WinWithRiskyPerk" =>
+        Right(AchievementCondition.WinWithRiskyPerk)
       case other =>
         Left(s"Unknown achievement condition type: '$other'")
 

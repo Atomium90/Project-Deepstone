@@ -1124,6 +1124,77 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(meta.currency, 120)
   }
 
+  /** An ending session whose catalog holds a perk that pays `bonus` Shards for a win, taken into a Hard run. */
+  private def payingRun(database: Database, bonus: Int): IO[GameSession] =
+    val payer = PerkDef("payer", "Payer", "d", icon = "*", effect = PerkEffect.FlatDamageBonus(1), victoryShardBonus = bonus)
+    for
+      _       <- database.saveStoryState(5, None)
+      _       <- database.saveCurrency(120)
+      _       <- seedFirstVictory(database)
+      session <- GameSession.create(smWithRest, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                    rng = Random(0L), sceneDefs = testScenes, chapterDefs = endingChapters, npcDefs = endingNpcs,
+                                    perkDefs = Map(payer.id -> payer)
+                 )
+      _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Hard), perkId = Some("payer")))
+    yield session
+
+  db.test("a perk that pays a win bonus adds it to the Shards when the light is entered") {
+    database =>
+      for
+        session <- payingRun(database, 40)
+        _       <- List.fill(5)(goThroughDoor(session)).foldLeft(IO.unit)((acc, door) => acc *> door.void)
+        _       <- session.handle(Interact("sanct_1"))
+        _       <- session.handle(CardSeen("ch6"))
+        entered <- session.handle(EndingChoice(EndingAnswer.Enter))
+        meta    <- database.loadMeta()
+      yield
+        assertEquals(entered.phase, GamePhase.GameOver)
+        assertEquals(entered.player.metaCurrency, 160)
+        assert(entered.log.has("log.run.victoryBonus", "count" -> 40), s"expected the bonus line: ${entered.log}")
+        assertEquals(meta.currency, 160, "the bonus is saved with the run")
+  }
+
+  db.test("winning a Hard run with a risky perk unlocks risk_taker, and the perk does not count among the perks won with") {
+    database =>
+      val tiers = Map(
+        Difficulty.Easy   -> DifficultyTierDef(Difficulty.Easy, None, List("dungeon")),
+        Difficulty.Normal -> DifficultyTierDef(Difficulty.Normal, None, List("dungeon")),
+        Difficulty.Hard   -> DifficultyTierDef(Difficulty.Hard, None, List("dungeon"))
+      )
+      val risky = PerkDef("daring", "Daring", "d", icon = "*", effect = PerkEffect.EnemyStatPercent(10), risky = true, shardBonusPercent = 10)
+      val riskTaker = AchievementDef("risk_taker", "Risk Taker", "d", 99, AchievementCondition.WinWithRiskyPerk)
+      for
+        _       <- database.saveStoryState(5, None)
+        _       <- seedFirstVictory(database)
+        session <- GameSession.create(smWithRest, database, Map.empty, testUpgradeDefs, Map.empty,
+                                      testAchievementDefs + (riskTaker.id -> riskTaker),
+                                      rng = Random(0L), sceneDefs = testScenes, chapterDefs = endingChapters, npcDefs = endingNpcs,
+                                      perkDefs = Map(risky.id -> risky), difficultyDefs = tiers)
+        _       <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(Difficulty.Hard), riskyPerkId = Some("daring")))
+        _       <- List.fill(5)(goThroughDoor(session)).foldLeft(IO.unit)((acc, door) => acc *> door.void)
+        _       <- session.handle(Interact("sanct_1"))
+        _       <- session.handle(CardSeen("ch6"))
+        entered <- session.handle(EndingChoice(EndingAnswer.Enter))
+        stats   <- database.loadAchievementStats()
+      yield
+        assertEquals(entered.phase, GamePhase.GameOver)
+        assert(entered.newlyUnlocked.exists(_.id == "risk_taker"), s"expected risk_taker: ${entered.newlyUnlocked}")
+        assertEquals(stats.perksWonWith, Set.empty[String])
+  }
+
+  db.test("a perk that pays a win bonus pays nothing when the light is refused, which gives every Shard up") {
+    database =>
+      for
+        session <- payingRun(database, 40)
+        _       <- List.fill(5)(goThroughDoor(session)).foldLeft(IO.unit)((acc, door) => acc *> door.void)
+        _       <- session.handle(Interact("sanct_1"))
+        _       <- session.handle(CardSeen("ch6"))
+        refused <- session.handle(EndingChoice(EndingAnswer.Refuse))
+      yield
+        assertEquals(refused.player.metaCurrency, 0)
+        assert(!refused.log.hasKey("log.run.victoryBonus"), s"expected no bonus line: ${refused.log}")
+  }
+
   db.test("refusing the light takes every Shard, shuts the altar, opens Hardcore, and no top-up gives the Shards back") {
     database =>
       for
@@ -2025,6 +2096,110 @@ class GameSessionSuite extends CatsEffectSuite:
         _ <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
       yield assertEquals(update.player.maxHp, 140) // base Warrior 120 (test fixture) + 20
+  }
+
+  db.test("a perk with a max HP malus is applied after the hub's HP upgrades, so they cannot undo it") {
+    database =>
+      val frail = PerkDef("frail", "Frail", "d", icon = "*", effect = PerkEffect.MaxHpPercent(-30))
+      for
+        _       <- seedFirstVictory(database)
+        _       <- database.saveCurrency(30)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      perkDefs = Map(frail.id -> frail), rng = Random(0L))
+        _       <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+        update  <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), perkId = Some("frail")))
+      yield
+        // 120 base + 20 from the upgrade = 140, then 30% less: 98.
+        assertEquals(update.player.maxHp, 98)
+        assertEquals(update.player.hp, 98)
+  }
+
+  db.test("a max HP malus on a run with no upgrade bought applies to the class's own HP") {
+    database =>
+      val frail = PerkDef("frail", "Frail", "d", icon = "*", effect = PerkEffect.MaxHpPercent(-30))
+      for
+        _       <- seedFirstVictory(database)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      perkDefs = Map(frail.id -> frail), rng = Random(0L))
+        update  <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), perkId = Some("frail")))
+      yield assertEquals(update.player.maxHp, 84) // 70% of 120
+  }
+
+  private val riskyPool: Map[String, PerkDef] =
+    (1 to 4).map(i => s"risky_$i" -> PerkDef(s"risky_$i", s"R$i", "d", icon = "*", effect = PerkEffect.EnemyStatPercent(10), risky = true, shardBonusPercent = 10)).toMap
+
+  test("a single risky perk is offered once Hard is unlocked, drawn from the risky ones only") {
+    val pool  = testPerkDefs ++ riskyPool
+    val tiers = Set(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard)
+    for seed <- 1 to 30 do
+      val offer = GameSession.riskyPerkOptionsFor(pool, tiers, Random(seed))
+      assertEquals(offer.size, 1)
+      assert(offer.forall(_.risky), s"an ordinary perk among the risky ones: $offer")
+    // Across seeds it is not always the same one.
+    assert((1 to 30).map(seed => GameSession.riskyPerkOptionsFor(pool, tiers, Random(seed)).head.id).toSet.size > 1)
+  }
+
+  test("no risky perk is offered while Hard is locked, and the locked visit does not consume the rng") {
+    val pool  = testPerkDefs ++ riskyPool
+    val tiers = Set(Difficulty.Easy, Difficulty.Normal)
+    val rng   = Random(7)
+    assertEquals(GameSession.riskyPerkOptionsFor(pool, tiers, rng), Nil)
+    assertEquals(rng.nextInt(), Random(7).nextInt())
+  }
+
+  test("a catalog with a single risky perk offers it, and one with none offers nothing") {
+    val one = riskyPool.take(1)
+    assertEquals(GameSession.riskyPerkOptionsFor(one, Set(Difficulty.Hard), Random(1)).size, 1)
+    assertEquals(GameSession.riskyPerkOptionsFor(Map.empty, Set(Difficulty.Hard), Random(1)), Nil)
+  }
+
+  db.test("the risky perks on offer reach the hub view, and a purchase keeps them") {
+    database =>
+      val tiers = Map(
+        Difficulty.Easy   -> DifficultyTierDef(Difficulty.Easy, None, List("dungeon")),
+        Difficulty.Normal -> DifficultyTierDef(Difficulty.Normal, None, List("dungeon")),
+        Difficulty.Hard   -> DifficultyTierDef(Difficulty.Hard, None, List("dungeon"))
+      )
+      for
+        _       <- database.saveCurrency(30)
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      perkDefs = testPerkDefs ++ riskyPool, difficultyDefs = tiers, rng = Random(0L))
+        before  <- session.currentUpdate
+        after   <- session.handle(HubAction(HubActionType.BuyUpgrade, upgradeId = Some("hp_boost_1")))
+      yield
+        assertEquals(before.hub.get.riskyPerks.size, 1)
+        assert(before.hub.get.riskyPerks.forall(_.risky))
+        assertEquals(after.hub.get.riskyPerks, before.hub.get.riskyPerks, "a purchase is not a fresh hub entry")
+        assertEquals(after.hub.get.perks, before.hub.get.perks)
+  }
+
+  db.test("a risky perk offered by the hub is taken into a Hard run and its malus acts") {
+    database =>
+      val tiers = Map(
+        Difficulty.Easy   -> DifficultyTierDef(Difficulty.Easy, None, List("dungeon")),
+        Difficulty.Normal -> DifficultyTierDef(Difficulty.Normal, None, List("dungeon")),
+        Difficulty.Hard   -> DifficultyTierDef(Difficulty.Hard, None, List("dungeon"))
+      )
+      val frail = PerkDef("frail_risky", "Frail", "d", icon = "*", effect = PerkEffect.MaxHpPercent(-30), risky = true, shardBonusPercent = 50)
+      for
+        session <- GameSession.create(sm, database, Map.empty, testUpgradeDefs, Map.empty, testAchievementDefs,
+                                      perkDefs = Map(frail.id -> frail), difficultyDefs = tiers, rng = Random(0L))
+        hub     <- session.currentUpdate
+        started <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior),
+                                            difficulty = Some(Difficulty.Hard), riskyPerkId = Some("frail_risky")))
+      yield
+        assertEquals(hub.hub.get.riskyPerks.map(_.id), List("frail_risky"))
+        assertEquals(started.phase, GamePhase.Exploration)
+        assertEquals(started.player.maxHp, 84) // 70% of the class's 120
+  }
+
+  test("a risky perk is never among the ordinary perks a hub visit offers") {
+    val risky  = PerkDef("risky", "R", "d", icon = "*", effect = PerkEffect.EnemyStatPercent(25), risky = true)
+    val pool   = testPerkDefs + (risky.id -> risky)
+    val tiers  = Set(Difficulty.Easy, Difficulty.Normal)
+    val offers = (1 to 40).flatMap(seed => GameSession.perkOptionsFor(pool, tiers, Random(seed)))
+    assert(offers.nonEmpty)
+    assert(!offers.exists(_.risky), "a risky perk was offered among the ordinary ones")
   }
 
   db.test("the hub upgrades bought do nothing on a Hardcore run, which keeps the base class") {

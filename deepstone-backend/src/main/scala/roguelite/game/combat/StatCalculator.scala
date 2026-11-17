@@ -35,11 +35,10 @@ final class StatCalculator(setDefs: Map[String, SetDef], perkDefs: Map[String, P
   def sumSetBonus(player: Player, extract: PartialFunction[SetBonusEffect, Int]): Int =
     activeSetBonuses(player).collect(extract).sum
 
-  /** The player's chosen run perk, resolved against the catalog (`None` if no perk is active or its
-    * id is not in it).
+  /** The effects of the run perks the player took, resolved against the catalog (none if no perk is
+    * active or an id is not in it).
     */
-  def activePerkEffect(player: Player): Option[PerkEffect] =
-    player.activePerkId.flatMap(perkDefs.get).map(_.effect)
+  def activePerkEffects(player: Player): List[PerkEffect] = PerkDef.activeEffects(player, perkDefs)
 
   /** Attack: level scaling + max-HP factor + permanent bonus + affinity-aware weapon and accessory
     * bonuses + any active set FlatAttack bonus + any active FlatDamageBonus perk. Example: Hunter's
@@ -51,9 +50,7 @@ final class StatCalculator(setDefs: Map[String, SetDef], perkDefs: Map[String, P
                w.attackBonus * Affinity.multiplier(w.typeTag, player.affinityTags),
                Affinity.matches(w.typeTag, player.affinityTags) && w.attackBonus != 0
       )
-    val perk = activePerkEffect(player) match
-      case Some(PerkEffect.FlatDamageBonus(n)) => n
-      case _                                   => 0
+    val perk = activePerkEffects(player).collect { case PerkEffect.FlatDamageBonus(n) => n }.sum
     List(
       Some(StatTerm(StatSource.Level, player.level * 5)),
       Some(StatTerm(StatSource.MaxHp, player.maxHp / 10)),

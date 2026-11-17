@@ -63,9 +63,83 @@ class PerkLoaderSuite extends CatsEffectSuite:
     PerkLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
 
   // ---------------------------------------------
+  // Risky perks: a malus for more Shards
+  // ---------------------------------------------
+
+  private val riskyFixture =
+    """[
+      |  {"id":"risky_enemies","label":"L","description":"d","icon":"i.png","risky":true,"shardBonusPercent":60,"victoryShardBonus":30,"effect":{"type":"EnemyStatPercent","amount":25}},
+      |  {"id":"risky_hp","label":"L","description":"d","icon":"i.png","risky":true,"shardBonusPercent":50,"effect":{"type":"MaxHpPercent","amount":-30}},
+      |  {"id":"risky_potion","label":"L","description":"d","icon":"i.png","risky":true,"shardBonusPercent":40,"effect":{"type":"PotionHealBonusPercent","amount":-40}},
+      |  {"id":"risky_pact","label":"L","description":"d","icon":"i.png","risky":true,"shardBonusPercent":90,"victoryShardBonus":50,"effect":{"type":"EnemyStatPercent","amount":15},"extraEffects":[{"type":"MaxHpPercent","amount":-15}]},
+      |  {"id":"plain","label":"L","description":"d","icon":"i.png","effect":{"type":"FlatDamageBonus","amount":1}}
+      |]""".stripMargin
+
+  test("the effects of a risky perk decode, a malus as a negative amount"):
+    for defs <- PerkLoader.loadAllFromJson(riskyFixture)
+    yield
+      assertEquals(defs("risky_enemies").effect, PerkEffect.EnemyStatPercent(25))
+      assertEquals(defs("risky_hp").effect, PerkEffect.MaxHpPercent(-30))
+      assertEquals(defs("risky_potion").effect, PerkEffect.PotionHealBonusPercent(-40))
+
+  test("a risky perk carries its flag and the Shards it pays"):
+    for defs <- PerkLoader.loadAllFromJson(riskyFixture)
+    yield
+      assertEquals(defs("risky_enemies").risky, true)
+      assertEquals(defs("risky_enemies").shardBonusPercent, 60)
+      assertEquals(defs("risky_enemies").victoryShardBonus, 30)
+      assertEquals(defs("risky_hp").victoryShardBonus, 0)
+
+  test("a perk with no risky fields is an ordinary perk that pays nothing more"):
+    for defs <- PerkLoader.loadAllFromJson(riskyFixture)
+    yield
+      assertEquals(defs("plain").risky, false)
+      assertEquals(defs("plain").shardBonusPercent, 0)
+      assertEquals(defs("plain").victoryShardBonus, 0)
+      assertEquals(defs("plain").extraEffects, Nil)
+
+  test("a perk with several effects lists them all, the main one first"):
+    for defs <- PerkLoader.loadAllFromJson(riskyFixture)
+    yield assertEquals(defs("risky_pact").effects, List(PerkEffect.EnemyStatPercent(15), PerkEffect.MaxHpPercent(-15)))
+
+  test("EnemyStatPercent and MaxHpPercent missing their 'amount' fail to parse"):
+    val enemies = """[{"id":"x","label":"L","description":"d","icon":"i.png","effect":{"type":"EnemyStatPercent"}}]"""
+    val hp      = """[{"id":"x","label":"L","description":"d","icon":"i.png","effect":{"type":"MaxHpPercent"}}]"""
+    for
+      a <- PerkLoader.loadAllFromJson(enemies).attempt
+      b <- PerkLoader.loadAllFromJson(hp).attempt
+    yield
+      assert(a.isLeft, "expected a parse failure")
+      assert(b.isLeft, "expected a parse failure")
+
+  test("an unknown effect in extraEffects fails to parse"):
+    val bad =
+      """[{"id":"x","label":"L","description":"d","icon":"i.png","effect":{"type":"MaxHpPercent","amount":-5},"extraEffects":[{"type":"NotReal"}]}]"""
+    PerkLoader.loadAllFromJson(bad).attempt.map(r => assert(r.isLeft, "expected a parse failure"))
+
+  // ---------------------------------------------
   // Real catalog: size-independent smoke check only
   // ---------------------------------------------
 
   test("the real data/perks.json resource loads successfully"):
     for defs <- PerkLoader.loadAll()
     yield assert(defs.nonEmpty)
+
+  test("every risky perk of the real catalog takes a malus and pays Shards for it, and no ordinary perk pays any"):
+    def isMalus(effect: PerkEffect): Boolean = effect match
+      case PerkEffect.EnemyStatPercent(n)            => n > 0
+      case PerkEffect.MaxHpPercent(n)                => n < 0
+      case PerkEffect.PotionHealBonusPercent(n)      => n < 0
+      case PerkEffect.AbilityCostReductionPercent(n) => n < 0
+      case _                                         => false
+    for defs <- PerkLoader.loadAll()
+    yield
+      val (risky, ordinary) = defs.values.toList.partition(_.risky)
+      assert(risky.nonEmpty, "expected at least one risky perk")
+      for p <- risky do
+        assert(p.effects.exists(isMalus), s"${p.id} is risky but takes no malus")
+        assert(p.shardBonusPercent > 0, s"${p.id} is risky but pays no Shards per kill")
+      for p <- ordinary do
+        assertEquals(p.shardBonusPercent, 0, s"${p.id} is not risky but pays Shards")
+        assertEquals(p.victoryShardBonus, 0, s"${p.id} is not risky but pays a win bonus")
+        assert(!p.effects.exists(isMalus), s"${p.id} is not risky but takes a malus")

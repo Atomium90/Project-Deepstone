@@ -93,10 +93,13 @@ object EnemyInstance:
   def fromStats(entityId: String,
                 stats: EnemyStats,
                 difficulty: Difficulty = Difficulty.Normal,
-                isElite: Boolean = false
+                isElite: Boolean = false,
+                extraPercent: Int = 0
   ): EnemyInstance =
     val mult      = difficulty.statMultiplier
-    val eliteMult = if isElite then EliteStatMultiplier else 1.0
+    // A risky perk makes every enemy tougher, in HP and attack only: the reward does not follow.
+    val perkMult  = (100 + extraPercent).max(0) / 100.0
+    val eliteMult = (if isElite then EliteStatMultiplier else 1.0) * perkMult
     val scaledHp  = math.max(1, math.round(stats.maxHp * mult * eliteMult).toInt)
     EnemyInstance(
       entityId = entityId,

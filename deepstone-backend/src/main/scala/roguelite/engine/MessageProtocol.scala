@@ -142,7 +142,11 @@ case class HubAction(
       * the `.json` extension. The available ids are advertised to the client via
       * [[StateUpdate.debugRooms]].
       */
-    debugRoomId: Option[String] = None
+    debugRoomId: Option[String] = None,
+    /** Only meaningful on `StartRun`, on Hard: the risky perk taken into the run, one of
+      * `HubView.riskyPerks`. Ignored on any other difficulty, and when not currently offered.
+      */
+    riskyPerkId: Option[String] = None
 ) extends PlayerAction
 
 /** Resolve a pending equip choice (see [[PendingEquipChoiceView]]). `targetSlot = None` means
@@ -356,7 +360,7 @@ case class UpgradeView(id: String,
 )
 
 /** One run perk offered to the player, rolled fresh every HUB visit (see `HubState.perkOptions`). */
-case class PerkView(id: String, icon: String)
+case class PerkView(id: String, icon: String, risky: Boolean = false)
 
 /** How far a save is from unlocking a difficulty tier: `winsDone` of the `wins` needed on tier
   * `winsAt`, and `shardsSpentDone` of the `shardsSpent` needed.
@@ -384,6 +388,10 @@ case class DifficultyView(id: Difficulty, unlocked: Boolean, requirement: Option
   */
 case class HubView(upgrades: List[UpgradeView],
                    perks: List[PerkView] = Nil,
+                   /** The risky perks on offer, only to a player who can start a Hard run. A row of their own,
+                     * chosen apart from the ordinary perk and only valid on Hard.
+                     */
+                   riskyPerks: List[PerkView] = Nil,
                    runsCompleted: Int = 0,
                    difficulties: List[DifficultyView] = Nil,
                    shopClosed: Boolean = false

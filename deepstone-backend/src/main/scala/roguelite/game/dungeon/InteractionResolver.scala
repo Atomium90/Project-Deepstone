@@ -32,11 +32,10 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                           perkDefs: Map[String, PerkDef] = Map.empty
 ):
 
-  /** The player's chosen run perk, resolved against [[perkDefs]] (mirrors
-    * `CombatResolver.activePerkEffect`).
+  /** The effects of the run perks the player took, resolved against [[perkDefs]] (mirrors
+    * `CombatResolver.activePerkEffects`).
     */
-  private def activePerkEffect(player: Player): Option[PerkEffect] =
-    player.activePerkId.flatMap(perkDefs.get).map(_.effect)
+  private def activePerkEffects(player: Player): List[PerkEffect] = PerkDef.activeEffects(player, perkDefs)
 
   def interact(exp: ExplorationState, targetId: String): TransitionResult =
     exp.dungeon.currentRoom.entityById(targetId) match {
@@ -231,7 +230,8 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
       case None =>
         (exp, List(LogLine.of("log.combat.unknownEnemy", "type" -> enemy.typeId)))
       case Some(stats) =>
-        val instance = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty, enemy.isElite)
+        val perkPercent = activePerkEffects(exp.player).collect { case PerkEffect.EnemyStatPercent(n) => n }.sum
+        val instance    = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty, enemy.isElite, perkPercent)
         val combat   = Combat(enemy = instance)
         val nextState = CombatState(exp.player,
                                     exp.dungeon,
@@ -290,10 +290,8 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     // The Rarity Insight upgrade (Player.chestRarityFloor) is the opposite: a permanent floor on
     // every chest, never consumed - the two combine by taking whichever floor is stronger. Both only
     // ever apply here, since the item is rolled once, on the first opening.
-    val perkFloor = activePerkEffect(exp.player) match {
-      case Some(PerkEffect.GuaranteedRarityFirstChest(minRarity)) if !exp.player.firstChestBonusUsed =>
-        Some(minRarity)
-      case _ => None
+    val perkFloor = activePerkEffects(exp.player).collectFirst {
+      case PerkEffect.GuaranteedRarityFirstChest(minRarity) if !exp.player.firstChestBonusUsed => minRarity
     }
     val rarityFloorOverride = List(perkFloor, exp.player.chestRarityFloor).flatten.maxByOption(_.ordinal)
     val opened =
@@ -382,10 +380,25 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   private def handleSanctuary(exp: ExplorationState, sanctuary: Sanctuary): (GameState, List[LogLine], List[GameEvent]) =
     if exp.endingOpen then (exp.copy(pendingEndingChoice = true), List(LogLine.of("log.sanctuary.waits")), Nil)
     else
-      (GameOverState(exp.player, victory = true),
-       List(LogLine.of("log.sanctuary.victory")),
-       List(GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId))
+      val (paid, bonusLog) = winBonus(exp)
+      (GameOverState(paid, victory = true),
+       LogLine.of("log.sanctuary.victory") :: bonusLog,
+       List(
+         GameEvent.RunEnded(victory = true,
+                            difficulty = exp.difficulty,
+                            activePerkId = exp.player.activePerkId,
+                            riskyPerkId = exp.player.activeRiskyPerkId
+         )
+       )
       )
+
+  /** The player with the Shards their risky perk pays for a won run, and the line that tells it. Nothing
+    * for a run that takes no blessing or once the altar is shut, like the Shards of a kill.
+    */
+  private def winBonus(exp: ExplorationState): (Player, List[LogLine]) =
+    val bonus = PerkDef.winBonus(exp.player, perkDefs, exp.difficulty.usesBlessings, exp.altarShut)
+    if bonus <= 0 then (exp.player, Nil)
+    else (exp.player.copy(metaCurrency = exp.player.metaCurrency + bonus), List(LogLine.of("log.run.victoryBonus", "count" -> bonus)))
 
   /** Reveal any hidden secret door within Chebyshev distance 1 of (x, y). Called from
     * [[roguelite.engine.StateMachine]]'s Move handling, not Interact (same family of "entities

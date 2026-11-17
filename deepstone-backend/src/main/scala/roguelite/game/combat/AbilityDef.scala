@@ -50,8 +50,8 @@ object AbilityDef:
     val setReduction = SetDef.activeBonuses(player.equippedSetIds, setDefs, player.classId).collect {
       case SetBonusEffect.AbilityCostReductionPercent(n) => n
     }.sum
-    val perkReduction = player.activePerkId.flatMap(perkDefs.get).map(_.effect) match {
-      case Some(PerkEffect.AbilityCostReductionPercent(n)) => n
-      case _                                               => 0
-    }
+    // A negative percent is a surcharge, from a risky perk.
+    val perkReduction = PerkDef.activeEffects(player, perkDefs).collect {
+      case PerkEffect.AbilityCostReductionPercent(n) => n
+    }.sum
     math.round(ability.cost * (100 - setReduction - perkReduction).max(0) / 100.0).toInt

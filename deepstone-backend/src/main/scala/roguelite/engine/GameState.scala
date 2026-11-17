@@ -122,6 +122,9 @@ sealed trait GameState:
   *   The loaded upgrade catalog (see [[roguelite.game.progression.UpgradeLoader]]), used to render [[HubView]].
   *   Defaults to empty so tests that don't care about the upgrade list can keep using
   *   `HubState(player)`.
+  * @param riskyPerkOptions
+  *   The risky perk offered this visit (a list of one, take it or leave it), rolled with `perkOptions` and, like them, kept for
+  *   the whole visit. Empty while Hard is still locked.
   * @param perkOptions
   *   A random subset of the perk catalog, rolled fresh by [[GameSession]] every time the player
   *   freshly lands in the hub (not on every hub-state rebuild, e.g. after a purchase - see
@@ -131,7 +134,8 @@ sealed trait GameState:
 case class HubState(player: Player,
                     upgradeDefs: Map[String, UpgradeDef] = Map.empty,
                     meta: MetaProgression = MetaProgression.empty,
-                    perkOptions: List[PerkDef] = Nil
+                    perkOptions: List[PerkDef] = Nil,
+                    riskyPerkOptions: List[PerkDef] = Nil
 ) extends GameState:
   def toStateUpdate(log: List[LogLine] = Nil): StateUpdate =
     StateUpdate(
@@ -148,7 +152,8 @@ case class HubState(player: Player,
               unlocked = meta.isUnlocked(u.id)
             )
         },
-        perks = perkOptions.map(p => PerkView(id = p.id, icon = p.icon))
+        perks = perkOptions.map(p => PerkView(id = p.id, icon = p.icon)),
+        riskyPerks = riskyPerkOptions.map(p => PerkView(id = p.id, icon = p.icon, risky = true))
       )),
       equipment = equipmentToView(player),
       log = log,

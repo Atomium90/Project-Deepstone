@@ -24,9 +24,20 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
       .flatMap(js => js.traverse(toPerkDef))
 
   private def toPerkDef(j: PerkDefJson): Either[String, PerkDef] =
-    parseEffect(j.effect).map:
-      effect =>
-        PerkDef(id = j.id, label = j.label, description = j.description, icon = j.icon, effect = effect)
+    for
+      effect <- parseEffect(j.effect)
+      extra  <- j.extraEffects.getOrElse(Nil).traverse(parseEffect)
+    yield PerkDef(
+      id = j.id,
+      label = j.label,
+      description = j.description,
+      icon = j.icon,
+      effect = effect,
+      extraEffects = extra,
+      risky = j.risky.getOrElse(false),
+      shardBonusPercent = j.shardBonusPercent.getOrElse(0),
+      victoryShardBonus = j.victoryShardBonus.getOrElse(0)
+    )
 
   private def parseEffect(e: PerkEffectJson): Either[String, PerkEffect] =
     e.`type` match
@@ -42,6 +53,10 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
         e.amount
           .toRight("AbilityCostReductionPercent is missing 'amount' field")
           .map(PerkEffect.AbilityCostReductionPercent.apply)
+      case "EnemyStatPercent" =>
+        e.amount.toRight("EnemyStatPercent is missing 'amount' field").map(PerkEffect.EnemyStatPercent.apply)
+      case "MaxHpPercent" =>
+        e.amount.toRight("MaxHpPercent is missing 'amount' field").map(PerkEffect.MaxHpPercent.apply)
       case "GuaranteedRarityFirstChest" =>
         e.minRarity
           .toRight("GuaranteedRarityFirstChest is missing 'minRarity' field")
@@ -68,7 +83,16 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
                                     minRarity: Option[String] = None
   )
 
-  private case class PerkDefJson(id: String, label: String, description: String, icon: String, effect: PerkEffectJson)
+  private case class PerkDefJson(id: String,
+                                 label: String,
+                                 description: String,
+                                 icon: String,
+                                 effect: PerkEffectJson,
+                                 extraEffects: Option[List[PerkEffectJson]] = None,
+                                 risky: Option[Boolean] = None,
+                                 shardBonusPercent: Option[Int] = None,
+                                 victoryShardBonus: Option[Int] = None
+  )
 
   private given Decoder[PerkEffectJson] = Decoder.instance:
     (c: HCursor) =>
@@ -87,4 +111,8 @@ object PerkLoader extends JsonResourceLoader[PerkDef, String]:
         description <- c.get[String]("description")
         icon        <- c.get[String]("icon")
         effect      <- c.get[PerkEffectJson]("effect")
-      yield PerkDefJson(id, label, description, icon, effect)
+        extra       <- c.get[Option[List[PerkEffectJson]]]("extraEffects")
+        risky       <- c.get[Option[Boolean]]("risky")
+        shardPct    <- c.get[Option[Int]]("shardBonusPercent")
+        victory     <- c.get[Option[Int]]("victoryShardBonus")
+      yield PerkDefJson(id, label, description, icon, effect, extra, risky, shardPct, victory)

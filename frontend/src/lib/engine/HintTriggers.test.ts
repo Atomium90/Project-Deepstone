@@ -174,6 +174,14 @@ describe("candidateHints", () => {
             expect(candidateHints(makeState({ phase: "HUB", hub: hub(2, 3) }))).toEqual(["difficulty", "perks"]);
         });
 
+        test("teaches the risky perks when some are offered, after the ordinary ones", () => {
+            const withRisky: StateUpdate["hub"] = {
+                ...hub(2, 3)!,
+                riskyPerks: [{ id: "hunted", icon: "*", risky: true }],
+            };
+            expect(candidateHints(makeState({ phase: "HUB", hub: withRisky }))).toEqual(["difficulty", "perks", "risky_perks"]);
+        });
+
         test("offers nothing when the update carries no hub view", () => {
             expect(candidateHints(makeState({ phase: "HUB" }))).toEqual([]);
         });

@@ -24,8 +24,11 @@ export default defineConfig({
     // would wait out the whole test timeout. 15s makes a stuck step fail with a readable error.
     use: { baseURL: "http://localhost:5173", headless: true, actionTimeout: 15_000 },
     reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
-    // All the specs share one backend and one database. The first-run spec needs a save with no
-    // finished run, and the others finish runs, so it goes first: the other project waits for it.
+    // All the specs share one backend and one database, so they run one at a time: a spec that buys an
+    // upgrade or ends a run changes the save (a story card to read, a tier opened) under the others.
+    workers: 1,
+    // The first-run spec needs a save with no finished run, and the others finish runs, so it goes
+    // first: the other project waits for it.
     projects: [
         { name: "first-run", testMatch: "first-run.spec.ts" },
         { name: "game", testIgnore: "first-run.spec.ts", dependencies: ["first-run"] },

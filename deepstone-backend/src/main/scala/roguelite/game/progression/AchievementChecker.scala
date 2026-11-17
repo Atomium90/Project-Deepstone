@@ -65,7 +65,7 @@ object AchievementChecker:
     (updatedStats, satisfied.toList)
 
   private def applyEvent(stats: AchievementStats, event: GameEvent): AchievementStats = event match
-    case GameEvent.RunEnded(victory, difficulty, activePerkId) =>
+    case GameEvent.RunEnded(victory, difficulty, activePerkId, _) =>
       stats.copy(
         runsCompleted = stats.runsCompleted + 1,
         runsWon = if victory then stats.runsWon + 1 else stats.runsWon,
@@ -105,16 +105,18 @@ object AchievementChecker:
         stackAtCapacity
       case (AchievementCondition.UnlockDoorWithKey, GameEvent.DoorUnlockedWithKey) => true
       case (AchievementCondition.RevealSecretDoor, GameEvent.SecretDoorRevealed)   => true
-      case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_, _, _)) => stats.runsCompleted >= n
-      case (AchievementCondition.RunsWon(n), GameEvent.RunEnded(victory, _, _)) =>
+      case (AchievementCondition.RunsCompleted(n), GameEvent.RunEnded(_, _, _, _)) => stats.runsCompleted >= n
+      case (AchievementCondition.RunsWon(n), GameEvent.RunEnded(victory, _, _, _)) =>
         victory && stats.runsWon >= n
-      case (AchievementCondition.WinStreak(n), GameEvent.RunEnded(_, _, _)) => stats.currentWinStreak >= n
-      case (AchievementCondition.WinOnDifficulty(target), GameEvent.RunEnded(victory, difficulty, _)) =>
+      case (AchievementCondition.WinStreak(n), GameEvent.RunEnded(_, _, _, _)) => stats.currentWinStreak >= n
+      case (AchievementCondition.WinOnDifficulty(target), GameEvent.RunEnded(victory, difficulty, _, _)) =>
         victory && difficulty == target
       case (AchievementCondition.ConsumablesUsed(n), GameEvent.ConsumableUsed(_)) =>
         stats.consumablesUsed >= n
       case (AchievementCondition.DistinctPotionTypesUsed(n), GameEvent.ConsumableUsed(_)) =>
         stats.potionTypesUsed.size >= n
-      case (AchievementCondition.DistinctPerksWonWith(n), GameEvent.RunEnded(victory, _, _)) =>
+      case (AchievementCondition.DistinctPerksWonWith(n), GameEvent.RunEnded(victory, _, _, _)) =>
         victory && stats.perksWonWith.size >= n
+      case (AchievementCondition.WinWithRiskyPerk, GameEvent.RunEnded(victory, _, _, riskyPerkId)) =>
+        victory && riskyPerkId.isDefined
       case _                                                          => false

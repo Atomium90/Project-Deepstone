@@ -34,6 +34,7 @@ export const HINTS: readonly HintDef[] = [
     { id: "difficulty" },
     { id: "shop" },
     { id: "perks" },
+    { id: "risky_perks" },
 ];
 
 export function hintPosition(id: string, catalog: readonly HintDef[] = HINTS): HintPosition {

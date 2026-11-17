@@ -3,7 +3,7 @@ package roguelite.engine
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.syntax.foldable.*
-import roguelite.game.progression.MetaProgression
+import roguelite.game.progression.{ MetaProgression, PerkEffect }
 import roguelite.db.Database
 import roguelite.game.dungeon.{ Enemy, MinimapLayout, Npc, RoomType }
 import roguelite.game.items.Item
@@ -65,16 +65,24 @@ class GameSession private (
       progress =>
         GameSession.perkOptionsFor(perkDefs, DifficultyUnlocks.unlockedTiers(difficultyDefs, progress.stats), rng)
 
+  /** Roll the risky perk to offer, a single one, as long as Hard is unlocked. See
+    * `HubState.riskyPerkOptions` and [[GameSession.riskyPerkOptionsFor]].
+    */
+  private def rollRiskyPerkOptions(): IO[List[PerkDef]] =
+    achievementRef.get.map:
+      progress =>
+        GameSession.riskyPerkOptionsFor(perkDefs, DifficultyUnlocks.unlockedTiers(difficultyDefs, progress.stats), rng)
+
   /** Process a player action, update the internal state, and return the new state snapshot to be
     * serialized and sent to the client.
     */
   def handle(action: PlayerAction): IO[StateUpdate] =
     val result = action match
-      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _, _) =>
+      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _, _, _) =>
         handleBuyUpgrade(upgradeId)
-      case HubAction(HubActionType.StartRun, _, _, difficulty, _, _) =>
+      case HubAction(HubActionType.StartRun, _, _, difficulty, _, _, _) =>
         handleStartRun(action, difficulty.getOrElse(StateMachine.DefaultDifficulty))
-      case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId)) =>
+      case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId), _) =>
         if debugMode then handleDebugLoadRoom(roomId) else rejectDebugLoadRoom
       case Interact(targetId) =>
         handleInteract(action, targetId)
@@ -223,11 +231,13 @@ class GameSession private (
           // With the altar shut there is nothing left to top the Shards up for.
           grant = if story.shopClosed then None else ShardTopUp.grantFor(currentMeta, progress.stats, upgradeDefs)
           meta        <- grant.fold(IO.pure(currentMeta))(applyShardTopUp(currentMeta, _))
-          perkOptions <- rollPerkOptions()
+          perkOptions      <- rollPerkOptions()
+          riskyPerkOptions <- rollRiskyPerkOptions()
           enriched = hub.copy(
             player = hub.player.copy(metaCurrency = meta.currency),
             meta = meta,
-            perkOptions = perkOptions
+            perkOptions = perkOptions,
+            riskyPerkOptions = riskyPerkOptions
           )
           _ <- stateRef.set(enriched)
         yield (enriched, grant.map(g => LogLine.of("log.shards.topUp", "count" -> g.amount)).toList)
@@ -236,7 +246,8 @@ class GameSession private (
         metaRef.get.flatMap:
           meta =>
             // The effects of the hub upgrades are blessings: a run that takes none keeps its player as it is.
-            val boosted = if exp.difficulty.usesBlessings then applyMetaBonuses(exp, meta) else exp
+            // A risky perk's max HP malus comes last, so the hub's HP upgrades cannot undo it.
+            val boosted = if exp.difficulty.usesBlessings then applyPerkMaxHp(applyMetaBonuses(exp, meta)) else exp
             stateRef.set(boosted) *> IO.pure((boosted, Nil))
 
       case (before: ExplorationState, after: ExplorationState)
@@ -385,7 +396,7 @@ class GameSession private (
         progress =>
           val afterFacts = VowRules.onEvents(progress, vowTypes, events)
           val afterRun = events.foldLeft(afterFacts):
-            case (current, GameEvent.RunEnded(victory, difficulty, _)) =>
+            case (current, GameEvent.RunEnded(victory, difficulty, _, _)) =>
               val outcome = if victory then RunOutcome.Won else RunOutcome.Lost
               StoryRules.onRunEnded(chapterDefs, current, outcome, difficulty, vowTypes)
             case (current, _) => current
@@ -438,7 +449,7 @@ class GameSession private (
       case Ending.Entered =>
         endRun(exp, List(LogLine.of("log.ending.enter")))
       case Ending.Refused =>
-        endRun(exp.copy(player = exp.player.copy(metaCurrency = 0)), List(LogLine.of("log.ending.refuse")))
+        endRun(exp.copy(player = exp.player.copy(metaCurrency = 0)), List(LogLine.of("log.ending.refuse")), paysBonus = false)
       case Ending.Replaced(who) =>
         val farewell =
           exp.copy(pendingEndingChoice = false, pendingScene = Some(PendingScene(Encounter.Farewell(who))))
@@ -448,10 +459,17 @@ class GameSession private (
   /** The run ends in victory, once the light has been answered: the same end as a Sanctuary that asks
     * nothing, with the same facts for the achievements and the story.
     */
-  private def endRun(exp: ExplorationState, log: List[LogLine]): IO[StateUpdate] =
-    val over = GameOverState(exp.player, victory = true)
-    val ended = GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId)
-    stateRef.set(over) *> settle(exp, TransitionResult(over, log, List(ended)))
+  private def endRun(exp: ExplorationState, log: List[LogLine], paysBonus: Boolean = true): IO[StateUpdate] =
+    // The Shards a risky perk pays for a win, unless the light was refused, which gives everything up.
+    val bonus    = if paysBonus then PerkDef.winBonus(exp.player, perkDefs, exp.difficulty.usesBlessings, exp.altarShut) else 0
+    val bonusLog = if bonus > 0 then List(LogLine.of("log.run.victoryBonus", "count" -> bonus)) else Nil
+    val over     = GameOverState(exp.player.copy(metaCurrency = exp.player.metaCurrency + bonus), victory = true)
+    val ended = GameEvent.RunEnded(victory = true,
+                                   difficulty = exp.difficulty,
+                                   activePerkId = exp.player.activePerkId,
+                                   riskyPerkId = exp.player.activeRiskyPerkId
+    )
+    stateRef.set(over) *> settle(exp, TransitionResult(over, log ++ bonusLog, List(ended)))
 
   /** Save what changed between two states of the story, then keep the new one. */
   private def updateStory(prev: StoryProgress, next: StoryProgress): IO[Unit] =
@@ -555,11 +573,11 @@ class GameSession private (
             newPlayer = state.player.copy(metaCurrency = newMeta.currency)
             // A purchase isn't a fresh hub entry: carry the already-rolled perk options forward
             // instead of rerolling them.
-            currentPerkOptions = state match {
-              case hub: HubState => hub.perkOptions
-              case _             => Nil
+            (currentPerkOptions, currentRiskyOptions) = state match {
+              case hub: HubState => (hub.perkOptions, hub.riskyPerkOptions)
+              case _             => (Nil, Nil)
             }
-            newState = HubState(newPlayer, upgradeDefs, newMeta, currentPerkOptions)
+            newState = HubState(newPlayer, upgradeDefs, newMeta, currentPerkOptions, currentRiskyOptions)
             _ <- stateRef.set(newState)
             newlyUnlocked <- processAchievementPurchase(spent, newMeta.unlockedUpgrades.size)
             story         <- storyRef.get
@@ -613,6 +631,15 @@ class GameSession private (
     * `upgrades.json` (and, if it's a genuinely new *kind* of effect, one case here and in
     * [[UpgradeEffect]]), never a change keyed by upgrade id.
     */
+  /** The max HP malus (or bonus) of the perks the player took, applied at the start of the run. */
+  private def applyPerkMaxHp(state: ExplorationState): ExplorationState =
+    val percent = PerkDef.activeEffects(state.player, perkDefs).collect { case PerkEffect.MaxHpPercent(n) => n }.sum
+    if percent == 0 then state
+    else
+      val player = state.player
+      val maxHp  = math.max(1, math.round(player.maxHp * (100 + percent) / 100.0).toInt)
+      state.copy(player = player.copy(maxHp = maxHp, hp = math.min(player.hp, maxHp)))
+
   private def applyMetaBonuses(state: ExplorationState, meta: MetaProgression): ExplorationState =
     val effects       = meta.unlockedUpgrades.toList.flatMap(upgradeDefs.get).map(_.effect)
     val boostedPlayer = effects.foldLeft(state.player)(applyUpgradeEffect)
@@ -722,8 +749,10 @@ object GameSession:
                           xp = 0,
                           metaCurrency = meta.currency
       )
-      initPerkOptions = perkOptionsFor(perkDefs, DifficultyUnlocks.unlockedTiers(difficultyDefs, achievementStats), rng)
-      stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions))
+      initTiers = DifficultyUnlocks.unlockedTiers(difficultyDefs, achievementStats)
+      initPerkOptions = perkOptionsFor(perkDefs, initTiers, rng)
+      initRiskyOptions = riskyPerkOptionsFor(perkDefs, initTiers, rng)
+      stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions, initRiskyOptions))
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
       storyRef       <- Ref.of[IO, StoryProgress](story)
@@ -761,6 +790,19 @@ object GameSession:
   /** Number of perks offered per hub visit, out of the full catalog. */
   private val PerkOptionsCount = 3
 
+  private val RiskyPerkOptionsCount = 1
+
+  /** The risky perk to offer on a hub visit: a random one (take it or leave it), once the player can start a Hard run, and
+    * none before, enforced here like the ordinary perks are so that a client cannot unlock them. A
+    * locked visit does not consume the rng.
+    */
+  private[engine] def riskyPerkOptionsFor(perkDefs: Map[String, PerkDef],
+                                          unlockedTiers: Set[Difficulty],
+                                          rng: Random
+  ): List[PerkDef] =
+    if !unlockedTiers.contains(Difficulty.Hard) then Nil
+    else rng.shuffle(perkDefs.values.toList.filter(_.risky)).take(RiskyPerkOptionsCount)
+
   /** The perks to offer on a hub visit: a random subset of the catalog, or none while the Normal
     * tier is still locked, the perks being the first rung of the difficulty ladder. Enforced here,
     * on the server, by offering no perk at all, so a client cannot unlock them (the hub already
@@ -771,7 +813,8 @@ object GameSession:
                                      rng: Random
   ): List[PerkDef] =
     if !unlockedTiers.contains(Difficulty.Normal) then Nil
-    else rng.shuffle(perkDefs.values.toList).take(PerkOptionsCount)
+    // A risky perk is offered in a row of its own, never among the ordinary ones.
+    else rng.shuffle(perkDefs.values.toList.filterNot(_.risky)).take(PerkOptionsCount)
 
   /** Dev tooling only: where `frontend/scripts/convert-tiled-room.mjs --out=...` output is meant
     * to be pointed at. Resolved relative to the backend's own working directory (`sbt run` /

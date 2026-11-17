@@ -49,6 +49,9 @@ export interface HubAction {
   upgradeId?: string;
   difficulty?: Difficulty;
   perkId?: string;
+  /** Only meaningful on STARTRUN, on Hard: the risky perk taken into the run, one of the
+   * riskyPerks on offer. The server ignores it on any other tier. */
+  riskyPerkId?: string;
   /** Only meaningful for DEBUGLOADROOM - dev tooling only, see StateUpdate.debugRooms. */
   debugRoomId?: string;
 }
@@ -249,6 +252,8 @@ export interface UpgradeView {
 export interface PerkView {
   id: string;
   icon: string;
+  /** True for a risky perk: a malus in exchange for more Shards. */
+  risky?: boolean;
 }
 
 /** How far a save is from unlocking a difficulty tier: `winsDone` of the `wins` needed on tier
@@ -307,6 +312,8 @@ export interface PendingEndingChoiceView {
 export interface HubView {
   upgrades: UpgradeView[];
   perks: PerkView[];
+  /** The risky perk on offer (a list of one: take it or leave it), once Hard is unlocked: a row of its own, valid only on Hard. */
+  riskyPerks?: PerkView[];
   /** Runs finished so far, won or lost. 0 means a brand-new save. */
   runsCompleted: number;
   /** Every difficulty tier, lowest first, with whether it can be started. The server refuses a

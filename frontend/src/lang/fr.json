@@ -902,5 +902,9 @@
     "perk.devils_bargain.label": "Pacte du diable",
     "perk.devils_bargain.desc": "Les ennemis ont 15 % de PV et d'attaque en plus, et vous avez 15 % de PV max en moins. Chaque victoire rapporte 90 % d'Éclats en plus, et une expédition gagnée en paie 50",
     "log.run.victoryBonus.one": "Votre atout paie {count} Éclat pour la victoire.",
-    "log.run.victoryBonus.other": "Votre atout paie {count} Éclats pour la victoire."
+    "log.run.victoryBonus.other": "Votre atout paie {count} Éclats pour la victoire.",
+    "hub.riskyPerk": "Atout risqué",
+    "hub.riskyOnlyHard": "Difficile seulement",
+    "hint.risky_perks.title": "Atouts risqués",
+    "hint.risky_perks.body": "Un atout risqué impose un malus en échange de plus d'Éclats. Il ne compte qu'en Difficile, se prend en plus d'un atout normal, et un nouveau est proposé à chaque visite."
 }

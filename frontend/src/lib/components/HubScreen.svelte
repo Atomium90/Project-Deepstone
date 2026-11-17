@@ -28,6 +28,9 @@
     // Selected run perk (none by default - a perk is optional, not required to start a run)
     let selectedPerkId: string | null = null;
 
+    // Selected risky perk, chosen apart from the ordinary one and only valid on Hard.
+    let selectedRiskyPerkId: string | null = null;
+
     type UpgradeTab = "all" | UpgradeCategory;
     const upgradeTabs: UpgradeTab[] = ["all", "stat", "meta"];
     let selectedUpgradeTab: UpgradeTab = "all";
@@ -76,7 +79,10 @@
     $: if (shopVisible && !shopClosed) showHint("shop");
     // The perks are offered by the server only once it unlocks them, so a non-empty list is
     // already the whole rule.
-    $: rightPanelVisible = shopVisible || perks.length > 0;
+    $: riskyPerks = hubState?.hub?.riskyPerks ?? [];
+    // A risky perk only counts on Hard (the server refuses it on any other tier).
+    $: riskyInPlay = selectedDifficulty === "hard";
+    $: rightPanelVisible = shopVisible || perks.length > 0 || riskyPerks.length > 0;
     $: visibleClasses = shopVisible ? classes : classes.filter((c) => CLASS_UNLOCK_UPGRADE_ID[c] === null);
 
     // Dev tooling only - hand-converted Tiled rooms sitting in the backend's debug-rooms/ folder
@@ -141,6 +147,11 @@
         selectedPerkId = selectedPerkId === id ? null : id;
     }
 
+    /** Same as selectPerk, for the risky row. */
+    function selectRiskyPerk(id: string): void {
+        selectedRiskyPerkId = selectedRiskyPerkId === id ? null : id;
+    }
+
     function startRun(): void {
         lastStartedDifficulty.set(selectedDifficulty);
         client.send({
@@ -149,6 +160,7 @@
             classId: selectedClass,
             difficulty: selectedDifficulty,
             ...(selectedPerkId && !noBlessings ? { perkId: selectedPerkId } : {}),
+            ...(selectedRiskyPerkId && riskyInPlay ? { riskyPerkId: selectedRiskyPerkId } : {}),
         });
     }
 
@@ -332,6 +344,28 @@
                             class="perk-card"
                             class:selected={selectedPerkId === p.id && !noBlessings}
                             on:click={() => selectPerk(p.id)}
+                        >
+                            <span class="perk-icon">{p.icon}</span>
+                            <span class="perk-info">
+                                <span class="perk-label">{$catalog.perkLabel(p)}</span>
+                                <span class="perk-desc">{$catalog.perkDescription(p)}</span>
+                            </span>
+                        </button>
+                    {/each}
+                </div>
+            {/if}
+
+            {#if riskyPerks.length > 0}
+                <p class="section-label risky-label" class:perk-section-label={shopVisible || perks.length > 0}>
+                    {$t("hub.riskyPerk")}
+                    <span class="risky-note">{$t("hub.riskyOnlyHard")}</span>
+                </p>
+                <div class="perk-list risky-list" class:off={!riskyInPlay} title={riskyInPlay ? "" : $t("hub.riskyOnlyHard")}>
+                    {#each riskyPerks as p}
+                        <button
+                            class="perk-card risky"
+                            class:selected={selectedRiskyPerkId === p.id && riskyInPlay}
+                            on:click={() => selectRiskyPerk(p.id)}
                         >
                             <span class="perk-icon">{p.icon}</span>
                             <span class="perk-info">
@@ -932,6 +966,30 @@
     .perk-card.selected {
         background: #1a1a1a;
         border-color: #c8a84b;
+    }
+
+    /* A risky perk takes a malus: its card is red where an ordinary one is gold. */
+    .perk-card.risky {
+        border-color: #4a2222;
+    }
+
+    .perk-card.risky:hover {
+        border-color: #7a3030;
+    }
+
+    .perk-card.risky.selected {
+        border-color: #c0392b;
+    }
+
+    .perk-card.risky.selected .perk-label {
+        color: #e05c5c;
+    }
+
+    .risky-note {
+        margin-left: 0.5rem;
+        color: #8a4a4a;
+        text-transform: none;
+        letter-spacing: 0;
     }
 
     .perk-icon {

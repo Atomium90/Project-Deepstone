@@ -62,6 +62,7 @@ export function candidateHints(state: StateUpdate): string[] {
             // With no run finished yet the start screen is up instead of the Hub.
             if ((state.hub?.runsCompleted ?? 0) > 0) hints.push("difficulty");
             if ((state.hub?.perks.length ?? 0) > 0) hints.push("perks");
+            if ((state.hub?.riskyPerks?.length ?? 0) > 0) hints.push("risky_perks");
             return hints;
         }
         default:

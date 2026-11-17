@@ -902,5 +902,9 @@
     "perk.devils_bargain.label": "Devil's Bargain",
     "perk.devils_bargain.desc": "Enemies have 15% more HP and attack, and you have 15% less max HP. Kills earn 90% more Shards, and a win pays 50",
     "log.run.victoryBonus.one": "Your perk pays {count} Shard for the win.",
-    "log.run.victoryBonus.other": "Your perk pays {count} Shards for the win."
+    "log.run.victoryBonus.other": "Your perk pays {count} Shards for the win.",
+    "hub.riskyPerk": "Risky Perk",
+    "hub.riskyOnlyHard": "Hard only",
+    "hint.risky_perks.title": "Risky perks",
+    "hint.risky_perks.body": "A risky perk takes a malus in exchange for more Shards. It only counts on Hard, you can take one together with an ordinary perk, and a new one is offered at every visit."
 }

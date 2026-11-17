@@ -14,10 +14,10 @@ import {
     equippedSetCounts,
     minimap,
 } from "./StateStore";
-import type { StateUpdate, ItemView, EquipmentView, MinimapView } from "./protocol";
+import type { StateUpdate, ItemView, EquipmentView, MinimapView, LogLine } from "./protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "i1", typeId: "t1", name: "Item", kind: "weapon", rarity: "common", statLine: "+1 ATK", ...overrides };
+    return { id: "i1", typeId: "t1", kind: "weapon", rarity: "common", stats: { attack: 1 }, ...overrides };
 }
 
 function makeEquipment(overrides: Partial<EquipmentView> = {}): EquipmentView {
@@ -69,44 +69,46 @@ describe("StateStore derived stores", () => {
     });
 
     describe("the two logs", () => {
+        const raw = (text: string): LogLine => ({ key: "log.raw", params: { text } });
+        const texts = (lines: LogLine[]): string[] => lines.map((line) => String(line.params.text));
         const update = (phase: StateUpdate["phase"], log: string[] = [], fightLines?: number) =>
-            gameState.set(makeState({ phase, log, fightLines }));
+            gameState.set(makeState({ phase, log: log.map(raw), fightLines }));
 
         test("the exploration log keeps the lines of earlier updates, so a pickup is still readable after the next step", () => {
             update("EXPLORATION", ["You take the Steel Sword."]);
             update("EXPLORATION");
             update("EXPLORATION", ["You open a door."]);
-            expect(get(explorationLog)).toEqual(["You take the Steel Sword.", "You open a door."]);
+            expect(texts(get(explorationLog))).toEqual(["You take the Steel Sword.", "You open a door."]);
         });
 
         test(`each log keeps only its last ${LOG_HISTORY_SIZE} lines`, () => {
             const lines = Array.from({ length: LOG_HISTORY_SIZE + 5 }, (_, n) => `line ${n + 1}`);
             update("EXPLORATION", lines.slice(0, 8));
             update("EXPLORATION", lines.slice(8));
-            expect(get(explorationLog)).toEqual(lines.slice(-LOG_HISTORY_SIZE));
+            expect(texts(get(explorationLog))).toEqual(lines.slice(-LOG_HISTORY_SIZE));
 
             update("COMBAT", ["You engage the Orc!"]);
             update("COMBAT", lines.slice(0, 8));
             update("COMBAT", lines.slice(8));
-            expect(get(combatLog)).toEqual(lines.slice(-LOG_HISTORY_SIZE));
+            expect(texts(get(combatLog))).toEqual(lines.slice(-LOG_HISTORY_SIZE));
         });
 
         test("the log of a fight starts from scratch with the line that tells it began", () => {
             update("EXPLORATION", ["You walk in."]);
             update("COMBAT", ["You engage the Orc!"]);
             update("COMBAT", ["You strike the Orc for 27 damage.", "Orc attacks you for 1 damage."]);
-            expect(get(combatLog)).toEqual(["You engage the Orc!", "You strike the Orc for 27 damage.", "Orc attacks you for 1 damage."]);
+            expect(texts(get(combatLog))).toEqual(["You engage the Orc!", "You strike the Orc for 27 damage.", "Orc attacks you for 1 damage."]);
 
             update("EXPLORATION", ["Orc has been defeated!"], 0);
             update("COMBAT", ["You engage the Dire Wolf!"]);
-            expect(get(combatLog)).toEqual(["You engage the Dire Wolf!"]);
+            expect(texts(get(combatLog))).toEqual(["You engage the Dire Wolf!"]);
         });
 
         test("the blows of a fight stay out of the exploration log, the fight that begins does not", () => {
             update("EXPLORATION", ["You open a door."]);
             update("COMBAT", ["You engage the Orc!"]);
             update("COMBAT", ["You strike the Orc for 27 damage.", "Orc attacks you for 1 damage."]);
-            expect(get(explorationLog)).toEqual(["You open a door.", "You engage the Orc!"]);
+            expect(texts(get(explorationLog))).toEqual(["You open a door.", "You engage the Orc!"]);
         });
 
         test("what the end of a won fight brings reaches the exploration log, without the blow that ended it", () => {
@@ -118,7 +120,7 @@ describe("StateStore derived stores", () => {
                 ["You strike the Orc for 24 damage.", "Orc has been defeated!", "You gain 25 XP and 5 Shards.", "Orc dropped Silver Spear."],
                 1,
             );
-            expect(get(explorationLog)).toEqual([
+            expect(texts(get(explorationLog))).toEqual([
                 "You open a door.",
                 "You engage the Orc!",
                 "Orc has been defeated!",
@@ -132,7 +134,7 @@ describe("StateStore derived stores", () => {
             update("EXPLORATION", ["You strike the Orc.", "Orc has been defeated!", "You equip Silver Spear."], 1);
             update("COMBAT", ["You engage the Dire Wolf!"]);
             update("COMBAT", ["You strike the Dire Wolf."]);
-            expect(get(explorationLog)).toEqual(["You engage the Orc!", "Orc has been defeated!", "You equip Silver Spear.", "You engage the Dire Wolf!"]);
+            expect(texts(get(explorationLog))).toEqual(["You engage the Orc!", "Orc has been defeated!", "You equip Silver Spear.", "You engage the Dire Wolf!"]);
         });
 
         test("a run begins with a clean exploration log", () => {
@@ -140,15 +142,15 @@ describe("StateStore derived stores", () => {
             update("GAMEOVER", ["The run ends."]);
             update("HUB", ["You return to the hub."]);
             update("EXPLORATION", ["A new run begins."]);
-            expect(get(explorationLog)).toEqual(["A new run begins."]);
+            expect(texts(get(explorationLog))).toEqual(["A new run begins."]);
         });
 
         test("both are empty again once the connection is lost", () => {
             update("EXPLORATION", ["Something happened."]);
             update("COMBAT", ["You engage the Orc!"]);
             gameState.set(null);
-            expect(get(explorationLog)).toEqual([]);
-            expect(get(combatLog)).toEqual([]);
+            expect(texts(get(explorationLog))).toEqual([]);
+            expect(texts(get(combatLog))).toEqual([]);
         });
     });
 
@@ -160,7 +162,7 @@ describe("StateStore derived stores", () => {
     test("transient fields (newlyUnlocked/damageEvents/soundEvents) clear on the next update that omits them", () => {
         gameState.set(
             makeState({
-                newlyUnlocked: [{ id: "a1", label: "L", description: "D", unlocked: true }],
+                newlyUnlocked: [{ id: "a1", unlocked: true }],
                 damageEvents: [{ targetIsPlayer: false, amount: 5, kind: "damage", crit: false }],
                 soundEvents: ["pickup"],
             })

@@ -1,10 +1,12 @@
 package roguelite.engine
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.game.combat.{ Combat, CombatResolver, EnemyActionWeight, EnemyInstance, EnemyStats }
 import roguelite.game.core.GameEvent
 import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Dungeon, Enemy, Entity, Room, RoomType, Sanctuary, Tile }
-import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, EquipSlot, Item, PendingEquipChoice, PendingRewardChoice, PotionStack, Rarity, Weapon }
+import roguelite.game.items.{ Accessory, Armor, Consumable, ConsumableEffect, EquipSlot, Item, ItemStats, PendingEquipChoice, PendingRewardChoice, PotionStack, Rarity, Weapon }
 import roguelite.game.progression.{ ClassDef, DifficultyTierDef, MetaProgression, PerkDef, PerkEffect, UpgradeCategory, UpgradeDef, UpgradeEffect }
 import roguelite.game.story.{ Encounter, IdleContext, PendingScene }
 
@@ -226,7 +228,7 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(next, log, _) = sm(upgradeDefs = testUpgradeDefs)
       .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
     assert(next.isInstanceOf[HubState])
-    assert(log.exists(_.contains("Ranger's Path")), s"expected lock message: $log")
+    assert(log.hasKey("log.run.classLocked"), s"expected lock message: $log")
 
   test("StartRun with an unlocked class succeeds"):
     val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("archer_unlock"))
@@ -345,7 +347,7 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(next, log, _) =
       incompleteSm.applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
     assert(next.isInstanceOf[HubState])
-    assert(log.exists(_.contains("Unknown class")), s"expected an unknown-class message: $log")
+    assert(log.hasKey("log.run.unknownClass"), s"expected an unknown-class message: $log")
 
   test("BuyUpgrade reaching StateMachine directly is rejected as a safety net"):
     // BuyUpgrade is normally intercepted by GameSession (needs DB access) before StateMachine ever
@@ -353,13 +355,13 @@ class StateMachineSuite extends FunSuite:
     val TransitionResult(next, log, _) =
       sm().applyActionPure(HubState(hubPlayer), HubAction(HubActionType.BuyUpgrade, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[HubState])
-    assert(log.exists(_.contains("GameSession")), s"expected a routing-safety-net message: $log")
+    assert(log.rawContains("GameSession"), s"expected a routing-safety-net message: $log")
 
   test("StartRun with a room pool that can't build a dungeon stays in Hub with an error"):
     val TransitionResult(next, log, _) =
       sm(roomPool = Map.empty).applyActionPure(HubState(hubPlayer), HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assert(next.isInstanceOf[HubState])
-    assert(log.exists(_.contains("Failed to build dungeon")), s"expected a dungeon-build-failure message: $log")
+    assert(log.hasKey("log.run.buildFailed"), s"expected a dungeon-build-failure message: $log")
 
   test("StartRun on Hardcore starts with nothing even when the class's kit has been purchased"):
     val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("warrior_kit"))
@@ -390,7 +392,7 @@ class StateMachineSuite extends FunSuite:
     val exp = next.asInstanceOf[ExplorationState]
     assertEquals(exp.player.activePerkId, Some("well_stocked"))
     assertEquals(exp.player.potionBelt.flatten.map(_.item.typeId), Vector("health_potion"))
-    assert(log.exists(_.contains("Well Stocked")), s"expected perk confirmation in log: $log")
+    assert(log.hasKey("log.run.perkActive"), s"expected perk confirmation in log: $log")
 
   test("StartRun on Hardcore ignores the perk, even one that is on offer, and says nothing of it"):
     val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
@@ -405,7 +407,7 @@ class StateMachineSuite extends FunSuite:
     val exp = next.asInstanceOf[ExplorationState]
     assertEquals(exp.player.activePerkId, None)
     assertEquals(exp.player.potionBelt.flatten, Vector.empty)
-    assert(!log.exists(_.contains("Well Stocked")), s"the perk must not be announced: $log")
+    assert(!log.hasKey("log.run.perkActive"), s"the perk must not be announced: $log")
 
   test("StartRun with a perkId not currently offered is silently ignored"):
     val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk))
@@ -526,7 +528,7 @@ class StateMachineSuite extends FunSuite:
     val state = explorationAt(3, 3).copy(pendingScene = Some(conversation))
     val TransitionResult(next, log, _) = sm().applyActionPure(state, SceneDone(None))
     assertEquals(next, state)
-    assert(log.exists(_.contains("GameSession")), s"expected a hint about GameSession: $log")
+    assert(log.rawContains("GameSession"), s"expected a hint about GameSession: $log")
 
   test("Move is blocked while the question of the light is pending"):
     val state = explorationAt(3, 3).copy(pendingEndingChoice = true)
@@ -545,13 +547,13 @@ class StateMachineSuite extends FunSuite:
     val state = explorationAt(3, 3).copy(pendingEndingChoice = true)
     val TransitionResult(next, log, _) = sm().applyActionPure(state, EndingChoice(EndingAnswer.Enter))
     assertEquals(next, state)
-    assert(log.exists(_.contains("GameSession")), s"expected a hint about GameSession: $log")
+    assert(log.rawContains("GameSession"), s"expected a hint about GameSession: $log")
 
   test("a card cannot be marked as seen through the state machine"):
     val state = explorationAt(3, 3)
     val TransitionResult(next, log, _) = sm().applyActionPure(state, CardSeen("ch1"))
     assertEquals(next, state)
-    assert(log.exists(_.contains("not valid")), s"expected a refusal: $log")
+    assert(log.rawContains("not valid"), s"expected a refusal: $log")
 
   /** Thorough revealSecretDoors behavior lives in InteractionResolverSuite. This test just confirms
     * the Move arm actually forwards InteractionResolver's events instead of dropping them. */
@@ -623,7 +625,7 @@ class StateMachineSuite extends FunSuite:
     val update =
       CombatState(hubPlayer, simpleDungeon(), 1, 1, Combat(instance), "e1").toStateUpdate()
     assert(update.combat.isDefined)
-    assertEquals(update.combat.get.enemyLabel, "Goblin")
+    assertEquals(update.combat.get.enemyId, goblinStats.typeId)
 
   test("GameOverState.toStateUpdate has GameOver phase"):
     assertEquals(GameOverState(hubPlayer).toStateUpdate().phase, GamePhase.GameOver)
@@ -687,9 +689,9 @@ class StateMachineSuite extends FunSuite:
     val player = PlayerFixtures.startingPlayer(ClassId.Warrior) // affinityTags = Set("heavy")
       .copy(equippedWeapon = Some(matchingWeapon), equippedArmor = Some(mismatchedArmor))
     val update = ExplorationState(player, simpleDungeon(), 1, 1).toStateUpdate()
-    assertEquals(update.equipment.weapon.map(_.statLine), Some("+10 ATK [heavy]"))
+    assertEquals(update.equipment.weapon.map(_.stats), Some(ItemStats(attack = Some(10))))
     assertEquals(update.equipment.weapon.flatMap(_.typeTag), Some("heavy"))
-    assertEquals(update.equipment.armor.map(_.statLine), Some("+4 DEF [ranged]"))
+    assertEquals(update.equipment.armor.map(_.stats), Some(ItemStats(defense = Some(4))))
     assertEquals(update.player.affinityTags, List("heavy"))
 
   // --- Debug room loading (dev tooling) -------------------------------------

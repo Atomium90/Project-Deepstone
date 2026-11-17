@@ -6,16 +6,16 @@ import { gameState, client } from "../engine/StateStore";
 import type { ItemView, StateUpdate } from "../engine/protocol";
 
 function potion(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "p1", typeId: "health_potion", name: "Health Potion", kind: "consumable", rarity: "common", statLine: "Heal 30 HP", count: 1, ...overrides };
+    return { id: "p1", typeId: "health_potion", kind: "consumable", rarity: "common", stats: { effect: "healFixed", amount: 30 }, count: 1, ...overrides };
 }
 
 function combatState(overrides: Partial<StateUpdate> = {}, player: Partial<StateUpdate["player"]> = {}, combat: Partial<NonNullable<StateUpdate["combat"]>> = {}): StateUpdate {
     return {
         phase: "COMBAT",
         player: { classId: "warrior", hp: 100, maxHp: 120, resourceCurrent: 50, resourceMax: 100, level: 1, xp: 0, metaCurrency: 0, affinityTags: [], ...player },
-        combat: { enemyId: "goblin", enemyLabel: "Goblin", enemyHp: 20, enemyMaxHp: 20, isPlayerTurn: true, isBoss: false, isMiniBoss: false, isElite: false, abilityCost: 40, ...combat },
-        equipment: { weapon: null, armor: null, accessories: [null, null], potionBelt: [potion(), potion({ id: "p2", name: "Battle Brew", typeId: "battle_brew" })], keys: [] },
-        abilities: [{ classId: "warrior", id: "slash", name: "Berserker Slash", cost: 40, resourceName: "Rage", description: "Hits twice as hard." }],
+        combat: { enemyId: "goblin", enemyHp: 20, enemyMaxHp: 20, isPlayerTurn: true, isBoss: false, isMiniBoss: false, isElite: false, abilityCost: 40, ...combat },
+        equipment: { weapon: null, armor: null, accessories: [null, null], potionBelt: [potion(), potion({ id: "p2", typeId: "battle_brew" })], keys: [] },
+        abilities: [{ classId: "warrior", id: "slash", cost: 40 }],
         achievements: [],
         sets: [],
         victory: false,

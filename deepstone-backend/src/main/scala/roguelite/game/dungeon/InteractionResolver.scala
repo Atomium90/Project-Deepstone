@@ -2,7 +2,7 @@ package roguelite.game.dungeon
 
 import roguelite.engine.{ CombatState, Direction, ExplorationState, GameOverState, GameState, Player, TransitionResult }
 import roguelite.game.combat.{ Combat, EnemyInstance, EnemyStats }
-import roguelite.game.core.GameEvent
+import roguelite.game.core.{ GameEvent, LogLine }
 import roguelite.game.items.{ EquipmentResolver, Item, KeyKind, LootTable, PendingRewardChoice, PickupOutcome, SetDef }
 import roguelite.game.progression.{ PerkDef, PerkEffect }
 
@@ -41,10 +41,10 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   def interact(exp: ExplorationState, targetId: String): TransitionResult =
     exp.dungeon.currentRoom.entityById(targetId) match {
       case None =>
-        TransitionResult(exp, List(s"No entity found with id '$targetId'."))
+        TransitionResult(exp, List(LogLine.of("log.interact.noEntity", "id" -> targetId)))
 
       case Some(door: Door) if door.doorKind == DoorKind.Secret && !door.revealed =>
-        TransitionResult(exp, List(s"No entity found with id '$targetId'.")) // never acknowledge an unrevealed door
+        TransitionResult(exp, List(LogLine.of("log.interact.noEntity", "id" -> targetId))) // never acknowledge an unrevealed door
 
       case Some(door: Door) if isSealedByBoss(exp.dungeon.currentRoom, door) =>
         TransitionResult(exp, List(InteractionResolver.BossExitSealedLine))
@@ -81,10 +81,10 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
   /** Lifts a handler that reports no events into the richer return type `interact`
     * needs, so every existing per-entity handler below can stay untouched. */
-  private def lift(r: (GameState, List[String])): TransitionResult = TransitionResult(r._1, r._2)
+  private def lift(r: (GameState, List[LogLine])): TransitionResult = TransitionResult(r._1, r._2)
 
   /** Same as [[lift]], for handlers that also report [[GameEvent]]s. */
-  private def liftEvents(r: (GameState, List[String], List[GameEvent])): TransitionResult =
+  private def liftEvents(r: (GameState, List[LogLine], List[GameEvent])): TransitionResult =
     TransitionResult(r._1, r._2, events = r._3)
 
   /** The way on out of a Boss room stays shut while an enemy of that room lives, so a Boss cannot be
@@ -117,25 +117,25 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                                   targetRoomId: String,
                                   direction: Direction,
                                   passedRole: Option[ConnectorRole] = None
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     exp.dungeon.navigateTo(targetRoomId, forward = passedRole.contains(ConnectorRole.Next)) match {
-      case Left(err) => (exp, List(err), Nil)
+      case Left(err) => (exp, List(LogLine.raw(err)), Nil)
       case Right(newDungeon) =>
         val spawnPoint =
           findSpawnPoint(newDungeon.currentRoom, direction, exp.dungeon.currentRoomId, passedRole)
         val nextState =
           exp.copy(dungeon = newDungeon, playerX = spawnPoint._1, playerY = spawnPoint._2)
-        (nextState, List(s"You pass through the door heading ${direction}."), List(GameEvent.DoorOpened))
+        (nextState, List(LogLine.of("log.door.pass", "direction" -> direction.toString.toUpperCase)), List(GameEvent.DoorOpened))
     }
 
   private def handleDoor(exp: ExplorationState,
                          door: Door
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     door.link match {
       case DoorLink.Resolved(role, branch, roomId) =>
         navigateThroughDoor(exp, doorTarget(exp.dungeon, role, branch, roomId), door.direction, Some(role))
       case DoorLink.Unresolved(_, _) =>
-        (exp, List(s"Door '${door.id}' is not connected to any room."), Nil)
+        (exp, List(LogLine.of("log.door.notConnected", "id" -> door.id)), Nil)
     }
 
   /** The room a door leads to. An untagged Prev door points at the one room the wiring chose, which
@@ -160,7 +160,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     * client's notion of the door's interact tile. If the room has no free tile to retreat to, or
     * the catalog has no eligible enemy, nothing emerges and the player stays where they are.
     */
-  private def handleTrappedDoor(exp: ExplorationState, door: Door): (GameState, List[String]) =
+  private def handleTrappedDoor(exp: ExplorationState, door: Door): (GameState, List[LogLine]) =
     val room    = exp.dungeon.currentRoom
     val vacated = (exp.playerX, exp.playerY)
     val sprungRoom = room.updateEntity(door.id):
@@ -180,11 +180,11 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                   playerX = retreatX,
                   playerY = retreatY
          ),
-         List("A trap triggers! You are thrown back and a guardian steps in to bar the way.")
+         List(LogLine.of("log.trap.door"))
         )
       case _ =>
         (exp.copy(dungeon = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(sprungRoom.id, sprungRoom))),
-         List("A trap triggers! But nothing emerges from the shadows.")
+         List(LogLine.of("log.trap.doorEmpty"))
         )
     }
 
@@ -204,13 +204,13 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
   private def handleLockedDoor(exp: ExplorationState,
                                door: LockedDoor
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     if door.unlocked then
       navigateThroughDoor(exp, door.targetRoomId, door.direction)
     else
       exp.player.keyCounts.find { case (kind, count) => count > 0 && KeyKind.canUnlock(kind, door) } match {
         case None =>
-          (exp, List("This door is locked. You need a key."), Nil)
+          (exp, List(LogLine.of("log.door.locked")), Nil)
         case Some((kind, count)) =>
           val updatedPlayer = exp.player.copy(keyCounts = exp.player.keyCounts.updated(kind, count - 1))
           val unlockedRoom = exp.dungeon.currentRoom.updateEntity(door.id):
@@ -223,13 +223,13 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
             door.targetRoomId,
             door.direction
           )
-          (state, "You use a key to unlock the door." :: navLog, List(GameEvent.DoorUnlockedWithKey))
+          (state, LogLine.of("log.door.unlock") :: navLog, List(GameEvent.DoorUnlockedWithKey))
       }
 
-  private def handleEnemy(exp: ExplorationState, enemy: Enemy): (GameState, List[String]) =
+  private def handleEnemy(exp: ExplorationState, enemy: Enemy): (GameState, List[LogLine]) =
     enemyStats.get(enemy.typeId) match {
       case None =>
-        (exp, List(s"Unknown enemy type '${enemy.typeId}' — cannot start combat."))
+        (exp, List(LogLine.of("log.combat.unknownEnemy", "type" -> enemy.typeId)))
       case Some(stats) =>
         val instance = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty, enemy.isElite)
         val combat   = Combat(enemy = instance)
@@ -243,7 +243,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                                     enemyStats = enemyStats,
                                     altarShut = exp.altarShut
         )
-        (nextState, List(s"You engage the ${stats.label}!"))
+        (nextState, List(LogLine.of("log.combat.engage", "enemy" -> enemy.typeId)))
     }
 
   /** Opens, re-opens or springs a chest, depending on its [[ChestState]]. A chest stays on the map
@@ -255,16 +255,16 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     */
   private def handleChest(exp: ExplorationState,
                           chest: Chest
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     chest.state match {
       case ChestState.Closed if chest.trapped => springChestTrap(exp, chest)
       case ChestState.Closed                  => openChest(exp, chest)
       case ChestState.OpenFull =>
         chest.contents match {
-          case Some(item) => takeFromChest(exp, chest, item, "You go back to the chest and find")
-          case None       => (replaceChest(exp, chest.emptied), List("The chest is empty."), Nil)
+          case Some(item) => takeFromChest(exp, chest, item, "log.chest.foundBack")
+          case None       => (replaceChest(exp, chest.emptied), List(LogLine.of("log.chest.empty")), Nil)
         }
-      case ChestState.OpenEmpty | ChestState.Sprung => (exp, List("The chest is empty."), Nil)
+      case ChestState.OpenEmpty | ChestState.Sprung => (exp, List(LogLine.of("log.chest.empty")), Nil)
     }
 
   /** The trap goes off: the chest becomes [[ChestState.Sprung]] and enemies appear around it instead
@@ -272,7 +272,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     */
   private def springChestTrap(exp: ExplorationState,
                               chest: Chest
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     val sprungRoom = exp.dungeon.currentRoom.updateEntity(chest.id) {
       case c: Chest => c.copy(state = ChestState.Sprung)
       case other    => other
@@ -284,7 +284,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     * attempt to take it does (see [[takeFromChest]]). A roll that finds nothing leaves the chest
     * open and empty.
     */
-  private def openChest(exp: ExplorationState, chest: Chest): (GameState, List[String], List[GameEvent]) =
+  private def openChest(exp: ExplorationState, chest: Chest): (GameState, List[LogLine], List[GameEvent]) =
     // Lucky Find: raise the roll's floor for this one chest, then consume the perk regardless of
     // what the roll actually lands on - it's a one-shot boost to the roll, not a standing floor.
     // The Rarity Insight upgrade (Player.chestRarityFloor) is the opposite: a permanent floor on
@@ -301,12 +301,12 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
     LootTable.rollChest(itemDefs, rng, exp.difficulty, rarityFloorOverride) match {
       case None =>
-        (replaceChest(opened, chest.emptied), List("You open the chest. It's empty."), Nil)
+        (replaceChest(opened, chest.emptied), List(LogLine.of("log.chest.openEmpty")), Nil)
       case Some(item) =>
         takeFromChest(opened,
                       chest.copy(state = ChestState.OpenFull, contents = Some(item)),
                       item,
-                      "You open the chest and find"
+                      "log.chest.found"
         )
     }
 
@@ -315,17 +315,19 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     * auto-equip or a key, and later, through the pending choice, if the player picks it over what
     * they had (see [[PendingEquipChoice.sourceChestId]]). A pending choice the player declines leaves
     * the chest full, so the item can be taken again later. A discarded duplicate (the player already
-    * has an equal or better copy) empties it too: nothing in it is worth coming back for. `lead`
-    * opens every log line.
+    * has an equal or better copy) empties it too: nothing in it is worth coming back for.
+    * `leadKey` is the log key of the line for a plain pickup (`log.chest.found` on the first
+    * opening, `log.chest.foundBack` when the player comes back for it); the two other outcomes add
+    * `Choice` or `Worse` to it.
     */
   private def takeFromChest(exp: ExplorationState,
                             chest: Chest,
                             item: Item,
-                            lead: String
-  ): (GameState, List[String], List[GameEvent]) =
-    def taken(p: Player): (GameState, List[String], List[GameEvent]) =
+                            leadKey: String
+  ): (GameState, List[LogLine], List[GameEvent]) =
+    def taken(p: Player): (GameState, List[LogLine], List[GameEvent]) =
       (replaceChest(exp.copy(player = p), chest.emptied),
-       List(s"$lead ${item.name}! (${item.statLine})"),
+       List(LogLine.of(leadKey, "item" -> item.typeId)),
        List(GameEvent.itemPickedUp(p, item, setDefs))
       )
 
@@ -335,13 +337,13 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
 
       case PickupOutcome.ChoicePending(pending) =>
         (replaceChest(exp, chest).copy(pendingEquipChoice = Some(pending.copy(sourceChestId = Some(chest.id)))),
-         List(s"$lead ${item.name}. Choose what to do with it."),
+         List(LogLine.of(leadKey + "Choice", "item" -> item.typeId)),
          Nil
         )
 
       case PickupOutcome.Discarded(p) =>
         (replaceChest(exp.copy(player = p), chest.emptied),
-         List(s"$lead ${item.name}, but you already have a better one."),
+         List(LogLine.of(leadKey + "Worse", "item" -> item.typeId)),
          Nil
         )
     }
@@ -360,14 +362,14 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   /** Rolls 3 candidates and removes the Shrine from the room (one-shot) - the actual pick is resolved later by [[RewardChoiceResolver]] once the player
     * sends a `RewardChoice` action.
     */
-  private def handleShrine(exp: ExplorationState, shrine: Shrine): (GameState, List[String]) =
+  private def handleShrine(exp: ExplorationState, shrine: Shrine): (GameState, List[LogLine]) =
     val roomWithoutShrine = exp.dungeon.currentRoom.removeEntity(shrine.id)
     val updatedDungeon    = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(roomWithoutShrine.id, roomWithoutShrine))
     val options           = LootTable.rollShrineChoices(itemDefs, rng, difficulty = exp.difficulty)
     val nextState = exp.copy(dungeon = updatedDungeon,
                              pendingRewardChoice = Some(PendingRewardChoice(options, shrine.devoted))
     )
-    (nextState, List("The shrine offers you a choice."))
+    (nextState, List(LogLine.of("log.shrine.offer")))
 
   /** The dungeon's one true ending: transitions straight to `GameOverState(victory = true)` and
     * emits `RunEnded`, exactly what a boss kill used to do directly in `CombatResolver.victory`
@@ -377,11 +379,11 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     * Once the story has come to the light (see [[ExplorationState.endingOpen]]) the run does not end
     * here: the player is asked what to do with the light first, and the run ends with the answer.
     */
-  private def handleSanctuary(exp: ExplorationState, sanctuary: Sanctuary): (GameState, List[String], List[GameEvent]) =
-    if exp.endingOpen then (exp.copy(pendingEndingChoice = true), List("The light waits for your answer."), Nil)
+  private def handleSanctuary(exp: ExplorationState, sanctuary: Sanctuary): (GameState, List[LogLine], List[GameEvent]) =
+    if exp.endingOpen then (exp.copy(pendingEndingChoice = true), List(LogLine.of("log.sanctuary.waits")), Nil)
     else
       (GameOverState(exp.player, victory = true),
-       List("You step into the sanctuary. Your journey ends here - victory is yours."),
+       List(LogLine.of("log.sanctuary.victory")),
        List(GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId))
       )
 
@@ -389,7 +391,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     * [[roguelite.engine.StateMachine]]'s Move handling, not Interact (same family of "entities
     * reacting to the player" logic, so it lives here rather than splitting door logic across two
     * classes). */
-  def revealSecretDoors(room: Room, x: Int, y: Int): (Room, List[String], List[GameEvent]) =
+  def revealSecretDoors(room: Room, x: Int, y: Int): (Room, List[LogLine], List[GameEvent]) =
     val toReveal = room.entities.collect:
       case d: Door
           if d.doorKind == DoorKind.Secret && !d.revealed &&
@@ -403,7 +405,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
           case door: Door => door.copy(revealed = true)
           case o          => o
         }
-      (updated, List("You notice a hidden passage in the wall!"), List(GameEvent.SecretDoorRevealed))
+      (updated, List(LogLine.of("log.door.secret")), List(GameEvent.SecretDoorRevealed))
 
   /** Where the player appears in the target room: in front of the door they came through, whatever
     * the room's wall thickness or layout.
@@ -507,9 +509,9 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
                                playerX: Int,
                                playerY: Int,
                                inert: Boolean
-  ): (Room, List[String]) =
+  ): (Room, List[LogLine]) =
     val pool = availableTrapEnemies
-    if inert || pool.isEmpty then (room, List("It's a trap! But nothing emerges from the shadows."))
+    if inert || pool.isEmpty then (room, List(LogLine.of("log.trap.chestEmpty")))
     else
       val count   = rng.nextInt(2) + 1
       val typeIds = List.fill(count)(pool(rng.nextInt(pool.size)))
@@ -520,12 +522,12 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
           Enemy(id = s"${chest.id}_trap_$i", x = x, y = y, typeId = typeId, label = enemyStats(typeId).label)
       }
 
-      (room.withEntities(newEnemies), List("It's a trap! Enemies emerge from the shadows!"))
+      (room.withEntities(newEnemies), List(LogLine.of("log.trap.chest")))
 
 object InteractionResolver:
 
   /** What the player reads on trying the way on out of a Boss room while its guardian still stands. */
-  val BossExitSealedLine: String = "The way on is sealed while the guardian of this room still stands."
+  val BossExitSealedLine: LogLine = LogLine.of("log.door.bossSealed")
 
   /** What the way back to a Fork room says: the branch the player took is a choice with no return. */
-  val ForkExitSealedLine: String = "The way back is sealed: you chose this path and cannot turn back."
+  val ForkExitSealedLine: LogLine = LogLine.of("log.door.forkSealed")

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { gameState } from "../engine/StateStore";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import type { StatTermView } from "../engine/protocol";
 
     $: player = $gameState?.player;
@@ -79,10 +80,10 @@
         {#if ability}
             <div class="stat-row plain ability-row">
                 <span class="stat-name">{$t("stats.ability")}</span>
-                <span class="stat-value ability-name">{ability.name}</span>
+                <span class="stat-value ability-name">{$catalog.abilityName(ability)}</span>
                 <span class="stat-note">
                     {#if discounted}<s class="base-cost">{ability.cost}</s>{/if}
-                    {$t("stats.abilityCost", { cost: abilityCost, resource: ability.resourceName })}
+                    {$t("stats.abilityCost", { cost: abilityCost, resource: $catalog.abilityResource(ability) })}
                 </span>
             </div>
         {/if}

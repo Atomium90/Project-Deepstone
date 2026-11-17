@@ -1,6 +1,7 @@
 package roguelite.game.combat
 
 import roguelite.engine.Player
+import roguelite.game.core.LogLine
 
 import scala.util.Random
 
@@ -31,15 +32,15 @@ object LevelUpSystem:
     * Handles multiple level-ups in a single call via tail recursion (e.g. killing a boss while
     * close to two thresholds). Each level awards one randomly selected perk.
     */
-  def applyLevelUps(player: Player, rng: Random): (Player, List[String]) =
+  def applyLevelUps(player: Player, rng: Random): (Player, List[LogLine]) =
     @annotation.tailrec
-    def loop(p: Player, acc: List[String]): (Player, List[String]) =
+    def loop(p: Player, acc: List[LogLine]): (Player, List[LogLine]) =
       if p.xp < cumulativeXpFor(p.level + 1) then (p, acc)
       else
         val perk                 = Perk.fromOrdinal(rng.nextInt(Perk.values.length))
-        val (upgraded, perkDesc) = applyPerk(p, perk)
-        val leveled              = upgraded.copy(level = upgraded.level + 1)
-        loop(leveled, acc :+ s"⬆ Level ${leveled.level}! $perkDesc")
+        val (upgraded, gain) = applyPerk(p, perk)
+        val leveled          = upgraded.copy(level = upgraded.level + 1)
+        loop(leveled, acc :+ LogLine.of(s"log.levelUp.${gain.kind}", "level" -> leveled.level, "amount" -> gain.amount))
     loop(player, Nil)
 
   // Package-private for testability
@@ -47,20 +48,23 @@ object LevelUpSystem:
   private[game] enum Perk:
     case MaxHpBoost, AttackBoost, DefenseBoost, ResourceBoost
 
-  private[game] def applyPerk(player: Player, perk: Perk): (Player, String) =
+  /** What a level-up perk gave: its kind (the end of the `log.levelUp.<kind>` key) and the amount. */
+  private[game] final case class PerkGain(kind: String, amount: Int)
+
+  private[game] def applyPerk(player: Player, perk: Perk): (Player, PerkGain) =
     perk match {
       case Perk.MaxHpBoost =>
         val newMax = player.maxHp + 15
         // Also heal by the same amount so the player is not penalized for leveling up at low HP
         val newHp = (player.hp + 15).min(newMax)
-        (player.copy(maxHp = newMax, hp = newHp), "+15 Max HP")
+        (player.copy(maxHp = newMax, hp = newHp), PerkGain("maxHp", 15))
 
       case Perk.AttackBoost =>
-        (player.copy(bonusAttack = player.bonusAttack + 2), "+2 Attack")
+        (player.copy(bonusAttack = player.bonusAttack + 2), PerkGain("attack", 2))
 
       case Perk.DefenseBoost =>
-        (player.copy(bonusDefense = player.bonusDefense + 1), "+1 Defense")
+        (player.copy(bonusDefense = player.bonusDefense + 1), PerkGain("defense", 1))
 
       case Perk.ResourceBoost =>
-        (player.copy(resourceMax = player.resourceMax + 20), "+20 Max Resource")
+        (player.copy(resourceMax = player.resourceMax + 20), PerkGain("resource", 20))
     }

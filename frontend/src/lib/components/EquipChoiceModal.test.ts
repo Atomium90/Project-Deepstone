@@ -6,11 +6,11 @@ import { CHOICE_GRACE_MS } from "../engine/choiceKeys";
 import type { StateUpdate, ItemView, EquipChoiceOptionView } from "../engine/protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "i1", typeId: "t1", name: "Steel Sword", kind: "weapon", rarity: "uncommon", statLine: "+7 ATK", ...overrides };
+    return { id: "i1", typeId: "t1", kind: "weapon", rarity: "uncommon", stats: { attack: 7 }, ...overrides };
 }
 
 function makeOption(overrides: Partial<EquipChoiceOptionView> = {}): EquipChoiceOptionView {
-    return { slot: "WEAPON", current: makeItem({ id: "cur", name: "Iron Sword", statLine: "+3 ATK" }), ...overrides };
+    return { slot: "WEAPON", current: makeItem({ id: "cur", typeId: "silver_spear", stats: { attack: 3 } }), ...overrides };
 }
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -48,11 +48,11 @@ describe("EquipChoiceModal", () => {
     });
 
     test("shows the new item and one row per candidate option", () => {
-        gameState.set(makeState({ pendingEquipChoice: { newItem: makeItem({ name: "Steel Sword" }), options: [makeOption()] } }));
+        gameState.set(makeState({ pendingEquipChoice: { newItem: makeItem({ typeId: "steel_sword" }), options: [makeOption()] } }));
         const { container } = render(EquipChoiceModal);
         expect(container.querySelector(".item-name")?.textContent).toBe("Steel Sword");
         expect(container.querySelectorAll(".option-row").length).toBe(1);
-        expect(container.querySelector(".option-name")?.textContent).toContain("Iron Sword");
+        expect(container.querySelector(".option-name")?.textContent).toContain("Silver Spear");
     });
 
     test("clicking an option row sends EQUIP_CHOICE with that option's slot", async () => {
@@ -86,7 +86,7 @@ describe("EquipChoiceModal", () => {
     test("appends the current count to an option's name only when count > 1", () => {
         gameState.set(
             makeState({
-                pendingEquipChoice: { newItem: makeItem(), options: [makeOption({ current: makeItem({ name: "Health Potion", count: 2 }) })] },
+                pendingEquipChoice: { newItem: makeItem(), options: [makeOption({ current: makeItem({ typeId: "health_potion", count: 2 }) })] },
             })
         );
         const { container } = render(EquipChoiceModal);
@@ -106,7 +106,7 @@ describe("EquipChoiceModal keyboard shortcuts", () => {
             makeState({
                 pendingEquipChoice: {
                     newItem: makeItem(),
-                    options: [makeOption({ slot: "ACCESSORY_0" }), makeOption({ slot: "ACCESSORY_1", current: makeItem({ id: "cur2", name: "Old Ring" }) })],
+                    options: [makeOption({ slot: "ACCESSORY_0" }), makeOption({ slot: "ACCESSORY_1", current: makeItem({ id: "cur2", typeId: "plain_ring" }) })],
                 },
             })
         );

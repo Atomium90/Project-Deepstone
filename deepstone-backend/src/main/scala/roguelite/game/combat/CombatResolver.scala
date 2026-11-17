@@ -10,7 +10,7 @@ import roguelite.engine.{
   GameState,
   Player
 }
-import roguelite.game.core.GameEvent
+import roguelite.game.core.{ GameEvent, LogLine }
 import roguelite.game.dungeon.{ Chest, RoomType, Shrine }
 import roguelite.game.items.{ Accessory, Consumable, ConsumableEffect, EquipmentResolver, Item, LootTable, PickupOutcome, Rarity, SetBonusEffect, SetDef }
 import roguelite.game.progression.{ PerkDef, PerkEffect }
@@ -62,7 +62,7 @@ class CombatResolver(rng: Random = Random(),
   private val stats = StatCalculator(setDefs, perkDefs)
 
   /** Entry point called by the StateMachine for every CombatAction. */
-  def resolve(state: CombatState, action: CombatAction): (GameState, List[String], List[GameEvent]) =
+  def resolve(state: CombatState, action: CombatAction): (GameState, List[LogLine], List[GameEvent]) =
     action.action match {
       case CombatActionType.Attack  => handleAttack(state)
       case CombatActionType.Defend  => handleDefend(state)
@@ -74,13 +74,13 @@ class CombatResolver(rng: Random = Random(),
   // Player actions
   // ---------------------------------------------
 
-  private def handleAttack(state: CombatState): (GameState, List[String], List[GameEvent]) =
+  private def handleAttack(state: CombatState): (GameState, List[LogLine], List[GameEvent]) =
     val pending = state.combat.pendingAbility
 
     // Ability activation banner: the pending effect was armed by this player's own class
     // ability, so the ability name is always resolvable from their classId.
-    val abilityLog: List[String] = pending match {
-      case Some(_) => abilityDefs.get(state.player.classId).map(a => s"${a.name} activates!").toList
+    val abilityLog: List[LogLine] = pending match {
+      case Some(_) => abilityDefs.get(state.player.classId).map(a => LogLine.of("log.combat.abilityActivates", "ability" -> a.id)).toList
       case None    => Nil
     }
 
@@ -118,8 +118,8 @@ class CombatResolver(rng: Random = Random(),
       math.round(baseDamage * (1.0 + (setDamagePercent + buffDamagePercent) / 100.0) * critMultiplier).toInt
 
     val damagedEnemy = state.combat.enemy.takeDamage(damage)
-    val critSuffix   = if isCrit then " Critical hit!" else ""
-    val strikeLog    = List(s"You strike the ${damagedEnemy.label} for $damage damage.$critSuffix")
+    val strikeKey    = if isCrit then "log.combat.strikeCrit" else "log.combat.strike"
+    val strikeLog    = List(LogLine.of(strikeKey, "enemy" -> damagedEnemy.typeId, "damage" -> damage))
     val log          = abilityLog ++ strikeLog
 
     // Warrior: +5 Rage on every action
@@ -140,8 +140,8 @@ class CombatResolver(rng: Random = Random(),
       else enemyTurn(state.copy(player = playerAfterResource, combat = updatedCombat), log)
     (finalState, finalLog, damageEvent :: downstreamEvents)
 
-  private def handleDefend(state: CombatState): (GameState, List[String], List[GameEvent]) =
-    val log = List("You brace for impact. Incoming damage is halved this round.")
+  private def handleDefend(state: CombatState): (GameState, List[LogLine], List[GameEvent]) =
+    val log = List(LogLine.of("log.combat.defend"))
     // Archer: +8 Focus when defending
     val playerAfterResource = gainResource(state.player, onDefend = true)
     val updatedCombat       = state.combat.copy(playerIsDefending = true)
@@ -149,16 +149,16 @@ class CombatResolver(rng: Random = Random(),
 
   private def handleItem(state: CombatState,
                          itemId: Option[String]
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     itemId match {
       case None =>
-        (state, List("No item selected."), Nil)
+        (state, List(LogLine.of("log.combat.noItemSelected")), Nil)
       case Some(id) =>
         state.player.potionBelt.zipWithIndex.collectFirst {
           case (Some(stack), idx) if stack.item.id == id => (idx, stack)
         } match {
           case None =>
-            (state, List("Item not found in inventory."), Nil)
+            (state, List(LogLine.of("log.combat.itemNotFound")), Nil)
           case Some((idx, stack)) =>
             // Drink one charge: decrement the stack, clearing the slot only once it's empty.
             val remaining = stack.count - 1
@@ -188,16 +188,16 @@ class CombatResolver(rng: Random = Random(),
     * unchanged; a class with no ability defined (should not happen with a valid abilities.json)
     * also returns the state unchanged.
     */
-  private def handleAbility(state: CombatState): (GameState, List[String], List[GameEvent]) =
+  private def handleAbility(state: CombatState): (GameState, List[LogLine], List[GameEvent]) =
     abilityDefs.get(state.player.classId) match {
       case None =>
-        (state, List("No ability available for this class."), Nil)
+        (state, List(LogLine.of("log.combat.noAbility")), Nil)
 
       case Some(ability) =>
         val cost = effectiveAbilityCost(state.player, ability)
         if state.player.resourceCurrent < cost then
           (state,
-           List(s"Not enough ${ability.resourceName} — ${ability.name} requires $cost ${ability.resourceName}."),
+           List(LogLine.of("log.combat.notEnoughResource", "resource" -> ability.id, "ability" -> ability.id, "cost" -> cost)),
            Nil
           )
         else
@@ -212,14 +212,14 @@ class CombatResolver(rng: Random = Random(),
   /** Apply an ability's effect once its cost has already been deducted. */
   private def applyAbilityEffect(state: CombatState,
                                  ability: AbilityDef
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     ability.effect match {
       case AbilityEffect.DoubleNextAttack =>
         val updatedCombat = state.combat.copy(
           pendingAbility = Some(PendingAbilityEffect.DoubleNextAttack),
           playerIsDefending = false
         )
-        val log = List(s"${ability.name}! Your next attack will deal double damage.")
+        val log = List(LogLine.of("log.combat.abilityDouble", "ability" -> ability.id))
         enemyTurn(state.copy(combat = updatedCombat), log)
 
       case AbilityEffect.IgnoreDefenseNextAttack =>
@@ -227,13 +227,13 @@ class CombatResolver(rng: Random = Random(),
           pendingAbility = Some(PendingAbilityEffect.IgnoreDefenseNextAttack),
           playerIsDefending = false
         )
-        val log = List(s"${ability.name}! Your next attack will bypass enemy defense.")
+        val log = List(LogLine.of("log.combat.abilityPierce", "ability" -> ability.id))
         enemyTurn(state.copy(combat = updatedCombat), log)
 
       case AbilityEffect.FlatDamage(amount) =>
         // Flat damage: no calcDamage call, no jitter, no defense subtraction
         val damagedEnemy  = state.combat.enemy.takeDamage(amount)
-        val log           = List(s"${ability.name}! You unleash arcane energy for $amount damage.")
+        val log           = List(LogLine.of("log.combat.abilityBlast", "ability" -> ability.id, "damage" -> amount))
         val updatedCombat = state.combat.copy(enemy = damagedEnemy, playerIsDefending = false)
         val damageEvent   = GameEvent.DamageDealt(targetIsPlayer = false, amount = amount)
 
@@ -292,7 +292,7 @@ class CombatResolver(rng: Random = Random(),
 
   private def applyConsumableEffect(state: CombatState,
                                     item: Consumable
-  ): (CombatState, List[String], List[GameEvent], Option[Int]) =
+  ): (CombatState, List[LogLine], List[GameEvent], Option[Int]) =
     item.effect match
       case ConsumableEffect.HealFixed(baseAmount) =>
         val amount = applyPotionHealBonus(state.player, baseAmount)
@@ -300,7 +300,7 @@ class CombatResolver(rng: Random = Random(),
         val after  = (state.player.hp + amount).min(state.player.maxHp)
         val healed = after - before
         (state.copy(player = state.player.copy(hp = after)),
-         List(s"You use ${item.name}. Restored $healed HP."),
+         List(LogLine.of("log.combat.useHeal", "item" -> item.typeId, "amount" -> healed)),
          if healed > 0 then List(GameEvent.Healed(healed)) else Nil,
          None
         )
@@ -312,7 +312,7 @@ class CombatResolver(rng: Random = Random(),
         val after  = (state.player.hp + amount).min(state.player.maxHp)
         val healed = after - before
         (state.copy(player = state.player.copy(hp = after)),
-         List(s"You use ${item.name}. Restored $healed HP."),
+         List(LogLine.of("log.combat.useHeal", "item" -> item.typeId, "amount" -> healed)),
          if healed > 0 then List(GameEvent.Healed(healed)) else Nil,
          None
         )
@@ -322,7 +322,7 @@ class CombatResolver(rng: Random = Random(),
         val after    = (state.player.resourceCurrent + amount).min(state.player.resourceMax)
         val restored = after - before
         (state.copy(player = state.player.copy(resourceCurrent = after)),
-         List(s"You use ${item.name}. Restored $restored resource."),
+         List(LogLine.of("log.combat.useResource", "item" -> item.typeId, "amount" -> restored)),
          Nil,
          None
         )
@@ -330,7 +330,7 @@ class CombatResolver(rng: Random = Random(),
       case ConsumableEffect.AttackBuff(percent, turns) =>
         val updatedCombat = armBuff(state.combat, TimedBuffEffect.AttackBonusPercent(percent), turns)
         (state.copy(combat = updatedCombat),
-         List(s"You use ${item.name}. You feel a surge of power! (+$percent% ATK for $turns turns)"),
+         List(LogLine.of("log.combat.useAttackBuff", "item" -> item.typeId, "percent" -> percent, "count" -> turns)),
          Nil,
          None
         )
@@ -340,7 +340,7 @@ class CombatResolver(rng: Random = Random(),
         // pattern as Arcane Blast.
         val damagedEnemy  = state.combat.enemy.takeDamage(amount)
         val updatedCombat = state.combat.copy(enemy = damagedEnemy)
-        val log           = List(s"You use ${item.name}. It deals $amount damage to ${damagedEnemy.label}.")
+        val log           = List(LogLine.of("log.combat.useFlatDamage", "item" -> item.typeId, "amount" -> amount, "enemy" -> damagedEnemy.typeId))
         val damageEvent   = GameEvent.DamageDealt(targetIsPlayer = false, amount = amount)
         (state.copy(combat = updatedCombat),
          log,
@@ -351,7 +351,7 @@ class CombatResolver(rng: Random = Random(),
       case ConsumableEffect.CritBuff(percent, turns) =>
         val updatedCombat = armBuff(state.combat, TimedBuffEffect.CritChanceBonusPercent(percent), turns)
         (state.copy(combat = updatedCombat),
-         List(s"You use ${item.name}. Your senses sharpen! (+$percent% crit chance for $turns turns)"),
+         List(LogLine.of("log.combat.useCritBuff", "item" -> item.typeId, "percent" -> percent, "count" -> turns)),
          Nil,
          None
         )
@@ -370,8 +370,8 @@ class CombatResolver(rng: Random = Random(),
   // ---------------------------------------------
 
   private def enemyTurn(state: CombatState,
-                        priorLog: List[String]
-  ): (GameState, List[String], List[GameEvent]) =
+                        priorLog: List[LogLine]
+  ): (GameState, List[LogLine], List[GameEvent]) =
     val enemyAction = pickEnemyAction(state.combat.enemy)
 
     enemyAction match {
@@ -380,9 +380,9 @@ class CombatResolver(rng: Random = Random(),
         val finalDamage =
           if state.combat.playerIsDefending then (rawDamage / 2).max(1) else rawDamage
         val newHp      = (state.player.hp - finalDamage).max(0)
-        val defendNote = if state.combat.playerIsDefending then " (halved)" else ""
+        val attackKey  = if state.combat.playerIsDefending then "log.combat.enemyAttackHalved" else "log.combat.enemyAttack"
         val attackLog =
-          priorLog :+ s"${state.combat.enemy.label} attacks you for $finalDamage damage$defendNote."
+          priorLog :+ LogLine.of(attackKey, "enemy" -> state.combat.enemy.typeId, "damage" -> finalDamage)
         val damageEvent = GameEvent.DamageDealt(targetIsPlayer = true, amount = finalDamage)
 
         if newHp <= 0 then
@@ -406,7 +406,7 @@ class CombatResolver(rng: Random = Random(),
           (state.copy(player = playerAfterHit, combat = nextCombat), attackLog ++ buffExpiryLog, List(damageEvent))
 
       case "DEFEND" =>
-        val roundLog = priorLog :+ s"${state.combat.enemy.label} takes a defensive stance."
+        val roundLog = priorLog :+ LogLine.of("log.combat.enemyDefend", "enemy" -> state.combat.enemy.typeId)
         // Archer +5 Focus per round even when the enemy defends
         val playerAfterRound = gainResource(state.player, onRound = true)
         val (survivingBuffs, buffExpiryLog) = advanceBuffs(state.combat)
@@ -420,7 +420,7 @@ class CombatResolver(rng: Random = Random(),
 
       case other =>
         // Unknow action -> skip enemy turn
-        val roundLog                        = priorLog :+ s"${state.combat.enemy.label} hesitates."
+        val roundLog                        = priorLog :+ LogLine.of("log.combat.enemyHesitates", "enemy" -> state.combat.enemy.typeId)
         val playerAfterRound                = gainResource(state.player, onRound = true)
         val (survivingBuffs, buffExpiryLog) = advanceBuffs(state.combat)
         val nextCombat = state.combat.copy(isPlayerTurn = true,
@@ -433,14 +433,14 @@ class CombatResolver(rng: Random = Random(),
   /** Decrement every active buff's remaining duration by one round. Returns the surviving buffs
     * plus a log line for each one that just expired.
     */
-  private def advanceBuffs(combat: Combat): (List[TimedBuff], List[String]) =
+  private def advanceBuffs(combat: Combat): (List[TimedBuff], List[LogLine]) =
     val decremented                = combat.activeBuffs.map(b => b.copy(turnsRemaining = b.turnsRemaining - 1))
     val (expired, surviving)       = decremented.partition(_.turnsRemaining <= 0)
     (surviving, expired.map(b => describeBuffExpiry(b.effect)))
 
-  private def describeBuffExpiry(effect: TimedBuffEffect): String = effect match
-    case TimedBuffEffect.AttackBonusPercent(_)     => "Your battle fury fades."
-    case TimedBuffEffect.CritChanceBonusPercent(_) => "Your sharpened senses dull."
+  private def describeBuffExpiry(effect: TimedBuffEffect): LogLine = effect match
+    case TimedBuffEffect.AttackBonusPercent(_)     => LogLine.of("log.combat.attackBuffEnds")
+    case TimedBuffEffect.CritChanceBonusPercent(_) => LogLine.of("log.combat.critBuffEnds")
 
   /** Pick an enemy action using weighted random selection. */
   private def pickEnemyAction(enemy: EnemyInstance): String =
@@ -471,9 +471,9 @@ class CombatResolver(rng: Random = Random(),
     */
   private def victory(state: CombatState,
                       deadEnemy: EnemyInstance,
-                      log: List[String],
+                      log: List[LogLine],
                       killingBlowDamage: Int
-  ): (GameState, List[String], List[GameEvent]) = {
+  ): (GameState, List[LogLine], List[GameEvent]) = {
     val xpGained = deadEnemy.xpReward
     // Stone Shards: 1 per 5 XP, minimum 1 per kill, and none on a run that takes no blessing, nor once
     // the altar is shut: there is nothing left to buy them with.
@@ -487,7 +487,7 @@ class CombatResolver(rng: Random = Random(),
     val healAmount         = (killingBlowDamage * healOnKillPercent / 100).max(0)
     val healedHp            = (playerWithXp.hp + healAmount).min(playerWithXp.maxHp) - playerWithXp.hp
     val playerAfterHeal      = playerWithXp.copy(hp = playerWithXp.hp + healedHp)
-    val healLog   = if healedHp > 0 then List(s"The kill heals you for $healedHp HP.") else Nil
+    val healLog   = if healedHp > 0 then List(LogLine.of("log.combat.killHeal", "amount" -> healedHp)) else Nil
     val healEvent = if healedHp > 0 then List(GameEvent.Healed(healedHp)) else Nil
 
     // Capture the enemy's position before removing it - needed for the Shrine/Chest spawns below,
@@ -520,9 +520,9 @@ class CombatResolver(rng: Random = Random(),
     )
 
     val victoryLog = log ++ List(
-      CombatResolver.defeatedLine(deadEnemy.label),
-      if shardsEarned == 0 then s"You gain $xpGained XP."
-      else s"You gain $xpGained XP and $shardsEarned Shard${if shardsEarned != 1 then "s" else ""}."
+      CombatResolver.defeatedLine(deadEnemy.typeId),
+      if shardsEarned == 0 then LogLine.of("log.combat.xp", "xp" -> xpGained)
+      else LogLine.of("log.combat.xpShards", "xp" -> xpGained, "count" -> shardsEarned)
     ) ++ healLog
 
     // isBossKill is also what drives the EnemyDefeated event below (the "defeat a boss"
@@ -537,9 +537,9 @@ class CombatResolver(rng: Random = Random(),
 
     val (playerAfterLoot, lootLog, lootEvents, pendingChoice) =
       if isBossKill then
-        (playerAfterHeal, List(s"${deadEnemy.label}'s defeat leaves a shrine behind."), Nil, None)
+        (playerAfterHeal, List(LogLine.of("log.combat.leavesShrine", "enemy" -> deadEnemy.typeId)), Nil, None)
       else if isMiniBossKill then
-        (playerAfterHeal, List(s"${deadEnemy.label}'s defeat leaves a chest behind."), Nil, None)
+        (playerAfterHeal, List(LogLine.of("log.combat.leavesChest", "enemy" -> deadEnemy.typeId)), Nil, None)
       else
         LootTable.rollEnemy(deadEnemy, itemDefs, rng, state.difficulty, eliteFloor) match {
           case None => (playerAfterHeal, Nil, Nil, None)
@@ -547,25 +547,25 @@ class CombatResolver(rng: Random = Random(),
             EquipmentResolver.resolvePickup(playerAfterHeal, item, setDefs) match {
               case PickupOutcome.Equipped(p) =>
                 (p,
-                 List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
+                 List(LogLine.of("log.loot.dropped", "enemy" -> deadEnemy.typeId, "item" -> item.typeId)),
                  List(GameEvent.itemPickedUp(p, item, setDefs)),
                  None
                 )
               case PickupOutcome.KeyCollected(p) =>
                 (p,
-                 List(s"${deadEnemy.label} dropped ${item.name}! (${item.statLine})"),
+                 List(LogLine.of("log.loot.dropped", "enemy" -> deadEnemy.typeId, "item" -> item.typeId)),
                  List(GameEvent.itemPickedUp(p, item, setDefs)),
                  None
                 )
               case PickupOutcome.ChoicePending(pending) =>
                 (playerAfterHeal,
-                 List(s"${deadEnemy.label} dropped ${item.name}. Choose what to do with it."),
+                 List(LogLine.of("log.loot.droppedChoice", "enemy" -> deadEnemy.typeId, "item" -> item.typeId)),
                  Nil,
                  Some(pending)
                 )
               case PickupOutcome.Discarded(p) =>
                 (p,
-                 List(s"${deadEnemy.label} dropped ${item.name}, but you already have a better one."),
+                 List(LogLine.of("log.loot.droppedWorse", "enemy" -> deadEnemy.typeId, "item" -> item.typeId)),
                  Nil,
                  None
                 )
@@ -600,9 +600,9 @@ class CombatResolver(rng: Random = Random(),
   /** Player loses: transition to GameOver, preserve meta-currency. */
   private def defeat(state: CombatState,
                      deadPlayer: Player,
-                     log: List[String]
-  ): (GameState, List[String], List[GameEvent]) =
-    val defeatLog = log :+ "You have been defeated. The dungeon claims another soul."
+                     log: List[LogLine]
+  ): (GameState, List[LogLine], List[GameEvent]) =
+    val defeatLog = log :+ LogLine.of("log.combat.playerDefeated")
     (GameOverState(deadPlayer),
      defeatLog,
      List(GameEvent.RunEnded(victory = false,
@@ -658,4 +658,7 @@ object CombatResolver:
     * of the fight stop and its outcome begins, which [[roguelite.engine.StateUpdate.fightLines]] relies
     * on.
     */
-  def defeatedLine(label: String): String = s"$label has been defeated!"
+  def defeatedLine(enemyTypeId: String): LogLine = LogLine.of(DefeatedKey, "enemy" -> enemyTypeId)
+
+  /** The key of [[defeatedLine]], which marks where the blows of a won fight stop in its log. */
+  val DefeatedKey = "log.combat.defeated"

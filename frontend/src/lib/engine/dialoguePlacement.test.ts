@@ -4,7 +4,7 @@ import { TILE_SIZE } from "./constants";
 import type { EntityView, PendingSceneView, RoomView } from "./protocol";
 
 function entity(overrides: Partial<EntityView>): EntityView {
-    return { id: "e", kind: "enemy", x: 0, y: 0, label: "e", ...overrides };
+    return { id: "e", kind: "enemy", x: 0, y: 0, ...overrides };
 }
 
 function room(overrides: Partial<RoomView> = {}): RoomView {

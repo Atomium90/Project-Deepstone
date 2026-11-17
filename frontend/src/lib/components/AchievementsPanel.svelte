@@ -1,5 +1,7 @@
 <script lang="ts">
     import { gameState } from "../engine/StateStore";
+    import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
     import StatBar from "./StatBar.svelte";
 
@@ -8,17 +10,17 @@
 </script>
 
 <div class="achievements-panel">
-    <p class="section-label">Achievements</p>
+    <p class="section-label">{$t("achievements.title")}</p>
 
     {#if achievements.length > 0}
         <div class="progress-wrap">
-            <StatBar layout="column" label="Progress" current={unlockedCount}
+            <StatBar layout="column" label={$t("achievements.progress")} current={unlockedCount}
                      max={achievements.length} color={COLOR_ACHIEVEMENT_GOLD} />
         </div>
     {/if}
 
     {#if achievements.length === 0}
-        <p class="muted">No achievements loaded.</p>
+        <p class="muted">{$t("achievements.empty")}</p>
     {:else}
         <div class="achievement-list">
             {#each achievements as a (a.id)}
@@ -26,14 +28,14 @@
                     <div class="achievement-info">
                         <span class="achievement-label">
                             {#if a.unlocked}🏆{:else}<img class="lock-icon" src="/sprites/ui/icons/icon_lock.png" alt="" />{/if}
-                            {a.label}
+                            {$catalog.achievementLabel(a)}
                         </span>
-                        <span class="achievement-desc">{a.description}</span>
+                        <span class="achievement-desc">{$catalog.achievementDescription(a)}</span>
                     </div>
                     {#if a.unlocked}
                         <span class="owned-badge">
                             <img class="badge-check" src="/sprites/ui/Green/Default/icon_outline_checkmark.png" alt="" />
-                            Unlocked
+                            {$t("achievements.owned")}
                         </span>
                     {/if}
                 </div>

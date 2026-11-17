@@ -311,11 +311,10 @@ export async function playRunToGameOver(page: Page, from: StateUpdate): Promise<
             );
         }
 
-        // Matches the server's actual log wording: "You open the chest and find X!" and
-        // "<enemy> dropped X!" (the chest and enemy-drop pickup paths in
-        // InteractionResolver/CombatResolver) - `log` reflects only the action that produced this
+        // The server's log keys for a pickup: "log.chest.found" (the chest) and "log.loot.dropped" (an
+        // enemy drop), in InteractionResolver/CombatResolver, or "log.equip.equip" - `log` reflects only the action that produced this
         // StateUpdate, not a cumulative history.
-        if (state.log.some((l) => /find|dropped|equip/i.test(l))) lootPickedUp = true;
+        if (state.log.some((l) => /^log\.(chest\.found|loot\.dropped|equip\.equip)/.test(l.key))) lootPickedUp = true;
     }
 
     return { state, combatsResolved, lootPickedUp };

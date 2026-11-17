@@ -24,7 +24,7 @@ function makeState(player: Partial<StateUpdate["player"]> = {}, overrides: Parti
         phase: "EXPLORATION",
         player: { classId: "mage", hp: 62, maxHp: 83, resourceCurrent: 54, resourceMax: 80, level: 6, xp: 0, metaCurrency: 0, affinityTags: ["magic"], stats, ...player },
         equipment: { weapon: null, armor: null, accessories: [null, null], potionBelt: [null, null], keys: [] },
-        abilities: [{ classId: "mage", id: "arcane_blast", name: "Arcane Blast", cost: 30, resourceName: "Mana", description: "45 damage" }],
+        abilities: [{ classId: "mage", id: "arcane_blast", cost: 30 }],
         achievements: [],
         sets: [],
         victory: false,

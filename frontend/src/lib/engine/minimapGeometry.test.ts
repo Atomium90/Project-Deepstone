@@ -220,3 +220,31 @@ describe("layoutMinimap section titles", () => {
         expect(g.sections[0].ruleX).toBeGreaterThan(g.sections[0].x);
     });
 });
+
+describe("layoutMinimap texts", () => {
+    const shout = (key: string, params?: Record<string, string | number>) =>
+        `<${key}${params ? JSON.stringify(params) : ""}>`;
+
+    test("every text comes from the translator it is given", () => {
+        const g = layoutMinimap(
+            map({
+                nodes: [node("a", 0, 0, 0, { visited: true }), node("b", 0, 1, 0, { roomType: "boss" }), node("c", 0, 2, 0, { roomType: null })],
+                edges: [edge("a", "b", "RIGHT")],
+            }),
+            shout,
+        );
+        expect(g.nodes.map((n) => n.label)).toEqual([
+            "<room.combat>",
+            '<minimap.notVisited{"name":"<room.boss>"}>',
+            "<minimap.unexplored>",
+        ]);
+        expect(g.edges[0].chip?.label).toBe("<minimap.exit.RIGHT>");
+        expect(g.sections[0].title).toBe('<minimap.section{"n":1}>');
+    });
+
+    test("the rule after a title follows the length of the translated texts", () => {
+        const short = layoutMinimap(map({ nodes: [node("a", 0, 0)] }), () => "ab");
+        const long = layoutMinimap(map({ nodes: [node("a", 0, 0)] }), () => "abcdefghij");
+        expect(long.sections[0].ruleX).toBeGreaterThan(short.sections[0].ruleX);
+    });
+});

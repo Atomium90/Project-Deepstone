@@ -1,6 +1,7 @@
 <script lang="ts">
     import { gameState, pendingRewardChoice, client } from "../engine/StateStore";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import { createGrace, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
@@ -29,8 +30,8 @@
         if (index !== null) pick(choice.options[index]);
     }
 
-    /** True when `item` carries an affinity tag the player's class doesn't have - `statLine` is
-     * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
+    /** True when `item` carries an affinity tag the player's class doesn't have - the item's stats are
+     * already the correct (unscaled) numbers in that case, this only dims the line as a visual cue. */
     function isOffAffinity(item: ItemView): boolean {
         return item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
     }
@@ -42,7 +43,7 @@
     {@const choice = $pendingRewardChoice}
     <div class="backdrop">
         <div class="modal">
-            <p class="modal-title">Shrine's offering - choose one</p>
+            <p class="modal-title">{$t("reward.title")}</p>
 
             {#if choice.relic}
                 <p class="relic">
@@ -57,14 +58,14 @@
                         style="border-color:{ITEM_RARITY_COLORS[option.rarity]}"
                         on:click={() => pick(option)}
                     >
-                        <span class="option-name"><KeyHint key={String(i + 1)} />{option.name}</span>
-                        <span class="option-stat" class:off-affinity={isOffAffinity(option)}>{option.statLine}</span>
-                        <span class="option-action">Take</span>
+                        <span class="option-name"><KeyHint key={String(i + 1)} />{$catalog.itemName(option)}</span>
+                        <span class="option-stat" class:off-affinity={isOffAffinity(option)}>{$catalog.itemStatLine(option)}</span>
+                        <span class="option-action">{$t("reward.take")}</span>
                     </button>
                 {/each}
             </div>
 
-            <button class="leave-btn" on:click={leave}><KeyHint key="0" />Leave empty-handed</button>
+            <button class="leave-btn" on:click={leave}><KeyHint key="0" />{$t("reward.leave")}</button>
         </div>
     </div>
 {/if}

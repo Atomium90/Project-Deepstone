@@ -1,5 +1,7 @@
 package roguelite.engine
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.game.combat.{ Combat, EnemyActionWeight, EnemyInstance, EnemyStats }
 import roguelite.game.dungeon.{ ConnectorRole, Door, DoorLink, Dungeon, Entity, Room, RoomType, Tile }
@@ -54,14 +56,21 @@ class GameStateSuite extends FunSuite:
     val views = hub.toStateUpdate().hub.get.upgrades.map(u => u.id -> u.unlocked).toMap
     assertEquals(views, Map("a" -> false, "b" -> true))
 
+  test("HubState.toStateUpdate offers the last line of its log as the notice, and none when there is no line"):
+    val hub = HubState(PlayerFixtures.startingPlayer(ClassId.Warrior), Map.empty, MetaProgression.empty)
+    assertEquals(hub.toStateUpdate().notice, None)
+    val lines = List(LogLine.of("log.shards.topUp", "count" -> 5), LogLine.of("log.hub.return"))
+    assertEquals(hub.toStateUpdate(lines).notice, Some(LogLine.of("log.hub.return")))
+    assertEquals(hub.toStateUpdate(lines).log, lines)
+
   // --- ExplorationState --------------------------------------------------------------
 
   test("ExplorationState.toStateUpdate has EXPLORATION phase and carries the room and the log"):
     val state  = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)
-    val update = state.toStateUpdate(List("hello"))
+    val update = state.toStateUpdate(List(LogLine.raw("hello")))
     assertEquals(update.phase, GamePhase.Exploration)
     assert(update.room.isDefined)
-    assertEquals(update.log, List("hello"))
+    assertEquals(update.log, List(LogLine.raw("hello")))
 
   test("ExplorationState.toStateUpdate resolves a pending equip choice into a view, with the same affinity-doubled statLine as the equipped items"):
     val player  = PlayerFixtures.startingPlayer(ClassId.Warrior) // affinityTags = Set("heavy")
@@ -71,7 +80,7 @@ class GameStateSuite extends FunSuite:
     assertEquals(view.newItem.typeId, "practice_sword")
     assertEquals(view.options.map(_.slot), List(EquipSlot.WeaponSlot))
     // weapon.typeTag is None, so affinity doesn't double it - just confirms the resolved (not raw) statLine flows through.
-    assertEquals(view.newItem.statLine, weapon.effectiveStatLine(player.affinityTags))
+    assertEquals(view.newItem.stats, weapon.effectiveStats(player.affinityTags))
 
   test("ExplorationState.toStateUpdate has no pendingEquipChoice when none is set"):
     val state = ExplorationState(PlayerFixtures.startingPlayer(ClassId.Warrior), dungeon, 1, 1)

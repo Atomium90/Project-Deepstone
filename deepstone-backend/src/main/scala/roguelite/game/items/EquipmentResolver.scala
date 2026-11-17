@@ -2,7 +2,7 @@ package roguelite.game.items
 
 import roguelite.engine.{ ExplorationState, GameState, Player }
 import roguelite.game.dungeon.Chest
-import roguelite.game.core.GameEvent
+import roguelite.game.core.{ GameEvent, LogLine }
 
 /** Outcome of resolving an item pickup against the player's current equipment. */
 enum PickupOutcome:
@@ -138,23 +138,23 @@ object EquipmentResolver:
   def resolveChoice(exp: ExplorationState,
                     targetSlot: Option[EquipSlot],
                     setDefs: Map[String, SetDef] = Map.empty
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     exp.pendingEquipChoice match
-      case None => (exp, List("No equip choice pending."), Nil)
+      case None => (exp, List(LogLine.of("log.equip.nonePending")), Nil)
       case Some(pending) =>
         targetSlot match
           case None =>
-            (exp.copy(pendingEquipChoice = None), List(s"You leave ${pending.newItem.name} behind."), Nil)
+            (exp.copy(pendingEquipChoice = None), List(LogLine.of("log.equip.leave", "item" -> pending.newItem.typeId)), Nil)
 
           case Some(slot) if !pending.currentItems.contains(slot) =>
-            (exp, List("Invalid equip slot choice."), Nil)
+            (exp, List(LogLine.of("log.equip.invalidSlot")), Nil)
 
           case Some(slot) =>
             val updatedPlayer = applyToSlot(exp.player, slot, pending.newItem, setDefs)
             val taken          = exp.copy(player = updatedPlayer, pendingEquipChoice = None)
             val next           = pending.sourceChestId.fold(taken)(emptyChest(taken, _))
             (next,
-             List(s"You equip ${pending.newItem.name}."),
+             List(LogLine.of("log.equip.equip", "item" -> pending.newItem.typeId)),
              List(GameEvent.itemPickedUp(updatedPlayer, pending.newItem, setDefs))
             )
 

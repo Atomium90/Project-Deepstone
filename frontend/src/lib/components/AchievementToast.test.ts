@@ -6,7 +6,7 @@ import { gameState } from "../engine/StateStore";
 import type { StateUpdate, AchievementView } from "../engine/protocol";
 
 function makeAchievement(overrides: Partial<AchievementView> = {}): AchievementView {
-    return { id: "a1", label: "First Blood", description: "d", unlocked: true, ...overrides };
+    return { id: "a1", unlocked: true, ...overrides };
 }
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -40,7 +40,7 @@ describe("AchievementToast", () => {
 
     test("shows a toast for each newly-unlocked achievement", async () => {
         const { container } = render(AchievementToast);
-        gameState.set(makeState({ newlyUnlocked: [makeAchievement({ id: "a1", label: "First Blood" }), makeAchievement({ id: "a2", label: "Boss Slayer" })] }));
+        gameState.set(makeState({ newlyUnlocked: [makeAchievement({ id: "first_blood" }), makeAchievement({ id: "boss_slayer" })] }));
         await tick();
         const labels = Array.from(container.querySelectorAll(".toast-label")).map((el) => el.textContent);
         expect(labels).toEqual(["First Blood", "Boss Slayer"]);

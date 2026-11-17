@@ -11,11 +11,11 @@ import { settings } from "../engine/SettingsStore";
 import type { StateUpdate, UpgradeView, PerkView, DifficultyView } from "../engine/protocol";
 
 function makeUpgrade(overrides: Partial<UpgradeView> = {}): UpgradeView {
-    return { id: "u1", label: "Upgrade", description: "d", cost: 10, icon: "*", category: "stat", unlocked: false, ...overrides };
+    return { id: "u1", cost: 10, icon: "*", category: "stat", unlocked: false, ...overrides };
 }
 
 function makePerk(overrides: Partial<PerkView> = {}): PerkView {
-    return { id: "p1", label: "Perk", description: "d", icon: "*", ...overrides };
+    return { id: "p1", icon: "*", ...overrides };
 }
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -148,8 +148,8 @@ describe("HubScreen", () => {
             makeState({
                 hub: {
                     upgrades: [
-                        makeUpgrade({ id: "s1", label: "Stat Upgrade", category: "stat" }),
-                        makeUpgrade({ id: "m1", label: "Meta Upgrade", category: "meta" }),
+                        makeUpgrade({ id: "hp_boost_1", category: "stat" }),
+                        makeUpgrade({ id: "potion_start", category: "meta" }),
                     ],
                     perks: [],
                     runsCompleted: 1, difficulties: [],
@@ -158,10 +158,10 @@ describe("HubScreen", () => {
         );
         const { container } = render(HubScreen);
         const labels = () => Array.from(container.querySelectorAll(".upgrade-label")).map((el) => el.textContent);
-        expect(labels()).toEqual(["Stat Upgrade", "Meta Upgrade"]);
+        expect(labels()).toEqual(["Iron Constitution I", "Emergency Supplies"]);
 
         await fireEvent.click(container.querySelectorAll(".upgrade-tab")[1]); // "Stats"
-        expect(labels()).toEqual(["Stat Upgrade"]);
+        expect(labels()).toEqual(["Iron Constitution I"]);
     });
 
     describe("difficulty tiers", () => {
@@ -342,9 +342,31 @@ describe("HubScreen", () => {
         });
     });
 
+    describe("the notice", () => {
+        test("shows the line the server offers as the answer, written in the language", async () => {
+            gameState.set(
+                makeState({
+                    log: [{ key: "log.hub.return", params: {} }, { key: "log.shop.purchased", params: { upgrade: "hp_boost_1" } }],
+                    hub: { upgrades: [makeUpgrade({ id: "hp_boost_1", unlocked: true })], perks: [], runsCompleted: 1, difficulties: [] },
+                    notice: { key: "log.shop.purchased", params: { upgrade: "hp_boost_1" } },
+                }),
+            );
+            const { container } = render(HubScreen);
+            await tick();
+            expect(container.querySelector(".feedback")?.textContent).toBe("Iron Constitution I purchased!");
+        });
+
+        test("shows nothing when the server offers none, whatever the log holds", async () => {
+            gameState.set(makeState({ log: [{ key: "log.hub.return", params: {} }] }));
+            const { container } = render(HubScreen);
+            await tick();
+            expect(container.querySelector(".feedback")).toBeNull();
+        });
+    });
+
     describe("the altar shut for good", () => {
-        const owned = makeUpgrade({ id: "hp_boost_1", label: "Owned One", unlocked: true });
-        const wanted = makeUpgrade({ id: "weapon_mastery", label: "Wanted One", cost: 90 });
+        const owned = makeUpgrade({ id: "hp_boost_1", unlocked: true });
+        const wanted = makeUpgrade({ id: "weapon_mastery", cost: 90 });
 
         function shutHub(): StateUpdate {
             return makeState({ hub: { upgrades: [owned, wanted], perks: [], runsCompleted: 5, difficulties: [], shopClosed: true } });
@@ -355,7 +377,7 @@ describe("HubScreen", () => {
         test("shows what the player owns, with no cost and nothing to buy, and says the altar is shut", () => {
             gameState.set(shutHub());
             const { container } = render(HubScreen);
-            expect(labels(container)).toEqual(["Owned One"]);
+            expect(labels(container)).toEqual(["Iron Constitution I"]);
             expect(container.querySelector("button.buy-btn")).toBeNull();
             expect(container.querySelector(".upgrade-cost")).toBeNull();
             expect(container.querySelector(".shop-closed")?.textContent).toContain("shut for good");
@@ -365,7 +387,7 @@ describe("HubScreen", () => {
             gameState.set(makeState({ hub: { upgrades: [owned, wanted], perks: [], runsCompleted: 5, difficulties: [] } }));
             const { container } = render(HubScreen);
             expect(container.querySelector(".shop-closed")).toBeNull();
-            expect(labels(container)).toEqual(["Owned One", "Wanted One"]);
+            expect(labels(container)).toEqual(["Iron Constitution I", "Weapon Mastery"]);
         });
 
         test("the shop hint, which is about spending Shards, is not asked for", () => {
@@ -461,7 +483,7 @@ describe("HubScreen", () => {
         });
 
         test("run perks alone bring the right panel back, without the shop", () => {
-            gameState.set(hubWith(0, [makeUpgrade({ cost: 30 })], [makePerk({ id: "heavy_hand", label: "Heavy Hand" })]));
+            gameState.set(hubWith(0, [makeUpgrade({ cost: 30 })], [makePerk({ id: "heavy_hand" })]));
             const { container } = render(HubScreen);
             expect(container.querySelector(".right-panel")).not.toBeNull();
             expect(shopShown(container)).toBe(false);
@@ -487,7 +509,7 @@ describe("HubScreen", () => {
 describe("HubScreen while it fades out", () => {
     test("keeps the shop, the perks and the class cards on screen once the run has begun", async () => {
         gameState.set(
-            makeState({ hub: { upgrades: [makeUpgrade({ label: "Iron Will" })], perks: [makePerk({ label: "Heavy Hand" })], runsCompleted: 1, difficulties: [] } })
+            makeState({ hub: { upgrades: [makeUpgrade({ id: "hp_boost_2" })], perks: [makePerk({ id: "heavy_hand" })], runsCompleted: 1, difficulties: [] } })
         );
         const { container } = render(HubScreen);
         const shown = () => ({
@@ -496,7 +518,7 @@ describe("HubScreen while it fades out", () => {
             classes: container.querySelectorAll(".class-card").length,
         });
         const before = shown();
-        expect(before.upgrades).toEqual(["Iron Will"]);
+        expect(before.upgrades).toEqual(["Iron Constitution II"]);
         expect(before.perks).toBe(1);
 
         gameState.set(makeState({ phase: "EXPLORATION", hub: undefined }));
@@ -506,14 +528,14 @@ describe("HubScreen while it fades out", () => {
     });
 
     test("follows the hub again when it comes back", async () => {
-        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ label: "Iron Will" })], perks: [], runsCompleted: 1, difficulties: [] } }));
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "hp_boost_2" })], perks: [], runsCompleted: 1, difficulties: [] } }));
         const { container } = render(HubScreen);
         gameState.set(makeState({ phase: "EXPLORATION", hub: undefined }));
         await tick();
 
-        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ label: "Sharp Eye" })], perks: [], runsCompleted: 1, difficulties: [] } }));
+        gameState.set(makeState({ hub: { upgrades: [makeUpgrade({ id: "weapon_mastery" })], perks: [], runsCompleted: 1, difficulties: [] } }));
         await tick();
 
-        expect(Array.from(container.querySelectorAll(".upgrade-label")).map((el) => el.textContent)).toEqual(["Sharp Eye"]);
+        expect(Array.from(container.querySelectorAll(".upgrade-label")).map((el) => el.textContent)).toEqual(["Weapon Mastery"]);
     });
 });

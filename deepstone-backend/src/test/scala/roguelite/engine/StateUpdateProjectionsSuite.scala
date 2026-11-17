@@ -66,13 +66,18 @@ class StateUpdateProjectionsSuite extends FunSuite:
   test("an ability def projects to the view the client reads"):
     assertEquals(
       StateUpdateProjections.toAbilityView(ability),
-      AbilityView(ClassId.Warrior, "berserker_slash", "Berserker Slash", 40, "Rage", "Hit twice")
+      AbilityView(ClassId.Warrior, "berserker_slash", 40)
     )
 
-  test("a set def projects to its two bonus labels"):
+  test("a set def projects to its two bonus labels and its two bonuses as data"):
     assertEquals(
       StateUpdateProjections.toSetView(fireSet),
-      SetView("fire_mage", "Fire Mage", ClassId.Mage, "+2 ATK", "+5% crit")
+      SetView(
+        "fire_mage",
+        ClassId.Mage,
+        SetBonusView("FlatAttack", 2),
+        SetBonusView("CritChancePercent", 5)
+      )
     )
 
   test("every update carries the ability and set catalogs"):
@@ -85,8 +90,8 @@ class StateUpdateProjectionsSuite extends FunSuite:
     val progress = AchievementProgress(Set("b"), AchievementStats.empty)
     assertEquals(
       projections(defs).achievementCatalog(progress),
-      List(AchievementView("a", "label a", "description a", unlocked = false),
-           AchievementView("b", "label b", "description b", unlocked = true)
+      List(AchievementView("a", unlocked = false),
+           AchievementView("b", unlocked = true)
       )
     )
 

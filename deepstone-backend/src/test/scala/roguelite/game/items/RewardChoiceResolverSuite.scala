@@ -1,5 +1,7 @@
 package roguelite.game.items
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.{ ClassId, ExplorationState, Player, PlayerFixtures }
 import roguelite.game.core.GameEvent
@@ -31,7 +33,7 @@ class RewardChoiceResolverSuite extends FunSuite:
     val exp = explorationState()
     val (next, log, events) = RewardChoiceResolver.resolve(exp, Some(sword.id))
     assertEquals(next, exp)
-    assert(log.exists(_.toLowerCase.contains("no reward choice")), s"expected a no-pending-choice message: $log")
+    assert(log.hasKey("log.reward.nonePending"), s"expected a no-pending-choice message: $log")
     assertEquals(events, Nil)
 
   test("resolve(None) walks away and clears the pending choice, player unchanged"):
@@ -41,7 +43,7 @@ class RewardChoiceResolverSuite extends FunSuite:
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.pendingRewardChoice, None)
     assertEquals(nextExp.player, exp.player)
-    assert(log.exists(_.toLowerCase.contains("leave")), s"expected a walk-away message: $log")
+    assert(log.hasKey("log.reward.leave"), s"expected a walk-away message: $log")
     assertEquals(events, Nil)
 
   test("resolve with an id that wasn't offered is rejected, pending choice stays set"):
@@ -50,7 +52,7 @@ class RewardChoiceResolverSuite extends FunSuite:
     val (next, log, events) = RewardChoiceResolver.resolve(exp, Some("not-a-real-id"))
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.pendingRewardChoice, Some(pending))
-    assert(log.exists(_.toLowerCase.contains("invalid")), s"expected an invalid-choice message: $log")
+    assert(log.hasKey("log.reward.invalid"), s"expected an invalid-choice message: $log")
     assertEquals(events, Nil)
 
   test("resolve picking an item for an empty slot equips it and clears the pending choice"):
@@ -60,7 +62,7 @@ class RewardChoiceResolverSuite extends FunSuite:
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.pendingRewardChoice, None)
     assertEquals(nextExp.player.equippedWeapon, Some(sword))
-    assert(log.exists(_.contains(sword.name)), s"expected the item's name in the log: $log")
+    assert(log.has("log.reward.take", "item" -> sword.typeId), s"expected the item in the log: $log")
     assert(events.exists(_.isInstanceOf[GameEvent.ItemPickedUp]), s"expected ItemPickedUp: $events")
 
   test("resolve picking a Key increments the key count"):
@@ -79,7 +81,7 @@ class RewardChoiceResolverSuite extends FunSuite:
     assertEquals(nextExp.pendingRewardChoice, None)
     assertEquals(nextExp.pendingEquipChoice.map(_.newItem), Some(sword2))
     assertEquals(nextExp.player.equippedWeapon, Some(sword), "weapon should not swap until the equip choice resolves")
-    assert(log.exists(_.contains(sword2.name)), s"expected the item's name in the log: $log")
+    assert(log.has("log.reward.takeChoice", "item" -> sword2.typeId), s"expected the item in the log: $log")
     assertEquals(events, Nil)
 
   test("resolve picking a same-typeId, non-strictly-better duplicate discards it"):
@@ -90,5 +92,5 @@ class RewardChoiceResolverSuite extends FunSuite:
     val nextExp = next.asInstanceOf[ExplorationState]
     assertEquals(nextExp.pendingRewardChoice, None)
     assertEquals(nextExp.player.equippedWeapon, Some(sword), "should keep the copy already equipped")
-    assert(log.exists(_.toLowerCase.contains("already have a better one")), s"expected a discard message: $log")
+    assert(log.hasKey("log.reward.takeWorse"), s"expected a discard message: $log")
     assertEquals(events, Nil)

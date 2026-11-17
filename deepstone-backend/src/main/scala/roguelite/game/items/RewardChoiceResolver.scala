@@ -1,7 +1,7 @@
 package roguelite.game.items
 
 import roguelite.engine.{ ExplorationState, GameState }
-import roguelite.game.core.GameEvent
+import roguelite.game.core.{ GameEvent, LogLine }
 
 /** Resolves a follow-up `RewardChoice` action against a [[roguelite.engine.GameState.ExplorationState]]'s
   * `pendingRewardChoice` (see [[PendingRewardChoice]]), mirroring
@@ -20,16 +20,16 @@ object RewardChoiceResolver:
   def resolve(exp: ExplorationState,
              itemId: Option[String],
              setDefs: Map[String, SetDef] = Map.empty
-  ): (GameState, List[String], List[GameEvent]) =
+  ): (GameState, List[LogLine], List[GameEvent]) =
     exp.pendingRewardChoice match
-      case None => (exp, List("No reward choice pending."), Nil)
+      case None => (exp, List(LogLine.of("log.reward.nonePending")), Nil)
       case Some(pending) =>
         itemId match
           case None =>
-            (exp.copy(pendingRewardChoice = None), List("You leave the shrine's other offerings behind."), Nil)
+            (exp.copy(pendingRewardChoice = None), List(LogLine.of("log.reward.leave")), Nil)
 
           case Some(id) if !pending.options.exists(_.id == id) =>
-            (exp, List("Invalid reward choice."), Nil)
+            (exp, List(LogLine.of("log.reward.invalid")), Nil)
 
           case Some(id) =>
             val chosen  = pending.options.find(_.id == id).get
@@ -37,21 +37,21 @@ object RewardChoiceResolver:
             EquipmentResolver.resolvePickup(cleared.player, chosen, setDefs) match
               case PickupOutcome.Equipped(p) =>
                 (cleared.copy(player = p),
-                 List(s"You take ${chosen.name}! (${chosen.statLine})"),
+                 List(LogLine.of("log.reward.take", "item" -> chosen.typeId)),
                  List(GameEvent.itemPickedUp(p, chosen, setDefs))
                 )
               case PickupOutcome.KeyCollected(p) =>
                 (cleared.copy(player = p),
-                 List(s"You take ${chosen.name}! (${chosen.statLine})"),
+                 List(LogLine.of("log.reward.take", "item" -> chosen.typeId)),
                  List(GameEvent.itemPickedUp(p, chosen, setDefs))
                 )
               case PickupOutcome.ChoicePending(equipPending) =>
                 (cleared.copy(pendingEquipChoice = Some(equipPending)),
-                 List(s"You take ${chosen.name}. Choose what to do with it."),
+                 List(LogLine.of("log.reward.takeChoice", "item" -> chosen.typeId)),
                  Nil
                 )
               case PickupOutcome.Discarded(p) =>
                 (cleared.copy(player = p),
-                 List(s"You take ${chosen.name}, but you already have a better one."),
+                 List(LogLine.of("log.reward.takeWorse", "item" -> chosen.typeId)),
                  Nil
                 )

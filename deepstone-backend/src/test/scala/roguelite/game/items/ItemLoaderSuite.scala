@@ -206,68 +206,61 @@ class ItemLoaderSuite extends CatsEffectSuite:
       case _ => ()
 
   // ---------------------------------------------
-  // Accessory.statLine (pure, no loading required - covers the new optional bonus fields)
+  // Accessory.effectiveStats: only the bonuses that are present
   // ---------------------------------------------
 
-  test("Accessory.statLine composes only the bonuses that are present"):
-    val hpOnly    = Accessory("", "t", "HP Only", Rarity.Common, hpBonus = Some(8))
-    val atkOnly   = Accessory("", "t", "ATK Only", Rarity.Common, attackBonus = Some(2), typeTag = Some("heavy"))
-    val defOnly   = Accessory("", "t", "Def Only", Rarity.Common, defenseBonus = Some(5))
-    val critOnly  = Accessory("", "t", "Crit Only", Rarity.Common, critChanceBonus = Some(6))
-    assertEquals(hpOnly.statLine, "+8 MAX HP")
-    assertEquals(atkOnly.statLine, "+2 ATK [heavy]")
-    assertEquals(defOnly.statLine, "+5 DEF")
-    assertEquals(critOnly.statLine, "+6% CRIT")
+  test("Accessory.effectiveStats gives only the bonuses that are present"):
+    val hpOnly   = Accessory("", "t", "HP Only", Rarity.Common, hpBonus = Some(8))
+    val atkOnly  = Accessory("", "t", "ATK Only", Rarity.Common, attackBonus = Some(2), typeTag = Some("heavy"))
+    val defOnly  = Accessory("", "t", "Def Only", Rarity.Common, defenseBonus = Some(5))
+    val critOnly = Accessory("", "t", "Crit Only", Rarity.Common, critChanceBonus = Some(6))
+    assertEquals(hpOnly.effectiveStats(Set.empty), ItemStats(maxHp = Some(8)))
+    assertEquals(atkOnly.effectiveStats(Set.empty), ItemStats(attack = Some(2)))
+    assertEquals(defOnly.effectiveStats(Set.empty), ItemStats(defense = Some(5)))
+    assertEquals(critOnly.effectiveStats(Set.empty), ItemStats(critChance = Some(6)))
 
-  test("Accessory.statLine combines multiple present bonuses"):
+  test("Accessory.effectiveStats combines multiple present bonuses"):
     val combo = Accessory("", "t", "Combo", Rarity.Common, hpBonus = Some(5), attackBonus = Some(3))
-    assertEquals(combo.statLine, "+5 MAX HP, +3 ATK")
+    assertEquals(combo.effectiveStats(Set.empty), ItemStats(maxHp = Some(5), attack = Some(3)))
 
-  test("Consumable.statLine describes every ConsumableEffect variant"):
-    def line(effect: ConsumableEffect): String =
-      Consumable("", "t", "T", Rarity.Common, effect).statLine
-    assertEquals(line(ConsumableEffect.HealFixed(30)), "Heal 30 HP")
-    assertEquals(line(ConsumableEffect.HealPercent(25)), "Heal 25% HP")
-    assertEquals(line(ConsumableEffect.RestoreResource(15)), "Restore 15 Resource")
-    assertEquals(line(ConsumableEffect.AttackBuff(20, 3)), "+20% ATK for 3 turns")
-    assertEquals(line(ConsumableEffect.FlatDamage(40)), "Deal 40 damage")
-    assertEquals(line(ConsumableEffect.CritBuff(15, 2)), "+15% crit chance for 2 turns")
-
-  // ---------------------------------------------
-  // Item.effectiveStatLine (pure) - the affinity-doubled value shown to a specific player
-  // ---------------------------------------------
-
-  test("effectiveStatLine doubles a Weapon's attackBonus when its typeTag matches affinityTags"):
-    val bow = Weapon("", "t", "Bow", Rarity.Common, attackBonus = 5, typeTag = Some("ranged"))
-    assertEquals(bow.effectiveStatLine(Set("ranged")), "+10 ATK [ranged]")
-
-  test("effectiveStatLine leaves a Weapon's attackBonus unscaled when its typeTag doesn't match"):
-    val bow = Weapon("", "t", "Bow", Rarity.Common, attackBonus = 5, typeTag = Some("ranged"))
-    assertEquals(bow.effectiveStatLine(Set("heavy")), "+5 ATK [ranged]")
-    assertEquals(bow.effectiveStatLine(Set.empty), bow.statLine)
-
-  test("effectiveStatLine leaves an untagged Weapon unscaled regardless of affinityTags"):
+  test("an untagged Weapon is never scaled, whatever the player's affinity"):
     val sword = Weapon("", "t", "Sword", Rarity.Common, attackBonus = 5)
-    assertEquals(sword.effectiveStatLine(Set("heavy")), sword.statLine)
+    assertEquals(sword.effectiveStats(Set("heavy")), ItemStats(attack = Some(5)))
 
-  test("effectiveStatLine doubles an Armor's defenseBonus when its typeTag matches affinityTags"):
+  // ---------------------------------------------
+  // Item.effectiveStats (pure) - the same numbers as the stat line, as data
+  // ---------------------------------------------
+
+  test("effectiveStats gives a Weapon's attack, doubled on an affinity match"):
+    val bow = Weapon("", "t", "Bow", Rarity.Common, attackBonus = 5, typeTag = Some("ranged"))
+    assertEquals(bow.effectiveStats(Set("ranged")), ItemStats(attack = Some(10)))
+    assertEquals(bow.effectiveStats(Set("heavy")), ItemStats(attack = Some(5)))
+
+  test("effectiveStats gives an Armor's defense, doubled on an affinity match"):
     val plate = Armor("", "t", "Plate", Rarity.Common, defenseBonus = 4, typeTag = Some("heavy"))
-    assertEquals(plate.effectiveStatLine(Set("heavy")), "+8 DEF [heavy]")
-    assertEquals(plate.effectiveStatLine(Set("ranged")), "+4 DEF [heavy]")
+    assertEquals(plate.effectiveStats(Set("heavy")), ItemStats(defense = Some(8)))
+    assertEquals(plate.effectiveStats(Set.empty), ItemStats(defense = Some(4)))
 
-  test("effectiveStatLine doubles an Accessory's attack/defense/crit bonuses but never hpBonus"):
-    val trinket = Accessory("",
-                            "t",
-                            "Trinket",
-                            Rarity.Common,
-                            hpBonus = Some(10),
-                            typeTag = Some("magic"),
-                            attackBonus = Some(2),
-                            defenseBonus = Some(3),
-                            critChanceBonus = Some(4)
+  test("effectiveStats gives only the fields an Accessory has, never scaling hpBonus"):
+    val trinket = Accessory("", "t", "Trinket", Rarity.Common, hpBonus = Some(10), typeTag = Some("magic"), attackBonus = Some(2), critChanceBonus = Some(4))
+    assertEquals(
+      trinket.effectiveStats(Set("magic")),
+      ItemStats(maxHp = Some(10), attack = Some(4), critChance = Some(8))
     )
-    assertEquals(trinket.effectiveStatLine(Set("magic")), "+10 MAX HP, +4 ATK, +6 DEF, +8% CRIT [magic]")
-    assertEquals(trinket.effectiveStatLine(Set("heavy")), trinket.statLine)
+
+  test("effectiveStats names the effect of each consumable with its figures"):
+    def stats(effect: ConsumableEffect): ItemStats =
+      Consumable("", "t", "Potion", Rarity.Common, effect).effectiveStats(Set.empty)
+    assertEquals(stats(ConsumableEffect.HealFixed(30)), ItemStats(effect = Some("healFixed"), amount = Some(30)))
+    assertEquals(stats(ConsumableEffect.HealPercent(25)), ItemStats(effect = Some("healPercent"), percent = Some(25)))
+    assertEquals(stats(ConsumableEffect.RestoreResource(20)), ItemStats(effect = Some("restoreResource"), amount = Some(20)))
+    assertEquals(stats(ConsumableEffect.AttackBuff(20, 3)), ItemStats(effect = Some("attackBuff"), percent = Some(20), turns = Some(3)))
+    assertEquals(stats(ConsumableEffect.FlatDamage(40)), ItemStats(effect = Some("flatDamage"), amount = Some(40)))
+    assertEquals(stats(ConsumableEffect.CritBuff(15, 2)), ItemStats(effect = Some("critBuff"), percent = Some(15), turns = Some(2)))
+
+  test("effectiveStats of a Key says it opens a locked door"):
+    val key = Key("", "t", "Key", Rarity.Common, KeyKind.Generic)
+    assertEquals(key.effectiveStats(Set.empty), ItemStats(effect = Some("opensDoor")))
 
   // ---------------------------------------------
   // Rarity (pure)

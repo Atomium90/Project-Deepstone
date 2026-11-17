@@ -1,5 +1,7 @@
 package roguelite.game.combat
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.{ ClassId, CombatAction, CombatActionType, CombatState, Player }
 import roguelite.game.dungeon.{ Dungeon, Enemy, Room, RoomType, Tile }
@@ -65,7 +67,7 @@ class PotionEffectSuite extends FunSuite:
 
     val nextCombat = next match { case cs: CombatState => cs.combat; case _ => fail("expected CombatState") }
     assertEquals(nextCombat.activeBuffs, Nil)
-    assert(log.exists(_.contains("fades")), s"expected an expiry log line: $log")
+    assert(log.hasKey("log.combat.attackBuffEnds"), s"expected an expiry log line: $log")
   }
 
   test("a buff with more than 1 turn remaining decrements but survives") {
@@ -75,7 +77,7 @@ class PotionEffectSuite extends FunSuite:
 
     val nextCombat = next match { case cs: CombatState => cs.combat; case _ => fail("expected CombatState") }
     assertEquals(nextCombat.activeBuffs, List(TimedBuff(TimedBuffEffect.AttackBonusPercent(20), turnsRemaining = 2)))
-    assert(!log.exists(_.contains("fades")), s"a surviving buff shouldn't log an expiry: $log")
+    assert(!log.hasKey("log.combat.attackBuffEnds"), s"a surviving buff shouldn't log an expiry: $log")
   }
 
   test("multiple buffs decrement independently, one can expire while another survives") {

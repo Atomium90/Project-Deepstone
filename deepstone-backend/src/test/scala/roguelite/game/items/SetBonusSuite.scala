@@ -1,5 +1,7 @@
 package roguelite.game.items
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.{ ClassId, CombatAction, CombatActionType, CombatState, Player }
 import roguelite.game.combat.{ AbilityDef, AbilityEffect, Combat, CombatResolver, EnemyActionWeight, EnemyInstance }
@@ -104,6 +106,18 @@ class SetBonusSuite extends FunSuite:
     twoPiece = SetBonus(SetBonusEffect.FlatAttack(3), "+3 flat ATK"),
     fourPiece = SetBonus(SetBonusEffect.FlatDefense(4), "+4 flat DEF")
   )
+
+  test("every bonus effect has an id and a figure, 0 for the one that has none"):
+    assertEquals(SetBonusEffect.MaxHpPercent(5).id, "MaxHpPercent")
+    assertEquals(SetBonusEffect.MaxHpPercent(5).value, 5)
+    assertEquals(SetBonusEffect.FlatDefense(2).id, "FlatDefense")
+    assertEquals(SetBonusEffect.FlatAttack(3).id, "FlatAttack")
+    assertEquals(SetBonusEffect.CritChancePercent(5).id, "CritChancePercent")
+    assertEquals(SetBonusEffect.AttackDamagePercent(10).id, "AttackDamagePercent")
+    assertEquals(SetBonusEffect.AbilityCostReductionPercent(15).value, 15)
+    assertEquals(SetBonusEffect.HealOnKillPercent(10).id, "HealOnKillPercent")
+    assertEquals(SetBonusEffect.FirstAttackAlwaysCrit.id, "FirstAttackAlwaysCrit")
+    assertEquals(SetBonusEffect.FirstAttackAlwaysCrit.value, 0)
 
   test("activeSetBonuses is empty with 0 or 1 pieces equipped") {
     val resolver = CombatResolver(Random(1), setDefs = Map("two_piece_set" -> twoPieceOnly))
@@ -228,7 +242,7 @@ class SetBonusSuite extends FunSuite:
 
     val dmgBase    = 500 - extractEnemyHp(nextBase)
     val dmgWithSet = 500 - extractEnemyHp(nextWithSet)
-    assert(log.exists(_.contains("Critical hit!")), "expected the guaranteed crit to be logged")
+    assert(log.hasKey("log.combat.strikeCrit"), "expected the guaranteed crit to be logged")
     assert(dmgWithSet > dmgBase, s"expected a crit to deal more damage (base=$dmgBase, withSet=$dmgWithSet)")
   }
 
@@ -271,14 +285,14 @@ class SetBonusSuite extends FunSuite:
 
     val resolver = CombatResolver(Random(1), setDefs = setDefs)
     val (afterFirst, firstLog, _) = resolver.resolve(makeCombatState(player), CombatAction(CombatActionType.Attack))
-    assert(firstLog.exists(_.contains("Critical hit!")), "expected the first attack to be a guaranteed crit")
+    assert(firstLog.hasKey("log.combat.strikeCrit"), "expected the first attack to be a guaranteed crit")
 
     val stateAfterFirst = afterFirst match
       case cs: CombatState => cs
       case _                => fail("expected CombatState after the first attack (enemy has 500 HP)")
 
     val (_, secondLog, _) = resolver.resolve(stateAfterFirst, CombatAction(CombatActionType.Attack))
-    assert(!secondLog.exists(_.contains("Critical hit!")),
+    assert(!secondLog.hasKey("log.combat.strikeCrit"),
            "expected the second attack to not be forced (critChance is otherwise 0)"
     )
   }
@@ -362,7 +376,7 @@ class SetBonusSuite extends FunSuite:
       case other                                  => fail(s"expected the 1-HP enemy to die and return ExplorationState, got $other")
 
     assert(nextPlayer.hp > 100, s"expected the kill to heal the player above their starting 100 HP, got ${nextPlayer.hp}")
-    assert(log.exists(_.contains("heals you")), s"expected a heal-on-kill log line: $log")
+    assert(log.hasKey("log.combat.killHeal"), s"expected a heal-on-kill log line: $log")
     assert(events.exists { case GameEvent.Healed(_) => true; case _ => false }, s"expected a Healed event: $events")
   }
 

@@ -124,6 +124,40 @@ describe("language files", () => {
         expect(Object.keys(dictionaries)).toContain("en");
     });
 
+    /** The `{name}` placeholders of a text. */
+    const placeholders = (text: string): string[] => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+
+    /** What a translation may use: the placeholders of the English text, and the forms the log builds
+     * from them (`enemy_the` for `enemy`). */
+    const allowed = (english: string): Set<string> =>
+        new Set(placeholders(english).flatMap((name) => [name, `${name}_the`, `${name}_The`]));
+
+    test("every language has every key of English, so nothing falls back", () => {
+        for (const [code, dictionary] of Object.entries(dictionaries)) {
+            const missing = Object.keys(dictionaries.en).filter((key) => !(key in dictionary));
+            expect(missing, `${code}.json lacks keys of en.json`).toEqual([]);
+        }
+    });
+
+    test("a translation uses the placeholders of the English text, and none that English lacks", () => {
+        const wrong: string[] = [];
+        for (const [code, dictionary] of Object.entries(dictionaries)) {
+            for (const [key, text] of Object.entries(dictionary)) {
+                const english = dictionaries.en[key];
+                if (english === undefined) continue;
+                const ok = allowed(english);
+                const used = new Set(placeholders(text));
+                // A placeholder the English text has must still be there, in some form.
+                const lost = placeholders(english).filter(
+                    (name) => !used.has(name) && !used.has(`${name}_the`) && !used.has(`${name}_The`),
+                );
+                const extra = [...used].filter((name) => !ok.has(name));
+                if (lost.length > 0 || extra.length > 0) wrong.push(`${code} ${key}: lost [${lost}] extra [${extra}]`);
+            }
+        }
+        expect(wrong).toEqual([]);
+    });
+
     test("no other language has a key that English lacks", () => {
         const english = new Set(Object.keys(dictionaries.en));
         for (const [code, dictionary] of Object.entries(dictionaries)) {

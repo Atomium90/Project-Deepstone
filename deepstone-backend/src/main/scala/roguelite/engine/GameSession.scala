@@ -11,7 +11,7 @@ import doobie.util.update
 import roguelite.game.progression.UpgradeDef
 import roguelite.game.progression.UpgradeEffect
 import roguelite.game.combat.AbilityDef
-import roguelite.game.core.GameEvent
+import roguelite.game.core.{ GameEvent, LogLine }
 import roguelite.game.items.{ EquipmentResolver, PickupOutcome, SetDef }
 import roguelite.game.progression.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, DifficultyTierDef, DifficultyUnlocks }
 import roguelite.game.story.{ ChapterDef, DeathContext, Encounter, Ending, EndingRules, GodMoment, GodVoice, NpcDef, PendingScene, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VoicePhase, VowRules }
@@ -120,7 +120,7 @@ class GameSession private (
     * to turn it on, same discipline as any other rejected dev action.
     */
   private def rejectDebugLoadRoom: IO[StateUpdate] =
-    stateRef.get.map(_.toStateUpdate(List("Debug rooms are off: start the backend with --debug to use them.")))
+    stateRef.get.map(_.toStateUpdate(List(LogLine.raw("Debug rooms are off: start the backend with --debug to use them."))))
 
   // -----------------------------------------------------------------------
   // Internal: transition handling
@@ -153,7 +153,7 @@ class GameSession private (
       // The blows of a fight that was just won come before the line that tells the enemy has fallen.
       fightLines = (prev, finalNext) match
         case (fought: CombatState, _: ExplorationState) =>
-          transitionResult.log.indexOf(CombatResolver.defeatedLine(fought.combat.enemy.label)).max(0)
+          transitionResult.log.indexWhere(_.key == CombatResolver.DefeatedKey).max(0)
         case _ => 0
       // The line of an ending is said once: the story remembers that it was.
       _ <- line.traverse_((moment, _) => updateStory(story, GodVoice.said(story, moment)))
@@ -202,7 +202,7 @@ class GameSession private (
     *   - `Exploration → Exploration` into the question of the light: the victory that brought the
     *                            player to the Sanctuary opens its chapter, whose card comes first
     */
-  private def handlePostTransition(prev: GameState, next: GameState): IO[(GameState, List[String])] =
+  private def handlePostTransition(prev: GameState, next: GameState): IO[(GameState, List[LogLine])] =
     (prev, next) match
       case (_, gameOver: GameOverState) =>
         // Persist currency immediately
@@ -230,7 +230,7 @@ class GameSession private (
             perkOptions = perkOptions
           )
           _ <- stateRef.set(enriched)
-        yield (enriched, grant.map(g => s"You received ${g.amount} bonus Shards.").toList)
+        yield (enriched, grant.map(g => LogLine.of("log.shards.topUp", "count" -> g.amount)).toList)
 
       case (_: HubState, exp: ExplorationState) =>
         metaRef.get.flatMap:
@@ -357,9 +357,9 @@ class GameSession private (
                   // The line of a Devoted was the last thing between the player and the fight.
                   case Encounter.DevotedBefore(_, _, enemyId) => finished *> handleTransition(Interact(enemyId))
                   // The NPC who took the player's place has said their last words: the run ends.
-                  case Encounter.Farewell(_) => finished *> endRun(done, List("They step into the light in your place."))
+                  case Encounter.Farewell(_) => finished *> endRun(done, List(LogLine.of("log.ending.farewell")))
                   case _                     => finished.as(done.toStateUpdate())
-      case state => IO.pure(state.toStateUpdate(List("There is no conversation to finish.")))
+      case state => IO.pure(state.toStateUpdate(List(LogLine.of("log.story.noConversation"))))
 
   /** The player has read the card on their screen. Only the card the server is waiting for counts,
     * so a stale or made-up id changes nothing.
@@ -371,7 +371,7 @@ class GameSession private (
       update <-
         if progress.pendingCard.contains(cardId) then
           updateStory(progress, progress.withCardSeen(cardId)).as(state.toStateUpdate())
-        else IO.pure(state.toStateUpdate(List("There is no such card to see.")))
+        else IO.pure(state.toStateUpdate(List(LogLine.of("log.story.noCard"))))
     yield update
 
   /** What a transition's facts change in the story: a potion drunk fails a vow against potions, and a
@@ -426,7 +426,7 @@ class GameSession private (
             EndingRules.ending(answer, npc, candidates) match
               case Left(err)     => IO.pure(exp.toStateUpdate(List(err)))
               case Right(ending) => answerLight(exp, story, ending)
-      case state => IO.pure(state.toStateUpdate(List("There is no question to answer.")))
+      case state => IO.pure(state.toStateUpdate(List(LogLine.of("log.ending.noQuestion"))))
 
   /** The answer is valid: the story keeps it, and the run goes on to its end. Entering the light and
     * refusing it end the run now (refusing first takes every Shard away: the altar is shut, and the
@@ -436,19 +436,19 @@ class GameSession private (
   private def answerLight(exp: ExplorationState, story: StoryProgress, ending: Ending): IO[StateUpdate] =
     val next: IO[StateUpdate] = ending match
       case Ending.Entered =>
-        endRun(exp, List("You step into the light."))
+        endRun(exp, List(LogLine.of("log.ending.enter")))
       case Ending.Refused =>
-        endRun(exp.copy(player = exp.player.copy(metaCurrency = 0)), List("You turn away from the light, and leave everything you gave behind."))
+        endRun(exp.copy(player = exp.player.copy(metaCurrency = 0)), List(LogLine.of("log.ending.refuse")))
       case Ending.Replaced(who) =>
         val farewell =
           exp.copy(pendingEndingChoice = false, pendingScene = Some(PendingScene(Encounter.Farewell(who))))
-        stateRef.set(farewell).as(farewell.toStateUpdate(List("Someone steps forward to take your place.")))
+        stateRef.set(farewell).as(farewell.toStateUpdate(List(LogLine.of("log.ending.replace"))))
     updateStory(story, EndingRules.answered(story, ending)) *> next
 
   /** The run ends in victory, once the light has been answered: the same end as a Sanctuary that asks
     * nothing, with the same facts for the achievements and the story.
     */
-  private def endRun(exp: ExplorationState, log: List[String]): IO[StateUpdate] =
+  private def endRun(exp: ExplorationState, log: List[LogLine]): IO[StateUpdate] =
     val over = GameOverState(exp.player, victory = true)
     val ended = GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId)
     stateRef.set(over) *> settle(exp, TransitionResult(over, log, List(ended)))
@@ -527,7 +527,7 @@ class GameSession private (
       update <-
         if DifficultyUnlocks.isUnlocked(difficultyDefs, difficulty, progress.stats, story.openedTiers) then
           handleTransition(action)
-        else stateRef.get.map(_.toStateUpdate(List(s"$difficulty is not unlocked yet.")))
+        else stateRef.get.map(_.toStateUpdate(List(LogLine.of("log.run.tierLocked", "difficulty" -> difficulty.toString.toLowerCase))))
     yield update
 
   /** Validate, persist, and apply an upgrade purchase atomically from the session's perspective.
@@ -542,7 +542,7 @@ class GameSession private (
       meta  <- metaRef.get
       shut  <- storyRef.get.map(_.shopClosed)
       // Once the light is refused the altar is shut for good, whatever the hub shows.
-      purchase = if shut then Left("The altar is shut. Nothing can be bought here any more.") else meta.purchase(upgradeId, upgradeDefs)
+      purchase = if shut then Left(LogLine.of("log.shop.closed")) else meta.purchase(upgradeId, upgradeDefs)
       update <- purchase match
         case Left(err) =>
           IO.pure(state.toStateUpdate(List(err)))
@@ -561,12 +561,11 @@ class GameSession private (
             }
             newState = HubState(newPlayer, upgradeDefs, newMeta, currentPerkOptions)
             _ <- stateRef.set(newState)
-            label = upgradeDefs.get(upgradeId).map(_.label).getOrElse(upgradeId)
             newlyUnlocked <- processAchievementPurchase(spent, newMeta.unlockedUpgrades.size)
             story         <- storyRef.get
             // The first purchase is what the prologue card is for: earning it again later changes nothing.
             _ <- updateStory(story, story.withCardEarned(StoryRules.PrologueCard))
-          yield newState.toStateUpdate(List(s"$label purchased!")).copy(newlyUnlocked = newlyUnlocked)
+          yield newState.toStateUpdate(List(LogLine.of("log.shop.purchased", "upgrade" -> upgradeId))).copy(newlyUnlocked = newlyUnlocked)
     yield update
 
   /** Dev tooling only: loads one hand-converted Tiled room from `debug-rooms/<roomId>.json` and
@@ -586,26 +585,26 @@ class GameSession private (
         case _: HubState | _: ExplorationState =>
           GameSession.readDebugRoomFile(roomId).attempt.flatMap {
             case Left(err) =>
-              IO.pure(state.toStateUpdate(List(s"Debug room \"$roomId\" not found (${err.getMessage}).")))
+              IO.pure(state.toStateUpdate(List(LogLine.raw(s"Debug room \"$roomId\" not found (${err.getMessage})."))))
             case Right(json) =>
               RoomLoader.loadAllFromJson(s"[$json]").attempt.flatMap {
                 case Left(err) =>
-                  IO.pure(state.toStateUpdate(List(s"Debug room \"$roomId\" failed to parse: ${err.getMessage}")))
+                  IO.pure(state.toStateUpdate(List(LogLine.raw(s"Debug room \"$roomId\" failed to parse: ${err.getMessage}"))))
                 case Right(rooms) =>
                   rooms.values.headOption match
                     case None =>
-                      IO.pure(state.toStateUpdate(List(s"Debug room file \"$roomId\" contained no room.")))
+                      IO.pure(state.toStateUpdate(List(LogLine.raw(s"Debug room file \"$roomId\" contained no room."))))
                     case Some(room) =>
                       stateMachine.loadDebugRoom(state.player, room) match
                         case Left(err) =>
-                          IO.pure(state.toStateUpdate(List(s"Debug room \"$roomId\" failed to load: $err")))
+                          IO.pure(state.toStateUpdate(List(LogLine.raw(s"Debug room \"$roomId\" failed to load: $err"))))
                         case Right(nextState) =>
                           stateRef.set(nextState) *>
-                            IO.pure(nextState.toStateUpdate(List(s"Loaded debug room \"$roomId\".")))
+                            IO.pure(nextState.toStateUpdate(List(LogLine.raw(s"Loaded debug room \"$roomId\"."))))
               }
           }
         case _ =>
-          IO.pure(state.toStateUpdate(List("Debug rooms can only be loaded from the hub or while exploring a debug room.")))
+          IO.pure(state.toStateUpdate(List(LogLine.raw("Debug rooms can only be loaded from the hub or while exploring a debug room."))))
     yield update
 
   /** Apply every unlocked upgrade's [[UpgradeEffect]] to the player at the start of a new run.

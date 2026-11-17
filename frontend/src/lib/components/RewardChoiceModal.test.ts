@@ -7,7 +7,7 @@ import { CHOICE_GRACE_MS } from "../engine/choiceKeys";
 import type { StateUpdate, ItemView } from "../engine/protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "i1", typeId: "t1", name: "Steel Sword", kind: "weapon", rarity: "uncommon", statLine: "+7 ATK", ...overrides };
+    return { id: "i1", typeId: "t1", kind: "weapon", rarity: "uncommon", stats: { attack: 7 }, ...overrides };
 }
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -46,7 +46,7 @@ describe("RewardChoiceModal", () => {
 
     test("shows one row per rolled option", () => {
         gameState.set(makeState({
-            pendingRewardChoice: { options: [makeItem({ name: "Steel Sword" }), makeItem({ id: "i2", name: "Chain Mail" })] },
+            pendingRewardChoice: { options: [makeItem({ typeId: "steel_sword" }), makeItem({ id: "i2", typeId: "steel_plate" })] },
         }));
         const { container } = render(RewardChoiceModal);
         expect(container.querySelectorAll(".option-row")).toHaveLength(2);
@@ -112,7 +112,7 @@ describe("RewardChoiceModal keyboard shortcuts", () => {
     const offering = () =>
         gameState.set(
             makeState({
-                pendingRewardChoice: { options: [makeItem({ id: "i1" }), makeItem({ id: "i2", name: "Chain Mail" }), makeItem({ id: "i3", name: "Ring" })] },
+                pendingRewardChoice: { options: [makeItem({ id: "i1" }), makeItem({ id: "i2", typeId: "steel_plate" }), makeItem({ id: "i3", typeId: "ring_of_strength" })] },
             })
         );
 

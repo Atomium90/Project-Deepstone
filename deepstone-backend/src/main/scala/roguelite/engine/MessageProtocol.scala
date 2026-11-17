@@ -2,10 +2,11 @@ package roguelite.engine
 
 import io.circe.generic.semiauto.{ deriveDecoder, deriveEncoder }
 import io.circe.syntax.*
-import io.circe.{ Decoder, Encoder }
+import io.circe.{ Decoder, Encoder, Json }
 import roguelite.game.combat.Combat
+import roguelite.game.core.{ LogLine, LogValue }
 import roguelite.game.progression.UpgradeCategory
-import roguelite.game.items.{ EquipSlot, Item, Rarity }
+import roguelite.game.items.{ EquipSlot, Item, ItemStats, Rarity }
 
 // -------------------
 // Shared enumerations
@@ -181,7 +182,7 @@ case class EndingChoice(answer: EndingAnswer, npc: Option[String] = None) extend
   *
   * @param affinityTags
   *   The class's affinity tags (see [[roguelite.game.progression.ClassDef]]). Purely informational - every
-  *   [[ItemView.statLine]] already reflects whether the item's own `typeTag` benefits from the
+  *   [[ItemView.stats]] already reflects whether the item's own `typeTag` benefits from the
   *   affinity doubling CombatResolver applies (resolved server-side, see
   *   [[roguelite.engine.GameState]]'s `itemToView`), so the client never needs to compare this
   *   list against `ItemView.typeTag` itself - it's carried mainly so the UI can gray out an
@@ -244,7 +245,6 @@ case class EntityView(
     kind: String, // "enemy" | "chest" | "door" | "locked_door" | "npc" | "shrine" | "sanctuary"
     x: Int,
     y: Int,
-    label: String, // display name shown in the UI
     spriteId: Option[String] = None,
     isElite: Option[Boolean] = None,
     /** Only set for "door"/"locked_door" - "UP"/"DOWN"/"LEFT"/"RIGHT", which wall of the room
@@ -316,7 +316,6 @@ case class RoomView(
   */
 case class CombatView(
     enemyId: String,
-    enemyLabel: String,
     enemyHp: Int,
     enemyMaxHp: Int,
     isPlayerTurn: Boolean,
@@ -350,8 +349,6 @@ case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String, c
 
 /** Hub data: available upgrades and their unlock status. */
 case class UpgradeView(id: String,
-                       label: String,
-                       description: String,
                        cost: Int,
                        icon: String,
                        category: UpgradeCategory,
@@ -359,7 +356,7 @@ case class UpgradeView(id: String,
 )
 
 /** One run perk offered to the player, rolled fresh every HUB visit (see `HubState.perkOptions`). */
-case class PerkView(id: String, label: String, description: String, icon: String)
+case class PerkView(id: String, icon: String)
 
 /** How far a save is from unlocking a difficulty tier: `winsDone` of the `wins` needed on tier
   * `winsAt`, and `shardsSpentDone` of the `shardsSpent` needed.
@@ -395,10 +392,8 @@ case class HubView(upgrades: List[UpgradeView],
 case class ItemView(
     id: String,
     typeId: String,
-    name: String,
     kind: String,    // "weapon" | "armor" | "accessory" | "consumable"
     rarity: String,  // "common" | "uncommon"
-    statLine: String, // e.g. "+3 ATK", "Heal 30 HP"
     /** Atlas sprite key hint for the item's icon. `None` until an icon pack is chosen and
       * items.json gains real values - the client falls back to a plain colored box, same
       * "missing asset renders as a graceful no-op" convention used elsewhere (see
@@ -411,7 +406,7 @@ case class ItemView(
     setId: Option[String] = None,
     /** Weapon/Armor/Accessory's affinity tag ("heavy"/"ranged"/"magic"/"light"), if any. `None`
       * for Consumable/Key and for untagged gear. Purely informational for the UI (see
-      * [[PlayerView.affinityTags]]) - `statLine` above already reflects the affinity-doubled
+      * [[PlayerView.affinityTags]]) - `stats` above already reflect the affinity-doubled
       * value when applicable, this isn't needed to compute that.
       */
     typeTag: Option[String] = None,
@@ -419,7 +414,11 @@ case class ItemView(
       * every other item kind, which never stacks - the client only shows a count badge when this
       * is present.
       */
-    count: Option[Int] = None
+    count: Option[Int] = None,
+    /** The figures of the item, already resolved for the viewing player (affinity included),
+      * for the client to write the line in its own language. See [[roguelite.game.items.ItemStats]].
+      */
+    stats: ItemStats = ItemStats()
 )
 
 /** One key kind the player is currently holding, with how many. Coarse: `keyKind` collapses
@@ -588,16 +587,13 @@ case class MinimapView(sections: List[MinimapSectionView], nodes: List[MinimapNo
 case class AbilityView(
     classId: ClassId,
     id: String,
-    name: String,
-    cost: Int,
-    resourceName: String, // e.g. "Rage": the resource pool this ability spends
-    description: String
+    cost: Int
 )
 
 /** One achievement's display state. Sent as a full catalog on every [[StateUpdate]] (same
   * rationale as [[AbilityView]]: the client never hardcodes the list), independent of phase.
   */
-case class AchievementView(id: String, label: String, description: String, unlocked: Boolean)
+case class AchievementView(id: String, unlocked: Boolean)
 
 /** Static description of one equipment set's 2pc/4pc bonus. Sent as a full catalog on every
   * [[StateUpdate]] (same rationale as [[AbilityView]]: the client never hardcodes set names or
@@ -606,11 +602,14 @@ case class AchievementView(id: String, label: String, description: String, unloc
   * count matching pieces itself, the same way it already resolves rarity/kind locally.
   */
 case class SetView(id: String,
-                   name: String,
                    classId: ClassId,
-                   bonus2pcLabel: String,
-                   bonus4pcLabel: String
+                   /** The two bonuses as an effect id and a figure, for the client to write them. */
+                   bonus2pc: SetBonusView,
+                   bonus4pc: SetBonusView
 )
+
+/** One set bonus as data: the effect (see [[roguelite.game.items.SetBonusEffect.id]]) and its figure. */
+case class SetBonusView(effect: String, value: Int)
 
 /** Full game state snapshot sent by the server after every action. */
 case class StateUpdate(
@@ -663,7 +662,11 @@ case class StateUpdate(
       * the player died.
       */
     victory: Boolean = false,
-    log: List[String] = Nil,
+    log: List[LogLine] = Nil,
+    /** The one line the Hub shows as the answer to what the player just did (a purchase, a refusal,
+      * the bonus Shards of a return). Only set in the Hub phase: the last line of its log.
+      */
+    notice: Option[LogLine] = None,
     /** On the update that ends a won fight: how many of the first lines of `log` only tell the blows
       * exchanged, which belong to the log of the fight and to no other. The lines after them tell what
       * the victory brings (the enemy fallen, the XP, the loot) and belong to the exploration log too.
@@ -830,6 +833,11 @@ object MessageProtocol:
     yield action
 
   // Views (server → client)
+  given Encoder[LogValue] = Encoder.instance:
+    case LogValue.Text(value) => Json.fromString(value)
+    case LogValue.Num(value)  => Json.fromInt(value)
+  given Encoder[LogLine]  = Encoder.instance: line =>
+    Json.obj("key" -> Json.fromString(line.key), "params" -> line.params.asJson)
   given Encoder[StatTermView] = deriveEncoder
   given Encoder[StatsView]    = deriveEncoder
   given Encoder[PlayerView]  = deriveEncoder
@@ -853,6 +861,8 @@ object MessageProtocol:
   given Encoder[PendingEndingChoiceView] = deriveEncoder
   given Encoder[AbilityView]     = deriveEncoder
   given Encoder[AchievementView] = deriveEncoder
+  given Encoder[ItemStats]       = deriveEncoder
+  given Encoder[SetBonusView]    = deriveEncoder
   given Encoder[SetView]         = deriveEncoder
   given Encoder[GodLineView]     = deriveEncoder
   given Encoder[MinimapSectionView] = deriveEncoder

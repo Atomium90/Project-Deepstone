@@ -7,7 +7,7 @@ import { settings } from "./SettingsStore";
 import type { EntityView, EquipmentView, ItemView, StateUpdate } from "./protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "i1", typeId: "sword", name: "Sword", kind: "weapon", rarity: "common", statLine: "+3 ATK", ...overrides };
+    return { id: "i1", typeId: "sword", kind: "weapon", rarity: "common", stats: { attack: 3 }, ...overrides };
 }
 
 function makeEquipment(overrides: Partial<EquipmentView> = {}): EquipmentView {
@@ -33,7 +33,7 @@ function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
 }
 
 function makeEnemy(overrides: Partial<EntityView> = {}): EntityView {
-    return { id: "e1", kind: "enemy", x: 1, y: 1, label: "Goblin", ...overrides };
+    return { id: "e1", kind: "enemy", x: 1, y: 1, ...overrides };
 }
 
 function roomWith(entities: EntityView[]): StateUpdate["room"] {
@@ -157,7 +157,7 @@ describe("candidateHints", () => {
     describe("in the Hub", () => {
         const hub = (runsCompleted: number, perks = 0): StateUpdate["hub"] => ({
             upgrades: [],
-            perks: Array.from({ length: perks }, (_, i) => ({ id: `p${i}`, label: "Perk", description: "d", icon: "*" })),
+            perks: Array.from({ length: perks }, (_, i) => ({ id: `p${i}`, description: "d", icon: "*" })),
             runsCompleted,
             difficulties: [],
         });
@@ -210,7 +210,7 @@ describe("watchHints", () => {
         const state = makeState({ equipment: makeEquipment({ weapon: makeItem({ typeTag: "heavy" }) }) });
         gameState.set(state);
         dismissHint(); // controls
-        gameState.set({ ...state, log: ["moved"] });
+        gameState.set({ ...state, log: [{ key: "log.door.pass", params: { direction: "UP" } }] });
         expect(get(activeHint)).toBe("affinity");
     });
 
@@ -224,7 +224,7 @@ describe("watchHints", () => {
     test("shows no second hint while one is on screen", () => {
         const state = makeState({ equipment: makeEquipment({ weapon: makeItem({ typeTag: "heavy" }) }) });
         gameState.set(state);
-        gameState.set({ ...state, log: ["moved"] });
+        gameState.set({ ...state, log: [{ key: "log.door.pass", params: { direction: "UP" } }] });
         expect(get(activeHint)).toBe("controls");
         dismissHint();
         expect(get(activeHint)).toBeNull();
@@ -233,7 +233,7 @@ describe("watchHints", () => {
     test("never shows a hint twice", () => {
         gameState.set(makeState());
         dismissHint();
-        gameState.set(makeState({ log: ["moved"] }));
+        gameState.set(makeState({ log: [{ key: "log.door.pass", params: { direction: "UP" } }] }));
         expect(get(activeHint)).toBeNull();
     });
 

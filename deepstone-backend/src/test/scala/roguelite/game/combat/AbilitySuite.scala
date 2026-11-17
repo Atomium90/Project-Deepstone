@@ -1,5 +1,7 @@
 package roguelite.game.combat
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.{
   ClassId,
@@ -146,7 +148,7 @@ class AbilitySuite extends FunSuite:
         assert(cs.player.resourceCurrent <= 70,
                s"expected resource <= 70, got ${cs.player.resourceCurrent}"
         )
-        assert(log.exists(_.contains("Berserker Slash")), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityDouble"), s"missing activation log: $log")
       case other =>
         fail(s"expected CombatState after Berserker Slash, got ${other.getClass.getSimpleName}")
     }
@@ -160,7 +162,7 @@ class AbilitySuite extends FunSuite:
     val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     assertEquals(nextState, state)
-    assert(log.exists(_.contains("Not enough Rage")), s"missing error log: $log")
+    assert(log.hasKey("log.combat.notEnoughResource"), s"missing error log: $log")
   }
 
   test("Ability action for a class missing from the ability catalog degrades gracefully") {
@@ -173,7 +175,7 @@ class AbilitySuite extends FunSuite:
     val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     assertEquals(nextState, state)
-    assert(log.exists(_.contains("No ability available")), s"missing error log: $log")
+    assert(log.hasKey("log.combat.noAbility"), s"missing error log: $log")
   }
 
   test("DoubleNextAttack: damage is doubled on the following Attack and pending is cleared") {
@@ -187,10 +189,10 @@ class AbilitySuite extends FunSuite:
     nextState match {
       case cs: CombatState =>
         assertEquals(cs.combat.pendingAbility, None)
-        assert(log.exists(_.contains("Berserker Slash activates")), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityActivates"), s"missing activation log: $log")
       case es: ExplorationState =>
         // Enemy died from doubled damage, also valid
-        assert(log.exists(_.contains("Berserker Slash activates")), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityActivates"), s"missing activation log: $log")
       case other =>
         fail(s"unexpected state after doubled attack: ${other.getClass.getSimpleName}")
     }
@@ -214,7 +216,7 @@ class AbilitySuite extends FunSuite:
         assert(cs.player.resourceCurrent <= 25,
                s"expected resource <= 25, got ${cs.player.resourceCurrent}"
         )
-        assert(log.exists(_.contains("Precise Shot")), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityPierce"), s"missing activation log: $log")
       case other =>
         fail(s"expected CombatState after Precise Shot, got ${other.getClass.getSimpleName}")
     }
@@ -228,7 +230,7 @@ class AbilitySuite extends FunSuite:
     val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     assertEquals(nextState, state)
-    assert(log.exists(_.contains("Not enough Focus")), s"missing error log: $log")
+    assert(log.hasKey("log.combat.notEnoughResource"), s"missing error log: $log")
   }
 
   test("IgnoreDefenseNextAttack: pending is consumed and cleared on the following Attack") {
@@ -244,10 +246,10 @@ class AbilitySuite extends FunSuite:
     nextState match {
       case cs: CombatState =>
         assertEquals(cs.combat.pendingAbility, None)
-        assert(log.exists(_.contains("Precise Shot activates")), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityActivates"), s"missing activation log: $log")
       case _: ExplorationState =>
         // Enemy may have died, that's fine too
-        assert(log.exists(_.contains("Precise Shot activates")), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityActivates"), s"missing activation log: $log")
       case other =>
         fail(s"unexpected state: ${other.getClass.getSimpleName}")
     }
@@ -269,7 +271,7 @@ class AbilitySuite extends FunSuite:
     nextState match {
       case cs: CombatState =>
         assertEquals(cs.combat.enemy.hp, 55) // 100 - 45 exactly
-        assert(log.exists(_.contains("Arcane Blast")), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityBlast"), s"missing activation log: $log")
       case other =>
         fail(
           s"expected CombatState (enemy should survive 45 damage at 100 HP), got ${other.getClass.getSimpleName}"
@@ -287,8 +289,8 @@ class AbilitySuite extends FunSuite:
     assert(nextState.isInstanceOf[ExplorationState],
            s"expected ExplorationState, got ${nextState.getClass.getSimpleName}"
     )
-    assert(log.exists(_.contains("Arcane Blast")), s"missing activation log: $log")
-    assert(log.exists(_.contains("defeated")), s"missing defeat log: $log")
+    assert(log.hasKey("log.combat.abilityBlast"), s"missing activation log: $log")
+    assert(log.hasKey("log.combat.defeated"), s"missing defeat log: $log")
   }
 
   test("Arcane Blast: insufficient Mana does not consume the player turn") {
@@ -299,7 +301,7 @@ class AbilitySuite extends FunSuite:
     val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Ability))
 
     assertEquals(nextState, state)
-    assert(log.exists(_.contains("Not enough Mana")), s"missing error log: $log")
+    assert(log.hasKey("log.combat.notEnoughResource"), s"missing error log: $log")
   }
 
   // -----------------------------------------------------------------------

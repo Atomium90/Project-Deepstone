@@ -35,21 +35,21 @@
                         class:active={$characterTab === "equipment"}
                         on:click={() => characterTab.set("equipment")}
                 >
-                    Equipment
+                    {$t("nav.equipment")}
                 </button>
                 <button
                         class="tab-btn"
                         class:active={$characterTab === "settings"}
                         on:click={() => characterTab.set("settings")}
                 >
-                    Settings
+                    {$t("nav.settings")}
                 </button>
                 <button
                         class="tab-btn"
                         class:active={$characterTab === "achievements"}
                         on:click={() => characterTab.set("achievements")}
                 >
-                    Achievements
+                    {$t("nav.achievements")}
                 </button>
                 <!-- A map exists only while a run is being explored, so there is nothing to open from the Hub. -->
                 {#if $minimap}
@@ -58,7 +58,7 @@
                             class:active={$characterTab === "map"}
                             on:click={() => characterTab.set("map")}
                     >
-                        Map
+                        {$t("nav.map")}
                     </button>
                 {/if}
                 <button
@@ -76,7 +76,7 @@
                     {$t("credits.tab")}
                 </button>
             </nav>
-            <button class="close-btn" on:click={close} title="Back to Hub">✕</button>
+            <button class="close-btn" on:click={close} title={$t("nav.back")}>✕</button>
         </header>
 
         <div class="character-body">
@@ -92,7 +92,7 @@
                     </select>
                 </label>
                 <label class="setting-row">
-                    <span>Reduce screen shake</span>
+                    <span>{$t("settings.reduceShake")}</span>
                     <input
                             type="checkbox"
                             bind:checked={$settings.reduceScreenShake}
@@ -100,7 +100,7 @@
                     />
                 </label>
                 <label class="setting-row">
-                    <span>SFX volume</span>
+                    <span>{$t("settings.sfxVolume")}</span>
                     <input
                             type="range"
                             min="0"
@@ -110,7 +110,7 @@
                     />
                 </label>
                 <label class="setting-row">
-                    <span>Music volume</span>
+                    <span>{$t("settings.musicVolume")}</span>
                     <input
                             type="range"
                             min="0"

@@ -5,7 +5,7 @@ import { gameState } from "../engine/StateStore";
 import type { StateUpdate, AchievementView } from "../engine/protocol";
 
 function makeAchievement(overrides: Partial<AchievementView> = {}): AchievementView {
-    return { id: "a1", label: "First Blood", description: "Defeat your first enemy.", unlocked: false, ...overrides };
+    return { id: "a1", unlocked: false, ...overrides };
 }
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -49,7 +49,7 @@ describe("AchievementsPanel", () => {
     test("marks each row's owned state and only shows the unlocked badge for owned achievements", () => {
         gameState.set(
             makeState({
-                achievements: [makeAchievement({ id: "a1", label: "Owned", unlocked: true }), makeAchievement({ id: "a2", label: "Not Owned", unlocked: false })],
+                achievements: [makeAchievement({ id: "first_blood", unlocked: true }), makeAchievement({ id: "packrat", unlocked: false })],
             })
         );
         const { container } = render(AchievementsPanel);

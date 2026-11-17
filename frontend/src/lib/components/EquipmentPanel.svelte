@@ -2,6 +2,7 @@
     import { gameState, equippedSetCounts } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import EquipSlotBox from "./EquipSlotBox.svelte";
     import StatsPanel from "./StatsPanel.svelte";
 
@@ -19,31 +20,31 @@
 
 <div class="equipment-layout">
 <div class="equipment-panel">
-    <p class="section-label">Equipment</p>
+    <p class="section-label">{$t("equipment.title")}</p>
 
     {#if equipment}
         <div class="slot-row">
             <div class="slot-group">
-                <span class="slot-label">Weapon</span>
+                <span class="slot-label">{$t("equipment.weapon")}</span>
                 <EquipSlotBox item={equipment.weapon} size={64} />
             </div>
             <div class="slot-group">
-                <span class="slot-label">Armor</span>
+                <span class="slot-label">{$t("equipment.armor")}</span>
                 <EquipSlotBox item={equipment.armor} size={64} />
             </div>
             {#each equipment.accessories as accessory, i}
                 <div class="slot-group">
-                    <span class="slot-label">Accessory {i + 1}</span>
+                    <span class="slot-label">{$t("equipment.accessory", { n: i + 1 })}</span>
                     <EquipSlotBox item={accessory} size={64} />
                 </div>
             {/each}
         </div>
 
-        <p class="section-label">Potions</p>
+        <p class="section-label">{$t("equipment.potions")}</p>
         <div class="slot-row">
             {#each equipment.potionBelt as potion, i}
                 <div class="slot-group">
-                    <span class="slot-label">Slot {i + 1}</span>
+                    <span class="slot-label">{$t("equipment.slot", { n: i + 1 })}</span>
                     <EquipSlotBox item={potion} size={64} />
                 </div>
             {/each}
@@ -55,8 +56,8 @@
                 style="--set-accent:{ITEM_RARITY_COLORS.epic}; --set-tint:{ITEM_RARITY_COLORS.epic}1a"
             >
                 {#each activeSets as { set, count } (set.id)}
-                    <span class="set-badge" title="{count >= 4 ? set.bonus4pcLabel : set.bonus2pcLabel}">
-                        {set.name} {count >= 4 ? "4/4" : `${count}/4`}
+                    <span class="set-badge" title="{$catalog.setBonus(set, count >= 4 ? 4 : 2)}">
+                        {$t("set.progress", { name: $catalog.setName(set), count: Math.min(count, 4) })}
                     </span>
                 {/each}
             </div>
@@ -66,7 +67,7 @@
             <p class="key-count">🔑 {$t("equipment.keys", { count: keyCount })}</p>
         {/if}
     {:else}
-        <p class="muted">No equipment loaded.</p>
+        <p class="muted">{$t("equipment.empty")}</p>
     {/if}
 </div>
 <StatsPanel />

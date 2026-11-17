@@ -1,5 +1,7 @@
 package roguelite.engine
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import cats.effect.IO
 import munit.CatsEffectSuite
 import roguelite.db.Database
@@ -372,7 +374,7 @@ class GameSessionSuite extends CatsEffectSuite:
       yield
         assertEquals(update.phase, GamePhase.Hub)
         assertEquals(update.debugRooms, Nil)
-        assert(update.log.exists(_.contains("--debug")), s"expected a hint about --debug: ${update.log}")
+        assert(update.log.rawContains("--debug"), s"expected a hint about --debug: ${update.log}")
   }
 
   db.test("with debug mode a DebugLoadRoom reaches the room loader") {
@@ -384,7 +386,7 @@ class GameSessionSuite extends CatsEffectSuite:
         update <- session.handle(HubAction(HubActionType.DebugLoadRoom, debugRoomId = Some("no_such_debug_room")))
       yield
         assertEquals(update.phase, GamePhase.Hub)
-        assert(update.log.exists(_.contains("not found")), s"expected the loader's not-found message: ${update.log}")
+        assert(update.log.rawContains("not found"), s"expected the loader's not-found message: ${update.log}")
   }
 
   db.test("hub state update includes upgrade list") {
@@ -498,7 +500,7 @@ class GameSessionSuite extends CatsEffectSuite:
       yield
         val kitCost = testUpgradeDefs("warrior_kit").cost
         assertEquals(back.player.metaCurrency, kitCost)
-        assertEquals(back.log.lastOption, Some(s"You received $kitCost bonus Shards."))
+        assertEquals(back.log.lastOption, Some(LogLine.of("log.shards.topUp", "count" -> kitCost)))
         assertEquals(metaInDb.currency, kitCost, "the grant must be saved, not only shown")
   }
 
@@ -512,7 +514,7 @@ class GameSessionSuite extends CatsEffectSuite:
         back <- loseARunAndReturn(session)
       yield
         assertEquals(back.player.metaCurrency, 0)
-        assert(!back.log.exists(_.contains("bonus Shards")), s"unexpected top-up: ${back.log}")
+        assert(!back.log.hasKey("log.shards.topUp"), s"unexpected top-up: ${back.log}")
   }
 
   db.test("the top-up is not given to a player who owns a kit") {
@@ -526,7 +528,7 @@ class GameSessionSuite extends CatsEffectSuite:
         back <- loseARunAndReturn(session)
       yield
         assertEquals(back.player.metaCurrency, 0)
-        assert(!back.log.exists(_.contains("bonus Shards")), s"unexpected top-up: ${back.log}")
+        assert(!back.log.hasKey("log.shards.topUp"), s"unexpected top-up: ${back.log}")
   }
 
   db.test("the first victory unlocks the perks at the next hub visit") {
@@ -589,7 +591,7 @@ class GameSessionSuite extends CatsEffectSuite:
         List(normal, hard, unnamed).foreach:
           refused =>
             assertEquals(refused.phase, GamePhase.Hub)
-            assert(refused.log.exists(_.contains("not unlocked")), s"expected a locked-tier message: ${refused.log}")
+            assert(refused.log.hasKey("log.run.tierLocked"), s"expected a locked-tier message: ${refused.log}")
         assertEquals(easy.phase, GamePhase.Exploration)
   }
 
@@ -604,7 +606,7 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(started.fightLines, 0)
         assertEquals(engaged.fightLines, 0)
         assert(won.fightLines > 0, s"the killing blow is a line of the fight: ${won.log}")
-        assertEquals(won.log.lift(won.fightLines), Some("Goblin has been defeated!"))
+        assertEquals(won.log.lift(won.fightLines).map(_.key), Some(CombatResolver.DefeatedKey))
   }
 
   db.test("the hub lists every tier, lowest first, with how far the save is from each") {
@@ -641,7 +643,7 @@ class GameSessionSuite extends CatsEffectSuite:
         refused <- startRunOn(session, Some(Difficulty.Hardcore))
       yield
         assertEquals(refused.phase, GamePhase.Hub)
-        assert(refused.log.exists(_.contains("not unlocked")), s"expected a locked-tier message: ${refused.log}")
+        assert(refused.log.hasKey("log.run.tierLocked"), s"expected a locked-tier message: ${refused.log}")
   }
 
   db.test("once the story opens Hardcore the hub shows it unlocked, with no requirement, last") {
@@ -854,7 +856,7 @@ class GameSessionSuite extends CatsEffectSuite:
       yield
         assertEquals(speaking.pendingScene.flatMap(_.offerScene), Some("npc.1.s2"))
         assert(noAnswer.pendingScene.isDefined, "a vow offered must be answered")
-        assert(noAnswer.log.exists(_.contains("vow")), s"expected a hint about the vow: ${noAnswer.log}")
+        assert(noAnswer.log.hasKey("log.story.vowNeedsAnswer"), s"expected a hint about the vow: ${noAnswer.log}")
         assertEquals(answered.pendingScene, None)
         assertEquals(saved.vows("npc.1"), VowRecord(VowState.Active))
   }
@@ -876,7 +878,7 @@ class GameSessionSuite extends CatsEffectSuite:
       for
         session <- storySession(database)
         update  <- session.handle(SceneDone(None))
-      yield assert(update.log.exists(_.contains("no conversation")), s"expected a message: ${update.log}")
+      yield assert(update.log.hasKey("log.story.noConversation"), s"expected a message: ${update.log}")
   }
 
   /** The only scene offers the vow of no ordinary kill, so a Rest whose exit is trapped can show what the vow does to the trap. */
@@ -902,7 +904,7 @@ class GameSessionSuite extends CatsEffectSuite:
         sprung  <- goThroughDoor(session)
       yield
         assertEquals(enemiesIn(sprung), 0)
-        assert(sprung.log.exists(_.toLowerCase.contains("nothing emerges")), s"expected a nothing-emerges message: ${sprung.log}")
+        assert(sprung.log.hasKey("log.trap.doorEmpty"), s"expected a nothing-emerges message: ${sprung.log}")
   }
 
   db.test("the same trap summons its guardian when the vow was turned down") {
@@ -1151,7 +1153,7 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(meta.currency, 0, "the Shards are gone from the save, not only from the screen")
         assertEquals(back.phase, GamePhase.Hub)
         assertEquals(back.player.metaCurrency, 0)
-        assert(!back.log.exists(_.contains("bonus Shards")), s"no top-up once the altar is shut: ${back.log}")
+        assert(!back.log.hasKey("log.shards.topUp"), s"no top-up once the altar is shut: ${back.log}")
         assertEquals(metaEnd.currency, 0)
   }
 
@@ -1207,7 +1209,7 @@ class GameSessionSuite extends CatsEffectSuite:
         saved   <- database.loadStoryProgress()
       yield
         assertEquals(hub.phase, GamePhase.Hub)
-        assert(hub.log.exists(_.contains("no question")), s"expected a refusal: ${hub.log}")
+        assert(hub.log.hasKey("log.ending.noQuestion"), s"expected a refusal: ${hub.log}")
         assertEquals(saved.ending, None)
   }
 
@@ -1321,7 +1323,7 @@ class GameSessionSuite extends CatsEffectSuite:
         saved   <- database.loadStoryProgress()
       yield
         assertEquals(early.pendingCard, Some("prologue"))
-        assert(early.log.exists(_.contains("no such card")), s"expected a refusal: ${early.log}")
+        assert(early.log.hasKey("log.story.noCard"), s"expected a refusal: ${early.log}")
         assertEquals(unknown.pendingCard, Some("prologue"))
         assertEquals(first.pendingCard, Some("ch1"))
         assertEquals(second.pendingCard, None)
@@ -1905,7 +1907,7 @@ class GameSessionSuite extends CatsEffectSuite:
         )
       yield
         assertEquals(update.phase, GamePhase.Hub)
-        assert(update.log.exists(_.contains("Not enough")),
+        assert(update.log.hasKey("log.shop.cantAfford"),
                s"expected insufficient funds error: ${update.log}"
         )
   }
@@ -1920,7 +1922,7 @@ class GameSessionSuite extends CatsEffectSuite:
         )
         meta <- database.loadMeta()
       yield
-        assert(update.log.exists(_.contains("purchased")), s"expected success log: ${update.log}")
+        assert(update.log.hasKey("log.shop.purchased"), s"expected success log: ${update.log}")
         assert(meta.isUnlocked("hp_boost_1"), "upgrade should be persisted in DB")
         assertEquals(meta.currency, 70) // 100 - 30
   }
@@ -1936,7 +1938,7 @@ class GameSessionSuite extends CatsEffectSuite:
         meta    <- database.loadMeta()
       yield
         assertEquals(before.hub.map(_.shopClosed), Some(true))
-        assert(refused.log.exists(_.contains("shut")), s"expected a refusal: ${refused.log}")
+        assert(refused.log.hasKey("log.shop.closed"), s"expected a refusal: ${refused.log}")
         assertEquals(meta.currency, 100)
         assert(!meta.isUnlocked("hp_boost_1"), "the upgrade must not be bought")
   }
@@ -1996,7 +1998,7 @@ class GameSessionSuite extends CatsEffectSuite:
         update <- session.handle(HubAction(HubActionType.StartRun, classId = Some(ClassId.Archer)))
       yield
         assertEquals(update.phase, GamePhase.Hub)
-        assert(update.log.exists(_.contains("Ranger's Path")), s"expected lock message: ${update.log}")
+        assert(update.log.hasKey("log.run.classLocked"), s"expected lock message: ${update.log}")
   }
 
   db.test("StartRun succeeds for a class once its unlock upgrade is purchased") {
@@ -2206,8 +2208,8 @@ class GameSessionSuite extends CatsEffectSuite:
         assertEquals(update.sets.length, testSetDefs.size)
         val lightSoldier = update.sets.find(_.id == "light_soldier").getOrElse(fail("expected light_soldier"))
         assertEquals(lightSoldier.classId, ClassId.Warrior)
-        assertEquals(lightSoldier.bonus2pcLabel, "+5% max HP")
-        assertEquals(lightSoldier.bonus4pcLabel, "+2 flat DEF in combat")
+        assertEquals(lightSoldier.bonus2pc, SetBonusView("MaxHpPercent", 5))
+        assertEquals(lightSoldier.bonus4pc, SetBonusView("FlatDefense", 2))
   }
 
   db.test("winning the first combat unlocks first_blood and persists it") {

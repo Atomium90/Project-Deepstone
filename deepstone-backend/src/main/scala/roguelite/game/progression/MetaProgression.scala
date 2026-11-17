@@ -1,5 +1,7 @@
 package roguelite.game.progression
 
+import roguelite.game.core.LogLine
+
 /** Meta-progression state that persists between runs and survives death.
   *
   * Loaded from SQLite at session start by [[roguelite.db.Database.loadMeta]] and kept in a `Ref[IO,
@@ -23,13 +25,13 @@ case class MetaProgression(
   /** Validate and apply a purchase against the loaded upgrade catalog (see [[UpgradeLoader]]). */
   def purchase(upgradeId: String,
               upgradeDefs: Map[String, UpgradeDef]
-  ): Either[String, MetaProgression] =
+  ): Either[LogLine, MetaProgression] =
     upgradeDefs.get(upgradeId) match {
-      case None => Left(s"Unknown upgrade: '$upgradeId'.")
+      case None => Left(LogLine.of("log.shop.unknownUpgrade", "id" -> upgradeId))
       case Some(u) if unlockedUpgrades.contains(upgradeId) =>
-        Left(s"${u.label} is already purchased.")
+        Left(LogLine.of("log.shop.alreadyOwned", "upgrade" -> u.id))
       case Some(u) if currency < u.cost =>
-        Left(s"Not enough Shards — ${u.label} costs ${u.cost} (you have $currency).")
+        Left(LogLine.of("log.shop.cantAfford", "upgrade" -> u.id, "cost" -> u.cost, "have" -> currency))
       case Some(u) =>
         Right(copy(currency = currency - u.cost, unlockedUpgrades = unlockedUpgrades + upgradeId))
     }

@@ -3,7 +3,10 @@
     import { fly } from "svelte/transition";
     import { gameState, client, explorationLog, pendingScene, debugRoomsCache, minimap } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
+    import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import { Renderer } from "../engine/Renderer";
+    import type { AbilityView } from "../engine/protocol";
     import { keyCommand, type KeyCommand } from "../engine/explorationKeys";
     import { conversationBox } from "../engine/dialoguePlacement";
     import { RESOURCE_BAR_COLORS, HP_BAR_COLOR, COLOR_ENTITY_FALLBACK } from "../engine/constants";
@@ -129,6 +132,8 @@
         }
     });
 
+    $: if (renderer) renderer.loadingText = $t("exploration.loading");
+
     // Reactively push new state to the renderer whenever the store updates
     $: if (renderer && $gameState?.room && $gameState?.player) {
         renderer.update($gameState.room, $gameState.player);
@@ -151,10 +156,15 @@
         previousRoomId = room.roomId;
     }
 
+    /** The name of the class resource (Rage, Focus, Mana), or a generic word while the catalog is not there. */
+    function resourceNameOf(ability: AbilityView | undefined): string {
+        return ability ? $catalog.abilityResource(ability) : $t("stat.resource");
+    }
+
     $: player          = $gameState?.player;
     $: equipment       = $gameState?.equipment;
     $: abilities       = $gameState?.abilities ?? [];
-    $: resourceLabel   = player ? abilities.find((a) => a.classId === player.classId)?.resourceName ?? "Resource" : "Resource";
+    $: resourceLabel   = resourceNameOf(player ? abilities.find((a) => a.classId === player.classId) : undefined);
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : COLOR_ENTITY_FALLBACK;
 
     /** Weapon + armor + 2 accessory slots + the potion belt, in one flat display grid. */
@@ -177,7 +187,7 @@
 -->
 <div class="hud-root">
     <div class="exploration-log">
-        <CombatLog log={$explorationLog} title="Exploration Log" />
+        <CombatLog log={$explorationLog} title={$t("log.exploration")} />
     </div>
 
     <div class="hud-main" bind:this={hudMainEl}>
@@ -198,28 +208,28 @@
 
         {#if player}
             <aside class="stats-panel">
-                <div class="class-badge">{player.classId.toUpperCase()}</div>
+                <div class="class-badge">{$t(`class.${player.classId}.name`).toUpperCase()}</div>
 
                 <!-- HP -->
-                <StatBar layout="column" label="HP" current={player.hp} max={player.maxHp} color={HP_BAR_COLOR} />
+                <StatBar layout="column" label={$t("stat.hp")} current={player.hp} max={player.maxHp} color={HP_BAR_COLOR} />
 
                 <!-- Resource -->
                 <StatBar layout="column" label={resourceLabel} current={player.resourceCurrent} max={player.resourceMax} color={resourceColor} />
 
                 <!-- Level / XP -->
                 <div class="stat-block inline">
-                    <span class="stat-label">Level</span>
+                    <span class="stat-label">{$t("stat.level")}</span>
                     <span class="stat-value">{player.level}</span>
                 </div>
 
                 <div class="stat-block inline">
-                    <span class="stat-label">XP</span>
+                    <span class="stat-label">{$t("stat.xp")}</span>
                     <span class="stat-value">{player.xp}</span>
                 </div>
 
                 <!-- Equipment -->
                 <div class="inv-section">
-                    <span class="stat-label">Equipment</span>
+                    <span class="stat-label">{$t("hud.equipment")}</span>
                     <div class="inv-grid">
                         {#each slots as item}
                             <EquipSlotBox {item} size={40} />
@@ -230,7 +240,12 @@
                     {/if}
                 </div>
 
-                <p class="controls-hint">Move: ZQSD / Arrows<br />Interact: E<br />Equipment: I<br />Map: M{#if isDebugRoom}<br />Debug room: ç / à{/if}</p>
+                <p class="controls-hint">
+                    {$t("hud.move", { keys: $t("hud.moveKeys") })}<br />
+                    {$t("hud.interact", { key: "E" })}<br />
+                    {$t("hud.equipmentKey", { key: "I" })}<br />
+                    {$t("hud.map", { key: "M" })}{#if isDebugRoom}<br />{$t("hud.debugRoom", { keys: "ç / à" })}{/if}
+                </p>
             </aside>
         {/if}
     </div>

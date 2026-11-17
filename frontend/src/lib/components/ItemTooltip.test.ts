@@ -5,11 +5,11 @@ import { gameState } from "../engine/StateStore";
 import type { StateUpdate, ItemView, SetView } from "../engine/protocol";
 
 function makeItem(overrides: Partial<ItemView> = {}): ItemView {
-    return { id: "i1", typeId: "t1", name: "Item", kind: "weapon", rarity: "common", statLine: "+3 ATK", ...overrides };
+    return { id: "i1", typeId: "t1", kind: "weapon", rarity: "common", stats: { attack: 3 }, ...overrides };
 }
 
 function makeSet(overrides: Partial<SetView> = {}): SetView {
-    return { id: "light_soldier", name: "Light Soldier", classId: "warrior", bonus2pcLabel: "+5% max HP", bonus4pcLabel: "+2 flat DEF", ...overrides };
+    return { id: "light_soldier", classId: "warrior", bonus2pc: { effect: "MaxHpPercent", value: 5 }, bonus4pc: { effect: "FlatDefense", value: 2 }, ...overrides };
 }
 
 function makeState(overrides: Partial<StateUpdate> = {}): StateUpdate {
@@ -35,8 +35,8 @@ describe("ItemTooltip", () => {
 
     test("shows name, kind, and stat line for a plain item with no set", () => {
         gameState.set(makeState());
-        const { container } = render(ItemTooltip, { item: makeItem({ name: "Iron Sword", kind: "weapon", statLine: "+3 ATK" }) });
-        expect(container.querySelector(".tooltip-name")?.textContent).toBe("Iron Sword");
+        const { container } = render(ItemTooltip, { item: makeItem({ typeId: "silver_spear", kind: "weapon", stats: { attack: 3 } }) });
+        expect(container.querySelector(".tooltip-name")?.textContent).toBe("Silver Spear");
         expect(container.querySelector(".tooltip-kind")?.textContent).toBe("weapon");
         expect(container.querySelector(".tooltip-stat")?.textContent).toBe("+3 ATK");
         expect(container.querySelector(".tooltip-set")).toBeNull();

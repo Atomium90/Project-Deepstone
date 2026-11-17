@@ -4,9 +4,10 @@
     import { lastStartedDifficulty } from "../engine/RunStore";
     import { tutorial, showHint } from "../engine/HintStore";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
+    import { logText } from "../engine/logText";
     import {
         PLAYER_CLASS_COLORS,
-        CURRENCY_NAME,
         CLASS_INFO,
         CLASS_UNLOCK_UPGRADE_ID,
         DIFFICULTY_INFO,
@@ -28,11 +29,7 @@
     let selectedPerkId: string | null = null;
 
     type UpgradeTab = "all" | UpgradeCategory;
-    const upgradeTabs: { id: UpgradeTab; label: string }[] = [
-        { id: "all", label: "All" },
-        { id: "stat", label: "Stats" },
-        { id: "meta", label: "Meta" },
-    ];
+    const upgradeTabs: UpgradeTab[] = ["all", "stat", "meta"];
     let selectedUpgradeTab: UpgradeTab = "all";
 
     /** The last state received while the hub was the phase. App.svelte fades the hub out over the first
@@ -121,7 +118,7 @@
         if (requirement.winsDone < requirement.wins) {
             lines.push(
                 $t("hub.difficulty.needWins", {
-                    tier: DIFFICULTY_INFO[requirement.winsAt].label,
+                    tier: $t(`difficulty.${requirement.winsAt}.name`),
                     done: requirement.winsDone,
                     wins: requirement.wins,
                 }),
@@ -130,7 +127,7 @@
         if (requirement.shardsSpentDone < requirement.shardsSpent) {
             lines.push(
                 $t("hub.difficulty.needShards", {
-                    currency: CURRENCY_NAME,
+                    currency: $t("currency.name"),
                     done: requirement.shardsSpentDone,
                     needed: requirement.shardsSpent,
                 }),
@@ -164,13 +161,10 @@
         client.send({ type: "HUB_ACTION", action: "DEBUGLOADROOM", debugRoomId: id });
     }
 
-    /**
-     * The last log line from the server, shown as feedback after a buy attempt.
-     * Fragile: if another log entry arrives before the player reads it, the
-     * displayed message no longer corresponds to their action. Fine for now,
-     * would need a dedicated feedback field in the protocol to fix properly.
-     */
-    $: feedback = hubState?.log.at(-1) ?? "";
+    /** The server's answer to what the player just did in the Hub (a purchase, a refusal, the bonus
+     * Shards of a return): a field of its own, so it never depends on which log line came last. */
+    $: feedbackLine = hubState?.notice;
+    $: feedback = feedbackLine ? $logText(feedbackLine) : "";
 </script>
 
 <div class="hub-root">
@@ -181,7 +175,7 @@
         <div class="shards">
             <img class="shards-symbol" src={ICON_SHARD} alt="" />
             <span class="shards-amount">{shards}</span>
-            <span class="shards-label">{CURRENCY_NAME}</span>
+            <span class="shards-label">{$t("currency.name")}</span>
         </div>
     </header>
 
@@ -189,7 +183,7 @@
 
         <!-- ── Left: class selection + start ── -->
         <section class="left-panel">
-            <p class="section-label">Choose your class</p>
+            <p class="section-label">{$t("hub.chooseClass")}</p>
 
             <div class="class-list">
                 {#each visibleClasses as c}
@@ -205,19 +199,19 @@
                         on:click={() => selectClass(c)}
                     >
                         {#if selectedClass === c}
-                            <span class="selected-badge">Selected</span>
+                            <span class="selected-badge">{$t("hub.selected")}</span>
                         {:else if !unlocked}
                             <img class="lock-badge" src={ICON_LOCK} alt="" />
                         {/if}
                         <img class="class-icon" src={info.icon} alt="" />
-                        <span class="class-name">{info.label}</span>
-                        <span class="class-desc">{info.description}</span>
-                        <span class="class-affinity">Affinity: {info.affinity}</span>
+                        <span class="class-name">{$t(`class.${c}.name`)}</span>
+                        <span class="class-desc">{$t(`class.${c}.desc`)}</span>
+                        <span class="class-affinity">{$t("hub.affinity", { affinity: $t(`class.${c}.affinity`) })}</span>
                     </button>
                 {/each}
             </div>
 
-            <p class="section-label">Difficulty</p>
+            <p class="section-label">{$t("hub.difficulty")}</p>
 
             <div class="difficulty-list">
                 {#each difficulties as d}
@@ -231,13 +225,13 @@
                         disabled={!unlocked}
                         style="--accent: {color}"
                         on:click={() => selectDifficulty(d)}
-                        title={unlocked ? info.description : missingFor(tiers.find((tier) => tier.id === d)).join(" · ")}
+                        title={unlocked ? $t(`difficulty.${d}.desc`) : missingFor(tiers.find((tier) => tier.id === d)).join(" · ")}
                     >
                         {#if !unlocked}
                             <img class="lock-badge" src={ICON_LOCK} alt="" />
                         {/if}
                         <span class="difficulty-icon">{info.icon}</span>
-                        <span class="difficulty-name">{info.label}</span>
+                        <span class="difficulty-name">{$t(`difficulty.${d}.name`)}</span>
                     </button>
                 {/each}
             </div>
@@ -248,7 +242,7 @@
 
             {#if nextLockedTier}
                 <p class="difficulty-hint">
-                    {$t("hub.difficulty.next", { tier: DIFFICULTY_INFO[nextLockedTier.id].label })}
+                    {$t("hub.difficulty.next", { tier: $t(`difficulty.${nextLockedTier.id}.name`) })}
                     {#each missingFor(nextLockedTier) as line}
                         <span class="difficulty-need">{line}</span>
                     {/each}
@@ -256,9 +250,12 @@
             {/if}
 
             <button class="start-btn" on:click={startRun}>
-                ▶ Start Run
+                {$t("hub.startRun")}
                 <span class="start-class">
-                    as {CLASS_INFO[selectedClass].label} · {DIFFICULTY_INFO[selectedDifficulty].label}
+                    {$t("hub.startAs", {
+                        class: $t(`class.${selectedClass}.name`),
+                        difficulty: $t(`difficulty.${selectedDifficulty}.name`),
+                    })}
                 </span>
             </button>
         </section>
@@ -267,16 +264,16 @@
         {#if rightPanelVisible}
         <section class="right-panel">
             {#if shopVisible}
-            <p class="section-label">Hub Upgrades</p>
+            <p class="section-label">{$t("hub.upgrades")}</p>
 
             <div class="upgrade-tabs">
-                {#each upgradeTabs as tab}
+                {#each upgradeTabs as tab (tab)}
                     <button
                         class="upgrade-tab"
-                        class:selected={selectedUpgradeTab === tab.id}
-                        on:click={() => (selectedUpgradeTab = tab.id)}
+                        class:selected={selectedUpgradeTab === tab}
+                        on:click={() => (selectedUpgradeTab = tab)}
                     >
-                        {tab.label}
+                        {$t(`hub.tab.${tab}`)}
                     </button>
                 {/each}
             </div>
@@ -286,7 +283,7 @@
             {/if}
 
             {#if visibleUpgrades.length === 0}
-                <p class="muted">No upgrades available.</p>
+                <p class="muted">{$t("hub.noUpgrades")}</p>
             {:else}
                 <div class="upgrade-list">
                     {#each visibleUpgrades as u}
@@ -294,15 +291,15 @@
                             <div class="upgrade-main">
                                 <span class="upgrade-icon">{u.icon}</span>
                                 <div class="upgrade-info">
-                                    <span class="upgrade-label">{u.label}</span>
-                                    <span class="upgrade-desc">{u.description}</span>
+                                    <span class="upgrade-label">{$catalog.upgradeLabel(u)}</span>
+                                    <span class="upgrade-desc">{$catalog.upgradeDescription(u)}</span>
                                 </div>
                             </div>
                             <div class="upgrade-action">
                                 {#if u.unlocked}
                                     <span class="owned-badge">
                                         <img class="badge-check" src="/sprites/ui/Green/Default/icon_outline_checkmark.png" alt="" />
-                                        Owned
+                                        {$t("hub.owned")}
                                     </span>
                                 {:else}
                                     <span
@@ -317,7 +314,7 @@
                                         disabled={shards < u.cost}
                                         on:click={() => buyUpgrade(u)}
                                     >
-                                        Buy
+                                        {$t("hub.buy")}
                                     </button>
                                 {/if}
                             </div>
@@ -328,7 +325,7 @@
             {/if}
 
             {#if perks.length > 0}
-                <p class="section-label" class:perk-section-label={shopVisible}>Run Perk</p>
+                <p class="section-label" class:perk-section-label={shopVisible}>{$t("hub.runPerk")}</p>
                 <div class="perk-list" class:off={noBlessings}>
                     {#each perks as p}
                         <button
@@ -338,8 +335,8 @@
                         >
                             <span class="perk-icon">{p.icon}</span>
                             <span class="perk-info">
-                                <span class="perk-label">{p.label}</span>
-                                <span class="perk-desc">{p.description}</span>
+                                <span class="perk-label">{$catalog.perkLabel(p)}</span>
+                                <span class="perk-desc">{$catalog.perkDescription(p)}</span>
                             </span>
                         </button>
                     {/each}
@@ -370,15 +367,15 @@
     <footer class="hub-footer">
         <button class="footer-nav-btn" on:click={() => characterTab.set("equipment")}>
             <span class="footer-nav-icon">🎒</span>
-            <span class="footer-nav-label">Equipment</span>
+            <span class="footer-nav-label">{$t("nav.equipment")}</span>
         </button>
         <button class="footer-nav-btn" on:click={() => characterTab.set("settings")}>
             <img class="footer-nav-icon" src={ICON_GEAR} alt="" />
-            <span class="footer-nav-label">Settings</span>
+            <span class="footer-nav-label">{$t("nav.settings")}</span>
         </button>
         <button class="footer-nav-btn" on:click={() => characterTab.set("achievements")}>
             <span class="footer-nav-icon">🏆</span>
-            <span class="footer-nav-label">Achievements</span>
+            <span class="footer-nav-label">{$t("nav.achievements")}</span>
         </button>
         <button class="footer-nav-btn help-nav-btn" on:click={() => characterTab.set("help")}>
             <span class="footer-nav-icon">❓</span>

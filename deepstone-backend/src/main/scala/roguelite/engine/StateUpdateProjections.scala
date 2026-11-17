@@ -156,7 +156,7 @@ final class StateUpdateProjections(abilityCatalog: List[AbilityView],
       .map(d => toAchievementView(d, progress.isUnlocked(d.id)))
 
   def toAchievementView(d: AchievementDef, unlocked: Boolean): AchievementView =
-    AchievementView(id = d.id, label = d.label, description = d.description, unlocked = unlocked)
+    AchievementView(id = d.id, unlocked = unlocked)
 
 object StateUpdateProjections:
 
@@ -186,16 +186,12 @@ object StateUpdateProjections:
     AbilityView(
       classId = a.classId,
       id = a.id,
-      name = a.name,
-      cost = a.cost,
-      resourceName = a.resourceName,
-      description = a.description
+      cost = a.cost
     )
 
   def toSetView(s: SetDef): SetView =
     SetView(id = s.id,
-            name = s.name,
             classId = s.classId,
-            bonus2pcLabel = s.twoPiece.label,
-            bonus4pcLabel = s.fourPiece.label
+            bonus2pc = SetBonusView(s.twoPiece.effect.id, s.twoPiece.effect.value),
+            bonus4pc = SetBonusView(s.fourPiece.effect.id, s.fourPiece.effect.value)
     )

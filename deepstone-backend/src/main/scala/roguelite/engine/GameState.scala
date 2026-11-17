@@ -1,6 +1,7 @@
 package roguelite.engine
 
 import roguelite.game.combat.{ Combat, EnemyStats }
+import roguelite.game.core.LogLine
 import roguelite.game.dungeon.{ Dungeon, MinimapBuilder, RoomType }
 import roguelite.game.items.{ Accessory, Armor, Item, KeyKind, PendingEquipChoice, PendingRewardChoice, Weapon }
 import roguelite.game.progression.{ MetaProgression, PerkDef, UpgradeDef }
@@ -10,8 +11,8 @@ import roguelite.game.story.{ Encounter, EndingRules, IdleContext, PendingScene 
   * subtypes (which live in this file) can use it without repeating the mapping.
   *
   * @param playerAffinityTags
-  *   The viewing player's `affinityTags`, used to resolve `statLine` to the affinity-doubled
-  *   value when applicable (see [[Item.effectiveStatLine]]) - defaults to empty so call sites
+  *   The viewing player's `affinityTags`, used to resolve the item's figures to the affinity-doubled
+  *   value when applicable (see [[Item.effectiveStats]]) - defaults to empty so call sites
   *   that don't have a specific player in scope (none today, but keeps this safe to call
   *   generically) still get the flat baseline instead of a build error.
   * @param count
@@ -22,10 +23,8 @@ private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty, 
   ItemView(
     id = item.id,
     typeId = item.typeId,
-    name = item.name,
     kind = item.kind,
     rarity = item.rarity.label,
-    statLine = item.effectiveStatLine(playerAffinityTags),
     iconId = item.iconId,
     setId = item match {
       case w: Weapon    => w.setId
@@ -39,7 +38,8 @@ private def itemToView(item: Item, playerAffinityTags: Set[String] = Set.empty, 
       case a: Accessory => a.typeTag
       case _            => None
     },
-    count = count
+    count = count,
+    stats = item.effectiveStats(playerAffinityTags)
   )
 
 /** Coarse display label for a key kind - collapses `Specific`/`Typed`'s payload away, see
@@ -116,7 +116,7 @@ sealed trait GameState:
   def player: Player
 
   /** Project this game state into a StateUpdate for the client. */
-  def toStateUpdate(log: List[String] = Nil): StateUpdate
+  def toStateUpdate(log: List[LogLine] = Nil): StateUpdate
 
 /** @param upgradeDefs
   *   The loaded upgrade catalog (see [[roguelite.game.progression.UpgradeLoader]]), used to render [[HubView]].
@@ -133,7 +133,7 @@ case class HubState(player: Player,
                     meta: MetaProgression = MetaProgression.empty,
                     perkOptions: List[PerkDef] = Nil
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil): StateUpdate =
+  def toStateUpdate(log: List[LogLine] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Hub,
       player = player.toView,
@@ -142,18 +142,17 @@ case class HubState(player: Player,
           u =>
             UpgradeView(
               id = u.id,
-              label = u.label,
-              description = u.description,
               cost = u.cost,
               icon = u.icon,
               category = u.category,
               unlocked = meta.isUnlocked(u.id)
             )
         },
-        perks = perkOptions.map(p => PerkView(id = p.id, label = p.label, description = p.description, icon = p.icon))
+        perks = perkOptions.map(p => PerkView(id = p.id, icon = p.icon))
       )),
       equipment = equipmentToView(player),
-      log = log
+      log = log,
+      notice = log.lastOption
     )
 
 /** @param enemyStats
@@ -199,7 +198,7 @@ case class ExplorationState(player: Player,
                             pendingEndingChoice: Boolean = false,
                             altarShut: Boolean = false
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil): StateUpdate =
+  def toStateUpdate(log: List[LogLine] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Exploration,
       player = player.toView,
@@ -235,14 +234,13 @@ case class CombatState(player: Player,
                        enemyStats: Map[String, EnemyStats] = Map.empty,
                        altarShut: Boolean = false
 ) extends GameState:
-  def toStateUpdate(log: List[String] = Nil): StateUpdate =
+  def toStateUpdate(log: List[LogLine] = Nil): StateUpdate =
     StateUpdate(
       phase = GamePhase.Combat,
       player = player.toView,
       room = Some(dungeon.currentRoom.toView(playerX, playerY, enemyStats)),
       combat = Some(
         CombatView(enemyId = combat.enemy.typeId,
-                   enemyLabel = combat.enemy.label,
                    enemyHp = combat.enemy.hp,
                    enemyMaxHp = combat.enemy.maxHp,
                    isPlayerTurn = combat.isPlayerTurn,
@@ -260,7 +258,7 @@ case class CombatState(player: Player,
   *   True if the run ended by defeating the dungeon's boss, false if the player died.
   */
 case class GameOverState(player: Player, victory: Boolean = false) extends GameState:
-  def toStateUpdate(log: List[String] = Nil): StateUpdate =
+  def toStateUpdate(log: List[LogLine] = Nil): StateUpdate =
     StateUpdate(phase = GamePhase.GameOver,
                 player = player.toView,
                 equipment = equipmentToView(player),

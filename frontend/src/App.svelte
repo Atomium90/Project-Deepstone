@@ -6,6 +6,7 @@
     import { audio } from "./lib/engine/AudioManager";
     import { isNewSave } from "./lib/engine/FirstRun";
     import { watchHints } from "./lib/engine/HintTriggers";
+    import { t } from "./lib/engine/i18n";
     import ExplorationHUD  from "./lib/components/ExplorationHUD.svelte";
     import CombatScreen    from "./lib/components/CombatScreen.svelte";
     import HubScreen       from "./lib/components/HubScreen.svelte";
@@ -34,7 +35,7 @@
         <div class="phase-transition" transition:fade={{ duration: 220 }}>
             {#if $gameState === null}
                 <div class="connecting">
-                    <p>Connecting to server…</p>
+                    <p>{$t("app.connecting")}</p>
                 </div>
 
             {:else if $gamePhase === "HUB"}

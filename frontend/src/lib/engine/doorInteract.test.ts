@@ -3,7 +3,7 @@ import { interactCheckTile } from "./doorInteract";
 import type { EntityView } from "./protocol";
 
 function entity(kind: EntityView["kind"], direction?: EntityView["direction"]): EntityView {
-  return { id: "e1", kind, x: 6, y: 4, label: "x", direction };
+  return { id: "e1", kind, x: 6, y: 4, direction };
 }
 
 describe("interactCheckTile", () => {

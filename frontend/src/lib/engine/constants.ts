@@ -1,4 +1,4 @@
-import type { ClassId, Difficulty, RoomTypeName } from "./protocol";
+import type { ClassId, Difficulty } from "./protocol";
 
 // ---------------------------------------------
 // Renderer
@@ -98,29 +98,14 @@ export const HP_BAR_COLOR = "#c0392b";
 // ---------------------------------------------
 
 export const CURRENCY_SYMBOL = "◈";
-export const CURRENCY_NAME = "Shards";
 
 /** Display metadata for each class shown in the hub selection. `icon` is a sprite path (see
- * frontend/public/sprites/ui/icons/), not a glyph - rendered as an <img>, not text. */
+ * frontend/public/sprites/ui/icons/), not a glyph - rendered as an <img>, not text. The name,
+ * description and affinity texts are the keys `class.<id>.name`, `.desc` and `.affinity`. */
 export const CLASS_INFO = {
-  warrior: {
-    icon: "/sprites/ui/icons/icon_sword.png",
-    label: "Warrior",
-    description: "120 HP · Rage builds on hit",
-    affinity: "Heavy weapons & armor",
-  },
-  archer: {
-    icon: "/sprites/ui/icons/icon_bow.png",
-    label: "Archer",
-    description: "90 HP · Focus regens each round",
-    affinity: "Ranged weapons",
-  },
-  mage: {
-    icon: "/sprites/ui/icons/icon_staff.png",
-    label: "Mage",
-    description: "70 HP · Fixed Mana pool",
-    affinity: "Magic weapons & staves",
-  },
+  warrior: { icon: "/sprites/ui/icons/icon_sword.png" },
+  archer: { icon: "/sprites/ui/icons/icon_bow.png" },
+  mage: { icon: "/sprites/ui/icons/icon_staff.png" },
 } as const;
 
 /** Upgrade id gating each class in the hub (null = always unlocked). Must match upgrades.json ids. */
@@ -130,28 +115,13 @@ export const CLASS_UNLOCK_UPGRADE_ID: Record<ClassId, string | null> = {
   mage: "mage_unlock",
 } as const;
 
-/** Display metadata for each difficulty shown in the hub selection. */
+/** Display metadata for each difficulty shown in the hub selection. The name and description are
+ * the keys `difficulty.<id>.name` and `.desc`. */
 export const DIFFICULTY_INFO = {
-  easy: {
-    icon: "🌱",
-    label: "Easy",
-    description: "Weaker enemies, shorter runs",
-  },
-  normal: {
-    icon: "⚖",
-    label: "Normal",
-    description: "The baseline experience",
-  },
-  hard: {
-    icon: "🔥",
-    label: "Hard",
-    description: "Tougher enemies, longer runs, better loot",
-  },
-  hardcore: {
-    icon: "💀",
-    label: "Hardcore",
-    description: "Much tougher enemies, and nothing carried in from the hub",
-  },
+  easy: { icon: "🌱" },
+  normal: { icon: "⚖" },
+  hard: { icon: "🔥" },
+  hardcore: { icon: "💀" },
 } as const;
 
 /** Accent color per difficulty, same role as PLAYER_CLASS_COLORS for classes. */
@@ -288,24 +258,7 @@ export const COLOR_ACHIEVEMENT_GOLD = "#d4ac0d";
 // ---------------------------------------------
 // Dungeon map (Character screen's Map tab)
 // ---------------------------------------------
-
-/** Display name of each room type, used for the hover text of a map node. */
-export const ROOM_TYPE_LABELS: Record<RoomTypeName, string> = {
-  combat: "Combat",
-  loot: "Loot",
-  rest: "Rest",
-  boss: "Boss",
-  miniboss: "Mini-boss",
-  fork: "Fork",
-  sanctuary: "Sanctuary",
-  vault: "Vault",
-};
-
-/** Display name of each room theme (see RoomView.theme). A theme with no entry is shown by its id. */
-export const THEME_LABELS: Record<string, string> = {
-  dungeon: "Dungeon",
-  darkDungeon: "Dark dungeon",
-};
+// The room type and theme names are the keys `room.<type>` and `theme.<id>`.
 
 /** Colors of the dungeon map, on the Character screen's dark background. */
 export const MINIMAP_COLORS = {

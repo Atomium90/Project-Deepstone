@@ -3,6 +3,7 @@
     import ItemTooltip from "./ItemTooltip.svelte";
     import { ITEM_KIND_COLORS, ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
+    import { catalog } from "../engine/catalogText";
 
     /** The item in this slot, or null for an empty slot. */
     export let item: ItemView | null = null;
@@ -72,10 +73,10 @@
         on:blur={hideTooltip}
         tabindex="0"
         role="button"
-        aria-label={item.name}
+        aria-label={$catalog.itemName(item)}
     >
         <Sprite spriteId={item.iconId ?? item.typeId} fallbackColor={ITEM_KIND_COLORS[item.kind]} size={size - 8}>
-            <span slot="fallback" class="abbrev">{abbrev(item.name)}</span>
+            <span slot="fallback" class="abbrev">{abbrev($catalog.itemName(item))}</span>
         </Sprite>
         {#if item.count && item.count > 1}
             <span class="stack-count">x{item.count}</span>

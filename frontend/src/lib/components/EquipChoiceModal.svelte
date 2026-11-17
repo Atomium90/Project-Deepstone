@@ -1,6 +1,8 @@
 <script lang="ts">
     import { gameState, pendingEquipChoice, client } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
+    import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import type { EquipChoiceOptionView, ItemView } from "../engine/protocol";
     import { createGrace, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
     import KeyHint from "./KeyHint.svelte";
@@ -28,8 +30,8 @@
         if (index !== null) replace(choice.options[index]);
     }
 
-    /** True when `item` carries an affinity tag the player's class doesn't have - `statLine` is
-     * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
+    /** True when `item` carries an affinity tag the player's class doesn't have - the item's stats are
+     * already the correct (unscaled) numbers in that case, this only dims the line as a visual cue. */
     function isOffAffinity(item: ItemView): boolean {
         return item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
     }
@@ -41,14 +43,14 @@
     {@const choice = $pendingEquipChoice}
     <div class="backdrop">
         <div class="modal">
-            <p class="modal-title">New item found</p>
+            <p class="modal-title">{$t("equip.newItem")}</p>
 
             <div
                 class="new-item"
                 style="border-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}; background-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}1a"
             >
-                <span class="item-name">{choice.newItem.name}</span>
-                <span class="item-stat" class:off-affinity={isOffAffinity(choice.newItem)}>{choice.newItem.statLine}</span>
+                <span class="item-name">{$catalog.itemName(choice.newItem)}</span>
+                <span class="item-stat" class:off-affinity={isOffAffinity(choice.newItem)}>{$catalog.itemStatLine(choice.newItem)}</span>
             </div>
 
             <!-- Weapon/armor naturally offer a single option here; accessories/potions can offer
@@ -58,17 +60,17 @@
                 {#each choice.options as option, i (option.slot)}
                     <button class="option-row" on:click={() => replace(option)}>
                         <span class="option-name">
-                            <KeyHint key={String(i + 1)} />{option.current.name}{option.current.count && option.current.count > 1
-                                ? ` x${option.current.count}`
+                            <KeyHint key={String(i + 1)} />{$catalog.itemName(option.current)}{option.current.count && option.current.count > 1
+                                ? ` ${$t("item.stack", { count: option.current.count })}`
                                 : ""}
                         </span>
-                        <span class="option-stat" class:off-affinity={isOffAffinity(option.current)}>{option.current.statLine}</span>
-                        <span class="option-action">Replace</span>
+                        <span class="option-stat" class:off-affinity={isOffAffinity(option.current)}>{$catalog.itemStatLine(option.current)}</span>
+                        <span class="option-action">{$t("equip.replace")}</span>
                     </button>
                 {/each}
             </div>
 
-            <button class="keep-btn" on:click={keepCurrent}><KeyHint key="0" />Keep what I have</button>
+            <button class="keep-btn" on:click={keepCurrent}><KeyHint key="0" />{$t("equip.keep")}</button>
         </div>
     </div>
 {/if}

@@ -1,5 +1,7 @@
 package roguelite.game.combat
 
+import roguelite.LogLines.*
+import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.{ ClassId, Player }
 
@@ -87,7 +89,7 @@ class LevelUpSuite extends FunSuite:
     val (result, log) = LevelUpSystem.applyLevelUps(player, Random(42))
     assertEquals(result.level, 2)
     assertEquals(log.length, 1)
-    assert(log.head.contains("Level 2"), s"expected 'Level 2' in log, got: $log")
+    assertEquals(log.head.params.get("level"), Some(LogValue.Num(2)))
   }
 
   test("applyLevelUps: level-up above threshold") {
@@ -103,8 +105,8 @@ class LevelUpSuite extends FunSuite:
     val (result, log) = LevelUpSystem.applyLevelUps(player, Random(42))
     assertEquals(result.level, 3)
     assertEquals(log.length, 2)
-    assert(log(0).contains("Level 2"), s"expected 'Level 2' in log(0): $log")
-    assert(log(1).contains("Level 3"), s"expected 'Level 3' in log(1): $log")
+    assertEquals(log(0).params.get("level"), Some(LogValue.Num(2)))
+    assertEquals(log(1).params.get("level"), Some(LogValue.Num(3)))
   }
 
   test("applyLevelUps: exactly one stat changes per level gained") {
@@ -136,7 +138,7 @@ class LevelUpSuite extends FunSuite:
     val (result, desc) = LevelUpSystem.applyPerk(player, LevelUpSystem.Perk.MaxHpBoost)
     assertEquals(result.maxHp, 115)
     assertEquals(result.hp, 75) // 60 + 15
-    assert(desc.contains("Max HP"), s"unexpected perk description: $desc")
+    assertEquals(desc, LevelUpSystem.PerkGain("maxHp", 15))
   }
 
   test("applyPerk: MaxHpBoost HP is capped at new maxHp when player is full") {
@@ -150,21 +152,21 @@ class LevelUpSuite extends FunSuite:
     val player         = makePlayer(level = 1, xp = 0, bonusAtk = 3)
     val (result, desc) = LevelUpSystem.applyPerk(player, LevelUpSystem.Perk.AttackBoost)
     assertEquals(result.bonusAttack, 5)
-    assert(desc.contains("Attack"), s"unexpected perk description: $desc")
+    assertEquals(desc, LevelUpSystem.PerkGain("attack", 2))
   }
 
   test("applyPerk: DefenseBoost increases bonusDefense by 1") {
     val player         = makePlayer(level = 1, xp = 0, bonusDef = 2)
     val (result, desc) = LevelUpSystem.applyPerk(player, LevelUpSystem.Perk.DefenseBoost)
     assertEquals(result.bonusDefense, 3)
-    assert(desc.contains("Defense"), s"unexpected perk description: $desc")
+    assertEquals(desc, LevelUpSystem.PerkGain("defense", 1))
   }
 
   test("applyPerk: ResourceBoost increases resourceMax by 20") {
     val player         = makePlayer(level = 1, xp = 0, resourceMax = 100)
     val (result, desc) = LevelUpSystem.applyPerk(player, LevelUpSystem.Perk.ResourceBoost)
     assertEquals(result.resourceMax, 120)
-    assert(desc.contains("Resource"), s"unexpected perk description: $desc")
+    assertEquals(desc, LevelUpSystem.PerkGain("resource", 20))
   }
 
   test("applyPerk: AttackBoost stacks correctly across multiple levels") {

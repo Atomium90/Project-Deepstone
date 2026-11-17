@@ -123,7 +123,7 @@ export interface PlayerView {
   level: number;
   xp: number;
   metaCurrency: number;
-  /** The class's affinity tags (e.g. ["heavy"]). ItemView.statLine already reflects whether an
+  /** The class's affinity tags (e.g. ["heavy"]). ItemView.stats already reflect whether an
    * item's own typeTag benefits from the affinity doubling CombatResolver applies - this is
    * carried mainly so the UI can gray out an off-affinity item's stat line as a visual cue. */
   affinityTags: string[];
@@ -162,7 +162,6 @@ export interface EntityView {
   kind: "enemy" | "chest" | "door" | "locked_door" | "npc" | "shrine" | "sanctuary";
   x: number;
   y: number;
-  label: string;
   /** Atlas sprite key to draw (see public/atlas/entities.json). Only set for enemies and NPCs -
    * resolved server-side from enemies.json and npcs.json, never a mapping the client needs to keep
    * in sync itself. */
@@ -206,7 +205,6 @@ export interface RoomView {
 
 export interface CombatView {
   enemyId: string;
-  enemyLabel: string;
   enemyHp: number;
   enemyMaxHp: number;
   isPlayerTurn: boolean;
@@ -241,8 +239,6 @@ export interface DamageEventView {
 
 export interface UpgradeView {
   id: string;
-  label: string;
-  description: string;
   cost: number;
   icon: string;
   category: UpgradeCategory;
@@ -252,8 +248,6 @@ export interface UpgradeView {
 /** One run perk offered to the player, rolled fresh every HUB visit. */
 export interface PerkView {
   id: string;
-  label: string;
-  description: string;
   icon: string;
 }
 
@@ -323,17 +317,38 @@ export interface HubView {
   shopClosed?: boolean;
 }
 
+/** The numbers behind an item's stat line, already resolved for the viewing player (the
+ * affinity-doubled values where that applies). Equipment fills the stat fields it has; a consumable
+ * or a key names its `effect` with the figures that go with it. The client writes the line. */
+export interface ItemStats {
+  maxHp?: number;
+  attack?: number;
+  defense?: number;
+  critChance?: number;
+  /** "healFixed" | "healPercent" | "restoreResource" | "attackBuff" | "flatDamage" | "critBuff" | "opensDoor". */
+  effect?: string;
+  amount?: number;
+  percent?: number;
+  turns?: number;
+}
+
+/** One line of the log: a key (`log.combat.strike`) and what goes into its text. A param that names
+ * something of the game holds an id (an enemy type, an item type...), never a display name. */
+export interface LogLine {
+  key: string;
+  params: Record<string, string | number>;
+}
+
 /** A single item as seen by the client, whether equipped, in the potion belt, or shown in a
  * pickup choice. */
 export interface ItemView {
   id: string;
   typeId: string;
-  name: string;
   kind: ItemKind;
   rarity: ItemRarity;
-  /** One-line stat summary, e.g. "+3 ATK" or "Heal 30 HP". Already resolved server-side for the
-   * viewing player's class - the affinity-doubled value when applicable, not a flat baseline. */
-  statLine: string;
+  /** The figures of the item's stat line, already resolved server-side for the viewing player's
+   * class (the affinity-doubled value when applicable). The client writes the line, see catalogText.ts. */
+  stats: ItemStats;
   /** Atlas sprite key hint for the item's icon. Undefined until an icon pack is chosen and
    * items.json gains real values - falls back to a plain color box client-side. */
   iconId?: string;
@@ -341,7 +356,7 @@ export interface ItemView {
    * 2pc/4pc bonus text. */
   setId?: string;
   /** Weapon/Armor/Accessory's affinity tag ("heavy"/"ranged"/"magic"/"light"), if any. Undefined
-   * for consumables/keys and untagged gear. `statLine` above already reflects the affinity-doubled
+   * for consumables/keys and untagged gear. `stats` above already reflect the affinity-doubled
    * value when applicable - this is only needed to decide whether to gray the stat line out. */
   typeTag?: string;
   /** Charge count for a potion-belt stack. Undefined for every other item kind, which never
@@ -408,19 +423,13 @@ export interface RelicView {
 export interface AbilityView {
   classId: ClassId;
   id: string;
-  name: string;
   cost: number;
-  /** e.g. "Rage" (the resource pool this ability spends). */
-  resourceName: string;
-  description: string;
 }
 
 /** One achievement's display state, sent as a full catalog on every StateUpdate (same rationale
  * as AbilityView: the client never hardcodes the list), independent of phase. */
 export interface AchievementView {
   id: string;
-  label: string;
-  description: string;
   unlocked: boolean;
 }
 
@@ -430,10 +439,16 @@ export interface AchievementView {
  * `setId` on every equipped ItemView and counts matching pieces itself. */
 export interface SetView {
   id: string;
-  name: string;
   classId: ClassId;
-  bonus2pcLabel: string;
-  bonus4pcLabel: string;
+  /** The two bonuses as an effect id and a figure, for the client to write them. */
+  bonus2pc: SetBonusView;
+  bonus4pc: SetBonusView;
+}
+
+/** One set bonus as data: the effect ("MaxHpPercent", "FlatDefense"...) and its figure (0 when it has none). */
+export interface SetBonusView {
+  effect: string;
+  value: number;
 }
 
 /** A room type as named on the wire. */
@@ -507,7 +522,12 @@ export interface StateUpdate {
   sets: SetView[];
   /** Only meaningful when phase is "GAMEOVER": true if the boss was defeated, false if the player died. */
   victory: boolean;
-  log: string[];
+  /** What happened, as lines of data: a key into the language file and the ids and figures that go
+   * into its text. The server writes no words, see logText.ts. */
+  log: LogLine[];
+  /** In the Hub only: the line to show as the answer to what the player just did (a purchase, a
+   * refusal, the bonus Shards of a return), the last line of its log. */
+  notice?: LogLine | null;
   /** On the update that ends a won fight: how many of the first lines of `log` only tell the blows
    * exchanged, which belong to the log of the fight and to no other. The lines after them tell what the
    * victory brings (the enemy fallen, the XP, the loot) and belong to the exploration log too. Absent,

@@ -52,10 +52,14 @@
     /* Over the game but under every modal and card, and never in the way of a click. */
     .god-banner {
         position: fixed;
+        /* The last line sits where a one-line banner sits, so a line that wraps grows upward and never
+         * over the room: the box is moved up by its own height, less one line (1.5 x the font size) and
+         * the padding under it. */
         top: 14%;
         left: 50%;
-        transform: translateX(-50%);
+        transform: translate(-50%, calc(-100% + 1.5rem + 0.5rem));
         width: min(32rem, 80%);
+        box-sizing: border-box;
         z-index: 700;
         text-align: center;
         font-family: monospace;
@@ -63,7 +67,12 @@
         font-style: italic;
         line-height: 1.5;
         color: #e8dfc4;
-        text-shadow: 0 0 6px #000, 0 0 14px #000;
+        /* A black band under the text, as if it were written outside the dungeon, so it reads over any
+         * room, whatever the color of its floor. Soft at the edges so it does not look like a box. */
+        padding: 0.5rem 1.25rem;
+        background: rgba(0, 0, 0, 0.82);
+        box-shadow: 0 0 14px 10px rgba(0, 0, 0, 0.82);
+        text-shadow: 0 0 6px #000;
         opacity: 0;
         transition: opacity 1.2s ease;
         pointer-events: none;

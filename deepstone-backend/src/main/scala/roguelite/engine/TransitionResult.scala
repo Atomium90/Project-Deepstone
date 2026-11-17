@@ -1,6 +1,6 @@
 package roguelite.engine
 
-import roguelite.game.core.GameEvent
+import roguelite.game.core.{ GameEvent, LogLine }
 
 /** Result of one pure state transition ([[StateMachine.applyActionPure]] or
   * [[roguelite.game.dungeon.InteractionResolver.interact]]).
@@ -16,6 +16,6 @@ import roguelite.game.core.GameEvent
   */
 case class TransitionResult(
     state: GameState,
-    log: List[String],
+    log: List[LogLine],
     events: List[GameEvent] = Nil
 )

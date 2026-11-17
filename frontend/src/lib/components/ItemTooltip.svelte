@@ -1,5 +1,7 @@
 <script lang="ts">
     import { ITEM_RARITY_COLORS } from "../engine/constants";
+    import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import { gameState, equippedSetCounts } from "../engine/StateStore";
     import type { ItemView } from "../engine/protocol";
 
@@ -13,24 +15,24 @@
      * bonus, so the tooltip must reflect that rather than showing a misleading "active" state. */
     $: classMatches = setView !== undefined && setView.classId === $gameState?.player.classId;
 
-    /** True when this item carries an affinity tag the player's class doesn't have - statLine is
-     * already the correct (unscaled) number in that case, this only dims it as a visual cue. */
+    /** True when this item carries an affinity tag the player's class doesn't have - the item's stats are
+     * already the correct (unscaled) numbers in that case, this only dims the line as a visual cue. */
     $: offAffinity = item.typeTag !== undefined && !($gameState?.player.affinityTags ?? []).includes(item.typeTag);
 </script>
 
 <div class="item-tooltip">
-    <p class="tooltip-name" style="color:{ITEM_RARITY_COLORS[item.rarity]}">{item.name}</p>
-    <p class="tooltip-kind">{item.kind}{item.count && item.count > 1 ? ` · x${item.count}` : ""}</p>
-    <p class="tooltip-stat" class:off-affinity={offAffinity}>{item.statLine}</p>
+    <p class="tooltip-name" style="color:{ITEM_RARITY_COLORS[item.rarity]}">{$catalog.itemName(item)}</p>
+    <p class="tooltip-kind">{$t(`itemKind.${item.kind}`)}{item.count && item.count > 1 ? ` · ${$t("item.stack", { count: item.count })}` : ""}</p>
+    <p class="tooltip-stat" class:off-affinity={offAffinity}>{$catalog.itemStatLine(item)}</p>
     {#if item.setId}
         <div class="tooltip-set" style="--set-accent:{ITEM_RARITY_COLORS.epic}">
-            <p class="set-name">Part of: {setView?.name ?? item.setId} ({setCount}/4)</p>
+            <p class="set-name">{$t("set.partOf", { name: setView ? $catalog.setName(setView) : item.setId, count: setCount })}</p>
             {#if setView}
                 <p class="set-bonus" class:active={classMatches && setCount >= 2}>
-                    2pc: {setView.bonus2pcLabel}
+                    {$t("set.bonus2pc", { label: $catalog.setBonus(setView, 2) })}
                 </p>
                 <p class="set-bonus" class:active={classMatches && setCount >= 4}>
-                    4pc: {setView.bonus4pcLabel}
+                    {$t("set.bonus4pc", { label: $catalog.setBonus(setView, 4) })}
                 </p>
             {/if}
         </div>

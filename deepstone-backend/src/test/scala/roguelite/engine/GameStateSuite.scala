@@ -56,6 +56,14 @@ class GameStateSuite extends FunSuite:
     val views = hub.toStateUpdate().hub.get.upgrades.map(u => u.id -> u.unlocked).toMap
     assertEquals(views, Map("a" -> false, "b" -> true))
 
+  test("HubState.toStateUpdate sends the risky perks apart from the ordinary ones, flagged as risky"):
+    val plain = PerkDef("heavy_hand", "Heavy Hand", "d", icon = "*", effect = PerkEffect.FlatDamageBonus(1))
+    val risky = PerkDef("hunted", "Hunted", "d", icon = "🐺", effect = PerkEffect.EnemyStatPercent(25), risky = true)
+    val hub   = HubState(PlayerFixtures.startingPlayer(ClassId.Warrior), perkOptions = List(plain), riskyPerkOptions = List(risky))
+    val view  = hub.toStateUpdate().hub.get
+    assertEquals(view.perks, List(PerkView("heavy_hand", "*")))
+    assertEquals(view.riskyPerks, List(PerkView("hunted", "🐺", risky = true)))
+
   test("HubState.toStateUpdate offers the last line of its log as the notice, and none when there is no line"):
     val hub = HubState(PlayerFixtures.startingPlayer(ClassId.Warrior), Map.empty, MetaProgression.empty)
     assertEquals(hub.toStateUpdate().notice, None)

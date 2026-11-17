@@ -428,6 +428,57 @@ class StateMachineSuite extends FunSuite:
       sm().applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior)))
     assertEquals(next.asInstanceOf[ExplorationState].player.activePerkId, None)
 
+  // --- Hub: risky perks --------------------------------------------------------
+
+  val huntedPerk: PerkDef =
+    PerkDef("hunted", "Hunted", "d", icon = "*", effect = PerkEffect.EnemyStatPercent(25), risky = true, shardBonusPercent = 60)
+
+  val bargainPerk: PerkDef =
+    PerkDef("bargain", "Bargain", "d", icon = "*", effect = PerkEffect.EnemyStatPercent(15), risky = true)
+
+  private def startWithRisky(difficulty: Option[Difficulty], riskyId: Option[String], perkId: Option[String] = None, offered: List[PerkDef] = List(huntedPerk, bargainPerk)) =
+    val hub = HubState(hubPlayer, perkOptions = List(wellStockedPerk), riskyPerkOptions = offered)
+    sm(itemDefs = Map("health_potion" -> healthPotion))
+      .applyActionPure(hub,
+                       HubAction(HubActionType.StartRun,
+                                 classId = Some(ClassId.Warrior),
+                                 difficulty = difficulty,
+                                 perkId = perkId,
+                                 riskyPerkId = riskyId
+                       )
+      )
+
+  test("StartRun on Hard with an offered risky perk sets activeRiskyPerkId and says so"):
+    val TransitionResult(next, log, _) = startWithRisky(Some(Difficulty.Hard), Some("hunted"))
+    val exp = next.asInstanceOf[ExplorationState]
+    assertEquals(exp.player.activeRiskyPerkId, Some("hunted"))
+    assertEquals(exp.player.activePerkId, None)
+    assert(log.has("log.run.perkActive", "perk" -> "hunted"), s"expected the risky perk in the log: $log")
+
+  test("StartRun takes an ordinary perk and a risky one together, each in its own slot"):
+    val TransitionResult(next, log, _) = startWithRisky(Some(Difficulty.Hard), Some("bargain"), Some("well_stocked"))
+    val exp = next.asInstanceOf[ExplorationState]
+    assertEquals(exp.player.activePerkId, Some("well_stocked"))
+    assertEquals(exp.player.activeRiskyPerkId, Some("bargain"))
+    assertEquals(log.count(_.key == "log.run.perkActive"), 2)
+
+  test("StartRun ignores a risky perk on any tier but Hard"):
+    for difficulty <- List(Some(Difficulty.Easy), Some(Difficulty.Normal), Some(Difficulty.Hardcore), None) do
+      val TransitionResult(next, log, _) = startWithRisky(difficulty, Some("hunted"))
+      assertEquals(next.asInstanceOf[ExplorationState].player.activeRiskyPerkId, None, s"on $difficulty")
+      assert(!log.has("log.run.perkActive", "perk" -> "hunted"), s"the risky perk must not be announced on $difficulty: $log")
+
+  test("StartRun ignores a risky perk id that is not on offer, and an ordinary perk id sent as a risky one"):
+    for id <- List("not_offered", "well_stocked") do
+      val TransitionResult(next, _, _) = startWithRisky(Some(Difficulty.Hard), Some(id))
+      assertEquals(next.asInstanceOf[ExplorationState].player.activeRiskyPerkId, None, id)
+
+  test("StartRun with nothing offered takes no risky perk, and an ordinary id is not taken as a risky one"):
+    val TransitionResult(a, _, _) = startWithRisky(Some(Difficulty.Hard), Some("hunted"), offered = Nil)
+    assertEquals(a.asInstanceOf[ExplorationState].player.activeRiskyPerkId, None)
+    val TransitionResult(b, _, _) = startWithRisky(Some(Difficulty.Hard), None, Some("hunted"))
+    assertEquals(b.asInstanceOf[ExplorationState].player.activePerkId, None, "a risky id sent as the ordinary perk is not offered there")
+
   // Regression test: StartRun's perk-effect match used to only handle ExtraStartingItem (the only
   // case that existed when it was written) and threw a MatchError on every other perk kind once
   // more were added alongside their combat/loot hooks. Cover one representative of each remaining

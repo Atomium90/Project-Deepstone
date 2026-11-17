@@ -3,7 +3,7 @@
     import { settings } from "../engine/SettingsStore";
     import { minimap } from "../engine/StateStore";
     import { resetTutorial, skipTutorial, tutorial } from "../engine/HintStore";
-    import { t } from "../engine/i18n";
+    import { availableLanguages, dictionaries, languageName, t } from "../engine/i18n";
     import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
     import AchievementsPanel from "./AchievementsPanel.svelte";
     import CreditsPanel from "./CreditsPanel.svelte";
@@ -83,6 +83,14 @@
             {#if $characterTab === "equipment"}
                 <EquipmentPanel />
             {:else if $characterTab === "settings"}
+                <label class="setting-row">
+                    <span>{$t("settings.language")}</span>
+                    <select class="language-select" bind:value={$settings.language}>
+                        {#each availableLanguages() as code (code)}
+                            <option value={code}>{languageName(dictionaries, code)}</option>
+                        {/each}
+                    </select>
+                </label>
                 <label class="setting-row">
                     <span>Reduce screen shake</span>
                     <input
@@ -233,6 +241,17 @@
 
     .setting-row input[type="range"] {
         width: 10rem;
+        cursor: pointer;
+    }
+
+    .language-select {
+        padding: 0.25rem 0.5rem;
+        background: #111;
+        border: 1px solid #555;
+        border-radius: 3px;
+        color: #ccc;
+        font-family: monospace;
+        font-size: 0.75rem;
         cursor: pointer;
     }
 

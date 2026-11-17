@@ -1,6 +1,7 @@
 <script lang="ts">
     import { gameState, equippedSetCounts } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
+    import { t } from "../engine/i18n";
     import EquipSlotBox from "./EquipSlotBox.svelte";
     import StatsPanel from "./StatsPanel.svelte";
 
@@ -62,7 +63,7 @@
         {/if}
 
         {#if keyCount > 0}
-            <p class="key-count">🔑 {keyCount} key{keyCount !== 1 ? "s" : ""}</p>
+            <p class="key-count">🔑 {$t("equipment.keys", { count: keyCount })}</p>
         {/if}
     {:else}
         <p class="muted">No equipment loaded.</p>

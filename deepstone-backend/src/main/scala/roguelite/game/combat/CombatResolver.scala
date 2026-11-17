@@ -285,9 +285,10 @@ class CombatResolver(rng: Random = Random(),
     */
   /** `amount` scaled up by any active PotionHealBonusPercent perk, rounded to the nearest int. */
   private def applyPotionHealBonus(player: Player, amount: Int): Int =
-    activePerkEffect(player) match {
-      case Some(PerkEffect.PotionHealBonusPercent(pct)) => math.round(amount * (100 + pct) / 100.0).toInt
-      case _                                            => amount
+    activePerkEffects(player).collect { case PerkEffect.PotionHealBonusPercent(n) => n }.sum match {
+      case 0   => amount
+      // A negative percent (a risky perk) thins the heal, which never drops below 1.
+      case pct => math.max(1, math.round(amount * (100 + pct).max(0) / 100.0).toInt)
     }
 
   private def applyConsumableEffect(state: CombatState,
@@ -477,7 +478,11 @@ class CombatResolver(rng: Random = Random(),
     val xpGained = deadEnemy.xpReward
     // Stone Shards: 1 per 5 XP, minimum 1 per kill, and none on a run that takes no blessing, nor once
     // the altar is shut: there is nothing left to buy them with.
-    val shardsEarned = if state.difficulty.usesBlessings && !state.altarShut then (xpGained / 5).max(1) else 0
+    // A risky perk adds a percentage to what a kill earns.
+    val shardsEarned =
+      if state.difficulty.usesBlessings && !state.altarShut then
+        PerkDef.shardsWithBonus((xpGained / 5).max(1), PerkDef.shardBonusPercent(state.player, perkDefs))
+      else 0
     val playerWithXp = state.player.copy(xp = state.player.xp + xpGained,
                                          metaCurrency = state.player.metaCurrency + shardsEarned
     )
@@ -641,10 +646,10 @@ class CombatResolver(rng: Random = Random(),
   private def sumSetBonus(player: Player, extract: PartialFunction[SetBonusEffect, Int]): Int =
     stats.sumSetBonus(player, extract)
 
-  /** The player's chosen run perk, resolved against [[perkDefs]] (`None` if no perk is active or
-    * its id isn't in the loaded catalog).
+  /** The effects of the run perks the player took, resolved against [[perkDefs]] (none if no perk is
+    * active or its id isn't in the loaded catalog).
     */
-  private[game] def activePerkEffect(player: Player): Option[PerkEffect] = stats.activePerkEffect(player)
+  private[game] def activePerkEffects(player: Player): List[PerkEffect] = stats.activePerkEffects(player)
 
   extension (player: Player)
     /** Effective attack, defense and crit chance, see [[StatCalculator]]. */

@@ -3,7 +3,7 @@ package roguelite.engine
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.syntax.foldable.*
-import roguelite.game.progression.MetaProgression
+import roguelite.game.progression.{ MetaProgression, PerkEffect }
 import roguelite.db.Database
 import roguelite.game.dungeon.{ Enemy, MinimapLayout, Npc, RoomType }
 import roguelite.game.items.Item
@@ -236,7 +236,8 @@ class GameSession private (
         metaRef.get.flatMap:
           meta =>
             // The effects of the hub upgrades are blessings: a run that takes none keeps its player as it is.
-            val boosted = if exp.difficulty.usesBlessings then applyMetaBonuses(exp, meta) else exp
+            // A risky perk's max HP malus comes last, so the hub's HP upgrades cannot undo it.
+            val boosted = if exp.difficulty.usesBlessings then applyPerkMaxHp(applyMetaBonuses(exp, meta)) else exp
             stateRef.set(boosted) *> IO.pure((boosted, Nil))
 
       case (before: ExplorationState, after: ExplorationState)
@@ -438,7 +439,7 @@ class GameSession private (
       case Ending.Entered =>
         endRun(exp, List(LogLine.of("log.ending.enter")))
       case Ending.Refused =>
-        endRun(exp.copy(player = exp.player.copy(metaCurrency = 0)), List(LogLine.of("log.ending.refuse")))
+        endRun(exp.copy(player = exp.player.copy(metaCurrency = 0)), List(LogLine.of("log.ending.refuse")), paysBonus = false)
       case Ending.Replaced(who) =>
         val farewell =
           exp.copy(pendingEndingChoice = false, pendingScene = Some(PendingScene(Encounter.Farewell(who))))
@@ -448,10 +449,13 @@ class GameSession private (
   /** The run ends in victory, once the light has been answered: the same end as a Sanctuary that asks
     * nothing, with the same facts for the achievements and the story.
     */
-  private def endRun(exp: ExplorationState, log: List[LogLine]): IO[StateUpdate] =
-    val over = GameOverState(exp.player, victory = true)
+  private def endRun(exp: ExplorationState, log: List[LogLine], paysBonus: Boolean = true): IO[StateUpdate] =
+    // The Shards a risky perk pays for a win, unless the light was refused, which gives everything up.
+    val bonus    = if paysBonus then PerkDef.winBonus(exp.player, perkDefs, exp.difficulty.usesBlessings, exp.altarShut) else 0
+    val bonusLog = if bonus > 0 then List(LogLine.of("log.run.victoryBonus", "count" -> bonus)) else Nil
+    val over     = GameOverState(exp.player.copy(metaCurrency = exp.player.metaCurrency + bonus), victory = true)
     val ended = GameEvent.RunEnded(victory = true, difficulty = exp.difficulty, activePerkId = exp.player.activePerkId)
-    stateRef.set(over) *> settle(exp, TransitionResult(over, log, List(ended)))
+    stateRef.set(over) *> settle(exp, TransitionResult(over, log ++ bonusLog, List(ended)))
 
   /** Save what changed between two states of the story, then keep the new one. */
   private def updateStory(prev: StoryProgress, next: StoryProgress): IO[Unit] =
@@ -613,6 +617,15 @@ class GameSession private (
     * `upgrades.json` (and, if it's a genuinely new *kind* of effect, one case here and in
     * [[UpgradeEffect]]), never a change keyed by upgrade id.
     */
+  /** The max HP malus (or bonus) of the perks the player took, applied at the start of the run. */
+  private def applyPerkMaxHp(state: ExplorationState): ExplorationState =
+    val percent = PerkDef.activeEffects(state.player, perkDefs).collect { case PerkEffect.MaxHpPercent(n) => n }.sum
+    if percent == 0 then state
+    else
+      val player = state.player
+      val maxHp  = math.max(1, math.round(player.maxHp * (100 + percent) / 100.0).toInt)
+      state.copy(player = player.copy(maxHp = maxHp, hp = math.min(player.hp, maxHp)))
+
   private def applyMetaBonuses(state: ExplorationState, meta: MetaProgression): ExplorationState =
     val effects       = meta.unlockedUpgrades.toList.flatMap(upgradeDefs.get).map(_.effect)
     val boostedPlayer = effects.foldLeft(state.player)(applyUpgradeEffect)
@@ -771,7 +784,8 @@ object GameSession:
                                      rng: Random
   ): List[PerkDef] =
     if !unlockedTiers.contains(Difficulty.Normal) then Nil
-    else rng.shuffle(perkDefs.values.toList).take(PerkOptionsCount)
+    // A risky perk is offered in a row of its own, never among the ordinary ones.
+    else rng.shuffle(perkDefs.values.toList.filterNot(_.risky)).take(PerkOptionsCount)
 
   /** Dev tooling only: where `frontend/scripts/convert-tiled-room.mjs --out=...` output is meant
     * to be pointed at. Resolved relative to the backend's own working directory (`sbt run` /

@@ -65,16 +65,24 @@ class GameSession private (
       progress =>
         GameSession.perkOptionsFor(perkDefs, DifficultyUnlocks.unlockedTiers(difficultyDefs, progress.stats), rng)
 
+  /** Roll the risky perk to offer, a single one, as long as Hard is unlocked. See
+    * `HubState.riskyPerkOptions` and [[GameSession.riskyPerkOptionsFor]].
+    */
+  private def rollRiskyPerkOptions(): IO[List[PerkDef]] =
+    achievementRef.get.map:
+      progress =>
+        GameSession.riskyPerkOptionsFor(perkDefs, DifficultyUnlocks.unlockedTiers(difficultyDefs, progress.stats), rng)
+
   /** Process a player action, update the internal state, and return the new state snapshot to be
     * serialized and sent to the client.
     */
   def handle(action: PlayerAction): IO[StateUpdate] =
     val result = action match
-      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _, _) =>
+      case HubAction(HubActionType.BuyUpgrade, _, Some(upgradeId), _, _, _, _) =>
         handleBuyUpgrade(upgradeId)
-      case HubAction(HubActionType.StartRun, _, _, difficulty, _, _) =>
+      case HubAction(HubActionType.StartRun, _, _, difficulty, _, _, _) =>
         handleStartRun(action, difficulty.getOrElse(StateMachine.DefaultDifficulty))
-      case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId)) =>
+      case HubAction(HubActionType.DebugLoadRoom, _, _, _, _, Some(roomId), _) =>
         if debugMode then handleDebugLoadRoom(roomId) else rejectDebugLoadRoom
       case Interact(targetId) =>
         handleInteract(action, targetId)
@@ -223,11 +231,13 @@ class GameSession private (
           // With the altar shut there is nothing left to top the Shards up for.
           grant = if story.shopClosed then None else ShardTopUp.grantFor(currentMeta, progress.stats, upgradeDefs)
           meta        <- grant.fold(IO.pure(currentMeta))(applyShardTopUp(currentMeta, _))
-          perkOptions <- rollPerkOptions()
+          perkOptions      <- rollPerkOptions()
+          riskyPerkOptions <- rollRiskyPerkOptions()
           enriched = hub.copy(
             player = hub.player.copy(metaCurrency = meta.currency),
             meta = meta,
-            perkOptions = perkOptions
+            perkOptions = perkOptions,
+            riskyPerkOptions = riskyPerkOptions
           )
           _ <- stateRef.set(enriched)
         yield (enriched, grant.map(g => LogLine.of("log.shards.topUp", "count" -> g.amount)).toList)
@@ -559,11 +569,11 @@ class GameSession private (
             newPlayer = state.player.copy(metaCurrency = newMeta.currency)
             // A purchase isn't a fresh hub entry: carry the already-rolled perk options forward
             // instead of rerolling them.
-            currentPerkOptions = state match {
-              case hub: HubState => hub.perkOptions
-              case _             => Nil
+            (currentPerkOptions, currentRiskyOptions) = state match {
+              case hub: HubState => (hub.perkOptions, hub.riskyPerkOptions)
+              case _             => (Nil, Nil)
             }
-            newState = HubState(newPlayer, upgradeDefs, newMeta, currentPerkOptions)
+            newState = HubState(newPlayer, upgradeDefs, newMeta, currentPerkOptions, currentRiskyOptions)
             _ <- stateRef.set(newState)
             newlyUnlocked <- processAchievementPurchase(spent, newMeta.unlockedUpgrades.size)
             story         <- storyRef.get
@@ -735,8 +745,10 @@ object GameSession:
                           xp = 0,
                           metaCurrency = meta.currency
       )
-      initPerkOptions = perkOptionsFor(perkDefs, DifficultyUnlocks.unlockedTiers(difficultyDefs, achievementStats), rng)
-      stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions))
+      initTiers = DifficultyUnlocks.unlockedTiers(difficultyDefs, achievementStats)
+      initPerkOptions = perkOptionsFor(perkDefs, initTiers, rng)
+      initRiskyOptions = riskyPerkOptionsFor(perkDefs, initTiers, rng)
+      stateRef       <- Ref.of[IO, GameState](HubState(initPlayer, upgradeDefs, meta, initPerkOptions, initRiskyOptions))
       metaRef        <- Ref.of[IO, MetaProgression](meta)
       achievementRef <- Ref.of[IO, AchievementProgress](AchievementProgress(unlockedAchievements, achievementStats))
       storyRef       <- Ref.of[IO, StoryProgress](story)
@@ -773,6 +785,19 @@ object GameSession:
 
   /** Number of perks offered per hub visit, out of the full catalog. */
   private val PerkOptionsCount = 3
+
+  private val RiskyPerkOptionsCount = 1
+
+  /** The risky perk to offer on a hub visit: a random one (take it or leave it), once the player can start a Hard run, and
+    * none before, enforced here like the ordinary perks are so that a client cannot unlock them. A
+    * locked visit does not consume the rng.
+    */
+  private[engine] def riskyPerkOptionsFor(perkDefs: Map[String, PerkDef],
+                                          unlockedTiers: Set[Difficulty],
+                                          rng: Random
+  ): List[PerkDef] =
+    if !unlockedTiers.contains(Difficulty.Hard) then Nil
+    else rng.shuffle(perkDefs.values.toList.filter(_.risky)).take(RiskyPerkOptionsCount)
 
   /** The perks to offer on a hub visit: a random subset of the catalog, or none while the Normal
     * tier is still locked, the perks being the first rung of the difficulty ladder. Enforced here,

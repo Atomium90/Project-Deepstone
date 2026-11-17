@@ -91,7 +91,7 @@ class StateMachine(roomPool: Map[String, Room],
 
       // -- Hub --------------------------------------------------------------
 
-      case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt, perkIdOpt, _)) =>
+      case (hub: HubState, HubAction(HubActionType.StartRun, Some(classId), _, difficultyOpt, perkIdOpt, _, riskyPerkIdOpt)) =>
         lift({
           val lockedBehind = upgradeDefs.values.find {
             u => u.effect == UpgradeEffect.UnlockClass(classId) && !hub.meta.isUnlocked(u.id)
@@ -155,6 +155,12 @@ class StateMachine(roomPool: Map[String, Room],
                   // perk on a run that takes no blessing.
                   val chosenPerk =
                     perkIdOpt.filter(_ => difficulty.usesBlessings).flatMap(id => hub.perkOptions.find(_.id == id))
+                  // The risky perk follows the same rules and one more: only on Hard, and only the one on
+                  // offer. Anything else (another tier, an id not offered, a Hardcore run) is ignored.
+                  val chosenRisky =
+                    riskyPerkIdOpt
+                      .filter(_ => difficulty == Difficulty.Hard && difficulty.usesBlessings)
+                      .flatMap(id => hub.riskyPerkOptions.find(_.id == id))
                   val playerWithPerk = chosenPerk match {
                     case None => playerWithKit
                     case Some(perk) =>
@@ -176,35 +182,39 @@ class StateMachine(roomPool: Map[String, Room],
                       }
                       withEffect.copy(activePerkId = Some(perk.id))
                   }
+                  val playerWithRisky = chosenRisky match {
+                    case None        => playerWithPerk
+                    case Some(perk) => playerWithPerk.copy(activeRiskyPerkId = Some(perk.id))
+                  }
 
                   // The run begins in front of the first room's entrance door. A fixed corner tile
                   // is a wall in any room whose walls are two tiles thick.
                   val (startX, startY) = interactionResolver.startSpawnPoint(dungeon.currentRoom)
                   val nextState =
-                    ExplorationState(playerWithPerk,
+                    ExplorationState(playerWithRisky,
                                       dungeon,
                                       playerX = startX,
                                       playerY = startY,
                                       difficulty,
                                       enemyStats = enemyStats
                     )
-                  val perkLog = chosenPerk.map(p => LogLine.of("log.run.perkActive", "perk" -> p.id)).toList
+                  val perkLog = (chosenPerk.toList ++ chosenRisky.toList).map(p => LogLine.of("log.run.perkActive", "perk" -> p.id))
                   (nextState, LogLine.of("log.run.begin", "class" -> classId.toString.toLowerCase) :: perkLog)
               }
           }
         })
 
-      case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _, _, _)) =>
+      case (hub: HubState, HubAction(HubActionType.BuyUpgrade, Some(classId), _, _, _, _, _)) =>
         // BuyUpgrade is intercepted by GameSession (needs DB access); reject here as a safety net
         lift((hub, List(LogLine.raw("Upgrade purchases must be routed through GameSession."))))
 
-      case (hub: HubState, HubAction(HubActionType.DebugLoadRoom, _, _, _, _, _)) =>
+      case (hub: HubState, HubAction(HubActionType.DebugLoadRoom, _, _, _, _, _, _)) =>
         // DebugLoadRoom is intercepted by GameSession (needs IO to read the room file); reject
         // here as a safety net, same precedent as BuyUpgrade above.
         lift((hub, List(LogLine.raw("Debug room loading must be routed through GameSession."))))
 
       // Return to hub after death: GameSession enriches the HubState with real meta
-      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _, _, _)) =>
+      case (gameOver: GameOverState, HubAction(HubActionType.ReturnToHub, _, _, _, _, _, _)) =>
         // Placeholder: class is re-chosen on next StartRun
         val hubPlayer = Player(
           classId = ClassId.Warrior,

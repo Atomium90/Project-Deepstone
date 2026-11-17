@@ -4,7 +4,9 @@
     import { gameState, client, explorationLog, pendingScene, debugRoomsCache, minimap } from "../engine/StateStore";
     import { characterTab } from "../engine/CharacterStore";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import { Renderer } from "../engine/Renderer";
+    import type { AbilityView } from "../engine/protocol";
     import { keyCommand, type KeyCommand } from "../engine/explorationKeys";
     import { conversationBox } from "../engine/dialoguePlacement";
     import { RESOURCE_BAR_COLORS, HP_BAR_COLOR, COLOR_ENTITY_FALLBACK } from "../engine/constants";
@@ -154,10 +156,15 @@
         previousRoomId = room.roomId;
     }
 
+    /** The name of the class resource (Rage, Focus, Mana), or a generic word while the catalog is not there. */
+    function resourceNameOf(ability: AbilityView | undefined): string {
+        return ability ? $catalog.abilityResource(ability) : $t("stat.resource");
+    }
+
     $: player          = $gameState?.player;
     $: equipment       = $gameState?.equipment;
     $: abilities       = $gameState?.abilities ?? [];
-    $: resourceLabel   = player ? abilities.find((a) => a.classId === player.classId)?.resourceName ?? $t("stat.resource") : $t("stat.resource");
+    $: resourceLabel   = resourceNameOf(player ? abilities.find((a) => a.classId === player.classId) : undefined);
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : COLOR_ENTITY_FALLBACK;
 
     /** Weapon + armor + 2 accessory slots + the potion belt, in one flat display grid. */

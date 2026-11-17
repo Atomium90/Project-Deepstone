@@ -2,6 +2,7 @@
     import { gameState, client, combatLog, combatDamageEvents } from "../engine/StateStore";
     import { settings } from "../engine/SettingsStore";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import { HP_BAR_COLOR, RESOURCE_BAR_COLORS, COLOR_ENTITY_ENEMY, COLOR_ENTITY_ELITE, PLAYER_CLASS_COLORS, ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import CombatLog from "./CombatLog.svelte";
@@ -102,15 +103,15 @@
     $: enemyName = !combat
         ? "—"
         : combat.isElite
-          ? $t("combat.elite", { name: combat.enemyLabel })
+          ? $t("combat.elite", { name: $catalog.enemyName(combat.enemyId, combat.enemyLabel) })
           : combat.isMiniBoss
-            ? $t("combat.miniboss", { name: combat.enemyLabel })
-            : combat.enemyLabel;
+            ? $t("combat.miniboss", { name: $catalog.enemyName(combat.enemyId, combat.enemyLabel) })
+            : $catalog.enemyName(combat.enemyId, combat.enemyLabel);
     $: equipment      = $gameState?.equipment;
     $: abilities      = $gameState?.abilities ?? [];
 
     $: abilityInfo     = player ? abilities.find((a) => a.classId === player.classId) ?? null : null;
-    $: resourceLabel   = abilityInfo?.resourceName ?? $t("stat.resource");
+    $: resourceLabel   = abilityInfo ? $catalog.abilityResource(abilityInfo) : $t("stat.resource");
     $: resourceColor   = player ? RESOURCE_BAR_COLORS[player.classId] : "#888";
     $: isPlayerTurn    = combat?.isPlayerTurn ?? false;
 
@@ -272,10 +273,10 @@
             <button
                     class="action-btn ability"
                     disabled={abilityDisabled}
-                    title={abilityInfo?.description ?? ""}
+                    title={abilityInfo ? $catalog.abilityDescription(abilityInfo) : ""}
                     on:click={() => sendAction("ABILITY")}
             >
-                <span class="action-label"><KeyHint key="3" />✦ {abilityInfo?.name ?? $t("combat.ability")}</span>
+                <span class="action-label"><KeyHint key="3" />✦ {abilityInfo ? $catalog.abilityName(abilityInfo) : $t("combat.ability")}</span>
                 <span class="ability-cost">
                     {effectiveAbilityCost ?? 0} {resourceLabel}
                 </span>
@@ -303,7 +304,7 @@
                                 class="picker-row"
                                 on:click={() => useItem(item)}
                         >
-                            <span class="picker-name"><KeyHint key={String(i + 1)} />{item.name}{item.count && item.count > 1 ? ` ${$t("item.stack", { count: item.count })}` : ""}</span>
+                            <span class="picker-name"><KeyHint key={String(i + 1)} />{$catalog.itemName(item)}{item.count && item.count > 1 ? ` ${$t("item.stack", { count: item.count })}` : ""}</span>
                             <span class="picker-stat">{item.statLine}</span>
                             <span class="picker-rarity" style="color:{ITEM_RARITY_COLORS[item.rarity]}">
                                 {$t(`rarity.${item.rarity}`)}

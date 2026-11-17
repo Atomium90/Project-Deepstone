@@ -1,6 +1,7 @@
 <script lang="ts">
     import { gameState } from "../engine/StateStore";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import { COLOR_ACHIEVEMENT_GOLD } from "../engine/constants";
     import StatBar from "./StatBar.svelte";
 
@@ -27,9 +28,9 @@
                     <div class="achievement-info">
                         <span class="achievement-label">
                             {#if a.unlocked}🏆{:else}<img class="lock-icon" src="/sprites/ui/icons/icon_lock.png" alt="" />{/if}
-                            {a.label}
+                            {$catalog.achievementLabel(a)}
                         </span>
-                        <span class="achievement-desc">{a.description}</span>
+                        <span class="achievement-desc">{$catalog.achievementDescription(a)}</span>
                     </div>
                     {#if a.unlocked}
                         <span class="owned-badge">

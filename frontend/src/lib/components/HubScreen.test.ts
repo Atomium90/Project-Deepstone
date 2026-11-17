@@ -343,8 +343,8 @@ describe("HubScreen", () => {
     });
 
     describe("the altar shut for good", () => {
-        const owned = makeUpgrade({ id: "hp_boost_1", label: "Owned One", unlocked: true });
-        const wanted = makeUpgrade({ id: "weapon_mastery", label: "Wanted One", cost: 90 });
+        const owned = makeUpgrade({ id: "owned_one", label: "Owned One", unlocked: true });
+        const wanted = makeUpgrade({ id: "wanted_one", label: "Wanted One", cost: 90 });
 
         function shutHub(): StateUpdate {
             return makeState({ hub: { upgrades: [owned, wanted], perks: [], runsCompleted: 5, difficulties: [], shopClosed: true } });

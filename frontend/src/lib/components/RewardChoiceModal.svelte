@@ -1,6 +1,7 @@
 <script lang="ts">
     import { gameState, pendingRewardChoice, client } from "../engine/StateStore";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import type { ItemView } from "../engine/protocol";
     import { createGrace, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
@@ -57,7 +58,7 @@
                         style="border-color:{ITEM_RARITY_COLORS[option.rarity]}"
                         on:click={() => pick(option)}
                     >
-                        <span class="option-name"><KeyHint key={String(i + 1)} />{option.name}</span>
+                        <span class="option-name"><KeyHint key={String(i + 1)} />{$catalog.itemName(option)}</span>
                         <span class="option-stat" class:off-affinity={isOffAffinity(option)}>{option.statLine}</span>
                         <span class="option-action">{$t("reward.take")}</span>
                     </button>

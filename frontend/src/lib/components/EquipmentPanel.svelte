@@ -2,6 +2,7 @@
     import { gameState, equippedSetCounts } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import EquipSlotBox from "./EquipSlotBox.svelte";
     import StatsPanel from "./StatsPanel.svelte";
 
@@ -55,8 +56,8 @@
                 style="--set-accent:{ITEM_RARITY_COLORS.epic}; --set-tint:{ITEM_RARITY_COLORS.epic}1a"
             >
                 {#each activeSets as { set, count } (set.id)}
-                    <span class="set-badge" title="{count >= 4 ? set.bonus4pcLabel : set.bonus2pcLabel}">
-                        {$t("set.progress", { name: set.name, count: Math.min(count, 4) })}
+                    <span class="set-badge" title="{$catalog.setBonus(set, count >= 4 ? 4 : 2)}">
+                        {$t("set.progress", { name: $catalog.setName(set), count: Math.min(count, 4) })}
                     </span>
                 {/each}
             </div>

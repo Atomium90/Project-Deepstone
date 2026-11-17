@@ -2,6 +2,7 @@
     import { gameState, pendingEquipChoice, client } from "../engine/StateStore";
     import { ITEM_RARITY_COLORS } from "../engine/constants";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import type { EquipChoiceOptionView, ItemView } from "../engine/protocol";
     import { createGrace, isLeaveKey, isPlainPress, pickedIndex } from "../engine/choiceKeys";
     import KeyHint from "./KeyHint.svelte";
@@ -48,7 +49,7 @@
                 class="new-item"
                 style="border-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}; background-color:{ITEM_RARITY_COLORS[choice.newItem.rarity]}1a"
             >
-                <span class="item-name">{choice.newItem.name}</span>
+                <span class="item-name">{$catalog.itemName(choice.newItem)}</span>
                 <span class="item-stat" class:off-affinity={isOffAffinity(choice.newItem)}>{choice.newItem.statLine}</span>
             </div>
 
@@ -59,7 +60,7 @@
                 {#each choice.options as option, i (option.slot)}
                     <button class="option-row" on:click={() => replace(option)}>
                         <span class="option-name">
-                            <KeyHint key={String(i + 1)} />{option.current.name}{option.current.count && option.current.count > 1
+                            <KeyHint key={String(i + 1)} />{$catalog.itemName(option.current)}{option.current.count && option.current.count > 1
                                 ? ` ${$t("item.stack", { count: option.current.count })}`
                                 : ""}
                         </span>

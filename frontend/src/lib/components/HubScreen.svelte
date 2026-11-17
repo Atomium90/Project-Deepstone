@@ -4,6 +4,7 @@
     import { lastStartedDifficulty } from "../engine/RunStore";
     import { tutorial, showHint } from "../engine/HintStore";
     import { t } from "../engine/i18n";
+    import { catalog } from "../engine/catalogText";
     import {
         PLAYER_CLASS_COLORS,
         CLASS_INFO,
@@ -292,8 +293,8 @@
                             <div class="upgrade-main">
                                 <span class="upgrade-icon">{u.icon}</span>
                                 <div class="upgrade-info">
-                                    <span class="upgrade-label">{u.label}</span>
-                                    <span class="upgrade-desc">{u.description}</span>
+                                    <span class="upgrade-label">{$catalog.upgradeLabel(u)}</span>
+                                    <span class="upgrade-desc">{$catalog.upgradeDescription(u)}</span>
                                 </div>
                             </div>
                             <div class="upgrade-action">
@@ -336,8 +337,8 @@
                         >
                             <span class="perk-icon">{p.icon}</span>
                             <span class="perk-info">
-                                <span class="perk-label">{p.label}</span>
-                                <span class="perk-desc">{p.description}</span>
+                                <span class="perk-label">{$catalog.perkLabel(p)}</span>
+                                <span class="perk-desc">{$catalog.perkDescription(p)}</span>
                             </span>
                         </button>
                     {/each}

@@ -43,10 +43,12 @@ object AbilityLoader extends JsonResourceLoader[AbilityDef, ClassId]:
 
   private def parseEffect(e: AbilityEffectJson): Either[String, AbilityEffect] =
     e.`type` match
-      case "DoubleNextAttack"        => Right(AbilityEffect.DoubleNextAttack)
-      case "IgnoreDefenseNextAttack" => Right(AbilityEffect.IgnoreDefenseNextAttack)
-      case "FlatDamage" =>
-        e.amount.toRight("FlatDamage is missing 'amount' field").map(AbilityEffect.FlatDamage.apply)
+      case "EmpowerNextAttack" =>
+        e.multiplierPercent
+          .toRight("EmpowerNextAttack is missing 'multiplierPercent' field")
+          .map(AbilityEffect.EmpowerNextAttack(_, e.ignoreDefense.getOrElse(false), e.guaranteedCrit.getOrElse(false)))
+      case "AttackScaledDamage" =>
+        e.percent.toRight("AttackScaledDamage is missing 'percent' field").map(AbilityEffect.AttackScaledDamage.apply)
       case other =>
         Left(s"Unknown ability effect type: '$other'")
 
@@ -54,7 +56,13 @@ object AbilityLoader extends JsonResourceLoader[AbilityDef, ClassId]:
   // Internal JSON DTOs
   // -----------------------------------------------------------------------
 
-  private case class AbilityEffectJson(`type`: String, amount: Option[Int] = None)
+  private case class AbilityEffectJson(
+      `type`: String,
+      multiplierPercent: Option[Int] = None,
+      ignoreDefense: Option[Boolean] = None,
+      guaranteedCrit: Option[Boolean] = None,
+      percent: Option[Int] = None
+  )
 
   private case class AbilityDefJson(
       classId: String,
@@ -69,9 +77,12 @@ object AbilityLoader extends JsonResourceLoader[AbilityDef, ClassId]:
   private given Decoder[AbilityEffectJson] = Decoder.instance:
     (c: HCursor) =>
       for
-        t      <- c.get[String]("type")
-        amount <- c.get[Option[Int]]("amount")
-      yield AbilityEffectJson(t, amount)
+        t              <- c.get[String]("type")
+        multiplier     <- c.get[Option[Int]]("multiplierPercent")
+        ignoreDefense  <- c.get[Option[Boolean]]("ignoreDefense")
+        guaranteedCrit <- c.get[Option[Boolean]]("guaranteedCrit")
+        percent        <- c.get[Option[Int]]("percent")
+      yield AbilityEffectJson(t, multiplier, ignoreDefense, guaranteedCrit, percent)
 
   private given Decoder[AbilityDefJson] = Decoder.instance:
     (c: HCursor) =>

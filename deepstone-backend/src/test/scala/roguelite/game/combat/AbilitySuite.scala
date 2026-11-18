@@ -1,7 +1,7 @@
 package roguelite.game.combat
 
 import roguelite.LogLines.*
-import roguelite.game.core.{ LogLine, LogValue }
+import roguelite.game.core.{ GameEvent, LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.{
   ClassId,
@@ -37,8 +37,8 @@ class AbilitySuite extends FunSuite:
       name = "Berserker Slash",
       cost = 40,
       resourceName = "Rage",
-      description = "2x damage on your next attack",
-      effect = AbilityEffect.DoubleNextAttack
+      description = "3x damage on your next attack",
+      effect = AbilityEffect.EmpowerNextAttack(300, ignoreDefense = false, guaranteedCrit = false)
     ),
     ClassId.Archer -> AbilityDef(
       classId = ClassId.Archer,
@@ -46,8 +46,8 @@ class AbilitySuite extends FunSuite:
       name = "Precise Shot",
       cost = 30,
       resourceName = "Focus",
-      description = "Next attack bypasses enemy defense",
-      effect = AbilityEffect.IgnoreDefenseNextAttack
+      description = "Next attack ignores defense, always crits, hits half again as hard",
+      effect = AbilityEffect.EmpowerNextAttack(150, ignoreDefense = true, guaranteedCrit = true)
     ),
     ClassId.Mage -> AbilityDef(
       classId = ClassId.Mage,
@@ -55,8 +55,8 @@ class AbilitySuite extends FunSuite:
       name = "Arcane Blast",
       cost = 30,
       resourceName = "Mana",
-      description = "45 flat arcane damage",
-      effect = AbilityEffect.FlatDamage(45)
+      description = "Arcane damage equal to 250% of your attack",
+      effect = AbilityEffect.AttackScaledDamage(250)
     )
   )
 
@@ -134,7 +134,7 @@ class AbilitySuite extends FunSuite:
   // Berserker Slash (Warrior)
   // -----------------------------------------------------------------------
 
-  test("Berserker Slash: sets DoubleNextAttack pending and deducts 40 Rage") {
+  test("Berserker Slash: arms the tripled attack and deducts 40 Rage") {
     val resolver = freshResolver
     val warrior  = makePlayer(ClassId.Warrior, resource = 100, resourceMax = 100)
     val state    = makeCombatState(warrior)
@@ -143,12 +143,12 @@ class AbilitySuite extends FunSuite:
 
     nextState match {
       case cs: CombatState =>
-        assertEquals(cs.combat.pendingAbility, Some(PendingAbilityEffect.DoubleNextAttack))
+        assertEquals(cs.combat.pendingAbility, Some(PendingAbilityEffect.Empowered(300, false, false)))
         // 100 - 40 = 60; may gain back +10 from being hit, so resourceCurrent <= 70
         assert(cs.player.resourceCurrent <= 70,
                s"expected resource <= 70, got ${cs.player.resourceCurrent}"
         )
-        assert(log.hasKey("log.combat.abilityDouble"), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityEmpower"), s"missing activation log: $log")
       case other =>
         fail(s"expected CombatState after Berserker Slash, got ${other.getClass.getSimpleName}")
     }
@@ -178,11 +178,12 @@ class AbilitySuite extends FunSuite:
     assert(log.hasKey("log.combat.noAbility"), s"missing error log: $log")
   }
 
-  test("DoubleNextAttack: damage is doubled on the following Attack and pending is cleared") {
+  test("Berserker Slash: the next attack deals triple damage and the pending effect is cleared") {
     val resolver = freshResolver
     val warrior  = makePlayer(ClassId.Warrior, resource = 100, resourceMax = 100)
-    // Set the pending effect directly so this test is independent of handleBerserkerSlash
-    val state = makeCombatState(warrior, pending = Some(PendingAbilityEffect.DoubleNextAttack))
+    // Set the pending effect directly so this test is independent of the cast. Attack is
+    // 5 (level) + 500 / 10 (max HP) = 55 against defense 2: 53 plus or minus the jitter of 2, tripled.
+    val state = makeCombatState(warrior, pending = Some(PendingAbilityEffect.Empowered(300, false, false)))
 
     val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
 
@@ -190,11 +191,21 @@ class AbilitySuite extends FunSuite:
       case cs: CombatState =>
         assertEquals(cs.combat.pendingAbility, None)
         assert(log.hasKey("log.combat.abilityActivates"), s"missing activation log: $log")
-      case es: ExplorationState =>
-        // Enemy died from doubled damage, also valid
-        assert(log.hasKey("log.combat.abilityActivates"), s"missing activation log: $log")
+        val dealt = 500 - cs.combat.enemy.hp
+        assert(dealt >= 3 * 51 && dealt <= 3 * 55, s"expected 153 to 165 damage, got $dealt")
       case other =>
-        fail(s"unexpected state after doubled attack: ${other.getClass.getSimpleName}")
+        fail(s"unexpected state after the tripled attack: ${other.getClass.getSimpleName}")
+    }
+  }
+
+  test("Berserker Slash: the turn it is cast deals nothing, the enemy keeps all its HP") {
+    val resolver = freshResolver
+    val warrior  = makePlayer(ClassId.Warrior, resource = 100, resourceMax = 100)
+
+    val (cast, _, _) = resolver.resolve(makeCombatState(warrior), CombatAction(CombatActionType.Ability))
+    cast match {
+      case cs: CombatState => assertEquals(cs.combat.enemy.hp, 500, "the cast turn must not hurt the enemy")
+      case other           => fail(s"expected CombatState, got ${other.getClass.getSimpleName}")
     }
   }
 
@@ -202,7 +213,7 @@ class AbilitySuite extends FunSuite:
   // Precise Shot (Archer)
   // -----------------------------------------------------------------------
 
-  test("Precise Shot: sets IgnoreDefenseNextAttack pending and deducts 30 Focus") {
+  test("Precise Shot: arms the piercing crit and deducts 30 Focus") {
     val resolver = freshResolver
     val archer   = makePlayer(ClassId.Archer, resource = 50, resourceMax = 50)
     val state    = makeCombatState(archer)
@@ -211,12 +222,12 @@ class AbilitySuite extends FunSuite:
 
     nextState match {
       case cs: CombatState =>
-        assertEquals(cs.combat.pendingAbility, Some(PendingAbilityEffect.IgnoreDefenseNextAttack))
+        assertEquals(cs.combat.pendingAbility, Some(PendingAbilityEffect.Empowered(150, true, true)))
         // 50 - 30 = 20; +5 per round at end of enemy turn → 25 max
         assert(cs.player.resourceCurrent <= 25,
                s"expected resource <= 25, got ${cs.player.resourceCurrent}"
         )
-        assert(log.hasKey("log.combat.abilityPierce"), s"missing activation log: $log")
+        assert(log.hasKey("log.combat.abilityEmpower"), s"missing activation log: $log")
       case other =>
         fail(s"expected CombatState after Precise Shot, got ${other.getClass.getSimpleName}")
     }
@@ -233,23 +244,26 @@ class AbilitySuite extends FunSuite:
     assert(log.hasKey("log.combat.notEnoughResource"), s"missing error log: $log")
   }
 
-  test("IgnoreDefenseNextAttack: pending is consumed and cleared on the following Attack") {
+  test("Precise Shot: the next attack ignores defense, always crits and hits half again as hard") {
     val resolver = freshResolver
     val archer   = makePlayer(ClassId.Archer, resource = 50, resourceMax = 50)
+    // Defense 20 would take 20 off a plain hit; here it counts for nothing. Attack 55 plus or minus 2,
+    // times 1.5, then times the crit multiplier of 1.5: 120 to 129.
     val state = makeCombatState(
       archer,
-      pending = Some(PendingAbilityEffect.IgnoreDefenseNextAttack)
+      enemy = tankGoblin.copy(defense = 20),
+      pending = Some(PendingAbilityEffect.Empowered(150, true, true))
     )
 
-    val (nextState, log, _) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
+    val (nextState, log, events) = resolver.resolve(state, CombatAction(CombatActionType.Attack))
 
     nextState match {
       case cs: CombatState =>
         assertEquals(cs.combat.pendingAbility, None)
         assert(log.hasKey("log.combat.abilityActivates"), s"missing activation log: $log")
-      case _: ExplorationState =>
-        // Enemy may have died, that's fine too
-        assert(log.hasKey("log.combat.abilityActivates"), s"missing activation log: $log")
+        val dealt = 500 - cs.combat.enemy.hp
+        assert(dealt >= 118 && dealt <= 130, s"expected 118 to 130 damage, got $dealt")
+        assert(events.exists { case GameEvent.DamageDealt(false, _, true) => true; case _ => false }, s"expected a crit: $events")
       case other =>
         fail(s"unexpected state: ${other.getClass.getSimpleName}")
     }
@@ -259,10 +273,10 @@ class AbilitySuite extends FunSuite:
   // Arcane Blast (Mage)
   // -----------------------------------------------------------------------
 
-  test("Arcane Blast: deals exactly 45 flat damage regardless of enemy defense") {
+  test("Arcane Blast: deals 250% of the attack regardless of enemy defense") {
     val resolver = freshResolver
-    // High-defense enemy to prove defense is bypassed
-    val highDefenseEnemy = tankGoblin.copy(defense = 20, hp = 100)
+    // High-defense enemy to prove defense is bypassed. Attack is 5 + 500 / 10 = 55: 137.5 rounds to 138.
+    val highDefenseEnemy = tankGoblin.copy(defense = 20, hp = 200)
     val mage             = makePlayer(ClassId.Mage, resource = 80, resourceMax = 80)
     val state            = makeCombatState(mage, enemy = highDefenseEnemy)
 
@@ -270,13 +284,25 @@ class AbilitySuite extends FunSuite:
 
     nextState match {
       case cs: CombatState =>
-        assertEquals(cs.combat.enemy.hp, 55) // 100 - 45 exactly
+        assertEquals(cs.combat.enemy.hp, 62) // 200 - 138 exactly
         assert(log.hasKey("log.combat.abilityBlast"), s"missing activation log: $log")
       case other =>
         fail(
-          s"expected CombatState (enemy should survive 45 damage at 100 HP), got ${other.getClass.getSimpleName}"
+          s"expected CombatState (enemy should survive 138 damage at 200 HP), got ${other.getClass.getSimpleName}"
         )
     }
+  }
+
+  test("Arcane Blast: grows with the attack stat") {
+    val resolver = freshResolver
+    val weak     = makePlayer(ClassId.Mage, resource = 80, resourceMax = 80, maxHp = 100, hp = 100) // attack 15
+    val strong   = makePlayer(ClassId.Mage, resource = 80, resourceMax = 80)                         // attack 55
+    def dealt(p: Player): Int =
+      resolver.resolve(makeCombatState(p), CombatAction(CombatActionType.Ability))._1 match
+        case cs: CombatState => 500 - cs.combat.enemy.hp
+        case other           => fail(s"expected CombatState, got ${other.getClass.getSimpleName}")
+    assertEquals(dealt(weak), 38) // 15 x 2.5 = 37.5
+    assertEquals(dealt(strong), 138)
   }
 
   test("Arcane Blast: kills enemy and returns ExplorationState") {

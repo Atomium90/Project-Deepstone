@@ -160,7 +160,7 @@ class RiskyPerkSuite extends FunSuite:
     assertEquals(next.asInstanceOf[CombatState].player.hp, 94) // 50 + 40 * (100 + 50 - 40) / 100 = 50 + 44
 
   private val ability = AbilityDef(ClassId.Warrior, id = "test_ability", name = "Test Strike", cost = 40,
-                                   resourceName = "Rage", description = "d", effect = AbilityEffect.FlatDamage(1)
+                                   resourceName = "Rage", description = "d", effect = AbilityEffect.AttackScaledDamage(1)
   )
 
   test("a risky perk makes abilities cost more, and the resource is deducted at the new cost"):

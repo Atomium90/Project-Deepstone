@@ -40,11 +40,31 @@ import roguelite.game.items.{
 
 import scala.collection.mutable
 
-/** How the bot plays. The defaults are the "ordinary player" the spike is calibrated on: ability as
-  * soon as it can be paid, a plain attack otherwise, a healing potion when the HP run low.
+/** When the bot casts its class ability. */
+enum AbilityRule:
+  /** As soon as it can be paid: a player in a hurry. */
+  case Asap
+
+  /** Only when the fight will last: against an Elite, a MiniBoss or a Boss, or an enemy that a
+    * plain attack would not kill in two hits. A cast that deals no damage on its own turn (the
+    * deferred abilities) is wasted on an enemy that dies before it pays.
+    */
+  case WhenLong
+
+object AbilityRule:
+  def parse(text: String): Either[String, AbilityRule] = text.toLowerCase match
+    case "asap"                    => Right(Asap)
+    case "when-long" | "whenlong" => Right(WhenLong)
+    case other                     => Left(s"--policy wants asap or when-long, got '$other'")
+
+/** How the bot plays. The defaults are the "ordinary player" the spike is calibrated on: the ability
+  * when the fight will last (see [[AbilityRule]]), a plain attack otherwise, a healing potion when
+  * the HP run low.
   *
   * @param healBelowPercent
   *   A healing potion is drunk when HP fall under this percentage of the maximum.
+  * @param abilityRule
+  *   When the class ability is cast.
   * @param usePowerPotions
   *   Buff, damage and resource potions are drunk in the fights that matter (Elite, MiniBoss, Boss).
   * @param clearRooms
@@ -57,6 +77,7 @@ import scala.collection.mutable
   */
 final case class BotPolicy(
     healBelowPercent: Int = 40,
+    abilityRule: AbilityRule = AbilityRule.WhenLong,
     usePowerPotions: Boolean = true,
     clearRooms: Boolean = true,
     openChests: Boolean = true,
@@ -223,7 +244,10 @@ final class Bot(world: SimWorld, policy: BotPolicy):
         cost.exists(player.resourceCurrent < _) && combat.pendingAbility.isEmpty
       case _ => false
     val power = if policy.usePowerPotions && mattering then has(usefulNow) else None
-    val canCast = combat.pendingAbility.isEmpty && cost.exists(player.resourceCurrent >= _)
+    val plainHit = (world.stats.attack(player) - combat.enemy.defense).max(1)
+    val lasting  = mattering || combat.enemy.hp > 2 * plainHit
+    val worthCasting = policy.abilityRule == AbilityRule.Asap || lasting
+    val canCast = worthCasting && combat.pendingAbility.isEmpty && cost.exists(player.resourceCurrent >= _)
 
     heal.map(drink)
       .orElse(power.map(drink))

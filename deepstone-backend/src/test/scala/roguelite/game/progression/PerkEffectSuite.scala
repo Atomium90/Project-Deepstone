@@ -171,7 +171,7 @@ class PerkEffectSuite extends FunSuite:
                                        cost = 40,
                                        resourceName = "Rage",
                                        description = "test",
-                                       effect = AbilityEffect.FlatDamage(1)
+                                       effect = AbilityEffect.AttackScaledDamage(1)
   )
 
   // DEFEND-only so a Warrior's +10 Rage-on-hit gain never confounds the resourceCurrent assertion.

@@ -63,7 +63,7 @@ enum ConsumableEffect:
   case AttackBuff(percent: Int, turns: Int)
 
   /** Deal fixed damage straight to the enemy in combat: no crit roll, no defense mitigation, same
-    * pattern as Mage's Arcane Blast ability ([[AbilityEffect.FlatDamage]]).
+    * pattern as Mage's Arcane Blast ability ([[AbilityEffect.AttackScaledDamage]]).
     */
   case FlatDamage(amount: Int)
 

@@ -625,3 +625,27 @@ class ContentIntegritySuite extends CatsEffectSuite:
             assert(!bosses.exists(_.id.contains('#')),
                    s"${tier.difficulty}, seed $seed: the same Boss room was drawn twice"
             )
+
+  // Class parity: affinity doubles a matching armor for every class, so the same base armor in the
+  // starting kits and the same ceiling over each class's own armors keep one class from being tankier
+  // by data alone (the Warrior's heavy armor and shields were worth twice the others' and won Hard
+  // every time). A deliberate change of one class's tankiness has to change these numbers on purpose.
+  test("the starting kit armor is the same for every class, give or take one point"):
+    for
+      items   <- ItemLoader.loadAll()
+      classes <- ClassLoader.loadAll()
+    yield
+      val kitArmor = classes.values.toList.map: cd =>
+        cd.classId -> cd.startingKit.flatMap(items.get).collect { case a: Armor => a.defenseBonus }.sum
+      val values = kitArmor.map(_._2)
+      assert(values.max - values.min <= 1, s"starting kit armor per class: $kitArmor")
+
+  test("the best armor of a class is never more than two points above another class's"):
+    for
+      items   <- ItemLoader.loadAll()
+      classes <- ClassLoader.loadAll()
+    yield
+      val best = classes.values.toList.map: cd =>
+        cd.classId -> items.values.toList.collect { case a: Armor if a.typeTag.exists(cd.affinityTags.contains) => a.defenseBonus }.maxOption.getOrElse(0)
+      val values = best.map(_._2)
+      assert(values.max - values.min <= 2, s"best armor per class: $best")

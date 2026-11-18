@@ -18,9 +18,14 @@ final case class SimOptions(
     profile: SimProfile = SimProfile.Fresh,
     perkId: Option[String] = None,
     riskyPerkId: Option[String] = None,
+    grid: Boolean = false,
+    allProfiles: Boolean = false,
     out: Path = Paths.get("target", "sim"),
     policy: BotPolicy = BotPolicy()
 ):
+
+  /** The save stages a grid plays: every one with `--profile all`, else the chosen one. */
+  def gridProfiles: List[SimProfile] = if allProfiles then SimProfile.values.toList else List(profile)
 
   /** What each run of this simulation plays. */
   def setup: SimSetup =
@@ -29,11 +34,16 @@ final case class SimOptions(
 object SimOptions:
 
   /** Reads `--runs N --seed S --class warrior|archer|mage --difficulty easy|normal|hard|hardcore
-    * --profile fresh|early|mid|late --perk ID --risky ID --heal PERCENT --out DIR`.
+    * --profile fresh|early|mid|late|all --perk ID --risky ID --heal PERCENT --grid --out DIR`.
+    * `--grid` plays every class on every tier (so `--class` and `--difficulty` are not read) and
+    * `--profile all` is only for a grid.
     */
   def parse(args: List[String]): Either[String, SimOptions] =
     def go(rest: List[String], options: SimOptions): Either[String, SimOptions] = rest match
-      case Nil => Right(options)
+      case Nil if options.allProfiles && !options.grid => Left("--profile all only makes sense with --grid")
+      case Nil                                         => Right(options)
+      case "--grid" :: tail                            => go(tail, options.copy(grid = true))
+      case "--profile" :: "all" :: tail                => go(tail, options.copy(allProfiles = true))
       case "--runs" :: v :: tail       => int(v, "--runs").flatMap(n => go(tail, options.copy(runs = n)))
       case "--seed" :: v :: tail       => v.toLongOption.toRight(s"--seed wants a number, got '$v'").flatMap(s => go(tail, options.copy(seed = s)))
       case "--class" :: v :: tail      => classOf(v).flatMap(c => go(tail, options.copy(classId = c)))
@@ -74,6 +84,21 @@ object BalanceSim:
   def run(args: List[String]): IO[ExitCode] =
     SimOptions.parse(args) match
       case Left(error) => IO.println(error).as(ExitCode.Error)
+      case Right(options) if options.grid =>
+        SimWorld.load().flatMap:
+          world =>
+            for
+              cells <- IO.blocking(SimGrid.run(world, options, options.gridProfiles))
+              _ <- IO.blocking:
+                cells.foreach:
+                  cell =>
+                    val dir = options.out.resolve(SimGrid.folder(cell.setup))
+                    SimCsv.write(dir, cell.result)
+                    java.nio.file.Files.writeString(dir.resolve("report.md"), SimReport.render(cell.result, header(options, cell.setup)))
+                java.nio.file.Files.writeString(options.out.resolve("grid.md"), SimGrid.render(cells, options))
+              _ <- IO.println(s"${cells.size} cells of ${options.runs} runs written to ${options.out.toAbsolutePath} (see grid.md)")
+            yield ExitCode.Success
+
       case Right(options) =>
         SimWorld.load().flatMap:
           world =>

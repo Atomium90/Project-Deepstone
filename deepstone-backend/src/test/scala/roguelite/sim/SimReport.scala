@@ -5,12 +5,12 @@ import java.util.Locale
 /** Turns the three tables of a simulation into a readable Markdown report. */
 object SimReport:
 
-  private def pct(part: Int, whole: Int): String =
+  private[sim] def pct(part: Int, whole: Int): String =
     if whole == 0 then "-" else String.format(Locale.ROOT, "%.1f%%", Double.box(100.0 * part / whole))
 
   private def fmt(value: Double): String = String.format(Locale.ROOT, "%.1f", Double.box(value))
 
-  private def mean(xs: Seq[Int]): String = if xs.isEmpty then "-" else fmt(xs.sum.toDouble / xs.size)
+  private[sim] def mean(xs: Seq[Int]): String = if xs.isEmpty then "-" else fmt(xs.sum.toDouble / xs.size)
 
   /** The value at the given percentile (0-100) of a sorted copy of `xs`. */
   private def percentile(xs: Seq[Int], p: Int): String =
@@ -19,7 +19,7 @@ object SimReport:
       val sorted = xs.sorted
       sorted(math.min(sorted.size - 1, (p / 100.0 * sorted.size).toInt)).toString
 
-  private def table(headers: List[String], rows: List[List[String]]): List[String] =
+  private[sim] def table(headers: List[String], rows: List[List[String]]): List[String] =
     if rows.isEmpty then List("_(nothing)_", "")
     else
       List(headers.mkString("| ", " | ", " |"), headers.map(_ => "---").mkString("| ", " | ", " |")) ++

@@ -23,6 +23,7 @@ final case class SimOptions(
     campaign: Boolean = false,
     campaigns: Int = 30,
     campaignRuns: Int = 80,
+    compare: Option[(Path, Path)] = None,
     out: Path = Paths.get("target", "sim"),
     policy: BotPolicy = BotPolicy()
 ):
@@ -41,13 +42,15 @@ object SimOptions:
     * `--grid` plays every class on every tier (so `--class` and `--difficulty` are not read) and
     * `--profile all` is only for a grid. `--campaign [--campaigns N] [--campaign-runs N]` lives
     * whole saves instead, run after run (see [[Campaign]]): only `--class`, `--seed`, `--heal` and
-    * `--out` count then.
+    * `--out` count then. `--compare BEFORE AFTER` reads two folders written by earlier simulations
+    * (one simulation each, or two grids) and writes `compare.md` to `--out` (see [[SimCompare]]).
     */
   def parse(args: List[String]): Either[String, SimOptions] =
     def go(rest: List[String], options: SimOptions): Either[String, SimOptions] = rest match
       case Nil if options.allProfiles && !options.grid => Left("--profile all only makes sense with --grid")
       case Nil                                         => Right(options)
       case "--grid" :: tail                            => go(tail, options.copy(grid = true))
+      case "--compare" :: before :: after :: tail      => go(tail, options.copy(compare = Some((Paths.get(before), Paths.get(after)))))
       case "--campaign" :: tail                        => go(tail, options.copy(campaign = true))
       case "--campaigns" :: v :: tail                  => int(v, "--campaigns").flatMap(n => go(tail, options.copy(campaigns = n)))
       case "--campaign-runs" :: v :: tail              => int(v, "--campaign-runs").flatMap(n => go(tail, options.copy(campaignRuns = n)))
@@ -92,6 +95,12 @@ object BalanceSim:
   def run(args: List[String]): IO[ExitCode] =
     SimOptions.parse(args) match
       case Left(error) => IO.println(error).as(ExitCode.Error)
+      case Right(options) if options.compare.isDefined =>
+        val (beforeDir, afterDir) = options.compare.get
+        IO.blocking(compareFolders(beforeDir, afterDir, options.out)).flatMap:
+          case Left(error) => IO.println(error).as(ExitCode.Error)
+          case Right(file) => IO.println(s"Comparison written to ${file.toAbsolutePath}").as(ExitCode.Success)
+
       case Right(options) if options.campaign =>
         SimWorld.load().flatMap:
           world =>
@@ -143,6 +152,22 @@ object BalanceSim:
     SimResult(played.map(_.row), played.flatMap(_.combats), played.flatMap(_.drops))
 
   def simulate(world: SimWorld, options: SimOptions): SimResult = simulate(world, options, options.setup)
+
+  /** Writes `compare.md` under `out` for two folders of simulations, or says what is wrong with them. */
+  def compareFolders(beforeDir: Path, afterDir: Path, out: Path): Either[String, Path] =
+    def check(dir: Path): Either[String, Map[String, SimResult]] =
+      if !java.nio.file.Files.isDirectory(dir) then Left(s"Not a folder: $dir")
+      else
+        val found = SimCompare.results(dir)
+        if found.isEmpty then Left(s"No simulation (runs.csv, combats.csv, drops.csv) under $dir") else Right(found)
+    for
+      before <- check(beforeDir)
+      after  <- check(afterDir)
+    yield
+      java.nio.file.Files.createDirectories(out)
+      val file = out.resolve("compare.md")
+      java.nio.file.Files.writeString(file, SimCompare.renderFolders(before, after, (beforeDir.toString, afterDir.toString)))
+      file
 
   /** `options.campaigns` saves of `options.campaignRuns` runs each (see [[Campaign]]). */
   def simulateCampaigns(world: SimWorld, options: SimOptions): List[Campaign.Step] =

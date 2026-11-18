@@ -6,7 +6,7 @@
     "rarity": "uncommon",
     "typeTag": "heavy",
     "setId": "light_soldier",
-    "defenseBonus": 8,
+    "defenseBonus": 4,
     "description": "Standard-issue plate, dependable and unremarkable.",
     "iconId": "steel_plate"
   },
@@ -39,7 +39,7 @@
     "rarity": "uncommon",
     "typeTag": "heavy",
     "setId": "light_soldier",
-    "defenseBonus": 5,
+    "defenseBonus": 2,
     "description": "Dented but unbroken after countless battles.",
     "iconId": "iron_shield"
   },
@@ -50,7 +50,7 @@
     "rarity": "uncommon",
     "typeTag": "heavy",
     "setId": "enraged_berserker",
-    "defenseBonus": 7,
+    "defenseBonus": 4,
     "description": "Scarred plating worn by those who never retreat.",
     "iconId": "berserker_armor"
   },
@@ -94,7 +94,7 @@
     "rarity": "uncommon",
     "typeTag": "ranged",
     "setId": "silent_archer",
-    "defenseBonus": 4,
+    "defenseBonus": 5,
     "description": "Thin and unassuming, built for silence over protection.",
     "iconId": "leather_cape"
   },
@@ -329,7 +329,7 @@
     "name": "Red Shield",
     "rarity": "common",
     "typeTag": "heavy",
-    "defenseBonus": 3,
+    "defenseBonus": 2,
     "description": "Painted red to hide the stains.",
     "iconId": "red_shield"
   },
@@ -339,7 +339,7 @@
     "name": "Wooden Shield",
     "rarity": "common",
     "typeTag": "heavy",
-    "defenseBonus": 2,
+    "defenseBonus": 1,
     "description": "Splinters more than it should, but it holds.",
     "iconId": "wooden_shield"
   },

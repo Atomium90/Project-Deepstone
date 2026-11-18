@@ -37,9 +37,9 @@
   {
     "id": "big_spender",
     "label": "Big Spender",
-    "description": "Spend 200 Shards total on upgrades.",
+    "description": "Spend 2000 Shards total on upgrades.",
     "displayOrder": 5,
-    "condition": { "type": "TotalShardsSpent", "amount": 200 }
+    "condition": { "type": "TotalShardsSpent", "amount": 2000 }
   },
   {
     "id": "key_master",

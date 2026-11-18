@@ -439,7 +439,7 @@ class DatabaseSuite extends CatsEffectSuite:
 
   test("MetaProgression.purchase deducts cost and records upgrade") {
     val meta = MetaProgression(currency = 80, unlockedUpgrades = Set.empty)
-    meta.purchase("hp_boost_1", testUpgradeDefs) match
+    meta.purchase("hp_boost_1", testUpgradeDefs, AchievementStats.empty) match
       case Right(newMeta) =>
         assertEquals(newMeta.currency, 50) // 80 - 30
         assert(newMeta.isUnlocked("hp_boost_1"))
@@ -448,21 +448,21 @@ class DatabaseSuite extends CatsEffectSuite:
 
   test("MetaProgression.purchase fails when already unlocked") {
     val meta = MetaProgression(currency = 200, unlockedUpgrades = Set("hp_boost_1"))
-    meta.purchase("hp_boost_1", testUpgradeDefs) match
+    meta.purchase("hp_boost_1", testUpgradeDefs, AchievementStats.empty) match
       case Left(msg) => assertEquals(msg.key, "log.shop.alreadyOwned")
       case Right(_)  => fail("expected Left for already-unlocked upgrade")
   }
 
   test("MetaProgression.purchase fails when currency is insufficient") {
     val meta = MetaProgression(currency = 10, unlockedUpgrades = Set.empty)
-    meta.purchase("hp_boost_1", testUpgradeDefs) match // costs 30
+    meta.purchase("hp_boost_1", testUpgradeDefs, AchievementStats.empty) match // costs 30
       case Left(msg) => assertEquals(msg.key, "log.shop.cantAfford")
       case Right(_)  => fail("expected Left for insufficient currency")
   }
 
   test("MetaProgression.purchase fails for unknown upgradeId") {
     val meta = MetaProgression(currency = 9999, unlockedUpgrades = Set.empty)
-    meta.purchase("nonexistent_upgrade", testUpgradeDefs) match
+    meta.purchase("nonexistent_upgrade", testUpgradeDefs, AchievementStats.empty) match
       case Left(msg) => assertEquals(msg.key, "log.shop.unknownUpgrade")
       case Right(_)  => fail("expected Left for unknown upgrade")
   }

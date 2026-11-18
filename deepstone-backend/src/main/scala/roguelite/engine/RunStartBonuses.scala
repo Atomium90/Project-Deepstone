@@ -76,6 +76,9 @@ final class RunStartBonuses(upgradeDefs: Map[String, UpgradeDef],
     case UpgradeEffect.FlatAttackBoost(amount) =>
       player.copy(bonusAttack = player.bonusAttack + amount)
 
+    case UpgradeEffect.FlatDefenseBoost(amount) =>
+      player.copy(bonusDefense = player.bonusDefense + amount)
+
     case UpgradeEffect.GuaranteedChestRarity(minRarity) =>
       player.copy(chestRarityFloor = Some(minRarity))
 

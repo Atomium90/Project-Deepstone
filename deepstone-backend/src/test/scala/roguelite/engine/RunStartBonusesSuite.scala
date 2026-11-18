@@ -45,6 +45,8 @@ class RunStartBonusesSuite extends CatsEffectSuite:
                 assertEquals(player.potionCapacity, Player.UpgradedPotionCapacity, upgrade.id)
               case UpgradeEffect.FlatAttackBoost(n) =>
                 assertEquals(player.bonusAttack, base.bonusAttack + n, upgrade.id)
+              case UpgradeEffect.FlatDefenseBoost(n) =>
+                assertEquals(player.bonusDefense, base.bonusDefense + n, upgrade.id)
               case UpgradeEffect.GuaranteedChestRarity(rarity: Rarity) =>
                 assertEquals(player.chestRarityFloor, Some(rarity), upgrade.id)
               case UpgradeEffect.StartingItem(_) =>

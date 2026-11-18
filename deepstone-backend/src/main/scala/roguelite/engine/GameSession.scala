@@ -561,8 +561,9 @@ class GameSession private (
       state <- stateRef.get
       meta  <- metaRef.get
       shut  <- storyRef.get.map(_.shopClosed)
+      stats <- achievementRef.get.map(_.stats)
       // Once the light is refused the altar is shut for good, whatever the hub shows.
-      purchase = if shut then Left(LogLine.of("log.shop.closed")) else meta.purchase(upgradeId, upgradeDefs)
+      purchase = if shut then Left(LogLine.of("log.shop.closed")) else meta.purchase(upgradeId, upgradeDefs, stats)
       update <- purchase match
         case Left(err) =>
           IO.pure(state.toStateUpdate(List(err)))
@@ -710,7 +711,8 @@ object GameSession:
         perkDefs = perkDefs,
         difficultyDefs = difficultyDefs,
         sceneDefs = sceneDefs,
-        npcDefs = npcDefs
+        npcDefs = npcDefs,
+        upgradeDefs = upgradeDefs
       )
     yield new GameSession(stateRef,
                           metaRef,

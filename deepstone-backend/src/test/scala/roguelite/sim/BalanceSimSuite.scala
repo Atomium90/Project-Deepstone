@@ -103,6 +103,24 @@ class BalanceSimSuite extends CatsEffectSuite:
         assert(setup(Difficulty.Hard, None, Some(ordinary)).isLeft, "an ordinary perk is not a risky one")
         assert(setup(Difficulty.Normal, None, Some(risky)).isLeft, "a risky perk only exists on Hard")
 
+  test("a grid plays every class on every tier, once per stage asked for"):
+    SimWorld.load().map:
+      world =>
+        val opts  = options(runs = 2)
+        val cells = SimGrid.run(world, opts, List(SimProfile.Fresh, SimProfile.Late))
+        assertEquals(cells.size, 2 * ClassId.values.length * SimGrid.Tiers.size)
+        assertEquals(cells.map(_.setup).distinct.size, cells.size)
+        assert(cells.forall(_.runs.size == 2))
+        assertEquals(cells.map(c => SimGrid.folder(c.setup)).distinct.size, cells.size, "every cell has a folder of its own")
+        val text = SimGrid.render(cells, opts)
+        List("# Balance grid", "## fresh save", "## late save", "warrior", "archer", "mage", "hardcore").foreach:
+          part => assert(text.contains(part), s"missing: $part")
+
+  test("--grid and --profile all are read, and all is refused outside a grid"):
+    assertEquals(SimOptions.parse(List("--grid", "--profile", "all")).map(o => (o.grid, o.gridProfiles)), Right((true, SimProfile.values.toList)))
+    assertEquals(SimOptions.parse(List("--grid", "--profile", "mid")).map(_.gridProfiles), Right(List(SimProfile.Mid)))
+    assert(SimOptions.parse(List("--profile", "all")).isLeft)
+
   test("the options are read from the command line"):
     val parsed = SimOptions.parse(
       List("--runs", "5", "--seed", "9", "--class", "Mage", "--difficulty", "hard", "--profile", "LATE", "--perk", "heavy_hand",

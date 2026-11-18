@@ -58,7 +58,7 @@ enum Difficulty:
   /** Multiplier applied to enemy maxHp/attack/defense/xpReward at instance creation. */
   def statMultiplier: Double = this match
     case Difficulty.Easy   => 0.75
-    case Difficulty.Normal => 1.0
+    case Difficulty.Normal => 1.15
     case Difficulty.Hard     => 1.25
     case Difficulty.Hardcore => 1.5
 

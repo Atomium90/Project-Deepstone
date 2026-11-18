@@ -8,7 +8,7 @@ import java.nio.file.Files
 class BalanceSimSuite extends CatsEffectSuite:
 
   private def options(classId: ClassId = ClassId.Warrior, difficulty: Difficulty = Difficulty.Easy, runs: Int = 12) =
-    SimOptions(runs = runs, seed = 7L, classId = classId, difficulty = difficulty)
+    SimOptions(runs = runs, seed = 7L, classId = classId, difficulty = Some(difficulty))
 
   test("the same options always give the same tables"):
     SimWorld.load().map:
@@ -58,16 +58,70 @@ class BalanceSimSuite extends CatsEffectSuite:
         assertEquals(Files.readAllLines(dir.resolve("combats.csv")).size, 1 + result.combats.size)
         assertEquals(Files.readAllLines(dir.resolve("drops.csv")).size, 1 + result.drops.size)
 
+  test("every upgrade a profile names exists in the shop"):
+    SimWorld.load().map:
+      world =>
+        val named = SimProfile.EarlyUpgrades ++ SimProfile.MidUpgrades
+        assertEquals(named.filterNot(world.upgradeDefs.contains), Set.empty[String])
+        ClassId.values.foreach:
+          classId =>
+            assert(world.kitUpgrade(classId).nonEmpty, s"no kit upgrade for $classId")
+            assertEquals(SimProfile.Late.upgrades(world, classId), world.upgradeDefs.keySet)
+
+  test("a later stage starts with more: the upgrades it owns are applied as the server applies them"):
+    SimWorld.load().map:
+      world =>
+        val byProfile = SimProfile.values.toList.map:
+          profile =>
+            val setup  = SimSetup(ClassId.Warrior, Difficulty.Easy, profile)
+            val result = BalanceSim.simulate(world, options(runs = 5), setup)
+            profile -> result.runs.map(_.maxHp).sum
+        val maxHps = byProfile.map(_._2)
+        assertEquals(maxHps, maxHps.sorted, s"max HP should not shrink from one stage to the next: $byProfile")
+        assert(maxHps.last > maxHps.head, s"$byProfile")
+
+  test("a run that takes no blessing starts without the upgrades whatever the profile"):
+    SimWorld.load().map:
+      world =>
+        val fresh = BalanceSim.simulate(world, options(runs = 4), SimSetup(ClassId.Warrior, Difficulty.Hardcore, SimProfile.Fresh))
+        val late  = BalanceSim.simulate(world, options(runs = 4), SimSetup(ClassId.Warrior, Difficulty.Hardcore, SimProfile.Late))
+        // The same seeds play the very same runs: only the name of the profile differs.
+        assertEquals(late.runs.map(_.copy(profile = "")), fresh.runs.map(_.copy(profile = "")))
+        assertEquals(late.combats, fresh.combats)
+        assertEquals(late.drops, fresh.drops)
+
+  test("a perk is checked against the catalog before a run"):
+    SimWorld.load().map:
+      world =>
+        val ordinary = world.perkDefs.values.find(!_.risky).get.id
+        val risky    = world.perkDefs.values.find(_.risky).get.id
+        def setup(difficulty: Difficulty, perk: Option[String], riskyPerk: Option[String]) =
+          SimSetup(ClassId.Warrior, difficulty, SimProfile.Fresh, perk, riskyPerk).validate(world)
+        assert(setup(Difficulty.Hard, Some(ordinary), Some(risky)).isRight)
+        assert(setup(Difficulty.Normal, Some("nonsense"), None).isLeft)
+        assert(setup(Difficulty.Normal, Some(risky), None).isLeft, "a risky perk is not an ordinary one")
+        assert(setup(Difficulty.Hard, None, Some(ordinary)).isLeft, "an ordinary perk is not a risky one")
+        assert(setup(Difficulty.Normal, None, Some(risky)).isLeft, "a risky perk only exists on Hard")
+
   test("the options are read from the command line"):
     val parsed = SimOptions.parse(
-      List("--runs", "5", "--seed", "9", "--class", "Mage", "--difficulty", "hard", "--heal", "55", "--out", "somewhere")
+      List("--runs", "5", "--seed", "9", "--class", "Mage", "--difficulty", "hard", "--profile", "LATE", "--perk", "heavy_hand",
+           "--risky", "hunted", "--heal", "55", "--out", "somewhere")
     )
     assertEquals(parsed.map(_.runs), Right(5))
     assertEquals(parsed.map(_.seed), Right(9L))
     assertEquals(parsed.map(_.classId), Right(ClassId.Mage))
-    assertEquals(parsed.map(_.difficulty), Right(Difficulty.Hard))
+    assertEquals(parsed.map(_.difficulty), Right(Some(Difficulty.Hard)))
+    assertEquals(parsed.map(_.profile), Right(SimProfile.Late))
+    assertEquals(parsed.map(_.perkId), Right(Some("heavy_hand")))
+    assertEquals(parsed.map(_.riskyPerkId), Right(Some("hunted")))
     assertEquals(parsed.map(_.policy.healBelowPercent), Right(55))
     assertEquals(parsed.map(_.out.toString), Right("somewhere"))
+
+  test("without --difficulty a save plays the tier of its stage"):
+    SimProfile.values.foreach:
+      profile => assertEquals(SimOptions(profile = profile).setup.difficulty, profile.defaultDifficulty)
+    assertEquals(SimOptions(difficulty = Some(Difficulty.Hard), profile = SimProfile.Fresh).setup.difficulty, Difficulty.Hard)
 
   test("no option at all gives the spike's defaults"):
     assertEquals(SimOptions.parse(Nil), Right(SimOptions()))
@@ -76,5 +130,6 @@ class BalanceSimSuite extends CatsEffectSuite:
     assert(SimOptions.parse(List("--runs", "many")).isLeft)
     assert(SimOptions.parse(List("--class", "paladin")).isLeft)
     assert(SimOptions.parse(List("--difficulty", "nightmare")).isLeft)
+    assert(SimOptions.parse(List("--profile", "ancient")).isLeft)
     assert(SimOptions.parse(List("--bogus")).isLeft)
     assert(SimOptions.parse(List("--runs")).isLeft)

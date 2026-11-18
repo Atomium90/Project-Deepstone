@@ -99,3 +99,24 @@ class DungeonSuite extends FunSuite:
     val boss = makeRoom("boss", RoomType.Boss)
     val dun  = Dungeon(rooms = Map("boss" -> boss), currentRoomId = "boss")
     assert(dun.isAtBoss)
+
+  // -- section index ---------------------------------------------------------
+
+  def sectionedDungeon: Dungeon =
+    val types = List("c1" -> RoomType.Combat, "rest1" -> RoomType.Rest, "c2" -> RoomType.Combat,
+                     "rest2" -> RoomType.Rest, "c3" -> RoomType.Combat)
+    Dungeon(rooms = types.map((id, t) => id -> makeRoom(id, t)).toMap, currentRoomId = "c1")
+
+  test("sectionIndex is 0 until a Rest room has been left"):
+    val atRest = sectionedDungeon.navigateTo("rest1")
+    assertEquals(atRest.map(_.sectionIndex), Right(0))
+
+  test("sectionIndex counts the Rest rooms the player has left"):
+    val afterOne = sectionedDungeon.navigateTo("rest1").flatMap(_.navigateTo("c2"))
+    assertEquals(afterOne.map(_.sectionIndex), Right(1))
+    val afterTwo = afterOne.flatMap(_.navigateTo("rest2")).flatMap(_.navigateTo("c3"))
+    assertEquals(afterTwo.map(_.sectionIndex), Right(2))
+
+  test("sectionIndex never counts a Rest room twice"):
+    val back = sectionedDungeon.navigateTo("rest1").flatMap(_.navigateTo("c2")).flatMap(_.navigateTo("rest1")).flatMap(_.navigateTo("c2"))
+    assertEquals(back.map(_.sectionIndex), Right(1))

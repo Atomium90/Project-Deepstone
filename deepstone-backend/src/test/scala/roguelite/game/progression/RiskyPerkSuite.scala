@@ -96,9 +96,10 @@ class RiskyPerkSuite extends FunSuite:
   test("a risky perk raises an enemy's HP and attack and nothing else"):
     val base   = EnemyInstance.fromStats("e", goblin, Difficulty.Normal, isElite = false)
     val tougher = EnemyInstance.fromStats("e", goblin, Difficulty.Normal, isElite = false, extraPercent = 25)
-    assertEquals(tougher.maxHp, 25)
-    assertEquals(tougher.hp, 25)
-    assertEquals(tougher.attack, 10)
+    val mult = Difficulty.Normal.statMultiplier * 1.25
+    assertEquals(tougher.maxHp, math.round(goblin.maxHp * mult).toInt)
+    assertEquals(tougher.hp, tougher.maxHp)
+    assertEquals(tougher.attack, math.round(goblin.attack * mult).toInt)
     assertEquals(tougher.defense, base.defense)
     assertEquals(tougher.xpReward, base.xpReward)
 

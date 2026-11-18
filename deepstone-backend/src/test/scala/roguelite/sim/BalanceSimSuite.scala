@@ -136,6 +136,26 @@ class BalanceSimSuite extends CatsEffectSuite:
     assertEquals(parsed.map(_.policy.healBelowPercent), Right(55))
     assertEquals(parsed.map(_.out.toString), Right("somewhere"))
 
+  test("--policy picks when the bot casts, and the patient bot is the default"):
+    assertEquals(SimOptions.parse(Nil).map(_.policy.abilityRule), Right(AbilityRule.WhenLong))
+    assertEquals(SimOptions.parse(List("--policy", "asap")).map(_.policy.abilityRule), Right(AbilityRule.Asap))
+    assertEquals(SimOptions.parse(List("--policy", "when-long")).map(_.policy.abilityRule), Right(AbilityRule.WhenLong))
+    assert(SimOptions.parse(List("--policy", "never")).isLeft)
+
+  test("the patient bot casts in fewer fights than the one in a hurry, and in every fight that matters"):
+    SimWorld.load().map:
+      world =>
+        def casts(rule: AbilityRule, kinds: Set[String]) =
+          val o      = options(ClassId.Warrior, Difficulty.Normal, runs = 30).copy(policy = BotPolicy(abilityRule = rule))
+          val fights = BalanceSim.simulate(world, o).combats.filter(c => kinds.contains(c.kind))
+          (fights.count(_.abilities > 0), fights.size)
+        val all = Set("normal", "elite", "miniboss", "boss")
+        val (hurried, _) = casts(AbilityRule.Asap, all)
+        val (patient, _) = casts(AbilityRule.WhenLong, all)
+        assert(patient < hurried, s"patient $patient, hurried $hurried")
+        val (bossCasts, bossFights) = casts(AbilityRule.WhenLong, Set("boss"))
+        assert(bossFights > 0 && bossCasts > 0, s"boss fights $bossFights, cast in $bossCasts")
+
   test("without --difficulty a save plays the tier of its stage"):
     SimProfile.values.foreach:
       profile => assertEquals(SimOptions(profile = profile).setup.difficulty, profile.defaultDifficulty)

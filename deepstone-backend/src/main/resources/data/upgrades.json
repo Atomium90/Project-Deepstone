@@ -118,5 +118,49 @@
     "icon": "🛡",
     "category": "meta",
     "effect": { "type": "UnlockStartingKit", "classId": "mage" }
+  },
+  {
+    "id": "hp_boost_3",
+    "label": "Iron Constitution III",
+    "description": "+15 max HP for the next run",
+    "cost": 1100,
+    "displayOrder": 12,
+    "icon": "❤",
+    "category": "stat",
+    "effect": { "type": "MaxHpBoost", "amount": 15 },
+    "requires": { "winsAt": "hard", "wins": 3 }
+  },
+  {
+    "id": "weapon_mastery_2",
+    "label": "Weapon Mastery II",
+    "description": "+2 flat attack for every run",
+    "cost": 1400,
+    "displayOrder": 13,
+    "icon": "⚔",
+    "category": "stat",
+    "effect": { "type": "FlatAttackBoost", "amount": 2 },
+    "requires": { "winsAt": "hard", "wins": 5 }
+  },
+  {
+    "id": "armor_mastery",
+    "label": "Armor Mastery",
+    "description": "+1 flat defense for every run",
+    "cost": 1500,
+    "displayOrder": 14,
+    "icon": "🛡",
+    "category": "stat",
+    "effect": { "type": "FlatDefenseBoost", "amount": 1 },
+    "requires": { "winsAt": "hard", "wins": 7 }
+  },
+  {
+    "id": "hp_boost_4",
+    "label": "Iron Constitution IV",
+    "description": "+20 max HP for the next run",
+    "cost": 2000,
+    "displayOrder": 15,
+    "icon": "❤",
+    "category": "stat",
+    "effect": { "type": "MaxHpBoost", "amount": 20 },
+    "requires": { "winsAt": "hard", "wins": 10 }
   }
 ]

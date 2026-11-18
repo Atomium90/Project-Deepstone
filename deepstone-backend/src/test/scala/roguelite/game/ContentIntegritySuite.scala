@@ -668,3 +668,15 @@ class ContentIntegritySuite extends CatsEffectSuite:
       val kits = upgrades.values.filter(_.id.endsWith("_kit")).toList
       assert(kits.nonEmpty, "no starting kit upgrade found")
       kits.foreach(k => assert(k.cost <= 50, s"${k.id} costs ${k.cost}, more than a first Easy win pays"))
+
+  test("a late-game upgrade only asks for victories on a tier the shop can lead to"):
+    for
+      tiers    <- DifficultyLoader.loadAll()
+      upgrades <- UpgradeLoader.loadAll()
+    yield
+      val late = upgrades.values.filter(_.requires.isDefined).toList
+      assert(late.nonEmpty, "no late-game upgrade found")
+      late.foreach: u =>
+        val r = u.requires.get
+        assert(tiers.get(r.winsAt).exists(!_.storyLocked), s"${u.id} asks for wins on ${r.winsAt}, which the story alone opens")
+        assert(r.winsAt != Difficulty.Easy, s"${u.id} asks for wins on Easy, which can be farmed")

@@ -99,7 +99,7 @@ class StateMachine(roomPool: Map[String, Room],
           // Unlike lockedBehind, an un-purchased kit doesn't block the run - it just starts with
           // nothing instead of the class's usual weapon/armor. Every class needs its own kit
           // upgrade, including Warrior (which has no UnlockClass gate at all) - the two gates are
-          // independent concepts. A run that takes no blessing (Hardcore) starts with nothing either way.
+          // independent concepts. A run that takes no blessing (Hardcore) always starts with the basic kit.
           val kitUnlocked = upgradeDefs.values.exists {
             u => u.effect == UpgradeEffect.UnlockStartingKit(classId) && hub.meta.isUnlocked(u.id)
           }
@@ -133,9 +133,11 @@ class StateMachine(roomPool: Map[String, Room],
 
                   // Resolve starting kit: unknown typeIds are skipped, slot collisions are not
                   // expected. Skipped entirely (basePlayer unchanged) if this class's kit-unlock
-                  // upgrade hasn't been purchased, or if the run takes no blessing.
+                  // upgrade hasn't been purchased. A run that takes no blessing (Hardcore) always starts with
+                  // the basic kit: it is what the player wears, not an upgrade.
+                  val startsWithKit = !difficulty.usesBlessings || kitUnlocked
                   val playerWithKit =
-                    if !kitUnlocked || !difficulty.usesBlessings then basePlayer
+                    if !startsWithKit then basePlayer
                     else
                       classDef.startingKit.foldLeft(basePlayer):
                         (p, typeId) =>

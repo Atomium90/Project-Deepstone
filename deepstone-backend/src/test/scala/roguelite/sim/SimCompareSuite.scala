@@ -51,8 +51,10 @@ class SimCompareSuite extends CatsEffectSuite:
   test("buying the class kit is seen in the win rate, flagged as no luck, and the page leads with it"):
     SimWorld.load().map:
       world =>
-        val before = played(world, SimProfile.Fresh, Difficulty.Normal)
-        val after  = played(world, SimProfile.Early, Difficulty.Normal)
+        // On Hard the kit is the gap between about one win in six and every win, a change far past luck
+        // however the bot or the loot is tuned.
+        val before = played(world, SimProfile.Fresh, Difficulty.Hard)
+        val after  = played(world, SimProfile.Early, Difficulty.Hard)
         val win    = SimCompare.changes(before, after).find(_.label == "Win rate").get
         assertEquals(win.flag, "**")
         assert(win.z > 0 && win.delta.startsWith("+"), win.toString)

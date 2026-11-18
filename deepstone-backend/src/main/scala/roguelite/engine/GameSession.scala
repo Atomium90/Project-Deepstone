@@ -3,16 +3,15 @@ package roguelite.engine
 import cats.effect.IO
 import cats.effect.kernel.Ref
 import cats.syntax.foldable.*
-import roguelite.game.progression.{ MetaProgression, PerkEffect }
+import roguelite.game.progression.MetaProgression
 import roguelite.db.Database
 import roguelite.game.dungeon.{ Enemy, MinimapLayout, Npc, RoomType }
 import roguelite.game.items.Item
 import doobie.util.update
 import roguelite.game.progression.UpgradeDef
-import roguelite.game.progression.UpgradeEffect
 import roguelite.game.combat.AbilityDef
 import roguelite.game.core.{ GameEvent, LogLine }
-import roguelite.game.items.{ EquipmentResolver, PickupOutcome, SetDef }
+import roguelite.game.items.SetDef
 import roguelite.game.progression.{ AchievementChecker, AchievementDef, AchievementProgress, AchievementStats, DifficultyTierDef, DifficultyUnlocks }
 import roguelite.game.story.{ ChapterDef, DeathContext, Encounter, Ending, EndingRules, GodMoment, GodVoice, NpcDef, PendingScene, RunOutcome, SceneDef, StoryProgress, StoryRules, StorySelector, VoicePhase, VowRules }
 import roguelite.game.combat.CombatResolver
@@ -55,6 +54,9 @@ class GameSession private (
 
   /** The vow each NPC offers, from the scene catalog. */
   private val vowTypes = VowRules.vowTypes(sceneDefs)
+
+  /** What the owned upgrades and the perks taken change in the player as a run starts. */
+  private val runStartBonuses = RunStartBonuses(upgradeDefs, itemDefs, setDefs, perkDefs)
 
   /** Roll a fresh random subset of the perk catalog, offered until consumed by a `StartRun`
     * action or replaced by the next fresh hub entry, or nothing while perks are still locked. See
@@ -245,9 +247,9 @@ class GameSession private (
       case (_: HubState, exp: ExplorationState) =>
         metaRef.get.flatMap:
           meta =>
-            // The effects of the hub upgrades are blessings: a run that takes none keeps its player as it is.
-            // A risky perk's max HP malus comes last, so the hub's HP upgrades cannot undo it.
-            val boosted = if exp.difficulty.usesBlessings then applyPerkMaxHp(applyMetaBonuses(exp, meta)) else exp
+            // The effects of the hub upgrades are blessings (a run that takes none keeps its player as it
+            // is), and a risky perk's max HP malus comes last: see RunStartBonuses.
+            val boosted = runStartBonuses(exp, meta)
             stateRef.set(boosted) *> IO.pure((boosted, Nil))
 
       case (before: ExplorationState, after: ExplorationState)
@@ -624,63 +626,6 @@ class GameSession private (
         case _ =>
           IO.pure(state.toStateUpdate(List(LogLine.raw("Debug rooms can only be loaded from the hub or while exploring a debug room."))))
     yield update
-
-  /** Apply every unlocked upgrade's [[UpgradeEffect]] to the player at the start of a new run.
-    *
-    * Generic over the effect kind: adding a new upgrade only means adding an entry to
-    * `upgrades.json` (and, if it's a genuinely new *kind* of effect, one case here and in
-    * [[UpgradeEffect]]), never a change keyed by upgrade id.
-    */
-  /** The max HP malus (or bonus) of the perks the player took, applied at the start of the run. */
-  private def applyPerkMaxHp(state: ExplorationState): ExplorationState =
-    val percent = PerkDef.activeEffects(state.player, perkDefs).collect { case PerkEffect.MaxHpPercent(n) => n }.sum
-    if percent == 0 then state
-    else
-      val player = state.player
-      val maxHp  = math.max(1, math.round(player.maxHp * (100 + percent) / 100.0).toInt)
-      state.copy(player = player.copy(maxHp = maxHp, hp = math.min(player.hp, maxHp)))
-
-  private def applyMetaBonuses(state: ExplorationState, meta: MetaProgression): ExplorationState =
-    val effects       = meta.unlockedUpgrades.toList.flatMap(upgradeDefs.get).map(_.effect)
-    val boostedPlayer = effects.foldLeft(state.player)(applyUpgradeEffect)
-    state.copy(player = boostedPlayer)
-
-  private def applyUpgradeEffect(player: Player, effect: UpgradeEffect): Player = effect match
-    case UpgradeEffect.MaxHpBoost(amount) =>
-      player.copy(maxHp = player.maxHp + amount, hp = player.hp + amount)
-
-    case UpgradeEffect.ExtraPotionSlot =>
-      if player.potionBelt.length <= Player.BasePotionBeltSlots
-      then player.copy(potionBelt = player.potionBelt :+ None)
-      else player
-
-    case UpgradeEffect.ExtraPotionCapacity =>
-      player.copy(potionCapacity = Player.UpgradedPotionCapacity)
-
-    case UpgradeEffect.StartingItem(typeId) =>
-      itemDefs.get(typeId) match
-        case None => player
-        case Some(proto) =>
-          EquipmentResolver.resolvePickup(player, proto.withNewId, setDefs) match
-            case PickupOutcome.Equipped(p)      => p
-            case PickupOutcome.KeyCollected(p)  => p
-            case PickupOutcome.ChoicePending(_) => player // no room => silently skip
-            case PickupOutcome.Discarded(p)     => p
-
-    case UpgradeEffect.FlatAttackBoost(amount) =>
-      player.copy(bonusAttack = player.bonusAttack + amount)
-
-    case UpgradeEffect.GuaranteedChestRarity(minRarity) =>
-      player.copy(chestRarityFloor = Some(minRarity))
-
-    case UpgradeEffect.UnlockClass(_) =>
-      // Gates class selection at StartRun (see StateMachine); no player-state effect to apply.
-      player
-
-    case UpgradeEffect.UnlockStartingKit(_) =>
-      // Gates the starting-kit fold itself inside StateMachine's StartRun case (runs before
-      // applyMetaBonuses ever sees the player); no player-state effect to apply here.
-      player
 
 object GameSession:
 

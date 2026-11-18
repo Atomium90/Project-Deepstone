@@ -4,6 +4,7 @@ import roguelite.game.core.GameEvent
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path }
+import scala.jdk.CollectionConverters.*
 
 /** Where a run stood when something first happened: how much had been opened, killed and dropped. */
 final case class Milestone(chests: Int, kills: Int, drops: Int)
@@ -93,6 +94,49 @@ object SimCsv:
     put(dir.resolve("runs.csv"), runHeader, result.runs.map(runCells))
     put(dir.resolve("combats.csv"), combatHeader, result.combats.map(combatCells))
     put(dir.resolve("drops.csv"), dropHeader, result.drops.map(dropCells))
+
+  /** The three tables written by [[write]], read back: what a comparison of two simulations works from. */
+  def read(dir: Path): SimResult =
+    SimResult(table(dir.resolve("runs.csv")).map(toRun),
+              table(dir.resolve("combats.csv")).map(toCombat),
+              table(dir.resolve("drops.csv")).map(toDrop)
+    )
+
+  /** Whether `dir` holds the tables of one simulation. */
+  def isResult(dir: Path): Boolean = Files.exists(dir.resolve("runs.csv")) && Files.exists(dir.resolve("combats.csv")) && Files.exists(dir.resolve("drops.csv"))
+
+  private type Cells = Map[String, String]
+
+  private def table(path: Path): List[Cells] =
+    val lines = Files.readAllLines(path, StandardCharsets.UTF_8).asScala.toList.filter(_.nonEmpty)
+    lines match
+      case Nil => Nil
+      case headerLine :: rows =>
+        val header = headerLine.split(",", -1).toList
+        rows.map(row => header.zip(row.split(",", -1).toList).toMap)
+
+  private def toRun(c: Cells): RunRow =
+    val milestones = Milestone.Names.flatMap:
+      name =>
+        if c(s"${name}_chests").isEmpty then None
+        else Some(name -> Milestone(c(s"${name}_chests").toInt, c(s"${name}_kills").toInt, c(s"${name}_drops").toInt))
+    RunRow(c("run").toInt, c("seed").toLong, c("class"), c("difficulty"), c("profile"), c("outcome"), c("killedBy"),
+           c("section").toInt, c("roomsVisited").toInt, c("level").toInt, c("shards").toInt, c("actions").toInt,
+           c("combats").toInt, c("kills").toInt, c("eliteKills").toInt, c("chestsOpened").toInt, c("drops").toInt,
+           c("potionsUsed").toInt, c("maxHp").toInt, c("attack").toInt, c("defense").toInt, milestones.toMap
+    )
+
+  private def toCombat(c: Cells): CombatRow =
+    CombatRow(c("run").toInt, c("section").toInt, c("roomType"), c("kind"), c("enemy"), c("won").toBoolean,
+              c("turns").toInt, c("level").toInt, c("attack").toInt, c("defense").toInt, c("maxHp").toInt,
+              c("hpBefore").toInt, c("hpAfter").toInt, c("damageDealt").toInt, c("damageTaken").toInt,
+              c("crits").toInt, c("potions").toInt, c("abilities").toInt
+    )
+
+  private def toDrop(c: Cells): DropRow =
+    DropRow(c("run").toInt, c("section").toInt, c("source"), c("typeId"), c("kind"), c("rarity"), c("setId"),
+            c("outcome"), c("level").toInt, c("chestsOpened").toInt, c("kills").toInt, c("drops").toInt
+    )
 
   private def put(path: Path, header: List[String], rows: List[List[Any]]): Unit =
     val text = (header :: rows.map(_.map(_.toString))).map(_.mkString(",")).mkString("", "\n", "\n")

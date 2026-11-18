@@ -164,8 +164,13 @@
         });
     }
 
+    /** A late-game upgrade that still asks for victories before it can be bought. */
+    function isLocked(u: UpgradeView): boolean {
+        return !u.unlocked && !!u.requirement && u.requirement.winsDone < u.requirement.wins;
+    }
+
     function buyUpgrade(u: UpgradeView): void {
-        if (u.unlocked || shards < u.cost) return;
+        if (u.unlocked || isLocked(u) || shards < u.cost) return;
         client.send({ type: "HUB_ACTION", action: "BUYUPGRADE", upgradeId: u.id });
     }
 
@@ -305,6 +310,15 @@
                                 <div class="upgrade-info">
                                     <span class="upgrade-label">{$catalog.upgradeLabel(u)}</span>
                                     <span class="upgrade-desc">{$catalog.upgradeDescription(u)}</span>
+                                    {#if u.requirement && !u.unlocked && u.requirement.winsDone < u.requirement.wins}
+                                        <span class="upgrade-need">
+                                            {$t("hub.difficulty.needWins", {
+                                                tier: $t(`difficulty.${u.requirement.winsAt}.name`),
+                                                done: u.requirement.winsDone,
+                                                wins: u.requirement.wins,
+                                            })}
+                                        </span>
+                                    {/if}
                                 </div>
                             </div>
                             <div class="upgrade-action">
@@ -323,7 +337,7 @@
                                     </span>
                                     <button
                                         class="buy-btn"
-                                        disabled={shards < u.cost}
+                                        disabled={shards < u.cost || isLocked(u)}
                                         on:click={() => buyUpgrade(u)}
                                     >
                                         {$t("hub.buy")}
@@ -861,6 +875,11 @@
     .upgrade-label {
         font-size: 0.85rem;
         color: #ccc;
+    }
+
+    .upgrade-need {
+        font-size: 0.7rem;
+        color: #c9a24a;
     }
 
     .upgrade-desc {

@@ -240,12 +240,21 @@ export interface DamageEventView {
   crit: boolean;
 }
 
+/** The victories a late-game upgrade asks for before it can be bought: `winsDone` of `wins` on `winsAt`. */
+export interface UpgradeRequirementView {
+  winsAt: Difficulty;
+  wins: number;
+  winsDone: number;
+}
+
 export interface UpgradeView {
   id: string;
   cost: number;
   icon: string;
   category: UpgradeCategory;
   unlocked: boolean;
+  /** Only set for a late-game upgrade that asks for victories before it can be bought. */
+  requirement?: UpgradeRequirementView;
 }
 
 /** One run perk offered to the player, rolled fresh every HUB visit. */

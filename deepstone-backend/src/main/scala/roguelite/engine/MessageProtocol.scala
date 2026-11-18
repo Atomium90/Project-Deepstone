@@ -49,9 +49,10 @@ enum EndingAnswer:
 enum Difficulty:
   case Easy, Normal, Hard, Hardcore
 
-  /** Whether a run on this tier takes the god's blessings: the effects of the hub upgrades, the class's
-    * starting kit, a run perk, and the Shards its kills earn. The descent without the god takes none.
-    * What a class unlock gives is access, not power, and is kept.
+  /** Whether a run on this tier takes the god's blessings: the effects of the hub upgrades, a run perk,
+    * and the Shards its kills earn. The descent without the god takes none. What a class unlock gives is
+    * access, not power, and is kept; so are the late-game upgrades a save earned by winning on Hard, and
+    * the basic kit of the class, which is what the player wears rather than a blessing.
     */
   def usesBlessings: Boolean = this != Difficulty.Hardcore
 
@@ -60,7 +61,7 @@ enum Difficulty:
     case Difficulty.Easy   => 0.75
     case Difficulty.Normal => 1.15
     case Difficulty.Hard     => 1.25
-    case Difficulty.Hardcore => 1.5
+    case Difficulty.Hardcore => 1.375
 
   /** Number of sequential sections in a run, passed to [[roguelite.game.dungeon.DungeonBuilder.build]].
     * Every section follows the same fixed room template and ends in its own

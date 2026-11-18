@@ -4,7 +4,7 @@ import munit.CatsEffectSuite
 import roguelite.engine.{ ClassId, Difficulty, Direction, ExplorationState, PlayerFixtures, TransitionResult }
 import roguelite.game.combat.{ EnemyInstance, EnemyLoader }
 import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Dungeon, DungeonBuilder, Enemy, Entity, InteractionResolver, LockedDoor, MinimapBuilder, Npc, Room, RoomLoader, RoomType, Sanctuary, Tile }
-import roguelite.game.items.{ Accessory, Armor, ItemLoader, LootTable, SetLoader, Weapon }
+import roguelite.game.items.{ Accessory, Armor, Item, ItemLoader, LootTable, SetLoader, Weapon }
 import roguelite.game.progression.{ ClassLoader, DifficultyLoader }
 import roguelite.game.story.{ ChapterLoader, NpcLoader, StoryLoader }
 
@@ -43,15 +43,45 @@ class ContentIntegritySuite extends CatsEffectSuite:
                    s"${cd.classId} startingKit references unknown typeId '$typeId'"
             )
 
-  // Whether rollChest can return None depends only on whether its (ChestPool ∩ items.json) pool is
-  // non-empty - a static fact about the catalog, not something that varies by RNG draw (pickWeighted
-  // always succeeds once the pool's total weight is positive). One seeded call proves it as well as
-  // 200 would.
+  // Whether rollChest can return None depends only on whether items.json has an item of a rolled kind
+  // - a static fact about the catalog, not something that varies by RNG draw (pickWeighted always
+  // succeeds once the pool's total weight is positive). One seeded call proves it as well as 200
+  // would.
   test("rollChest never returns None against the real item catalog"):
     for items <- ItemLoader.loadAll()
     yield assert(LootTable.rollChest(items, Random(0), Difficulty.Normal).isDefined,
-                 "rollChest returned None - a ChestPool typeId is likely missing from items.json"
+                 "rollChest returned None - items.json has no weapon, armor, accessory or consumable"
     )
+
+  // Every drop of the game can come out of a chest, the Shrine too: no item is out of reach, and a
+  // class always has a way to find a piece of its own sets (a chest rolled with its affinity tags).
+  // A seeded sweep, deterministic: what it proves is that no kind or set is missing from the roll,
+  // which is a property of the weights, not of a lucky seed.
+  private def typeTagOf(item: Item): Option[String] = item match
+    case w: Weapon    => w.typeTag
+    case a: Armor     => a.typeTag
+    case a: Accessory => a.typeTag
+    case _            => None
+
+  test("chest rolls reach every weapon, armor, accessory and potion of the real catalog"):
+    for items <- ItemLoader.loadAll()
+    yield
+      val rng    = Random(1)
+      val seen   = (1 to 20000).flatMap(_ => LootTable.rollChest(items, rng)).map(_.typeId).toSet
+      val absent = items.values.filter(_.kind != "key").map(_.typeId).filterNot(seen.contains)
+      assert(absent.isEmpty, s"never dropped from a chest: ${absent.toList.sorted.mkString(", ")}")
+
+  test("a class finds every piece of its own sets in a chest"):
+    for
+      items   <- ItemLoader.loadAll()
+      classes <- ClassLoader.loadAll()
+    yield classes.values.foreach:
+      cd =>
+        val rng    = Random(2)
+        val seen   = (1 to 4000).flatMap(_ => LootTable.rollChest(items, rng, affinityTags = cd.affinityTags)).map(_.typeId).toSet
+        val own    = items.values.filter(i => i.kind != "key" && i.kind != "consumable").filter(i => cd.affinityTags.exists(tag => typeTagOf(i).contains(tag)))
+        val absent = own.map(_.typeId).filterNot(seen.contains)
+        assert(absent.isEmpty, s"${cd.classId} never found: ${absent.toList.sorted.mkString(", ")}")
 
   // Same reasoning: with dropChance forced to 100, whether rollEnemy can produce a drop depends
   // only on whether the enemy's own lootTable pool is non-empty against items.json - static per

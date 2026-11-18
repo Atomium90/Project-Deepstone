@@ -5,7 +5,7 @@ import roguelite.engine.{ ClassId, Difficulty, Direction, ExplorationState, Play
 import roguelite.game.combat.{ EnemyInstance, EnemyLoader }
 import roguelite.game.dungeon.{ Chest, ConnectorRole, Door, DoorKind, DoorLink, Dungeon, DungeonBuilder, Enemy, Entity, InteractionResolver, LockedDoor, MinimapBuilder, Npc, Room, RoomLoader, RoomType, Sanctuary, Tile }
 import roguelite.game.items.{ Accessory, Armor, Item, ItemLoader, LootTable, SetLoader, Weapon }
-import roguelite.game.progression.{ ClassLoader, DifficultyLoader }
+import roguelite.game.progression.{ ClassLoader, DifficultyLoader, UpgradeLoader }
 import roguelite.game.story.{ ChapterLoader, NpcLoader, StoryLoader }
 
 import scala.util.Random
@@ -649,3 +649,22 @@ class ContentIntegritySuite extends CatsEffectSuite:
         cd.classId -> items.values.toList.collect { case a: Armor if a.typeTag.exists(cd.affinityTags.contains) => a.defenseBonus }.maxOption.getOrElse(0)
       val values = best.map(_._2)
       assert(values.max - values.min <= 2, s"best armor per class: $best")
+
+  // Economy guards. A tier that asks for more Shards spent than the shop holds could never open, and a
+  // kit that costs more than a first win pays would leave a new save stuck bare-handed (the first
+  // run's hint tells the player to buy it, and a first Easy win pays about 55 Shards).
+  test("the Shards a tier asks to have spent never exceed what the shop holds"):
+    for
+      tiers    <- DifficultyLoader.loadAll()
+      upgrades <- UpgradeLoader.loadAll()
+    yield
+      val shop = upgrades.values.map(_.cost).sum
+      tiers.values.flatMap(_.requirement).foreach: req =>
+        assert(req.shardsSpent <= shop, s"a tier asks for ${req.shardsSpent} Shards spent, the shop holds $shop")
+
+  test("every starting kit costs less than a first Easy win pays"):
+    for upgrades <- UpgradeLoader.loadAll()
+    yield
+      val kits = upgrades.values.filter(_.id.endsWith("_kit")).toList
+      assert(kits.nonEmpty, "no starting kit upgrade found")
+      kits.foreach(k => assert(k.cost <= 50, s"${k.id} costs ${k.cost}, more than a first Easy win pays"))

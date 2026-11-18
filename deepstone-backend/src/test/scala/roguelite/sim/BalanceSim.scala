@@ -20,6 +20,9 @@ final case class SimOptions(
     riskyPerkId: Option[String] = None,
     grid: Boolean = false,
     allProfiles: Boolean = false,
+    campaign: Boolean = false,
+    campaigns: Int = 30,
+    campaignRuns: Int = 80,
     out: Path = Paths.get("target", "sim"),
     policy: BotPolicy = BotPolicy()
 ):
@@ -36,13 +39,18 @@ object SimOptions:
   /** Reads `--runs N --seed S --class warrior|archer|mage --difficulty easy|normal|hard|hardcore
     * --profile fresh|early|mid|late|all --perk ID --risky ID --heal PERCENT --grid --out DIR`.
     * `--grid` plays every class on every tier (so `--class` and `--difficulty` are not read) and
-    * `--profile all` is only for a grid.
+    * `--profile all` is only for a grid. `--campaign [--campaigns N] [--campaign-runs N]` lives
+    * whole saves instead, run after run (see [[Campaign]]): only `--class`, `--seed`, `--heal` and
+    * `--out` count then.
     */
   def parse(args: List[String]): Either[String, SimOptions] =
     def go(rest: List[String], options: SimOptions): Either[String, SimOptions] = rest match
       case Nil if options.allProfiles && !options.grid => Left("--profile all only makes sense with --grid")
       case Nil                                         => Right(options)
       case "--grid" :: tail                            => go(tail, options.copy(grid = true))
+      case "--campaign" :: tail                        => go(tail, options.copy(campaign = true))
+      case "--campaigns" :: v :: tail                  => int(v, "--campaigns").flatMap(n => go(tail, options.copy(campaigns = n)))
+      case "--campaign-runs" :: v :: tail              => int(v, "--campaign-runs").flatMap(n => go(tail, options.copy(campaignRuns = n)))
       case "--profile" :: "all" :: tail                => go(tail, options.copy(allProfiles = true))
       case "--runs" :: v :: tail       => int(v, "--runs").flatMap(n => go(tail, options.copy(runs = n)))
       case "--seed" :: v :: tail       => v.toLongOption.toRight(s"--seed wants a number, got '$v'").flatMap(s => go(tail, options.copy(seed = s)))
@@ -84,6 +92,17 @@ object BalanceSim:
   def run(args: List[String]): IO[ExitCode] =
     SimOptions.parse(args) match
       case Left(error) => IO.println(error).as(ExitCode.Error)
+      case Right(options) if options.campaign =>
+        SimWorld.load().flatMap:
+          world =>
+            for
+              steps <- IO.blocking(simulateCampaigns(world, options))
+              _ <- IO.blocking:
+                CampaignReport.writeCsv(options.out, steps)
+                java.nio.file.Files.writeString(options.out.resolve("campaign.md"), CampaignReport.render(world, steps, options))
+              _ <- IO.println(s"${options.campaigns} saves of ${options.campaignRuns} runs written to ${options.out.toAbsolutePath} (see campaign.md)")
+            yield ExitCode.Success
+
       case Right(options) if options.grid =>
         SimWorld.load().flatMap:
           world =>
@@ -124,6 +143,11 @@ object BalanceSim:
     SimResult(played.map(_.row), played.flatMap(_.combats), played.flatMap(_.drops))
 
   def simulate(world: SimWorld, options: SimOptions): SimResult = simulate(world, options, options.setup)
+
+  /** `options.campaigns` saves of `options.campaignRuns` runs each (see [[Campaign]]). */
+  def simulateCampaigns(world: SimWorld, options: SimOptions): List[Campaign.Step] =
+    (0 until options.campaigns).toList.flatMap:
+      c => Campaign.play(world, options.policy, options.classId, c, options.campaignRuns, options.seed)
 
   private def header(o: SimOptions, setup: SimSetup): List[String] =
     List(

@@ -13,7 +13,7 @@ object SimReport:
   private[sim] def mean(xs: Seq[Int]): String = if xs.isEmpty then "-" else fmt(xs.sum.toDouble / xs.size)
 
   /** The value at the given percentile (0-100) of a sorted copy of `xs`. */
-  private def percentile(xs: Seq[Int], p: Int): String =
+  private[sim] def percentile(xs: Seq[Int], p: Int): String =
     if xs.isEmpty then "-"
     else
       val sorted = xs.sorted

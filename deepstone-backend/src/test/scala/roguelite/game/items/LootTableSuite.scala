@@ -65,6 +65,88 @@ class LootTableSuite extends FunSuite:
   test("rollShrineChoices returns an empty list when itemDefs is empty"):
     assertEquals(LootTable.rollShrineChoices(Map.empty[String, Item], Random(42)), Nil)
 
+  // --- Chest kinds and class weighting ---------------------------------------
+
+  test("a chest can hold every kind of the catalog and never a key"):
+    val rng   = Random(3)
+    val drops = (1 to 600).flatMap(_ => LootTable.rollChest(itemDefs, rng))
+    assertEquals(drops.map(_.kind).toSet, Set("weapon", "armor", "accessory", "consumable"))
+    assert(!drops.exists(_.typeId == "rusty_key"))
+
+  test("each kind keeps its share whatever the number of items of that kind"):
+    // 4 weapons against 1 armor: armor still gets its own 20 / 100 share, not 1 / 5 of the pool.
+    val defs = Map(
+      "armor" -> Armor("", "armor", "Armor", Rarity.Common, 2)
+    ) ++ (1 to 4).map(i => s"sword$i" -> Weapon("", s"sword$i", s"Sword $i", Rarity.Common, 3)).toMap
+    val rng    = Random(4)
+    val drops  = (1 to 4000).flatMap(_ => LootTable.rollChest(defs, rng))
+    val armors = drops.count(_.kind == "armor").toDouble / drops.size
+    assert(armors > 0.38 && armors < 0.52, s"armor share was $armors (20 / (20 + 25) = 0.44 expected)")
+
+  test("items of the player's class drop about three times as often as any other"):
+    val defs = Map(
+      "heavy_axe" -> Weapon("", "heavy_axe", "Axe", Rarity.Common, 5, typeTag = Some("heavy")),
+      "magic_rod" -> Weapon("", "magic_rod", "Rod", Rarity.Common, 5, typeTag = Some("magic"))
+    )
+    val rng   = Random(5)
+    val drops = (1 to 4000).flatMap(_ => LootTable.rollChest(defs, rng, affinityTags = Set("heavy")))
+    val own   = drops.count(_.typeId == "heavy_axe").toDouble
+    val other = drops.count(_.typeId == "magic_rod").toDouble
+    assert(own / other > 2.5 && own / other < 3.6, s"own / other was ${own / other}")
+
+  test("without affinity tags nothing is favored"):
+    val defs = Map(
+      "heavy_axe" -> Weapon("", "heavy_axe", "Axe", Rarity.Common, 5, typeTag = Some("heavy")),
+      "magic_rod" -> Weapon("", "magic_rod", "Rod", Rarity.Common, 5, typeTag = Some("magic"))
+    )
+    val rng   = Random(6)
+    val drops = (1 to 4000).flatMap(_ => LootTable.rollChest(defs, rng))
+    val ratio = drops.count(_.typeId == "heavy_axe").toDouble / drops.count(_.typeId == "magic_rod")
+    assert(ratio > 0.85 && ratio < 1.18, s"ratio was $ratio")
+
+  test("a plain heal potion is about three times as likely as another potion"):
+    val defs = Map(
+      "health_potion" -> itemDefs("health_potion"),
+      "battle_brew"   -> Consumable("", "battle_brew", "Battle Brew", Rarity.Common, ConsumableEffect.AttackBuff(20, 3))
+    )
+    val rng   = Random(7)
+    val drops = (1 to 4000).flatMap(_ => LootTable.rollChest(defs, rng))
+    val ratio = drops.count(_.typeId == "health_potion").toDouble / drops.count(_.typeId == "battle_brew")
+    assert(ratio > 2.5 && ratio < 3.6, s"ratio was $ratio")
+
+  test("a chest still honors the rarity floor override with the new pool"):
+    val item = LootTable.rollChest(itemDefs, Random(8), rarityFloorOverride = Some(Rarity.Rare))
+    assert(item.exists(_.rarity.ordinal >= Rarity.Rare.ordinal))
+
+  // --- Shrine kinds ----------------------------------------------------------
+
+  test("a Shrine offers a weapon, an armor and an accessory, each at least Uncommon"):
+    (1L to 25L).foreach: seed =>
+      val options = LootTable.rollShrineChoices(itemDefs, Random(seed))
+      assertEquals(options.map(_.kind).toSet, Set("weapon", "armor", "accessory"), s"seed $seed")
+      assert(options.forall(_.rarity.ordinal >= Rarity.Uncommon.ordinal), s"seed $seed: ${options.map(_.rarity)}")
+
+  test("a Shrine offers each kind once, then repeats them when asked for more candidates"):
+    val options = LootTable.rollShrineChoices(itemDefs, Random(9), count = 6)
+    assertEquals(options.size, 6)
+    assertEquals(options.groupBy(_.kind).values.map(_.size).toSet, Set(2))
+
+  test("a Shrine leans toward the player's class like a chest does"):
+    val defs = Map(
+      "heavy_axe" -> Weapon("", "heavy_axe", "Axe", Rarity.Common, 5, typeTag = Some("heavy")),
+      "magic_rod" -> Weapon("", "magic_rod", "Rod", Rarity.Common, 5, typeTag = Some("magic"))
+    )
+    val rng     = Random(10)
+    val options = (1 to 3000).flatMap(_ => LootTable.rollShrineChoices(defs, rng, count = 1, affinityTags = Set("heavy")))
+    val ratio   = options.count(_.typeId == "heavy_axe").toDouble / options.count(_.typeId == "magic_rod")
+    assert(ratio > 2.5 && ratio < 3.6, s"ratio was $ratio")
+
+  test("a catalog with no gear still fills a Shrine from plain chest rolls"):
+    val potions = Map(
+      "health_potion" -> itemDefs("health_potion")
+    )
+    assertEquals(LootTable.rollShrineChoices(potions, Random(11)).size, 3)
+
   // --- Enemy drops ---------------------------------------------------------
 
   // dropChance <= 0 short-circuits before rollEnemy ever calls rng (see LootTable.rollEnemy), so
@@ -202,14 +284,15 @@ class LootTableSuite extends FunSuite:
            s"expected at least Uncommon (its own floor), got ${item.rarity}"
     )
 
-  // Seed 1 rolls steel_sword (Uncommon floor) all the way up to Epic under a Rare override, on the
-  // first draw - exercises the strongest case (scaling relative to the authored floor, not the
-  // override) directly instead of searching 500 attempts for an Epic result.
+  // Looks for the first seed that rolls steel_sword (Uncommon floor) all the way up to Epic under a
+  // Rare override - exercises the strongest case (scaling relative to the authored floor, not the
+  // override) directly. The sole item has a single kind, so the pick only depends on the rarity draw.
   test("scaling under an override still uses the item's own authored floor as the baseline"):
     val soleItem: Map[String, Item] = Map("steel_sword" -> itemDefs("steel_sword")) // Uncommon floor, +7 ATK
-    val epicRoll = LootTable.rollChest(soleItem, Random(1), rarityFloorOverride = Some(Rarity.Rare)) match
-      case Some(w: Weapon) if w.rarity == Rarity.Epic => w
-      case other                                      => fail(s"expected an Epic Weapon, got $other")
+    val epicRoll = (1L to 500L).iterator
+      .flatMap(seed => LootTable.rollChest(soleItem, Random(seed), rarityFloorOverride = Some(Rarity.Rare)))
+      .collectFirst { case w: Weapon if w.rarity == Rarity.Epic => w }
+      .getOrElse(fail("expected an Epic Weapon within 500 seeds"))
     val expected =
       math.max(1, math.round(7 * (Rarity.Epic.statMultiplier / Rarity.Uncommon.statMultiplier)).toInt)
     assertEquals(epicRoll.attackBonus, expected)

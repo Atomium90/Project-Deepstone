@@ -11,56 +11,114 @@ import scala.util.Random
   */
 object LootTable:
 
-  /** Items that can drop from any chest (typeId → relative weight). Weights are relative: only
-    * their ratio matters. `rusty_key` is left out on purpose while no room has a locked door for
-    * it to open: put it back together with the first one.
+  /** How a chest or Shrine roll picks a kind of item first: relative weights per [[Item.kind]]. A
+    * kind is picked by its weight, then an item of that kind by [[OwnClassFactor]] and the
+    * difficulty's rarity weight. Two steps keep the share of each kind fixed whatever the number of
+    * items of that kind the catalog holds, so adding items never dilutes armor or potions. A `key`
+    * is left out on purpose while no room has a locked door for it to open: put it back together
+    * with the first one.
     */
-  private val ChestPool: List[(String, Int)] = List(
-    "health_potion"          -> 25,
-    "practice_sword"         -> 10,
-    "gold_dagger"            -> 10,
-    "leather_bound_grimoire" -> 10,
-    "soulstone"              -> 10,
-    "steel_sword"            -> 5,
-    "wooden_emerald_bow"     -> 5,
-    "pyromancer_staff"       -> 5,
-    "luck_clover"            -> 8
+  private val KindWeights: List[(String, Int)] = List(
+    "weapon"     -> 25,
+    "armor"      -> 20,
+    "accessory"  -> 30,
+    "consumable" -> 25
   )
 
-  /** Roll a chest drop. Chests always yield exactly one item from [[ChestPool]].
+  /** A Shrine offers one item of each of these kinds (a potion is no relic). */
+  private val ShrineKinds: List[String] = List("weapon", "armor", "accessory")
+
+  /** The lowest rarity a Shrine candidate can be authored or rolled at. */
+  private val ShrineRarityFloor: Rarity = Rarity.Uncommon
+
+  /** Weight of an item that belongs to the player's class (its typeTag is one of the class's
+    * affinity tags) against 1 for any other item: everything can drop, the player's own gear is just
+    * more likely. Base weights are scaled by 10 so the difficulty's rarity multiplier still has room
+    * to round.
+    */
+  private val OwnClassFactor: Int = 3
+  private val BaseItemWeight: Int = 10
+
+  /** Healing is the staple of the potion pool: a plain heal potion is this many times as likely as
+    * any other potion once the consumable kind is picked, as it was when the chest pool was a
+    * short list headed by it. Without it a chest would hand out the 4 other potions as often as the
+    * one that keeps a run alive.
+    */
+  private val HealPotionFactor: Int = 3
+
+  private def kindFactor(item: Item): Int = item match
+    case Consumable(_, _, _, _, ConsumableEffect.HealFixed(_), _, _) => HealPotionFactor
+    case _                                                           => 1
+
+  private def typeTagOf(item: Item): Option[String] = item match
+    case w: Weapon    => w.typeTag
+    case a: Armor     => a.typeTag
+    case a: Accessory => a.typeTag
+    case _            => None
+
+  /** Roll one item of `kind`, weighted toward the player's class. None when the catalog has no item
+    * of that kind.
+    */
+  private def rollOfKind(kind: String,
+                         itemDefs: Map[String, Item],
+                         rng: Random,
+                         difficulty: Difficulty,
+                         rarityFloorOverride: Option[Rarity],
+                         affinityTags: Set[String]
+  ): Option[Item] =
+    val pool = itemDefs.values.toList
+      .filter(_.kind == kind)
+      .sortBy(_.typeId)
+      .map { item =>
+        val own  = if Affinity.matches(typeTagOf(item), affinityTags) then OwnClassFactor else 1
+        val base = BaseItemWeight * own * kindFactor(item)
+        item -> weightFor(item, base, difficulty)
+      }
+    pickWeighted(pool, rng).map(item => rollRarityAndScale(item, rng, rarityFloorOverride).withNewId)
+
+  /** Roll a chest drop: a kind by [[KindWeights]], then an item of that kind, so a chest can hold
+    * any weapon, armor, accessory or potion of the game, the player's own class's ones more often.
     *
-    * Returns None only if none of the pool typeIds exist in `itemDefs` (should not happen at
-    * runtime with a valid items.json).
+    * Returns None only if the catalog has no item of any rolled kind (an empty `itemDefs`).
     *
     * @param rarityFloorOverride
     *   Raises the tier roll's minimum eligible rarity to at least this (never lowers it below the
     *   item's own authored floor) - the Lucky Find perk's hook. Scaling still stays relative to
     *   the item's own authored floor, not the override, so an item already authored above Common
     *   still doesn't get its bonus double-counted.
+    * @param affinityTags
+    *   The player's class affinity tags (empty = no class weighting).
     */
   def rollChest(itemDefs: Map[String, Item],
                 rng: Random,
                 difficulty: Difficulty = Difficulty.Normal,
-                rarityFloorOverride: Option[Rarity] = None
+                rarityFloorOverride: Option[Rarity] = None,
+                affinityTags: Set[String] = Set.empty
   ): Option[Item] =
-    val pool = ChestPool.flatMap {
-      case (typeId, w) => itemDefs.get(typeId).map(item => item -> weightFor(item, w, difficulty))
-    }
-    pickWeighted(pool, rng).map(item => rollRarityAndScale(item, rng, rarityFloorOverride).withNewId)
+    val kinds = KindWeights.filter((kind, _) => itemDefs.values.exists(_.kind == kind))
+    pickWeighted(kinds, rng).flatMap(rollOfKind(_, itemDefs, rng, difficulty, rarityFloorOverride, affinityTags))
 
-  /** Roll `count` independent reward candidates for a [[Shrine]] choice (see
-    * [[CombatResolver.victory]]'s MiniBoss-kill spawn). Each candidate is rolled exactly like a
-    * chest drop (same pool, same rarity curve, its own distinct instance id) - duplicates across
-    * the returned list are possible and not filtered out, same as any roguelite reward-choice
-    * screen. Returns fewer than `count` only if `rollChest` itself ever returns None (should not
-    * happen at runtime with a valid items.json).
+  /** Roll `count` reward candidates for a [[Shrine]] choice (see [[CombatResolver.victory]]'s
+    * MiniBoss-kill spawn): one per kind of [[ShrineKinds]] in a random order (a weapon, an armor and
+    * an accessory for the default 3), each at least [[ShrineRarityFloor]] and weighted toward the
+    * player's class like a chest drop, each with its own instance id. With more candidates than
+    * kinds the kinds repeat; a kind the catalog lacks is skipped, and a catalog with none of them
+    * falls back to plain chest rolls. Returns fewer than `count` only for an empty catalog.
     */
   def rollShrineChoices(itemDefs: Map[String, Item],
                         rng: Random,
                         count: Int = 3,
-                        difficulty: Difficulty = Difficulty.Normal
+                        difficulty: Difficulty = Difficulty.Normal,
+                        affinityTags: Set[String] = Set.empty
   ): List[Item] =
-    (1 to count).flatMap(_ => rollChest(itemDefs, rng, difficulty)).toList
+    val floor = Some(ShrineRarityFloor)
+    val kinds = rng.shuffle(ShrineKinds.filter(kind => itemDefs.values.exists(_.kind == kind)))
+    if kinds.isEmpty then
+      (1 to count).flatMap(_ => rollChest(itemDefs, rng, difficulty, floor, affinityTags)).toList
+    else
+      (0 until count)
+        .flatMap(i => rollOfKind(kinds(i % kinds.size), itemDefs, rng, difficulty, floor, affinityTags))
+        .toList
 
   /** Roll an enemy drop.
     *

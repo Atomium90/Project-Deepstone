@@ -297,7 +297,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
     val opened =
       if perkFloor.isDefined then exp.copy(player = exp.player.copy(firstChestBonusUsed = true)) else exp
 
-    LootTable.rollChest(itemDefs, rng, exp.difficulty, rarityFloorOverride) match {
+    LootTable.rollChest(itemDefs, rng, exp.difficulty, rarityFloorOverride, exp.player.affinityTags) match {
       case None =>
         (replaceChest(opened, chest.emptied), List(LogLine.of("log.chest.openEmpty")), Nil)
       case Some(item) =>
@@ -363,7 +363,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
   private def handleShrine(exp: ExplorationState, shrine: Shrine): (GameState, List[LogLine]) =
     val roomWithoutShrine = exp.dungeon.currentRoom.removeEntity(shrine.id)
     val updatedDungeon    = exp.dungeon.copy(rooms = exp.dungeon.rooms.updated(roomWithoutShrine.id, roomWithoutShrine))
-    val options           = LootTable.rollShrineChoices(itemDefs, rng, difficulty = exp.difficulty)
+    val options           = LootTable.rollShrineChoices(itemDefs, rng, difficulty = exp.difficulty, affinityTags = exp.player.affinityTags)
     val nextState = exp.copy(dungeon = updatedDungeon,
                              pendingRewardChoice = Some(PendingRewardChoice(options, shrine.devoted))
     )

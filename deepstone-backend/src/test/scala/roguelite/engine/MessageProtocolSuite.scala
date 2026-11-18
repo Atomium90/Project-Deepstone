@@ -70,8 +70,8 @@ class MessageProtocolSuite extends FunSuite:
   test("every tier takes the god's blessings but Hardcore"):
     assertEquals(Difficulty.values.toList.filter(_.usesBlessings), List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard))
 
-  test("hardcore has the sections, Elites, traps and loot of Hard, with enemies half again as strong"):
-    assertEquals(Difficulty.Hardcore.statMultiplier, 1.5)
+  test("hardcore has the sections, Elites, traps and loot of Hard, with tougher enemies still"):
+    assertEquals(Difficulty.Hardcore.statMultiplier, 1.375)
     assert(Difficulty.Hardcore.statMultiplier > Difficulty.Hard.statMultiplier)
     assertEquals(Difficulty.Hardcore.biomeCount, Difficulty.Hard.biomeCount)
     assertEquals(Difficulty.Hardcore.eliteChance, Difficulty.Hard.eliteChance)

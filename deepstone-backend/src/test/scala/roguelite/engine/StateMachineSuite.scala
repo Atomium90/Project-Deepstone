@@ -363,20 +363,20 @@ class StateMachineSuite extends FunSuite:
     assert(next.isInstanceOf[HubState])
     assert(log.hasKey("log.run.buildFailed"), s"expected a dungeon-build-failure message: $log")
 
-  test("StartRun on Hardcore starts with nothing even when the class's kit has been purchased"):
-    val meta = MetaProgression(currency = 0, unlockedUpgrades = Set("warrior_kit"))
-    val hub  = HubState(hubPlayer, Map("warrior_kit" -> warriorKitUpgrade), meta)
-    val run  = smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
-    def weaponOn(difficulty: Difficulty): Option[String] =
-      run
+  test("StartRun on Hardcore starts with the class's basic kit, whether or not its upgrade was bought"):
+    def weaponOn(difficulty: Difficulty, owned: Set[String]): Option[String] =
+      val hub = HubState(hubPlayer, Map("warrior_kit" -> warriorKitUpgrade), MetaProgression(currency = 0, unlockedUpgrades = owned))
+      smWithWarriorKit(Map("warrior_kit" -> warriorKitUpgrade))
         .applyActionPure(hub, HubAction(HubActionType.StartRun, classId = Some(ClassId.Warrior), difficulty = Some(difficulty)))
         .state
         .asInstanceOf[ExplorationState]
         .player
         .equippedWeapon
         .map(_.typeId)
-    assertEquals(weaponOn(Difficulty.Hard), Some("practice_sword"))
-    assertEquals(weaponOn(Difficulty.Hardcore), None)
+    assertEquals(weaponOn(Difficulty.Hard, Set("warrior_kit")), Some("practice_sword"))
+    assertEquals(weaponOn(Difficulty.Hard, Set.empty), None)
+    assertEquals(weaponOn(Difficulty.Hardcore, Set("warrior_kit")), Some("practice_sword"))
+    assertEquals(weaponOn(Difficulty.Hardcore, Set.empty), Some("practice_sword"))
 
   // --- Hub: perks ------------------------------------------------------------
 

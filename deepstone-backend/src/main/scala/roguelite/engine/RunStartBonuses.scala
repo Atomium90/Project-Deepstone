@@ -25,11 +25,12 @@ final class RunStartBonuses(upgradeDefs: Map[String, UpgradeDef],
 ):
 
   /** `state` with the effects of the owned upgrades applied, then the max HP malus of the perks (last,
-    * so the hub's HP upgrades cannot undo it). A run that takes no blessing (Hardcore) keeps its
-    * player as it is.
+    * so the hub's HP upgrades cannot undo it). A run that takes no blessing (Hardcore) keeps only the
+    * late-game upgrades, the ones a save earned by winning on Hard: no other upgrade, no perk.
     */
   def apply(state: ExplorationState, meta: MetaProgression): ExplorationState =
-    if state.difficulty.usesBlessings then applyPerkMaxHp(applyMetaBonuses(state, meta)) else state
+    if state.difficulty.usesBlessings then applyPerkMaxHp(applyMetaBonuses(state, meta, _ => true))
+    else applyMetaBonuses(state, meta, _.requires.isDefined)
 
   /** The max HP malus (or bonus) of the perks the player took, applied at the start of the run. */
   private def applyPerkMaxHp(state: ExplorationState): ExplorationState =
@@ -46,8 +47,11 @@ final class RunStartBonuses(upgradeDefs: Map[String, UpgradeDef],
     * `upgrades.json` (and, if it's a genuinely new *kind* of effect, one case here and in
     * [[UpgradeEffect]]), never a change keyed by upgrade id.
     */
-  private def applyMetaBonuses(state: ExplorationState, meta: MetaProgression): ExplorationState =
-    val effects       = meta.unlockedUpgrades.toList.flatMap(upgradeDefs.get).map(_.effect)
+  private def applyMetaBonuses(state: ExplorationState,
+                               meta: MetaProgression,
+                               applies: UpgradeDef => Boolean
+  ): ExplorationState =
+    val effects       = meta.unlockedUpgrades.toList.flatMap(upgradeDefs.get).filter(applies).map(_.effect)
     val boostedPlayer = effects.foldLeft(state.player)(applyUpgradeEffect)
     state.copy(player = boostedPlayer)
 

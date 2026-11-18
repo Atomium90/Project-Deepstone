@@ -451,7 +451,7 @@ describe("HubScreen", () => {
                 const sendSpy = vi.spyOn(client, "send");
 
                 await fireEvent.click(cards(container)[DIFFICULTY_CARD.hardcore]);
-                expect(rules(container)?.textContent).toContain("No hub upgrades");
+                expect(rules(container)?.textContent).toContain("Only the basic kit");
                 await fireEvent.click(container.querySelector("button.start-btn")!);
 
                 expect(sendSpy).toHaveBeenCalledWith(expect.objectContaining({ action: "STARTRUN", difficulty: "hardcore" }));

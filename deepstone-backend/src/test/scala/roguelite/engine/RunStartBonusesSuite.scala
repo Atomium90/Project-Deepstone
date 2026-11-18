@@ -54,11 +54,24 @@ class RunStartBonusesSuite extends CatsEffectSuite:
               case UpgradeEffect.UnlockClass(_) | UpgradeEffect.UnlockStartingKit(_) =>
                 assertEquals(player, base, upgrade.id)
 
-  test("a run that takes no blessing keeps its player whatever the save owns"):
+  test("a run that takes no blessing keeps its player whatever the save owns, except the late-game upgrades"):
     bonuses.map:
       (upgrades, _, bonuses) =>
         val state = start(Difficulty.Hardcore)
-        assertEquals(bonuses(state, metaWith(upgrades.keys.toSeq*)), state)
+        val early = upgrades.filter((_, u) => u.requires.isEmpty).keys.toSeq
+        assertEquals(bonuses(state, metaWith(early*)), state)
+
+  test("the late-game upgrades a save earned on Hard are kept in a run that takes no blessing"):
+    bonuses.map:
+      (upgrades, _, bonuses) =>
+        val state = start(Difficulty.Hardcore)
+        val late  = upgrades.filter((_, u) => u.requires.isDefined).values.toList
+        assert(late.nonEmpty, "no late-game upgrade in the catalog")
+        val player = bonuses(state, metaWith(late.map(_.id)*)).player
+        assert(player.maxHp > state.player.maxHp || player.bonusAttack > state.player.bonusAttack || player.bonusDefense > state.player.bonusDefense)
+        late.foreach: u =>
+          val alone = bonuses(state, metaWith(u.id)).player
+          assertNotEquals(alone, state.player, u.id)
 
   test("the max HP of a perk is worked out after the HP upgrades, so they cannot undo it"):
     bonuses.map:

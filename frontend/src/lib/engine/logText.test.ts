@@ -18,8 +18,8 @@ describe("logLineText", () => {
             "You strike the Goblin for 12 damage.",
         );
         expect(logLineText(line("log.equip.equip", { item: "steel_plate" }), "en")).toBe("You equip Steel Plate.");
-        expect(logLineText(line("log.combat.abilityDouble", { ability: "berserker_slash" }), "en")).toBe(
-            "Berserker Slash! Your next attack will deal double damage.",
+        expect(logLineText(line("log.combat.abilityEmpower", { ability: "berserker_slash" }), "en")).toBe(
+            "Berserker Slash! Your next attack is empowered.",
         );
         expect(logLineText(line("log.run.begin", { class: "mage" }), "en")).toBe("A new run begins. Good luck, Mage.");
         expect(logLineText(line("log.run.tierLocked", { difficulty: "hard" }), "en")).toBe("Hard is not unlocked yet.");

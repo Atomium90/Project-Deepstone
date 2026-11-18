@@ -1848,7 +1848,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                cost = 40,
                                resourceName = "Rage",
                                description = "test",
-                               effect = AbilityEffect.FlatDamage(1)
+                               effect = AbilityEffect.AttackScaledDamage(1)
       )
       val discountPerk = PerkDef("efficient_casting", "Efficient Casting", "test", icon = "*",
                                  effect = PerkEffect.AbilityCostReductionPercent(20)
@@ -1880,7 +1880,7 @@ class GameSessionSuite extends CatsEffectSuite:
                                cost = 40,
                                resourceName = "Rage",
                                description = "test",
-                               effect = AbilityEffect.FlatDamage(1)
+                               effect = AbilityEffect.AttackScaledDamage(1)
       )
       val discountPerk = PerkDef("efficient_casting", "Efficient Casting", "test", icon = "*",
                                  effect = PerkEffect.AbilityCostReductionPercent(20)

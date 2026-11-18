@@ -6,14 +6,22 @@ import roguelite.game.progression.{ PerkDef, PerkEffect }
 
 /** Effect produced when a class ability is activated.
   *
-  * `DoubleNextAttack` and `IgnoreDefenseNextAttack` are deferred: they arm a
-  * [[PendingAbilityEffect]] that [[CombatResolver.handleAttack]] consumes on the player's next
-  * Attack. `FlatDamage` is applied immediately instead.
+  * `EmpowerNextAttack` is deferred: it arms a [[PendingAbilityEffect]] that
+  * [[CombatResolver.handleAttack]] consumes on the player's next Attack, so the turn it is cast
+  * deals no damage (the enemy still answers). `AttackScaledDamage` is applied immediately instead.
+  *
+  * @param multiplierPercent
+  *   Damage of the empowered Attack as a percentage of a plain one (300 = triple).
+  * @param ignoreDefense
+  *   The empowered Attack rolls against 0 enemy defense.
+  * @param guaranteedCrit
+  *   The empowered Attack always crits (the crit multiplier comes on top of `multiplierPercent`).
+  * @param percent
+  *   Immediate damage as a percentage of the player's attack stat, no jitter, no defense, no crit.
   */
 enum AbilityEffect:
-  case DoubleNextAttack
-  case IgnoreDefenseNextAttack
-  case FlatDamage(amount: Int)
+  case EmpowerNextAttack(multiplierPercent: Int, ignoreDefense: Boolean, guaranteedCrit: Boolean)
+  case AttackScaledDamage(percent: Int)
 
 /** Static definition of a class's combat ability, loaded from `data/abilities.json`.
   *

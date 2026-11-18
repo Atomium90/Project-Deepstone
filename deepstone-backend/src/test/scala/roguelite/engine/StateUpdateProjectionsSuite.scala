@@ -19,7 +19,7 @@ class StateUpdateProjectionsSuite extends FunSuite:
     AchievementDef(id, s"label $id", s"description $id", order, AchievementCondition.FirstKill, hidden)
 
   private val ability =
-    AbilityDef(ClassId.Warrior, "berserker_slash", "Berserker Slash", 40, "Rage", "Hit twice", AbilityEffect.DoubleNextAttack)
+    AbilityDef(ClassId.Warrior, "berserker_slash", "Berserker Slash", 40, "Rage", "Hit twice", AbilityEffect.EmpowerNextAttack(300, ignoreDefense = false, guaranteedCrit = false))
 
   private val fireSet = SetDef(
     "fire_mage",

@@ -2,7 +2,8 @@ package roguelite.game.combat
 
 /** Effect that remains pending until the player's next Attack action.
   *
-  * Set when the player uses a "charge" ability (Berserker Slash, Precise Shot). Consumed and
+  * Set when the player uses a "charge" ability (Berserker Slash, Precise Shot): the turn it is cast deals
+  * no damage, which is the risk, and the Attack it empowers is what pays for it. Consumed and
   * cleared by [[CombatResolver.handleAttack]] when the player next attacks. Mage's Arcane Blast is
   * immediate and therefore produces no pending effect.
   *
@@ -11,11 +12,11 @@ package roguelite.game.combat
   * the combat log messages are sufficient feedback.
   */
 enum PendingAbilityEffect:
-  /** Warrior, Berserker Slash: raw damage (post-jitter) is doubled. */
-  case DoubleNextAttack
-
-  /** Archer, Precise Shot: attack rolls against 0 enemy defense instead of the actual value. */
-  case IgnoreDefenseNextAttack
+  /** Berserker Slash, Precise Shot: the next Attack deals `multiplierPercent`% of its damage (after
+    * jitter), optionally rolled against 0 enemy defense and optionally a guaranteed crit (on top of
+    * the multiplier).
+    */
+  case Empowered(multiplierPercent: Int, ignoreDefense: Boolean, guaranteedCrit: Boolean)
 
 /** Effect carried by a [[TimedBuff]]. A separate enum from [[PendingAbilityEffect]] since timed
   * buffs (potions) and "next attack" effects (abilities) are different mechanics that happen to

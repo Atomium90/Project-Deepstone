@@ -312,7 +312,7 @@ class SetBonusSuite extends FunSuite:
                              cost = 40,
                              resourceName = "Rage",
                              description = "test",
-                             effect = AbilityEffect.FlatDamage(1)
+                             effect = AbilityEffect.AttackScaledDamage(1)
     )
     val abilityDefs = Map(ClassId.Warrior -> ability)
 

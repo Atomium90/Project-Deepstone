@@ -84,27 +84,28 @@ class CombatResolver(rng: Random = Random(),
       case None    => Nil
     }
 
-    // Damage modified by pending ability effect
+    // Damage modified by the pending ability effect: its multiplier on the post-jitter value, rolled
+    // against 0 defense when the effect says so.
     val baseDamage = pending match {
-      case Some(PendingAbilityEffect.DoubleNextAttack) =>
-        // Double the full post-jitter value
-        calcDamage(state.player.attack, state.combat.enemy.defense) * 2
-      case Some(PendingAbilityEffect.IgnoreDefenseNextAttack) =>
-        // Roll against 0 defense
-        calcDamage(state.player.attack, 0)
+      case Some(PendingAbilityEffect.Empowered(percent, ignoreDefense, _)) =>
+        val enemyDefense = if ignoreDefense then 0 else state.combat.enemy.defense
+        math.round(calcDamage(state.player.attack, enemyDefense) * percent / 100.0).toInt
       case None =>
         calcDamage(state.player.attack, state.combat.enemy.defense)
     }
 
     // Crit chance is an Attack-specific weapon-strike stat: it never applies to Ability's
-    // FlatDamage (Arcane Blast), which bypasses calcDamage entirely. FirstAttackAlwaysCrit (Silent
-    // Archer 4pc) overrides the roll on the player's first Attack of the fight, win or lose the roll.
+    // immediate damage (Arcane Blast), which bypasses calcDamage entirely. FirstAttackAlwaysCrit
+    // (Silent Archer 4pc) overrides the roll on the player's first Attack of the fight, win or lose
+    // the roll, and so does an empowered Attack that guarantees its crit.
     val firstAttackGuaranteedCrit =
       !state.combat.hasAttackedThisCombat && stats.firstAttackAlwaysCrits(state.player)
+    val abilityGuaranteedCrit = pending.exists:
+      case PendingAbilityEffect.Empowered(_, _, crit) => crit
     val buffCritBonus = state.combat.activeBuffs.collect {
       case TimedBuff(TimedBuffEffect.CritChanceBonusPercent(n), _) => n
     }.sum
-    val isCrit = firstAttackGuaranteedCrit || rollCrit(state.player.critChance + buffCritBonus)
+    val isCrit = firstAttackGuaranteedCrit || abilityGuaranteedCrit || rollCrit(state.player.critChance + buffCritBonus)
 
     // Set-driven "+N% attack damage" and any active potion AttackBuff are both a final percentage
     // added on top of the base hit (summed together, not each its own multiplier), then the crit
@@ -214,24 +215,17 @@ class CombatResolver(rng: Random = Random(),
                                  ability: AbilityDef
   ): (GameState, List[LogLine], List[GameEvent]) =
     ability.effect match {
-      case AbilityEffect.DoubleNextAttack =>
+      case AbilityEffect.EmpowerNextAttack(percent, ignoreDefense, guaranteedCrit) =>
         val updatedCombat = state.combat.copy(
-          pendingAbility = Some(PendingAbilityEffect.DoubleNextAttack),
+          pendingAbility = Some(PendingAbilityEffect.Empowered(percent, ignoreDefense, guaranteedCrit)),
           playerIsDefending = false
         )
-        val log = List(LogLine.of("log.combat.abilityDouble", "ability" -> ability.id))
+        val log = List(LogLine.of("log.combat.abilityEmpower", "ability" -> ability.id))
         enemyTurn(state.copy(combat = updatedCombat), log)
 
-      case AbilityEffect.IgnoreDefenseNextAttack =>
-        val updatedCombat = state.combat.copy(
-          pendingAbility = Some(PendingAbilityEffect.IgnoreDefenseNextAttack),
-          playerIsDefending = false
-        )
-        val log = List(LogLine.of("log.combat.abilityPierce", "ability" -> ability.id))
-        enemyTurn(state.copy(combat = updatedCombat), log)
-
-      case AbilityEffect.FlatDamage(amount) =>
-        // Flat damage: no calcDamage call, no jitter, no defense subtraction
+      case AbilityEffect.AttackScaledDamage(percent) =>
+        // Immediate damage from the attack stat: no calcDamage call, no jitter, no defense subtraction
+        val amount        = math.max(1, math.round(state.player.attack * percent / 100.0).toInt)
         val damagedEnemy  = state.combat.enemy.takeDamage(amount)
         val log           = List(LogLine.of("log.combat.abilityBlast", "ability" -> ability.id, "damage" -> amount))
         val updatedCombat = state.combat.copy(enemy = damagedEnemy, playerIsDefending = false)

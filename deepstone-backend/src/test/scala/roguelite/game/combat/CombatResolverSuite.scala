@@ -152,7 +152,7 @@ class CombatResolverSuite extends FunSuite:
       case None => fail(s"expected a DamageDealt event: $events")
     assert(log.hasKey("log.combat.strikeCrit"), s"expected a crit callout in the log: $log")
 
-  test("Arcane Blast (FlatDamage) never crits even with guaranteed crit chance equipped"):
+  test("Arcane Blast (AttackScaledDamage) never crits even with guaranteed crit chance equipped"):
     val guaranteedCrit =
       Accessory("", "mask_of_terror", "Mask of Terror", Rarity.Uncommon, critChanceBonus = Some(100))
     val ability = AbilityDef(ClassId.Warrior,
@@ -160,7 +160,7 @@ class CombatResolverSuite extends FunSuite:
                              "Arcane Blast",
                              cost = 0,
                              resourceName = "Mana",
-                             effect = AbilityEffect.FlatDamage(45),
+                             effect = AbilityEffect.AttackScaledDamage(100),
                              description = ""
     )
     val player = equipAccessory(fullHpPlayer(), guaranteedCrit)
@@ -776,21 +776,22 @@ class CombatResolverSuite extends FunSuite:
           case _                                 => false
         }, s"expected a DamageDealt(true, _) alongside RunEnded: $events")
 
-  test("Arcane Blast (FlatDamage ability) emits DamageDealt(targetIsPlayer = false, amount = the flat value)"):
+  test("Arcane Blast (AttackScaledDamage ability) emits DamageDealt(targetIsPlayer = false, amount = the attack it scales)"):
     val ability = AbilityDef(ClassId.Warrior,
                              "test_blast",
                              "Test Blast",
                              cost = 10,
                              resourceName = "Rage",
                              description = "",
-                             effect = AbilityEffect.FlatDamage(45)
+                             effect = AbilityEffect.AttackScaledDamage(100)
     )
     val player = fullHpPlayer().copy(resourceCurrent = 100)
+    val attack = StatCalculator(Map.empty, Map.empty).attack(player)
     val (_, _, events) = CombatResolver(Random(0), abilityDefs = Map(ClassId.Warrior -> ability))
       .resolve(combatState(weakEnemy(hp = 999), player), CombatAction(CombatActionType.Ability))
     assert(
-      events.contains(GameEvent.DamageDealt(targetIsPlayer = false, amount = 45)),
-      s"expected DamageDealt(false, 45): $events"
+      events.contains(GameEvent.DamageDealt(targetIsPlayer = false, amount = attack)),
+      s"expected DamageDealt(false, $attack): $events"
     )
 
   test("HealFixed potion emits Healed matching the amount restored (not net HP, which the enemy's counter-attack also affects)"):

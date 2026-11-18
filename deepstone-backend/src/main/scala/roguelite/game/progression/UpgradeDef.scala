@@ -1,6 +1,6 @@
 package roguelite.game.progression
 
-import roguelite.engine.ClassId
+import roguelite.engine.{ ClassId, Difficulty }
 import roguelite.game.items.Rarity
 
 /** Effect applied when an upgrade is unlocked.
@@ -41,6 +41,12 @@ enum UpgradeEffect:
     */
   case FlatAttackBoost(amount: Int)
 
+  /** Flat bonus added to the player's defense for every run, permanently. Reuses
+    * [[roguelite.engine.Player.bonusDefense]], the field level-up perks already add to, the same way
+    * [[FlatAttackBoost]] reuses `bonusAttack`.
+    */
+  case FlatDefenseBoost(amount: Int)
+
   /** Guarantee at least `minRarity` on every non-trapped chest for the whole run, permanently.
     * Baked onto [[roguelite.engine.Player.chestRarityFloor]] once at Hub -> Exploration, not
     * re-checked against the hub catalog per chest - same "resolve once onto Player" discipline as
@@ -67,11 +73,20 @@ enum UpgradeEffect:
 enum UpgradeCategory:
   case Stat, Meta
 
+/** What a save must have done before an upgrade can be bought: `wins` victories on `winsAt`. Counted
+  * from the same per-tier tally as the difficulty tiers (see [[DifficultyUnlocks.winsOn]]), so a farmer
+  * of Easy runs cannot reach an upgrade that asks for Hard wins.
+  */
+case class UpgradeRequirement(winsAt: Difficulty, wins: Int)
+
 /** Static definition of one hub upgrade available for purchase, loaded from `data/upgrades.json`.
   *
   * @param displayOrder
   *   Position in the hub upgrade list (ascending). JSON array order is not preserved once loaded
   *   into a `Map`, so this field is the explicit source of truth for display order.
+  * @param requires
+  *   Victories the save needs before the upgrade can be bought, for the late-game upgrades. Most
+  *   upgrades have none. The hub keeps a locked one out of sight until the tier it asks for is open.
   */
 case class UpgradeDef(
     id: String,
@@ -81,5 +96,10 @@ case class UpgradeDef(
     displayOrder: Int,
     icon: String,
     category: UpgradeCategory,
-    effect: UpgradeEffect
-)
+    effect: UpgradeEffect,
+    requires: Option[UpgradeRequirement] = None
+):
+
+  /** The victories this upgrade still asks of `stats`, or `None` when it asks nothing more. */
+  def unmetRequirement(stats: AchievementStats): Option[UpgradeRequirement] =
+    requires.filter(r => DifficultyUnlocks.winsOn(r.winsAt, stats) < r.wins)

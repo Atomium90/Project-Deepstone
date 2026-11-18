@@ -351,12 +351,20 @@ case class CombatView(
   */
 case class DamageEventView(targetIsPlayer: Boolean, amount: Int, kind: String, crit: Boolean = false)
 
-/** Hub data: available upgrades and their unlock status. */
+/** The victories an upgrade asks for before it can be bought, with how many the save has: `winsDone`
+  * of the `wins` needed on tier `winsAt`.
+  */
+case class UpgradeRequirementView(winsAt: Difficulty, wins: Int, winsDone: Int)
+
+/** Hub data: available upgrades and their unlock status. `requirement` is only set for the late-game
+  * upgrades that ask for victories first, resolved by [[GameSession]] from the achievement stats.
+  */
 case class UpgradeView(id: String,
                        cost: Int,
                        icon: String,
                        category: UpgradeCategory,
-                       unlocked: Boolean
+                       unlocked: Boolean,
+                       requirement: Option[UpgradeRequirementView] = None
 )
 
 /** One run perk offered to the player, rolled fresh every HUB visit (see `HubState.perkOptions`). */
@@ -853,6 +861,7 @@ object MessageProtocol:
   given Encoder[RoomView]    = deriveEncoder
   given Encoder[CombatView]  = deriveEncoder
   given Encoder[DamageEventView] = deriveEncoder
+  given Encoder[UpgradeRequirementView] = deriveEncoder
   given Encoder[UpgradeView]  = deriveEncoder
   given Encoder[PerkView]     = deriveEncoder
   given Encoder[TierRequirementView] = deriveEncoder

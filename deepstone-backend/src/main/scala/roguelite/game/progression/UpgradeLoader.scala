@@ -3,7 +3,7 @@ package roguelite.game.progression
 import cats.syntax.either.*
 import io.circe.{ Decoder, HCursor }
 import io.circe.parser.decode
-import roguelite.engine.ClassId
+import roguelite.engine.{ ClassId, Difficulty }
 import roguelite.game.core.JsonResourceLoader
 import roguelite.game.items.Rarity
 
@@ -27,6 +27,7 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
     for
       category <- parseCategory(j.category)
       effect   <- parseEffect(j.effect)
+      requires <- j.requires.fold(Right(None))(r => parseRequirement(r).map(Some(_)))
     yield UpgradeDef(
       id = j.id,
       label = j.label,
@@ -35,7 +36,8 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
       displayOrder = j.displayOrder,
       icon = j.icon,
       category = category,
-      effect = effect
+      effect = effect,
+      requires = requires
     )
 
   private def parseCategory(s: String): Either[String, UpgradeCategory] =
@@ -60,6 +62,8 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
           .map(UpgradeEffect.UnlockClass.apply)
       case "FlatAttackBoost" =>
         e.amount.toRight("FlatAttackBoost is missing 'amount' field").map(UpgradeEffect.FlatAttackBoost.apply)
+      case "FlatDefenseBoost" =>
+        e.amount.toRight("FlatDefenseBoost is missing 'amount' field").map(UpgradeEffect.FlatDefenseBoost.apply)
       case "GuaranteedChestRarity" =>
         e.rarity
           .toRight("GuaranteedChestRarity is missing 'rarity' field")
@@ -72,6 +76,12 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
           .map(UpgradeEffect.UnlockStartingKit.apply)
       case other =>
         Left(s"Unknown upgrade effect type: '$other'")
+
+  private def parseRequirement(r: UpgradeRequirementJson): Either[String, UpgradeRequirement] =
+    Difficulty.values
+      .find(_.toString.toLowerCase == r.winsAt.toLowerCase)
+      .toRight(s"Unknown difficulty in an upgrade requirement: '${r.winsAt}'")
+      .flatMap(d => Either.cond(r.wins > 0, UpgradeRequirement(d, r.wins), s"An upgrade requirement needs a positive 'wins', got ${r.wins}"))
 
   private def parseClassId(s: String): Either[String, ClassId] =
     ClassId.values
@@ -95,6 +105,8 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
       rarity: Option[String] = None
   )
 
+  private case class UpgradeRequirementJson(winsAt: String, wins: Int)
+
   private case class UpgradeDefJson(
       id: String,
       label: String,
@@ -103,8 +115,16 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
       displayOrder: Int,
       icon: String,
       category: String,
-      effect: UpgradeEffectJson
+      effect: UpgradeEffectJson,
+      requires: Option[UpgradeRequirementJson] = None
   )
+
+  private given Decoder[UpgradeRequirementJson] = Decoder.instance:
+    (c: HCursor) =>
+      for
+        winsAt <- c.get[String]("winsAt")
+        wins   <- c.get[Int]("wins")
+      yield UpgradeRequirementJson(winsAt, wins)
 
   private given Decoder[UpgradeEffectJson] = Decoder.instance:
     (c: HCursor) =>
@@ -127,4 +147,5 @@ object UpgradeLoader extends JsonResourceLoader[UpgradeDef, String]:
         icon         <- c.get[String]("icon")
         category     <- c.get[String]("category")
         effect       <- c.get[UpgradeEffectJson]("effect")
-      yield UpgradeDefJson(id, label, description, cost, displayOrder, icon, category, effect)
+        requires     <- c.get[Option[UpgradeRequirementJson]]("requires")
+      yield UpgradeDefJson(id, label, description, cost, displayOrder, icon, category, effect, requires)

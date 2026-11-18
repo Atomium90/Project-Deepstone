@@ -243,6 +243,51 @@ describe("HubScreen", () => {
         expect(sendSpy).toHaveBeenCalledWith({ type: "HUB_ACTION", action: "BUYUPGRADE", upgradeId: "hp_boost_1" });
     });
 
+    test("a late-game upgrade that asks for Hard wins says how far the save is and cannot be bought yet", async () => {
+        gameState.set(
+            makeState({
+                player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 5000, affinityTags: [] },
+                hub: {
+                    upgrades: [makeUpgrade({ id: "hp_boost_3", cost: 100, requirement: { winsAt: "hard", wins: 3, winsDone: 1 } })],
+                    perks: [],
+                    runsCompleted: 12,
+                    difficulties: [],
+                },
+            }),
+        );
+        const sendSpy = vi.spyOn(client, "send").mockImplementation(() => {});
+        const { container } = render(HubScreen);
+        await tick();
+
+        expect(container.querySelector(".upgrade-need")?.textContent).toContain("Hard");
+        expect(container.querySelector(".upgrade-need")?.textContent).toContain("1 of 3");
+        const buy = container.querySelector("button.buy-btn") as HTMLButtonElement;
+        expect(buy.disabled).toBe(true);
+        await fireEvent.click(buy);
+        expect(sendSpy).not.toHaveBeenCalled();
+    });
+
+    test("once the wins are there the late-game upgrade is bought like any other", async () => {
+        gameState.set(
+            makeState({
+                player: { classId: "warrior", hp: 100, maxHp: 100, resourceCurrent: 0, resourceMax: 100, level: 1, xp: 0, metaCurrency: 5000, affinityTags: [] },
+                hub: {
+                    upgrades: [makeUpgrade({ id: "hp_boost_3", cost: 100, requirement: { winsAt: "hard", wins: 3, winsDone: 3 } })],
+                    perks: [],
+                    runsCompleted: 12,
+                    difficulties: [],
+                },
+            }),
+        );
+        const sendSpy = vi.spyOn(client, "send").mockImplementation(() => {});
+        const { container } = render(HubScreen);
+        await tick();
+
+        expect(container.querySelector(".upgrade-need")).toBeNull();
+        await fireEvent.click(container.querySelector("button.buy-btn")!);
+        expect(sendSpy).toHaveBeenCalledWith({ type: "HUB_ACTION", action: "BUYUPGRADE", upgradeId: "hp_boost_3" });
+    });
+
     test("the ALL/STATS/META tabs filter the upgrade list by category", async () => {
         gameState.set(
             makeState({

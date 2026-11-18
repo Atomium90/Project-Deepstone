@@ -9,7 +9,8 @@ import roguelite.game.progression.{
   AchievementStats,
   DifficultyTierDef,
   DifficultyUnlocks,
-  PerkDef
+  PerkDef,
+  UpgradeDef
 }
 import roguelite.game.story.{ EndingRules, NpcDef, SceneDef, StoryProgress, StoryRules }
 
@@ -27,7 +28,8 @@ final class StateUpdateProjections(abilityCatalog: List[AbilityView],
                                    perkDefs: Map[String, PerkDef],
                                    difficultyDefs: Map[Difficulty, DifficultyTierDef],
                                    sceneDefs: Map[String, SceneDef],
-                                   npcDefs: Map[String, NpcDef]
+                                   npcDefs: Map[String, NpcDef],
+                                   upgradeDefs: Map[String, UpgradeDef] = Map.empty
 ):
 
   private val statCalculator = StatCalculator(setDefs, perkDefs)
@@ -97,12 +99,26 @@ final class StateUpdateProjections(abilityCatalog: List[AbilityView],
   def withHubProgress(update: StateUpdate, progress: AchievementProgress, story: StoryProgress): StateUpdate =
     update.copy(hub =
       update.hub.map(
-        _.copy(runsCompleted = progress.stats.runsCompleted,
+        hub => hub.copy(upgrades = upgradeViews(hub.upgrades, progress.stats, story),
+               runsCompleted = progress.stats.runsCompleted,
                difficulties = difficultyViews(progress.stats, story),
                shopClosed = story.shopClosed
         )
       )
     )
+
+  /** The upgrades the hub shows, each with what it still asks for. An upgrade that asks for victories on a
+    * tier stays out of sight until that tier is open (unless it is already owned), so the shop does not
+    * list what the save cannot work toward yet.
+    */
+  def upgradeViews(upgrades: List[UpgradeView], stats: AchievementStats, story: StoryProgress): List[UpgradeView] =
+    upgrades.flatMap: view =>
+      upgradeDefs.get(view.id).flatMap(_.requires) match
+        case None => Some(view)
+        case Some(r) =>
+          val open = DifficultyUnlocks.isUnlocked(difficultyDefs, r.winsAt, stats, story.openedTiers)
+          Option.when(view.unlocked || open):
+            view.copy(requirement = Some(UpgradeRequirementView(r.winsAt, r.wins, DifficultyUnlocks.winsOn(r.winsAt, stats))))
 
   /** The tiers the hub shows. A tier only the story opens is left out until the story has opened it. */
   def difficultyViews(stats: AchievementStats, story: StoryProgress): List[DifficultyView] =

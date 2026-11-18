@@ -66,7 +66,9 @@ class BalanceSimSuite extends CatsEffectSuite:
         ClassId.values.foreach:
           classId =>
             assert(world.kitUpgrade(classId).nonEmpty, s"no kit upgrade for $classId")
-            assertEquals(SimProfile.Late.upgrades(world, classId), world.upgradeDefs.keySet)
+            assertEquals(SimProfile.Post.upgrades(world, classId), world.upgradeDefs.keySet)
+            assertEquals(SimProfile.Late.upgrades(world, classId), world.upgradeDefs.filter((_, u) => u.requires.isEmpty).keySet)
+            assert(SimProfile.Post.upgrades(world, classId).size > SimProfile.Late.upgrades(world, classId).size)
 
   test("a later stage starts with more: the upgrades it owns are applied as the server applies them"):
     SimWorld.load().map:

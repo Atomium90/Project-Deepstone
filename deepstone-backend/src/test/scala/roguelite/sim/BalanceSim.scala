@@ -38,7 +38,7 @@ final case class SimOptions(
 object SimOptions:
 
   /** Reads `--runs N --seed S --class warrior|archer|mage --difficulty easy|normal|hard|hardcore
-    * --profile fresh|early|mid|late|all --perk ID --risky ID --heal PERCENT --policy asap|when-long --grid --out DIR`.
+    * --profile fresh|early|mid|late|post|all --perk ID --risky ID --heal PERCENT --policy asap|when-long --grid --out DIR`.
     * `--grid` plays every class on every tier (so `--class` and `--difficulty` are not read) and
     * `--profile all` is only for a grid. `--campaign [--campaigns N] [--campaign-runs N]` lives
     * whole saves instead, run after run (see [[Campaign]]): only `--class`, `--seed`, `--heal` and

@@ -15,7 +15,8 @@ enum SimProfile(val label: String, val defaultDifficulty: Difficulty, val descri
       extends SimProfile("early", Difficulty.Easy, "the class's starting kit, the first HP upgrade and a starting potion")
   case Mid
       extends SimProfile("mid", Difficulty.Normal, "early, plus the second HP upgrade, the third belt slot, bigger potion stacks and weapon mastery")
-  case Late extends SimProfile("late", Difficulty.Hard, "every upgrade of the shop")
+  case Late extends SimProfile("late", Difficulty.Hard, "every upgrade of the shop that asks for no victory first")
+  case Post extends SimProfile("post", Difficulty.Hard, "every upgrade of the shop, the late-game ones that ask for Hard victories included")
 
   /** The ids of the upgrades a save at this stage owns, for a run as `classId` (the access to the
     * class itself is added by the hub, whatever the stage).
@@ -24,7 +25,8 @@ enum SimProfile(val label: String, val defaultDifficulty: Difficulty, val descri
     case Fresh => Set.empty
     case Early => SimProfile.EarlyUpgrades ++ world.kitUpgrade(classId)
     case Mid   => SimProfile.EarlyUpgrades ++ SimProfile.MidUpgrades ++ world.kitUpgrade(classId)
-    case Late  => world.upgradeDefs.keySet
+    case Late  => world.upgradeDefs.filter((_, u) => u.requires.isEmpty).keySet
+    case Post  => world.upgradeDefs.keySet
 
 object SimProfile:
 

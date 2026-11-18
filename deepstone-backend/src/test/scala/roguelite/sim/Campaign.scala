@@ -108,7 +108,7 @@ object Campaign:
                    achievements: Set[String],
                    bought: List[String]
   ): (MetaProgression, AchievementStats, Set[String], List[String]) =
-    order.iterator.flatMap(id => meta.purchase(id, world.upgradeDefs).toOption.map(id -> _)).nextOption() match
+    order.iterator.flatMap(id => meta.purchase(id, world.upgradeDefs, stats).toOption.map(id -> _)).nextOption() match
       case None => (meta, stats, achievements, bought)
       case Some((id, next)) =>
         val (nextStats, earned) = AchievementChecker.checkPurchase(

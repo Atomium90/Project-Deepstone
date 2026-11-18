@@ -714,6 +714,11 @@
 
     .start-btn {
         margin-top: auto;
+        /* Stays at the bottom of the left panel whatever its height: on a window too short for the
+         * whole panel it scrolls under the button instead of taking the button out of sight. */
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
         padding: 0.85rem 1rem;
         background: #1a2a1a;
         border: 1px solid #2a4a2a;
@@ -784,14 +789,15 @@
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
-        /* Cap to roughly 6 visible rows and scroll the rest, so a long catalog doesn't push the
-         * run perk cards below it out of view - a growing upgrade list previously pushed them
-         * further down every time a new upgrade shipped. flex-shrink: 0 keeps that cap reliable
-         * on a short viewport too - without it, the flex column shrinks this below max-height to
-         * make room instead of letting it scroll internally. */
+        /* The shop is the part of the right panel that gives way: it is capped to roughly 6 rows
+         * and shrinks below that, down to a floor of about 3 rows, scrolling the rest inside
+         * itself. The perk rows below it never shrink (see .perk-list), so a long catalog, or a
+         * short window, can never push the run perks and the risky perk, malus included, out of
+         * view. Only a window too short for all of that falls back to scrolling the panel. */
         max-height: 24rem;
+        min-height: 9rem;
         overflow-y: auto;
-        flex-shrink: 0;
+        flex: 0 1 auto;
         padding-right: 0.3rem;
 
         /* The native scrollbar (full-width track, arrow buttons) clashes hard with the rest of
@@ -936,6 +942,8 @@
         display: flex;
         flex-direction: column;
         gap: 0.4rem;
+        /* Never squeezed by the shop above: what a perk costs must always be readable. */
+        flex-shrink: 0;
     }
 
     /* No perk counts in Hardcore: the cards stay readable but plainly out of play. */
@@ -1033,5 +1041,65 @@
         margin-bottom: 0.5rem;
         font-size: 0.7rem;
         color: #a08a5a;
+    }
+
+    /* A short window (a laptop browser is about 650px tall): both panels are tightened so that the
+     * shop, the run perks and the risky perk, and the classes, the tiers and the Start button all
+     * still fit without scrolling a panel, which would leave the malus of a risky perk, or the Start
+     * button, out of sight. */
+    @media (max-height: 720px) {
+        .left-panel {
+            padding: 1rem 2rem;
+            gap: 0.6rem;
+        }
+
+        .left-panel .section-label {
+            margin-bottom: 0.3rem;
+        }
+
+        .class-list {
+            gap: 0.4rem;
+        }
+
+        .class-card {
+            padding: 0.45rem 0.9rem;
+        }
+
+        .difficulty-card {
+            padding: 0.4rem;
+        }
+
+        .difficulty-hint,
+        .difficulty-rules {
+            margin-top: -0.3rem;
+        }
+
+        .start-btn {
+            padding: 0.6rem 1rem;
+        }
+
+        .right-panel {
+            padding: 1rem 2rem;
+        }
+
+        .right-panel .section-label {
+            margin-bottom: 0.6rem;
+        }
+
+        .upgrade-tabs {
+            margin-bottom: 0.6rem;
+        }
+
+        .upgrade-list {
+            min-height: 6rem;
+        }
+
+        .perk-section-label {
+            margin-top: 0.75rem;
+        }
+
+        .perk-card {
+            padding: 0.4rem 0.85rem;
+        }
     }
 </style>

@@ -1,7 +1,7 @@
 [
   {
     "classId": "warrior",
-    "hp": 120,
+    "hp": 95,
     "resourceMax": 100,
     "resourceStart": 0,
     "affinityTags": ["heavy"],

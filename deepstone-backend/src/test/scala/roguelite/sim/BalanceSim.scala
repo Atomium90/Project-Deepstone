@@ -121,7 +121,7 @@ object BalanceSim:
     val played =
       (0 until options.runs).toList.map:
         i => simulator.play(i, options.seed + i, setup)
-    SimResult(played.map(_._1), played.flatMap(_._2), played.flatMap(_._3))
+    SimResult(played.map(_.row), played.flatMap(_.combats), played.flatMap(_.drops))
 
   def simulate(world: SimWorld, options: SimOptions): SimResult = simulate(world, options, options.setup)
 

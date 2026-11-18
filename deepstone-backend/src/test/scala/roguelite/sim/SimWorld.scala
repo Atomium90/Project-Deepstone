@@ -6,6 +6,8 @@ import roguelite.game.combat.{ AbilityDef, AbilityLoader, CombatResolver, EnemyL
 import roguelite.game.dungeon.{ Room, RoomLoader }
 import roguelite.game.items.{ Item, ItemLoader, SetDef, SetLoader }
 import roguelite.game.progression.{
+  AchievementDef,
+  AchievementLoader,
   ClassDef,
   ClassLoader,
   DifficultyLoader,
@@ -33,7 +35,8 @@ final case class SimWorld(
     upgradeDefs: Map[String, UpgradeDef],
     setDefs: Map[String, SetDef],
     perkDefs: Map[String, PerkDef],
-    difficultyDefs: Map[Difficulty, DifficultyTierDef]
+    difficultyDefs: Map[Difficulty, DifficultyTierDef],
+    achievementDefs: Map[String, AchievementDef]
 ):
 
   /** The same attack, defense and crit math the combat uses. */
@@ -71,11 +74,16 @@ final case class SimWorld(
     * chosen at all), with the chosen perks on offer.
     */
   def hub(setup: SimSetup): HubState =
-    val owned       = setup.profile.upgrades(this, setup.classId) ++ classAccess(setup.classId)
-    val placeholder = Player(ClassId.Warrior, hp = 100, maxHp = 100, resourceCurrent = 0, resourceMax = 100, level = 1, xp = 0, metaCurrency = 0)
+    val owned = setup.profile.upgrades(this, setup.classId) ++ classAccess(setup.classId)
+    hub(MetaProgression(currency = 0, unlockedUpgrades = owned), setup)
+
+  /** The hub of a save with `meta` (the Shards in the pocket included) and the perks `setup` takes on offer. */
+  def hub(meta: MetaProgression, setup: SimSetup): HubState =
+    val placeholder =
+      Player(ClassId.Warrior, hp = 100, maxHp = 100, resourceCurrent = 0, resourceMax = 100, level = 1, xp = 0, metaCurrency = meta.currency)
     HubState(placeholder,
              upgradeDefs,
-             MetaProgression(currency = 0, unlockedUpgrades = owned),
+             meta,
              perkOptions = setup.perkId.flatMap(perkDefs.get).toList,
              riskyPerkOptions = setup.riskyPerkId.flatMap(perkDefs.get).toList
     )
@@ -93,4 +101,5 @@ object SimWorld:
       sets        <- SetLoader.loadAll()
       perks       <- PerkLoader.loadAll()
       difficulties <- DifficultyLoader.loadAll()
-    yield SimWorld(rooms, enemies, items, classes, abilities, upgrades, sets, perks, difficulties)
+      achievements <- AchievementLoader.loadAll()
+    yield SimWorld(rooms, enemies, items, classes, abilities, upgrades, sets, perks, difficulties, achievements)

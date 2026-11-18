@@ -11,6 +11,7 @@ import roguelite.engine.{
   GameState,
   HubAction,
   HubActionType,
+  HubState,
   Interact,
   Player,
   PlayerAction,
@@ -33,12 +34,19 @@ final class RunSimulator(world: SimWorld, policy: BotPolicy, maxActions: Int = 2
   /** Same state this many times in a row means the bot is going round in circles. */
   private val StuckAfter = 8
 
-  def play(run: Int, seed: Long, setup: SimSetup): (RunRow, List[CombatRow], List[DropRow]) =
+  /** A run of `setup` on a save that owns what the setup's profile says. */
+  def play(run: Int, seed: Long, setup: SimSetup): PlayedRun =
+    play(run, seed, setup, world.hub(setup), setup.profile.label)
+
+  /** A run starting from the given hub (the upgrades it owns, the Shards in the pocket), which a
+    * campaign builds from what its save has bought so far. `profileLabel` is what the run row says
+    * about the save.
+    */
+  def play(run: Int, seed: Long, setup: SimSetup, hub: HubState, profileLabel: String): PlayedRun =
     val sm      = world.stateMachine(seed)
     val bot     = Bot(world, policy)
     val tracker = RunTracker(world, run)
 
-    val hub = world.hub(setup)
     val start = sm.applyActionPure(
       hub,
       HubAction(HubActionType.StartRun,
@@ -80,7 +88,7 @@ final class RunSimulator(world: SimWorld, policy: BotPolicy, maxActions: Int = 2
       case GameOverState(_, false) => outcome = "death"
       case _                       => ()
 
-    tracker.finish(seed, setup, outcome, actions, state)
+    tracker.finish(seed, setup, profileLabel, outcome, actions, state)
 
 /** The bookkeeping of one run: counters, the fight in progress, the milestones reached. */
 private final class RunTracker(world: SimWorld, run: Int):
@@ -96,6 +104,7 @@ private final class RunTracker(world: SimWorld, run: Int):
   private var lastDungeon  = Option.empty[Dungeon]
   private var lastSection  = 0
 
+  private val events     = mutable.ListBuffer.empty[GameEvent]
   private val combats    = mutable.ListBuffer.empty[CombatRow]
   private val dropRows   = mutable.ListBuffer.empty[DropRow]
   private val milestones = mutable.LinkedHashMap.empty[String, Milestone]
@@ -128,6 +137,7 @@ private final class RunTracker(world: SimWorld, run: Int):
       case s: ExplorationState => sectionOf(s.dungeon)
       case s: CombatState      => sectionOf(s.dungeon)
       case _                   => ()
+    events ++= result.events
     countEvents(result.events)
     watchFight(before, action, result)
     watchChest(before, action, after)
@@ -145,17 +155,18 @@ private final class RunTracker(world: SimWorld, run: Int):
 
   def finish(seed: Long,
              setup: SimSetup,
+             profileLabel: String,
              outcome: String,
              actions: Int,
              finalState: GameState
-  ): (RunRow, List[CombatRow], List[DropRow]) =
+  ): PlayedRun =
     val player = finalState.player
     val row = RunRow(
       run = run,
       seed = seed,
       classId = setup.classId.toString.toLowerCase,
       difficulty = setup.difficulty.toString.toLowerCase,
-      profile = setup.profile.label,
+      profile = profileLabel,
       outcome = outcome,
       killedBy = killedBy,
       section = lastSection,
@@ -174,7 +185,7 @@ private final class RunTracker(world: SimWorld, run: Int):
       defense = world.stats.defense(player),
       milestones = milestones.toMap
     )
-    (row, combats.toList, dropRows.toList)
+    PlayedRun(row, combats.toList, dropRows.toList, events.toList)
 
   // -- events ------------------------------------------------------------------------------------
 

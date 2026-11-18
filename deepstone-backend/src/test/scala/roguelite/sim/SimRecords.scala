@@ -1,5 +1,7 @@
 package roguelite.sim
 
+import roguelite.game.core.GameEvent
+
 import java.nio.charset.StandardCharsets
 import java.nio.file.{ Files, Path }
 
@@ -77,6 +79,9 @@ final case class RunRow(
     defense: Int,
     milestones: Map[String, Milestone]
 )
+
+/** One played run: its rows, and every game event it produced (what the save's stats are worked out from). */
+final case class PlayedRun(row: RunRow, combats: List[CombatRow], drops: List[DropRow], events: List[GameEvent])
 
 /** The three tables of one simulation. */
 final case class SimResult(runs: List[RunRow], combats: List[CombatRow], drops: List[DropRow])

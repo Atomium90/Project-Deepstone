@@ -33,15 +33,25 @@ final class RunSimulator(world: SimWorld, policy: BotPolicy, maxActions: Int = 2
   /** Same state this many times in a row means the bot is going round in circles. */
   private val StuckAfter = 8
 
-  def play(run: Int, seed: Long, classId: ClassId, difficulty: Difficulty): (RunRow, List[CombatRow], List[DropRow]) =
+  def play(run: Int, seed: Long, setup: SimSetup): (RunRow, List[CombatRow], List[DropRow]) =
     val sm      = world.stateMachine(seed)
     val bot     = Bot(world, policy)
     val tracker = RunTracker(world, run)
 
-    val start = sm.applyActionPure(world.freshHub(classId),
-                                   HubAction(HubActionType.StartRun, classId = Some(classId), difficulty = Some(difficulty))
+    val hub = world.hub(setup)
+    val start = sm.applyActionPure(
+      hub,
+      HubAction(HubActionType.StartRun,
+                classId = Some(setup.classId),
+                difficulty = Some(setup.difficulty),
+                perkId = setup.perkId,
+                riskyPerkId = setup.riskyPerkId
+      )
     )
-    var state: GameState = start.state
+    // The server adds the blessings of the owned upgrades as the run starts: so does the simulation.
+    var state: GameState = start.state match
+      case exp: ExplorationState => world.runStart(exp, hub.meta)
+      case other                 => other
     var actions          = 0
     var unchanged        = 0
     var outcome          = "cap"
@@ -70,7 +80,7 @@ final class RunSimulator(world: SimWorld, policy: BotPolicy, maxActions: Int = 2
       case GameOverState(_, false) => outcome = "death"
       case _                       => ()
 
-    tracker.finish(seed, classId, difficulty, outcome, actions, state)
+    tracker.finish(seed, setup, outcome, actions, state)
 
 /** The bookkeeping of one run: counters, the fight in progress, the milestones reached. */
 private final class RunTracker(world: SimWorld, run: Int):
@@ -134,8 +144,7 @@ private final class RunTracker(world: SimWorld, run: Int):
       case _                => ()
 
   def finish(seed: Long,
-             classId: ClassId,
-             difficulty: Difficulty,
+             setup: SimSetup,
              outcome: String,
              actions: Int,
              finalState: GameState
@@ -144,8 +153,9 @@ private final class RunTracker(world: SimWorld, run: Int):
     val row = RunRow(
       run = run,
       seed = seed,
-      classId = classId.toString.toLowerCase,
-      difficulty = difficulty.toString.toLowerCase,
+      classId = setup.classId.toString.toLowerCase,
+      difficulty = setup.difficulty.toString.toLowerCase,
+      profile = setup.profile.label,
       outcome = outcome,
       killedBy = killedBy,
       section = lastSection,

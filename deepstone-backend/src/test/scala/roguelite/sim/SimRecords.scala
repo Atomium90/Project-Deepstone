@@ -58,6 +58,7 @@ final case class RunRow(
     seed: Long,
     classId: String,
     difficulty: String,
+    profile: String,
     outcome: String, // victory | death | stuck | cap
     killedBy: String,
     section: Int,
@@ -108,12 +109,12 @@ object SimCsv:
          d.kills, d.drops)
 
   private val runHeader =
-    List("run", "seed", "class", "difficulty", "outcome", "killedBy", "section", "roomsVisited", "level", "shards",
+    List("run", "seed", "class", "difficulty", "profile", "outcome", "killedBy", "section", "roomsVisited", "level", "shards",
          "actions", "combats", "kills", "eliteKills", "chestsOpened", "drops", "potionsUsed", "maxHp", "attack",
          "defense") ++ Milestone.Names.flatMap(n => List(s"${n}_chests", s"${n}_kills", s"${n}_drops"))
 
   private def runCells(r: RunRow): List[Any] =
-    List(r.run, r.seed, r.classId, r.difficulty, r.outcome, r.killedBy, r.section, r.roomsVisited, r.level, r.shards,
+    List(r.run, r.seed, r.classId, r.difficulty, r.profile, r.outcome, r.killedBy, r.section, r.roomsVisited, r.level, r.shards,
          r.actions, r.combats, r.kills, r.eliteKills, r.chestsOpened, r.drops, r.potionsUsed, r.maxHp, r.attack,
          r.defense) ++
       Milestone.Names.flatMap:

@@ -5,26 +5,42 @@ import roguelite.engine.{ ClassId, Difficulty }
 
 import java.nio.file.{ Path, Paths }
 
-/** Command-line options of the balance simulation, see [[BalanceSim]]. */
+/** Command-line options of the balance simulation, see [[BalanceSim]].
+  *
+  * @param difficulty
+  *   The tier to play, or None for the one a save at the profile's stage would be playing.
+  */
 final case class SimOptions(
     runs: Int = 200,
     seed: Long = 1L,
     classId: ClassId = ClassId.Warrior,
-    difficulty: Difficulty = Difficulty.Easy,
+    difficulty: Option[Difficulty] = None,
+    profile: SimProfile = SimProfile.Fresh,
+    perkId: Option[String] = None,
+    riskyPerkId: Option[String] = None,
     out: Path = Paths.get("target", "sim"),
     policy: BotPolicy = BotPolicy()
-)
+):
+
+  /** What each run of this simulation plays. */
+  def setup: SimSetup =
+    SimSetup(classId, difficulty.getOrElse(profile.defaultDifficulty), profile, perkId, riskyPerkId)
 
 object SimOptions:
 
-  /** Reads `--runs N --seed S --class warrior|archer|mage --difficulty easy|normal|hard --heal PERCENT --out DIR`. */
+  /** Reads `--runs N --seed S --class warrior|archer|mage --difficulty easy|normal|hard|hardcore
+    * --profile fresh|early|mid|late --perk ID --risky ID --heal PERCENT --out DIR`.
+    */
   def parse(args: List[String]): Either[String, SimOptions] =
     def go(rest: List[String], options: SimOptions): Either[String, SimOptions] = rest match
       case Nil => Right(options)
       case "--runs" :: v :: tail       => int(v, "--runs").flatMap(n => go(tail, options.copy(runs = n)))
       case "--seed" :: v :: tail       => v.toLongOption.toRight(s"--seed wants a number, got '$v'").flatMap(s => go(tail, options.copy(seed = s)))
       case "--class" :: v :: tail      => classOf(v).flatMap(c => go(tail, options.copy(classId = c)))
-      case "--difficulty" :: v :: tail => difficultyOf(v).flatMap(d => go(tail, options.copy(difficulty = d)))
+      case "--difficulty" :: v :: tail => difficultyOf(v).flatMap(d => go(tail, options.copy(difficulty = Some(d))))
+      case "--profile" :: v :: tail    => SimProfile.parse(v).flatMap(p => go(tail, options.copy(profile = p)))
+      case "--perk" :: v :: tail       => go(tail, options.copy(perkId = Some(v)))
+      case "--risky" :: v :: tail      => go(tail, options.copy(riskyPerkId = Some(v)))
       case "--heal" :: v :: tail =>
         int(v, "--heal").flatMap(n => go(tail, options.copy(policy = options.policy.copy(healBelowPercent = n))))
       case "--out" :: v :: tail => go(tail, options.copy(out = Paths.get(v)))
@@ -59,25 +75,34 @@ object BalanceSim:
     SimOptions.parse(args) match
       case Left(error) => IO.println(error).as(ExitCode.Error)
       case Right(options) =>
-        for
-          world  <- SimWorld.load()
-          result <- IO.blocking(simulate(world, options))
-          _ <- IO.blocking:
-            SimCsv.write(options.out, result)
-            java.nio.file.Files.writeString(options.out.resolve("report.md"), SimReport.render(result, header(options)))
-          _ <- IO.println(s"${result.runs.size} runs written to ${options.out.toAbsolutePath}")
-        yield ExitCode.Success
+        SimWorld.load().flatMap:
+          world =>
+            options.setup.validate(world) match
+              case Left(error) => IO.println(error).as(ExitCode.Error)
+              case Right(setup) =>
+                for
+                  result <- IO.blocking(simulate(world, options, setup))
+                  _ <- IO.blocking:
+                    SimCsv.write(options.out, result)
+                    java.nio.file.Files.writeString(options.out.resolve("report.md"),
+                                                    SimReport.render(result, header(options, setup))
+                    )
+                  _ <- IO.println(s"${result.runs.size} runs written to ${options.out.toAbsolutePath}")
+                yield ExitCode.Success
 
-  def simulate(world: SimWorld, options: SimOptions): SimResult =
+  /** `options.runs` runs of `setup`, run n with seed `options.seed + n`. */
+  def simulate(world: SimWorld, options: SimOptions, setup: SimSetup): SimResult =
     val simulator = RunSimulator(world, options.policy)
     val played =
       (0 until options.runs).toList.map:
-        i => simulator.play(i, options.seed + i, options.classId, options.difficulty)
+        i => simulator.play(i, options.seed + i, setup)
     SimResult(played.map(_._1), played.flatMap(_._2), played.flatMap(_._3))
 
-  private def header(o: SimOptions): List[String] =
+  def simulate(world: SimWorld, options: SimOptions): SimResult = simulate(world, options, options.setup)
+
+  private def header(o: SimOptions, setup: SimSetup): List[String] =
     List(
-      s"Class: ${o.classId.toString.toLowerCase}, difficulty: ${o.difficulty.toString.toLowerCase}, fresh save (no upgrade, no starting kit)",
+      s"Played: ${setup.describe}",
       s"Runs: ${o.runs}, first seed: ${o.seed} (run n uses seed + n)",
       s"Bot: ability as soon as it can be paid, attack otherwise, heal below ${o.policy.healBelowPercent}% HP, " +
         s"power potions in Elite/MiniBoss/Boss fights: ${o.policy.usePowerPotions}, clears every room: ${o.policy.clearRooms}, " +

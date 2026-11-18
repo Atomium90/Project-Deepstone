@@ -37,6 +37,13 @@ case class Dungeon(
   /** Every room the player has been in, the one they are in now included. */
   def visitedRoomIds: Set[String] = visited + currentRoomId
 
+  /** The section the player is in, from 0: the number of Rest rooms they have already left, a Rest
+    * closing the section it follows. Enemy strength grows with it (see
+    * [[roguelite.game.combat.EnemyScaling]]).
+    */
+  def sectionIndex: Int =
+    visited.count(id => rooms.get(id).exists(_.roomType == RoomType.Rest))
+
   /** Attempt to navigate to a different room by id.
     *
     * Returns a new [[Dungeon]] with the updated current room, or an error message if the target

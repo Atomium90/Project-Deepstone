@@ -76,6 +76,18 @@ case class EnemyInstance(
   def takeDamage(amount: Int): EnemyInstance =
     copy(hp = (hp - amount).max(0))
 
+/** How enemy strength grows from one section of a run to the next. The first section is never touched,
+  * so Easy (one section) and the opening of every run keep their figures. Each later section adds
+  * `HpPerSection` of the base maxHp and `AttackPerSection` of the base attack, on top of the
+  * difficulty multiplier. Defense and the reward are left alone, as for an Elite.
+  */
+object EnemyScaling:
+  val HpPerSection: Double     = 0.40
+  val AttackPerSection: Double = 0.25
+
+  def hpFactor(section: Int): Double     = 1.0 + HpPerSection * section.max(0)
+  def attackFactor(section: Int): Double = 1.0 + AttackPerSection * section.max(0)
+
 object EnemyInstance:
   /** HP/attack multiplier for an Elite enemy, stacked multiplicatively on top of the difficulty
     * multiplier. Defense and xpReward are deliberately left unscaled - see [[fromStats]].
@@ -88,26 +100,28 @@ object EnemyInstance:
     * maxHp/attack/xpReward are floored at 1 so a low base stat never scales down to 0 or negative
     * on Easy; defense is floored at 0 since a defenseless enemy is valid. Elite only scales
     * maxHp/attack (not defense/xpReward, deliberately - a harder fight for the same reward,
-    * offset by the guaranteed loot floor instead) and forces `dropChance` to 100.
+    * offset by the guaranteed loot floor instead) and forces `dropChance` to 100. `section` (from 0)
+    * grows maxHp and attack as the run goes deeper, see [[EnemyScaling]].
     */
   def fromStats(entityId: String,
                 stats: EnemyStats,
                 difficulty: Difficulty = Difficulty.Normal,
                 isElite: Boolean = false,
-                extraPercent: Int = 0
+                extraPercent: Int = 0,
+                section: Int = 0
   ): EnemyInstance =
     val mult      = difficulty.statMultiplier
     // A risky perk makes every enemy tougher, in HP and attack only: the reward does not follow.
     val perkMult  = (100 + extraPercent).max(0) / 100.0
     val eliteMult = (if isElite then EliteStatMultiplier else 1.0) * perkMult
-    val scaledHp  = math.max(1, math.round(stats.maxHp * mult * eliteMult).toInt)
+    val scaledHp  = math.max(1, math.round(stats.maxHp * mult * eliteMult * EnemyScaling.hpFactor(section)).toInt)
     EnemyInstance(
       entityId = entityId,
       typeId = stats.typeId,
       label = stats.label,
       hp = scaledHp,
       maxHp = scaledHp,
-      attack = math.max(1, math.round(stats.attack * mult * eliteMult).toInt),
+      attack = math.max(1, math.round(stats.attack * mult * eliteMult * EnemyScaling.attackFactor(section)).toInt),
       defense = math.max(0, math.round(stats.defense * mult).toInt),
       xpReward = math.max(1, math.round(stats.xpReward * mult).toInt),
       actions = stats.actions,

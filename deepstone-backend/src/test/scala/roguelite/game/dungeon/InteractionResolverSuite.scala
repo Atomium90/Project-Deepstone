@@ -4,7 +4,7 @@ import roguelite.LogLines.*
 import roguelite.game.core.{ LogLine, LogValue }
 import munit.FunSuite
 import roguelite.engine.*
-import roguelite.game.combat.{ EnemyActionWeight, EnemyStats }
+import roguelite.game.combat.{ EnemyActionWeight, EnemyScaling, EnemyStats }
 import roguelite.game.core.GameEvent
 import roguelite.game.items.{ Consumable, ConsumableEffect, EquipSlot, EquipmentResolver, Item, Key, KeyKind, Rarity, Weapon }
 import roguelite.game.progression.{ PerkDef, PerkEffect }
@@ -391,7 +391,7 @@ class InteractionResolverSuite extends FunSuite:
     val state        = explorationAt(3, 3, entities = List(enemy))
     val TransitionResult(next, _, _) = resolver().interact(state, "e1")
     val combat       = next.asInstanceOf[CombatState].combat
-    assertEquals(combat.enemy.maxHp, goblinStats.maxHp)
+    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * Difficulty.Normal.statMultiplier).toInt)
     assertEquals(combat.enemy.label, "Goblin")
 
   test("CombatState enemy stats scale with difficulty"):
@@ -399,15 +399,31 @@ class InteractionResolverSuite extends FunSuite:
     val state        = explorationAt(3, 3, entities = List(enemy)).copy(difficulty = Difficulty.Hard)
     val TransitionResult(next, _, _) = resolver().interact(state, "e1")
     val combat       = next.asInstanceOf[CombatState].combat
-    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.25).toInt)
+    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * Difficulty.Hard.statMultiplier).toInt)
+
+  test("CombatState enemy HP and attack grow with the Rest rooms the player has left"):
+    val enemy  = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin")
+    val first  = explorationAt(3, 3, entities = List(enemy))
+    val rest   = makeRoom("rest", roomType = RoomType.Rest)
+    val deeper = first.copy(dungeon = first.dungeon.copy(
+      rooms = first.dungeon.rooms.updated("rest", rest),
+      visited = Set("rest")
+    ))
+    assertEquals(deeper.dungeon.sectionIndex, 1)
+    val early = resolver().interact(first, "e1").state.asInstanceOf[CombatState].combat.enemy
+    val late  = resolver().interact(deeper, "e1").state.asInstanceOf[CombatState].combat.enemy
+    assert(late.maxHp > early.maxHp)
+    assert(late.attack >= early.attack)
+    assertEquals(late.maxHp, math.round(goblinStats.maxHp * Difficulty.Normal.statMultiplier * EnemyScaling.hpFactor(1)).toInt)
 
   test("CombatState enemy HP/attack scale by the Elite multiplier when the room entity is Elite"):
     val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin", isElite = true)
     val state        = explorationAt(3, 3, entities = List(enemy))
     val TransitionResult(next, _, _) = resolver().interact(state, "e1")
     val combat       = next.asInstanceOf[CombatState].combat
-    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.75).toInt)
-    assertEquals(combat.enemy.attack, math.round(goblinStats.attack * 1.75).toInt)
+    val mult = Difficulty.Normal.statMultiplier * 1.75
+    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * mult).toInt)
+    assertEquals(combat.enemy.attack, math.round(goblinStats.attack * mult).toInt)
     assert(combat.enemy.isElite)
 
   test("Elite enemy defense and xpReward stay unscaled"):
@@ -415,8 +431,8 @@ class InteractionResolverSuite extends FunSuite:
     val state        = explorationAt(3, 3, entities = List(enemy))
     val TransitionResult(next, _, _) = resolver().interact(state, "e1")
     val combat       = next.asInstanceOf[CombatState].combat
-    assertEquals(combat.enemy.defense, goblinStats.defense)
-    assertEquals(combat.enemy.xpReward, goblinStats.xpReward)
+    assertEquals(combat.enemy.defense, math.round(goblinStats.defense * Difficulty.Normal.statMultiplier).toInt)
+    assertEquals(combat.enemy.xpReward, math.round(goblinStats.xpReward * Difficulty.Normal.statMultiplier).toInt)
 
   test("Elite enemy dropChance is forced to 100 regardless of the authored value"):
     val enemy        = Enemy("e1", x = 3, y = 3, typeId = "goblin", label = "Goblin", isElite = true)
@@ -641,8 +657,9 @@ class InteractionResolverSuite extends FunSuite:
     val state  = ExplorationState(player, dungeonWith(List(enemy)), 3, 3)
     val plain  = resolver().interact(explorationAt(3, 3, entities = List(enemy)), "e1").state.asInstanceOf[CombatState].combat.enemy
     val tough  = resolver(perkDefs = Map("hunted" -> hunted)).interact(state, "e1").state.asInstanceOf[CombatState].combat.enemy
-    assertEquals(tough.maxHp, math.round(plain.maxHp * 1.25).toInt)
-    assertEquals(tough.attack, math.round(plain.attack * 1.25).toInt)
+    val mult = Difficulty.Normal.statMultiplier * 1.25
+    assertEquals(tough.maxHp, math.round(goblinStats.maxHp * mult).toInt)
+    assertEquals(tough.attack, math.round(goblinStats.attack * mult).toInt)
     assertEquals(tough.xpReward, plain.xpReward)
 
   test("a fight starts with the altar as shut as the exploration it started from"):

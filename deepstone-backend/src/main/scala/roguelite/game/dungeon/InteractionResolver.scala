@@ -231,7 +231,7 @@ class InteractionResolver(enemyStats: Map[String, EnemyStats],
         (exp, List(LogLine.of("log.combat.unknownEnemy", "type" -> enemy.typeId)))
       case Some(stats) =>
         val perkPercent = activePerkEffects(exp.player).collect { case PerkEffect.EnemyStatPercent(n) => n }.sum
-        val instance    = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty, enemy.isElite, perkPercent)
+        val instance    = EnemyInstance.fromStats(enemy.id, stats, exp.difficulty, enemy.isElite, perkPercent, exp.dungeon.sectionIndex)
         val combat   = Combat(enemy = instance)
         val nextState = CombatState(exp.player,
                                     exp.dungeon,

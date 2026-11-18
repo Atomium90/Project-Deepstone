@@ -92,16 +92,46 @@ class EnemyLoaderSuite extends CatsEffectSuite:
 
   test("fromStats creates an instance with full HP and the given entityId"):
     val instance = EnemyInstance.fromStats("entity_01", goblin)
-    assertEquals(instance.hp, goblin.maxHp)
+    assertEquals(instance.hp, instance.maxHp)
     assertEquals(instance.label, goblin.label)
     assertEquals(instance.entityId, "entity_01")
 
-  test("fromStats defaults to Normal difficulty (no scaling)"):
+  test("fromStats defaults to Normal difficulty and the first section"):
     val instance = EnemyInstance.fromStats("entity_01", goblin)
-    assertEquals(instance.maxHp, goblin.maxHp)
-    assertEquals(instance.attack, goblin.attack)
-    assertEquals(instance.defense, goblin.defense)
-    assertEquals(instance.xpReward, goblin.xpReward)
+    assertEquals(instance.maxHp, math.round(goblin.maxHp * Difficulty.Normal.statMultiplier).toInt)
+    assertEquals(instance.attack, math.round(goblin.attack * Difficulty.Normal.statMultiplier).toInt)
+    assertEquals(instance.defense, math.round(goblin.defense * Difficulty.Normal.statMultiplier).toInt)
+    assertEquals(instance.xpReward, math.round(goblin.xpReward * Difficulty.Normal.statMultiplier).toInt)
+
+  test("the tiers are ordered by strength"):
+    val mults = List(Difficulty.Easy, Difficulty.Normal, Difficulty.Hard, Difficulty.Hardcore).map(_.statMultiplier)
+    assertEquals(mults, mults.sorted)
+    assertEquals(mults.distinct, mults)
+
+  test("fromStats leaves the first section as it is"):
+    val first = EnemyInstance.fromStats("e1", goblin, Difficulty.Hard, section = 0)
+    assertEquals(first, EnemyInstance.fromStats("e1", goblin, Difficulty.Hard))
+
+  test("fromStats grows maxHp and attack with the section, not defense or the reward"):
+    val first  = EnemyInstance.fromStats("e1", goblin, Difficulty.Normal, section = 0)
+    val second = EnemyInstance.fromStats("e1", goblin, Difficulty.Normal, section = 1)
+    val third  = EnemyInstance.fromStats("e1", goblin, Difficulty.Normal, section = 2)
+    assert(first.maxHp < second.maxHp && second.maxHp < third.maxHp)
+    assert(first.attack < second.attack && second.attack < third.attack)
+    assertEquals(second.maxHp, math.round(goblin.maxHp * Difficulty.Normal.statMultiplier * EnemyScaling.hpFactor(1)).toInt)
+    assertEquals(third.defense, first.defense)
+    assertEquals(third.xpReward, first.xpReward)
+    assertEquals(second.hp, second.maxHp)
+
+  test("a section below zero counts as the first"):
+    assertEquals(EnemyScaling.hpFactor(-3), 1.0)
+    assertEquals(EnemyScaling.attackFactor(-3), 1.0)
+
+  test("the section growth stacks with Elite and the difficulty"):
+    val plain = EnemyInstance.fromStats("e1", goblin, Difficulty.Hard, isElite = false, section = 2)
+    val elite = EnemyInstance.fromStats("e1", goblin, Difficulty.Hard, isElite = true, section = 2)
+    assert(elite.maxHp > plain.maxHp)
+    assert(plain.maxHp > EnemyInstance.fromStats("e1", goblin, Difficulty.Hard, section = 0).maxHp)
 
   test("fromStats scales stats on Easy and Hard"):
     val easy = EnemyInstance.fromStats("e1", goblin, Difficulty.Easy)

@@ -10,7 +10,7 @@
   },
   {
     "difficulty": "hard",
-    "requirement": { "winsAt": "normal", "wins": 4, "shardsSpent": 300 },
+    "requirement": { "winsAt": "normal", "wins": 10, "shardsSpent": 1500 },
     "themes": ["dungeon", "darkDungeon", "darkDungeon"]
   },
   {

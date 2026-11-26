@@ -150,6 +150,14 @@ describe("item stat lines", () => {
         expect(line({ defense: 4 })).toBe("+4 DEF");
     });
 
+    test("a field the server sends as null (what Circe writes for a None) is left out, like a missing one", () => {
+        // JSON from the server: every empty field is present and null, not absent.
+        const wire = JSON.parse('{"maxHp":null,"attack":20,"defense":null,"critChance":null,"effect":null}') as ItemStats;
+        expect(line(wire, "heavy")).toBe("+20 ATK [heavy]");
+        const potion = JSON.parse('{"maxHp":null,"effect":"attackBuff","amount":null,"percent":20,"turns":3}') as ItemStats;
+        expect(line(potion)).toBe("+20% ATK for 3 turns");
+    });
+
     test("an accessory lists every figure it has, in a fixed order, then the tag", () => {
         expect(line({ critChance: 6, maxHp: 10, attack: 4, defense: 2 }, "magic")).toBe(
             "+10 MAX HP, +4 ATK, +2 DEF, +6% CRIT [magic]",

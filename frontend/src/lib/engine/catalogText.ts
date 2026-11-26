@@ -9,6 +9,11 @@ const STAT_ORDER = [
   ["critChance", "item.stat.crit"],
 ] as const;
 
+/** The server writes an empty stat as `null` (Circe encodes a None that way), a test or a hand-built view leaves it out. */
+function isPresent(value: number | null | undefined): value is number {
+  return value !== undefined && value !== null;
+}
+
 /**
  * The names and descriptions of the game's catalogs (items, enemies, perks, upgrades, achievements,
  * abilities, sets). The server sends ids and figures and the client owns the words, so each text is
@@ -45,14 +50,14 @@ export function catalogTextFor(language: string): CatalogText {
       if (stats.effect) {
         // A turn count is passed as `count`, which picks the singular or plural text.
         return tr(`item.effect.${stats.effect}`, {
-          ...(stats.amount !== undefined ? { amount: stats.amount } : {}),
-          ...(stats.percent !== undefined ? { percent: stats.percent } : {}),
-          ...(stats.turns !== undefined ? { count: stats.turns } : {}),
+          ...(isPresent(stats.amount) ? { amount: stats.amount } : {}),
+          ...(isPresent(stats.percent) ? { percent: stats.percent } : {}),
+          ...(isPresent(stats.turns) ? { count: stats.turns } : {}),
         });
       }
       const parts = STAT_ORDER.flatMap(([field, key]) => {
         const value = stats[field];
-        return value === undefined ? [] : [tr(key, { value })];
+        return isPresent(value) ? [tr(key, { value })] : [];
       });
       const tag = item.typeTag ? ` ${tr("item.stat.tag", { tag: tr(`tag.${item.typeTag}`, {}) })}` : "";
       return parts.join(", ") + tag;

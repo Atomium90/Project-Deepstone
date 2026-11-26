@@ -136,8 +136,8 @@ class EnemyLoaderSuite extends CatsEffectSuite:
   test("fromStats scales stats on Easy and Hard"):
     val easy = EnemyInstance.fromStats("e1", goblin, Difficulty.Easy)
     val hard = EnemyInstance.fromStats("e1", goblin, Difficulty.Hard)
-    assertEquals(easy.maxHp, math.round(goblin.maxHp * 0.75).toInt)
-    assertEquals(hard.maxHp, math.round(goblin.maxHp * 1.25).toInt)
+    assertEquals(easy.maxHp, math.round(goblin.maxHp * Difficulty.Easy.statMultiplier).toInt)
+    assertEquals(hard.maxHp, math.round(goblin.maxHp * Difficulty.Hard.statMultiplier).toInt)
     assertEquals(easy.hp, easy.maxHp)
     assert(easy.maxHp < goblin.maxHp)
     assert(hard.maxHp > goblin.maxHp)

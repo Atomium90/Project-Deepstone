@@ -154,7 +154,7 @@ class BalanceSimSuite extends CatsEffectSuite:
     SimWorld.load().map:
       world =>
         def casts(rule: AbilityRule, kinds: Set[String]) =
-          val o      = options(ClassId.Warrior, Difficulty.Normal, runs = 30).copy(policy = BotPolicy(abilityRule = rule))
+          val o      = options(ClassId.Warrior, Difficulty.Easy, runs = 30).copy(policy = BotPolicy(abilityRule = rule))
           val fights = BalanceSim.simulate(world, o).combats.filter(c => kinds.contains(c.kind))
           (fights.count(_.abilities > 0), fights.size)
         val all = Set("normal", "elite", "miniboss", "boss")

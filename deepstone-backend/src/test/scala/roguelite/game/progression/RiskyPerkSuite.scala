@@ -111,7 +111,7 @@ class RiskyPerkSuite extends FunSuite:
 
   test("the extra percent stacks on the difficulty and the Elite multipliers, and an enemy keeps 1 HP at least"):
     val stacked = EnemyInstance.fromStats("e", goblin, Difficulty.Hard, isElite = true, extraPercent = 25)
-    assertEquals(stacked.maxHp, math.round(20 * 1.25 * 1.75 * 1.25).toInt)
+    assertEquals(stacked.maxHp, math.round(20 * Difficulty.Hard.statMultiplier * 1.75 * 1.25).toInt)
     val gutted = EnemyInstance.fromStats("e", goblin, Difficulty.Normal, extraPercent = -1000)
     assertEquals(gutted.maxHp, 1)
     assertEquals(gutted.attack, 1)

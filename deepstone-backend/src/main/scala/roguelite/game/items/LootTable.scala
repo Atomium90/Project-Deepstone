@@ -152,14 +152,17 @@ object LootTable:
 
   /** Relative weights for the independent rarity-tier roll applied to a freshly-picked drop (see
     * [[rollRarityAndScale]]). Common bias is intentional: Rare/Epic should read as a notable find,
-    * not the default outcome. Distinct from [[weightFor]], which governs which catalog entry is
-    * picked from a pool in the first place, not the tier a chosen entry then drops at.
+    * not the default outcome. A run opens a dozen or more chests, so these weights decide how much of
+    * the gear power a run reaches comes from luck: at 60/25/12/3 every run found a Rare and most an
+    * Epic, which made the class weapons carry a whole run. Distinct from [[weightFor]], which governs
+    * which catalog entry is picked from a pool in the first place, not the tier a chosen entry then
+    * drops at.
     */
   private val RarityRollWeights: Map[Rarity, Int] = Map(
-    Rarity.Common   -> 60,
-    Rarity.Uncommon -> 25,
-    Rarity.Rare     -> 12,
-    Rarity.Epic     -> 3
+    Rarity.Common   -> 70,
+    Rarity.Uncommon -> 22,
+    Rarity.Rare     -> 7,
+    Rarity.Epic     -> 1
   )
 
   /** Roll a rarity tier for a freshly-picked drop and scale its numeric stat fields accordingly.

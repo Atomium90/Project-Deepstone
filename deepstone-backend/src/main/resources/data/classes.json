@@ -17,7 +17,7 @@
   },
   {
     "classId": "mage",
-    "hp": 70,
+    "hp": 78,
     "resourceMax": 80,
     "resourceStart": 80,
     "affinityTags": ["magic"],

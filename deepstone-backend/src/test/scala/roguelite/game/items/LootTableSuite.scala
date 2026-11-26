@@ -217,11 +217,13 @@ class LootTableSuite extends FunSuite:
     val item  = LootTable.rollEnemy(enemy, itemDefs, Random(11)).getOrElse(fail("expected Some"))
     assert(item.rarity.ordinal >= Rarity.Uncommon.ordinal, s"steel_sword (floor Uncommon) rolled ${item.rarity}")
 
-  // Seed 5 is a seed found (once) to roll steel_sword above its Uncommon floor on the first draw.
+  // Above-floor tiers are the minority of rolls, so look for a seed that reaches one.
   test("rolled drops can land above the item's authored floor"):
     val enemy = makeEnemy(dropChance = 100, lootTable = List(LootEntry("steel_sword", 100)))
-    val item  = LootTable.rollEnemy(enemy, itemDefs, Random(5)).getOrElse(fail("expected Some"))
-    assertNotEquals(item.rarity, Rarity.Uncommon, "expected this seed to roll steel_sword above its Uncommon floor")
+    val above = (0 until 500).iterator
+      .flatMap(seed => LootTable.rollEnemy(enemy, itemDefs, Random(seed)))
+      .exists(_.rarity != Rarity.Uncommon)
+    assert(above, "expected steel_sword to roll above its Uncommon floor within 500 seeds")
 
   // Seed 5 rolls iron_sword (Common floor) up to Uncommon on the first draw.
   test("a weapon's attackBonus scales relative to its floor's multiplier when rolled higher"):

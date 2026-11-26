@@ -38,7 +38,7 @@ final case class SimOptions(
 object SimOptions:
 
   /** Reads `--runs N --seed S --class warrior|archer|mage --difficulty easy|normal|hard|hardcore
-    * --profile fresh|early|mid|late|post|all --perk ID --risky ID --heal PERCENT --policy asap|when-long --grid --out DIR`.
+    * --profile fresh|early|mid|late|post|all --perk ID --risky ID --heal PERCENT --policy asap|when-long --order chests-first|fights-first --grid --out DIR`.
     * `--grid` plays every class on every tier (so `--class` and `--difficulty` are not read) and
     * `--profile all` is only for a grid. `--campaign [--campaigns N] [--campaign-runs N]` lives
     * whole saves instead, run after run (see [[Campaign]]): only `--class`, `--seed`, `--heal` and
@@ -64,6 +64,11 @@ object SimOptions:
       case "--risky" :: v :: tail      => go(tail, options.copy(riskyPerkId = Some(v)))
       case "--policy" :: v :: tail =>
         AbilityRule.parse(v).flatMap(r => go(tail, options.copy(policy = options.policy.copy(abilityRule = r))))
+      case "--order" :: v :: tail =>
+        v.toLowerCase match
+          case "chests-first" => go(tail, options.copy(policy = options.policy.copy(chestsFirst = true)))
+          case "fights-first" => go(tail, options.copy(policy = options.policy.copy(chestsFirst = false)))
+          case other          => Left(s"--order wants chests-first or fights-first, got '$other'")
       case "--heal" :: v :: tail =>
         int(v, "--heal").flatMap(n => go(tail, options.copy(policy = options.policy.copy(healBelowPercent = n))))
       case "--out" :: v :: tail => go(tail, options.copy(out = Paths.get(v)))
@@ -182,5 +187,5 @@ object BalanceSim:
       s"Runs: ${o.runs}, first seed: ${o.seed} (run n uses seed + n)",
       s"Bot: ability ${if o.policy.abilityRule == AbilityRule.Asap then "as soon as it can be paid" else "when the fight will last"}, attack otherwise, heal below ${o.policy.healBelowPercent}% HP, " +
         s"power potions in Elite/MiniBoss/Boss fights: ${o.policy.usePowerPotions}, clears every room: ${o.policy.clearRooms}, " +
-        s"opens every chest: ${o.policy.openChests}, takes the MiniBoss branch: ${o.policy.takeMiniBossBranch}"
+        s"opens every chest: ${o.policy.openChests} (${if o.policy.chestsFirst then "before" else "after"} the fights), takes the MiniBoss branch: ${o.policy.takeMiniBossBranch}"
     )

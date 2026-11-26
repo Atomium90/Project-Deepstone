@@ -43,8 +43,12 @@ enum EndingAnswer:
   * Values are starting points meant to be adjusted after playtesting.
   *
   * `Hardcore` is the descent without the god: it has the sections, Elites, traps and loot of `Hard`,
-  * its enemies are half again as strong (x1.5, to be brought down to Hard's x1.25 if that proves too
-  * much), and the run takes no blessing. It is opened by the story, not by victories.
+  * its enemies are tougher still (x1.36 against Hard's x1.28), and the run takes no blessing. It is
+  * opened by the story, not by victories.
+  *
+  * Normal and Hard sit close together on purpose (x1.26 and x1.28): a save that has bought the shop
+  * wins Normal almost every time, so Normal's single enemies have to be nearly as strong as Hard's. What
+  * makes Hard harder is its third section, its Elites and its traps, not a bigger multiplier.
   */
 enum Difficulty:
   case Easy, Normal, Hard, Hardcore
@@ -58,10 +62,10 @@ enum Difficulty:
 
   /** Multiplier applied to enemy maxHp/attack/defense/xpReward at instance creation. */
   def statMultiplier: Double = this match
-    case Difficulty.Easy   => 0.75
-    case Difficulty.Normal => 1.15
-    case Difficulty.Hard     => 1.25
-    case Difficulty.Hardcore => 1.375
+    case Difficulty.Easy   => 0.80
+    case Difficulty.Normal => 1.26
+    case Difficulty.Hard     => 1.28
+    case Difficulty.Hardcore => 1.36
 
   /** Number of sequential sections in a run, passed to [[roguelite.game.dungeon.DungeonBuilder.build]].
     * Every section follows the same fixed room template and ends in its own

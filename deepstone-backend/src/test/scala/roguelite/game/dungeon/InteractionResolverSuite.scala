@@ -453,7 +453,7 @@ class InteractionResolverSuite extends FunSuite:
     val state        = explorationAt(3, 3, entities = List(enemy)).copy(difficulty = Difficulty.Hard)
     val TransitionResult(next, _, _) = resolver().interact(state, "e1")
     val combat       = next.asInstanceOf[CombatState].combat
-    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * 1.25 * 1.75).toInt)
+    assertEquals(combat.enemy.maxHp, math.round(goblinStats.maxHp * Difficulty.Hard.statMultiplier * 1.75).toInt)
 
   test("Interact with unknown enemy typeId stays in Exploration with error"):
     val badEnemy        = Enemy("e2", x = 3, y = 3, typeId = "dragon", label = "Dragon")

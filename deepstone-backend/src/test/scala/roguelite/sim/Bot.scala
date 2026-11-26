@@ -71,6 +71,9 @@ object AbilityRule:
   *   Fight every enemy of a room. When false, only the Boss is fought (the way on is shut until then).
   * @param openChests
   *   Open every chest of a room.
+  * @param chestsFirst
+  *   Open the chests of a room before fighting its enemies, the way a player who wants the loot
+  *   before the danger plays. When false, the enemies come first and the chests are opened last.
   * @param takeMiniBossBranch
   *   At a fork, take the branch that holds the MiniBoss (more loot, a harder fight) rather than the
   *   other one.
@@ -81,6 +84,7 @@ final case class BotPolicy(
     usePowerPotions: Boolean = true,
     clearRooms: Boolean = true,
     openChests: Boolean = true,
+    chestsFirst: Boolean = true,
     takeMiniBossBranch: Boolean = true
 )
 
@@ -122,13 +126,16 @@ final class Bot(world: SimWorld, policy: BotPolicy):
     val chest =
       if policy.openChests then room.entities.collectFirst { case c: Chest if worthOpening(c) => c } else None
 
+    def openChest = chest.map { c =>
+      chestAttempts(key(c.id)) += 1
+      Interact(c.id)
+    }
+    def fightEnemy = enemy.map(e => Interact(e.id))
+    val loot = if policy.chestsFirst then openChest.orElse(fightEnemy) else fightEnemy.orElse(openChest)
+
     sanctuary.map(s => Interact(s.id))
       .orElse(shrine.map(s => Interact(s.id)))
-      .orElse(enemy.map(e => Interact(e.id)))
-      .orElse(chest.map { c =>
-        chestAttempts(key(c.id)) += 1
-        Interact(c.id)
-      })
+      .orElse(loot)
       .orElse(nextDoor(exp).map(d => Interact(d.id)))
 
   /** The way on: the one forward door, or at a fork the one the policy prefers. */

@@ -138,6 +138,12 @@ class BalanceSimSuite extends CatsEffectSuite:
     assertEquals(parsed.map(_.policy.healBelowPercent), Right(55))
     assertEquals(parsed.map(_.out.toString), Right("somewhere"))
 
+  test("--order picks whether the bot opens the chests before the fights, and it does by default"):
+    assertEquals(SimOptions.parse(Nil).map(_.policy.chestsFirst), Right(true))
+    assertEquals(SimOptions.parse(List("--order", "fights-first")).map(_.policy.chestsFirst), Right(false))
+    assertEquals(SimOptions.parse(List("--order", "chests-first")).map(_.policy.chestsFirst), Right(true))
+    assert(SimOptions.parse(List("--order", "sideways")).isLeft)
+
   test("--policy picks when the bot casts, and the patient bot is the default"):
     assertEquals(SimOptions.parse(Nil).map(_.policy.abilityRule), Right(AbilityRule.WhenLong))
     assertEquals(SimOptions.parse(List("--policy", "asap")).map(_.policy.abilityRule), Right(AbilityRule.Asap))

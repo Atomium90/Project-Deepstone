@@ -43,7 +43,7 @@ enum EndingAnswer:
   * Values are starting points meant to be adjusted after playtesting.
   *
   * `Hardcore` is the descent without the god: it has the sections, Elites, traps and loot of `Hard`,
-  * its enemies are tougher still (x1.37 against Hard's x1.28), and the run takes no blessing. It is
+  * its enemies are tougher still (x1.36 against Hard's x1.28), and the run takes no blessing. It is
   * opened by the story, not by victories.
   *
   * Normal and Hard sit close together on purpose (x1.26 and x1.28): a save that has bought the shop
@@ -65,7 +65,7 @@ enum Difficulty:
     case Difficulty.Easy   => 0.80
     case Difficulty.Normal => 1.26
     case Difficulty.Hard     => 1.28
-    case Difficulty.Hardcore => 1.37
+    case Difficulty.Hardcore => 1.36
 
   /** Number of sequential sections in a run, passed to [[roguelite.game.dungeon.DungeonBuilder.build]].
     * Every section follows the same fixed room template and ends in its own
